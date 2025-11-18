@@ -1,0 +1,194 @@
+Table Name,Column Name,Data Type,Key Type,Nullable,Default Value,Description,Constraints
+entity,id,uuid,PK,No,gen_random_uuid(),Unique entity identifier,PRIMARY KEY
+entity,name,varchar(63),UK,No,NULL,Entity name used in API and database table creation,UNIQUE NOT NULL
+entity,label,varchar(200),None,No,NULL,Display label for entity in UI,NOT NULL
+entity,label_plural,varchar(200),None,No,NULL,Plural form of entity label,NOT NULL
+entity,system,boolean,None,No,false,Flag indicating system-defined vs custom entity,NOT NULL
+entity,icon_class,text,None,Yes,NULL,CSS class for entity icon (e.g. 'fa fa-users'),NULL
+entity,record_permissions,jsonb,None,Yes,NULL,JSON object with role-based CRUD permissions,NULL
+entity,created_on,timestamptz,None,No,now(),Entity definition creation timestamp,NOT NULL
+entity,created_by,uuid,FK,Yes,NULL,User ID of entity creator,FOREIGN KEY -> user(id)
+entity,last_modified_on,timestamptz,None,Yes,NULL,Last modification timestamp,NULL
+entity,last_modified_by,uuid,FK,Yes,NULL,User ID of last modifier,FOREIGN KEY -> user(id)
+field,id,uuid,PK,No,gen_random_uuid(),Unique field identifier,PRIMARY KEY
+field,entity_id,uuid,FK,No,NULL,Reference to parent entity,FOREIGN KEY -> entity(id) ON DELETE CASCADE
+field,name,varchar(63),None,No,NULL,Field name used as column name in entity table,NOT NULL
+field,field_type,integer,None,No,NULL,FieldType enum value (1-21),NOT NULL
+field,label,varchar(200),None,No,NULL,Display label for field in UI,NOT NULL
+field,placeholder_text,varchar(200),None,Yes,NULL,Placeholder text for input fields,NULL
+field,description,text,None,Yes,NULL,Field purpose and usage description,NULL
+field,help_text,text,None,Yes,NULL,Help text displayed to users,NULL
+field,required,boolean,None,No,false,Mandatory field flag enforced at validation layer,NOT NULL
+field,unique,boolean,None,No,false,Unique constraint flag (creates unique index if true),NOT NULL
+field,searchable,boolean,None,No,false,Include in full-text search index flag,NOT NULL
+field,auditable,boolean,None,No,false,Track changes in audit log flag,NOT NULL
+field,system,boolean,None,No,false,System-defined vs custom field flag,NOT NULL
+field,default_value,text,None,Yes,NULL,Default value expression applied on record creation,NULL
+field,enable_security,boolean,None,No,false,Field-level permission enforcement flag,NOT NULL
+field,permissions,jsonb,None,Yes,NULL,Field-level read/write permission configuration,NULL
+entity_relation,id,uuid,PK,No,gen_random_uuid(),Unique relationship identifier,PRIMARY KEY
+entity_relation,name,varchar(200),UK,No,NULL,Relationship name for API access,UNIQUE NOT NULL
+entity_relation,relation_type,integer,None,No,NULL,EntityRelationType enum: OneToOne=1 OneToMany=2 ManyToMany=3,NOT NULL
+entity_relation,origin_entity_id,uuid,FK,No,NULL,Source entity in relationship,FOREIGN KEY -> entity(id)
+entity_relation,origin_field_id,uuid,FK,No,NULL,Field in origin entity storing relationship,FOREIGN KEY -> field(id)
+entity_relation,target_entity_id,uuid,FK,No,NULL,Target entity in relationship,FOREIGN KEY -> entity(id)
+entity_relation,target_field_id,uuid,FK,No,NULL,Field in target entity for bidirectional navigation,FOREIGN KEY -> field(id)
+entity_relation,label,varchar(200),None,No,NULL,Display label for relationship,NOT NULL
+entity_relation,system,boolean,None,No,false,System-defined vs custom relationship flag,NOT NULL
+user,id,uuid,PK,No,gen_random_uuid(),Unique user identifier,PRIMARY KEY
+user,email,varchar(255),UK,No,NULL,User email address for authentication,UNIQUE NOT NULL
+user,password,varchar(500),None,No,NULL,Encrypted password hash (CryptoUtility encryption),NOT NULL
+user,first_name,varchar(200),None,Yes,NULL,User given name,NULL
+user,last_name,varchar(200),None,Yes,NULL,User family name,NULL
+user,username,varchar(200),UK,Yes,NULL,Optional username for authentication (alternative to email),UNIQUE
+user,enabled,boolean,None,No,true,Account active flag (false disables login),NOT NULL
+user,verified,boolean,None,No,false,Email verification status flag,NOT NULL
+user,image,varchar(500),None,Yes,NULL,Profile image file path,NULL
+user,last_logged_in,timestamptz,None,Yes,NULL,Timestamp of most recent successful login,NULL
+user,created_on,timestamptz,None,No,now(),User account creation timestamp,NOT NULL
+user,created_by,uuid,FK,Yes,NULL,User ID of account creator,FOREIGN KEY -> user(id)
+user,last_modified_on,timestamptz,None,Yes,NULL,Last profile modification timestamp,NULL
+user,last_modified_by,uuid,FK,Yes,NULL,User ID of last profile modifier,FOREIGN KEY -> user(id)
+role,id,uuid,PK,No,NULL,Unique role identifier (predefined UUIDs for system roles),PRIMARY KEY
+role,name,varchar(200),UK,No,NULL,Role name identifier,UNIQUE NOT NULL
+role,description,text,None,Yes,NULL,Role purpose and permissions description,NULL
+role,created_on,timestamptz,None,No,now(),Role creation timestamp,NOT NULL
+user_role,id,uuid,PK,No,gen_random_uuid(),Unique user-role assignment identifier,PRIMARY KEY
+user_role,user_id,uuid,FK,No,NULL,Reference to user,FOREIGN KEY -> user(id) ON DELETE CASCADE
+user_role,role_id,uuid,FK,No,NULL,Reference to role,FOREIGN KEY -> role(id) ON DELETE CASCADE
+user_role,created_on,timestamptz,None,No,now(),Assignment creation timestamp,NOT NULL
+entity_permission,id,uuid,PK,No,gen_random_uuid(),Unique permission grant identifier,PRIMARY KEY
+entity_permission,entity_id,uuid,FK,No,NULL,Entity being protected,FOREIGN KEY -> entity(id) ON DELETE CASCADE
+entity_permission,role_id,uuid,FK,No,NULL,Role receiving permissions,FOREIGN KEY -> role(id) ON DELETE CASCADE
+entity_permission,can_read,boolean,None,No,false,Query and view permission flag,NOT NULL
+entity_permission,can_create,boolean,None,No,false,Insert new records permission flag,NOT NULL
+entity_permission,can_update,boolean,None,No,false,Modify existing records permission flag,NOT NULL
+entity_permission,can_delete,boolean,None,No,false,Remove records permission flag,NOT NULL
+entity_permission,created_on,timestamptz,None,No,now(),Permission grant creation timestamp,NOT NULL
+system_log,id,uuid,PK,No,gen_random_uuid(),Unique log entry identifier,PRIMARY KEY
+system_log,type,varchar(50),None,No,NULL,Log entry type (info/warning/error/debug),NOT NULL
+system_log,source,varchar(200),None,Yes,NULL,Source component or service generating log,NULL
+system_log,message,text,None,No,NULL,Log message content,NOT NULL
+system_log,details,text,None,Yes,NULL,Detailed information (stack trace exception data),NULL
+system_log,created_on,timestamptz,None,No,now(),Log entry creation timestamp,NOT NULL
+system_log,user_id,uuid,FK,Yes,NULL,User associated with log entry (if applicable),FOREIGN KEY -> user(id)
+system_log,ip_address,varchar(50),None,Yes,NULL,Client IP address,NULL
+system_search,id,uuid,PK,No,gen_random_uuid(),Unique search index entry identifier,PRIMARY KEY
+system_search,entity_id,uuid,FK,No,NULL,Entity type being indexed,FOREIGN KEY -> entity(id)
+system_search,record_id,uuid,None,No,NULL,Record primary key value,NOT NULL
+system_search,title,varchar(500),None,No,NULL,Search result title,NOT NULL
+system_search,snippet,text,None,Yes,NULL,Search result preview text,NULL
+system_search,search_vector,tsvector,None,No,NULL,PostgreSQL full-text search vector,NOT NULL
+system_search,created_on,timestamptz,None,No,now(),Index entry creation timestamp,NOT NULL
+system_search,last_modified_on,timestamptz,None,Yes,NULL,Index entry last update timestamp,NULL
+job,id,uuid,PK,No,gen_random_uuid(),Unique job definition identifier,PRIMARY KEY
+job,type,varchar(200),None,No,NULL,Job type identifier (class name),NOT NULL
+job,name,varchar(200),None,No,NULL,Job display name,NOT NULL
+job,priority,integer,None,No,100,Execution priority (lower number = higher priority),NOT NULL
+job,enabled,boolean,None,No,true,Job active flag (false disables execution),NOT NULL
+job,schedule_plan,jsonb,None,Yes,NULL,Schedule configuration (daily/weekly/monthly recurrence),NULL
+job,last_execution,timestamptz,None,Yes,NULL,Timestamp of most recent execution,NULL
+job,last_result,text,None,Yes,NULL,Result of most recent execution,NULL
+job,created_on,timestamptz,None,No,now(),Job definition creation timestamp,NOT NULL
+job_execution,id,uuid,PK,No,gen_random_uuid(),Unique job execution record identifier,PRIMARY KEY
+job_execution,job_id,uuid,FK,No,NULL,Reference to job definition,FOREIGN KEY -> job(id) ON DELETE CASCADE
+job_execution,started_on,timestamptz,None,No,now(),Execution start timestamp,NOT NULL
+job_execution,finished_on,timestamptz,None,Yes,NULL,Execution completion timestamp,NULL
+job_execution,status,varchar(50),None,No,NULL,Execution status (running/success/failed),NOT NULL
+job_execution,result_json,text,None,Yes,NULL,Serialized execution result data,NULL
+job_execution,error_message,text,None,Yes,NULL,Error message if execution failed,NULL
+plugin_data,id,uuid,PK,No,gen_random_uuid(),Unique plugin data entry identifier,PRIMARY KEY
+plugin_data,plugin_name,varchar(200),None,No,NULL,Plugin identifier,NOT NULL
+plugin_data,key,varchar(200),None,No,NULL,Data key within plugin namespace,NOT NULL
+plugin_data,value_json,text,None,Yes,NULL,Serialized value data,NULL
+plugin_data,version,varchar(50),None,Yes,NULL,Plugin version for migration tracking,NULL
+plugin_data,created_on,timestamptz,None,No,now(),Entry creation timestamp,NOT NULL
+notification,id,uuid,PK,No,gen_random_uuid(),Unique notification identifier,PRIMARY KEY
+notification,user_id,uuid,FK,No,NULL,Target user for notification,FOREIGN KEY -> user(id) ON DELETE CASCADE
+notification,type,varchar(100),None,No,NULL,Notification type (info/warning/error/success),NOT NULL
+notification,title,varchar(500),None,No,NULL,Notification title,NOT NULL
+notification,body,text,None,Yes,NULL,Notification message body,NULL
+notification,url,varchar(500),None,Yes,NULL,Link URL for notification action,NULL
+notification,read,boolean,None,No,false,Read status flag,NOT NULL
+notification,created_on,timestamptz,None,No,now(),Notification creation timestamp,NOT NULL
+application,id,uuid,PK,No,gen_random_uuid(),Unique application identifier,PRIMARY KEY
+application,name,varchar(200),UK,No,NULL,Application name identifier,UNIQUE NOT NULL
+application,label,varchar(200),None,No,NULL,Application display label,NOT NULL
+application,description,text,None,Yes,NULL,Application purpose description,NULL
+application,icon_class,text,None,Yes,NULL,CSS class for application icon,NULL
+application,color,varchar(50),None,Yes,NULL,Application theme color,NULL
+application,weight,integer,None,No,100,Sort order (lower number = higher in list),NOT NULL
+application,access,jsonb,None,Yes,NULL,Role-based application access configuration,NULL
+application,system,boolean,None,No,false,System-defined vs custom application flag,NOT NULL
+page,id,uuid,PK,No,gen_random_uuid(),Unique page identifier,PRIMARY KEY
+page,name,varchar(200),None,No,NULL,Page name identifier for routing,NOT NULL
+page,label,varchar(200),None,No,NULL,Page display title,NOT NULL
+page,app_id,uuid,FK,Yes,NULL,Parent application (NULL for site-level pages),FOREIGN KEY -> application(id)
+page,entity_id,uuid,FK,Yes,NULL,Associated entity for entity-specific pages,FOREIGN KEY -> entity(id)
+page,type,integer,None,No,NULL,Page type enum value,NOT NULL
+page,layout,jsonb,None,Yes,NULL,Page structure definition with areas and nodes,NULL
+page,weight,integer,None,No,100,Sort order within application,NOT NULL
+page,system,boolean,None,No,false,System-defined vs custom page flag,NOT NULL
+page,icon_class,text,None,Yes,NULL,CSS class for page icon in navigation,NULL
+page_body_node,id,uuid,PK,No,gen_random_uuid(),Unique page component node identifier,PRIMARY KEY
+page_body_node,page_id,uuid,FK,No,NULL,Parent page,FOREIGN KEY -> page(id) ON DELETE CASCADE
+page_body_node,parent_id,uuid,FK,Yes,NULL,Parent node for hierarchical structure,FOREIGN KEY -> page_body_node(id)
+page_body_node,component_name,varchar(200),None,No,NULL,Component type identifier (e.g. 'PcFieldText'),NOT NULL
+page_body_node,options,jsonb,None,Yes,NULL,Component configuration as JSON,NULL
+page_body_node,weight,integer,None,No,100,Display order within parent,NOT NULL
+data_source,id,uuid,PK,No,gen_random_uuid(),Unique data source identifier,PRIMARY KEY
+data_source,name,varchar(200),UK,No,NULL,Data source name identifier,UNIQUE NOT NULL
+data_source,description,text,None,Yes,NULL,Data source purpose description,NULL
+data_source,entity_id,uuid,FK,Yes,NULL,Primary entity for database data sources,FOREIGN KEY -> entity(id)
+data_source,type,varchar(50),None,No,NULL,Data source type (database/code),NOT NULL
+data_source,eql_text,text,None,Yes,NULL,EQL query text for database data sources,NULL
+data_source,parameters,text,None,Yes,NULL,Newline-delimited parameter definitions,NULL
+data_source,return_type,varchar(200),None,Yes,NULL,Expected return type specification,NULL
+rec_{entity},id,uuid,PK,No,gen_random_uuid(),Unique record identifier,PRIMARY KEY
+rec_{entity},created_on,timestamptz,None,No,now(),Record creation timestamp,NOT NULL
+rec_{entity},created_by,uuid,FK,Yes,NULL,User ID of record creator,FOREIGN KEY -> user(id)
+rec_{entity},last_modified_on,timestamptz,None,Yes,NULL,Last modification timestamp,NULL
+rec_{entity},last_modified_by,uuid,FK,Yes,NULL,User ID of last modifier,FOREIGN KEY -> user(id)
+rec_{entity},{field_name},varies,None,Varies,Varies,Dynamic columns per field definitions - see Field Type Mapping,Varies per FieldType
+nm_{relation},id,uuid,PK,No,gen_random_uuid(),Unique junction record identifier,PRIMARY KEY
+nm_{relation},origin_id,uuid,FK,No,NULL,Origin entity record reference,FOREIGN KEY -> rec_{origin_entity}(id) ON DELETE CASCADE
+nm_{relation},target_id,uuid,FK,No,NULL,Target entity record reference,FOREIGN KEY -> rec_{target_entity}(id) ON DELETE CASCADE
+nm_{relation},created_on,timestamptz,None,Yes,NULL,Association creation timestamp,NULL
+nm_{relation},created_by,uuid,FK,Yes,NULL,User ID who created association,FOREIGN KEY -> user(id)
+rec_project,id,uuid,PK,No,gen_random_uuid(),Unique project identifier,PRIMARY KEY
+rec_project,name,varchar(200),None,No,NULL,Project name,NOT NULL
+rec_project,code,varchar(50),UK,Yes,NULL,Project code identifier,UNIQUE
+rec_project,description,text,None,Yes,NULL,Project description,NULL
+rec_project,status,varchar(50),None,No,'planning',Project status (planning/active/completed/cancelled),NOT NULL
+rec_project,owner_id,uuid,FK,Yes,NULL,Project owner user reference,FOREIGN KEY -> user(id)
+rec_project,start_date,date,None,Yes,NULL,Project start date,NULL
+rec_project,end_date,date,None,Yes,NULL,Project target end date,NULL
+rec_project,budget,numeric(18 4),None,Yes,NULL,Project budget amount,CHECK (budget >= 0)
+rec_project,created_on,timestamptz,None,No,now(),Record creation timestamp,NOT NULL
+rec_project,created_by,uuid,FK,Yes,NULL,User ID of record creator,FOREIGN KEY -> user(id)
+rec_project,last_modified_on,timestamptz,None,Yes,NULL,Last modification timestamp,NULL
+rec_project,last_modified_by,uuid,FK,Yes,NULL,User ID of last modifier,FOREIGN KEY -> user(id)
+rec_task,id,uuid,PK,No,gen_random_uuid(),Unique task identifier,PRIMARY KEY
+rec_task,subject,varchar(500),None,No,NULL,Task subject/title,NOT NULL
+rec_task,description,text,None,Yes,NULL,Task detailed description,NULL
+rec_task,priority,varchar(50),None,No,'normal',Task priority (low/normal/high/urgent),NOT NULL
+rec_task,status,varchar(50),None,No,'not_started',Task status workflow value,NOT NULL
+rec_task,project_id,uuid,FK,Yes,NULL,Parent project reference,FOREIGN KEY -> rec_project(id)
+rec_task,owner_id,uuid,FK,Yes,NULL,Task owner user reference,FOREIGN KEY -> user(id)
+rec_task,start_date,timestamptz,None,Yes,NULL,Task start date/time,NULL
+rec_task,end_date,timestamptz,None,Yes,NULL,Task target end date/time,NULL
+rec_task,billable,boolean,None,No,true,Billable task flag for time tracking,NOT NULL
+rec_task,created_on,timestamptz,None,No,now(),Record creation timestamp,NOT NULL
+rec_task,created_by,uuid,FK,Yes,NULL,User ID of record creator,FOREIGN KEY -> user(id)
+rec_task,last_modified_on,timestamptz,None,Yes,NULL,Last modification timestamp,NULL
+rec_task,last_modified_by,uuid,FK,Yes,NULL,User ID of last modifier,FOREIGN KEY -> user(id)
+rec_timelog,id,uuid,PK,No,gen_random_uuid(),Unique timelog identifier,PRIMARY KEY
+rec_timelog,minutes,integer,None,No,NULL,Logged time in minutes,NOT NULL CHECK (minutes > 0)
+rec_timelog,billable,boolean,None,No,true,Billable time flag,NOT NULL
+rec_timelog,user_id,uuid,FK,No,NULL,User who logged time,FOREIGN KEY -> user(id)
+rec_timelog,task_id,uuid,FK,Yes,NULL,Associated task reference,FOREIGN KEY -> rec_task(id)
+rec_timelog,project_id,uuid,FK,Yes,NULL,Associated project reference (direct or via task),FOREIGN KEY -> rec_project(id)
+rec_timelog,logged_on,date,None,No,NULL,Date of work performed,NOT NULL
+rec_timelog,body,text,None,Yes,NULL,Time log notes/description,NULL
+rec_timelog,created_on,timestamptz,None,No,now(),Record creation timestamp,NOT NULL
+rec_timelog,created_by,uuid,FK,Yes,NULL,User ID of record creator,FOREIGN KEY -> user(id)

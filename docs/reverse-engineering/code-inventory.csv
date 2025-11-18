@@ -1,0 +1,1468 @@
+Module Name,File Path,Language,Dependencies,Lines of Code,Last Modified,Primary Purpose,Complexity Score
+Other,LIBRARIES.md,Markdown,See project dependencies,0,2025-11-18,Documentation,Very Low
+Other,README.md,Markdown,See project dependencies,46,2025-11-18,Documentation,Very Low
+Other,WebVella.ERP3.sln,Solution,See project dependencies,138,2025-11-18,Source file,Low
+Console Application,WebVella.Erp.ConsoleApp/Config.json,JSON,See project dependencies,23,2025-11-18,Runtime configuration,Very Low
+Console Application,WebVella.Erp.ConsoleApp/Program.cs,C#,See project dependencies,161,2025-11-18,Source file,Low
+Console Application,WebVella.Erp.ConsoleApp/RoleRecordHooks.cs,C#,See project dependencies,43,2025-11-18,Source file,Very Low
+Console Application,WebVella.Erp.ConsoleApp/StringExtensions.cs,C#,See project dependencies,17,2025-11-18,Source file,Very Low
+Console Application,WebVella.Erp.ConsoleApp/UserRecordHooks.cs,C#,See project dependencies,97,2025-11-18,Source file,Very Low
+Console Application,WebVella.Erp.ConsoleApp/WebVella.Erp.ConsoleApp.csproj,MSBuild,See project dependencies,25,2025-11-18,Project manifest,Very Low
+CRM Plugin,WebVella.Erp.Plugins.Crm/CrmPlugin._.cs,C#,See project dependencies,103,2025-11-18,Plugin migration patch,Low
+CRM Plugin,WebVella.Erp.Plugins.Crm/CrmPlugin.cs,C#,See project dependencies,23,2025-11-18,Plugin initialization,Very Low
+CRM Plugin,WebVella.Erp.Plugins.Crm/Model/PluginSettings.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+CRM Plugin,WebVella.Erp.Plugins.Crm/WebVella.Erp.Plugins.Crm.csproj,MSBuild,See project dependencies,17,2025-11-18,Project manifest,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/AutoMapper/AutoMapperConfiguration.cs,C#,See project dependencies,34,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/AutoMapper/EmailProfile.cs,C#,See project dependencies,75,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/AutoMapper/SmtpServiceProfile.cs,C#,See project dependencies,64,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/Email.cs,C#,See project dependencies,60,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/EmailAddress.cs,C#,See project dependencies,33,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/EmailPriority.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/EmailServiceManager.cs,C#,See project dependencies,114,2025-11-18,Business logic manager,Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/EmailStatus.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Api/SmtpService.cs,C#,See project dependencies,947,2025-11-18,Application service,Medium
+Mail Plugin,WebVella.Erp.Plugins.Mail/Hooks/Api/SmtpServiceRecordHook.cs,C#,See project dependencies,53,2025-11-18,Extensibility hook,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Hooks/Page/EmailSendNow.cs,C#,See project dependencies,21,2025-11-18,Source file,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Hooks/Page/TestSmtpService.cs,C#,See project dependencies,29,2025-11-18,Application service,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs,C#,See project dependencies,18,2025-11-18,Background job,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20190215.cs,C#,See project dependencies,5499,2025-11-18,Plugin migration patch,Very High
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20190419.cs,C#,See project dependencies,426,2025-11-18,Plugin migration patch,Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20190420.cs,C#,See project dependencies,72,2025-11-18,Plugin migration patch,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20190422.cs,C#,See project dependencies,90,2025-11-18,Plugin migration patch,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20190529.cs,C#,See project dependencies,43,2025-11-18,Plugin migration patch,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20200610.cs,C#,See project dependencies,31,2025-11-18,Plugin migration patch,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.20200611.cs,C#,See project dependencies,60,2025-11-18,Plugin migration patch,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin._.cs,C#,See project dependencies,230,2025-11-18,Plugin migration patch,Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/MailPlugin.cs,C#,See project dependencies,90,2025-11-18,Plugin initialization,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/README.md,Markdown,See project dependencies,2,2025-11-18,Documentation,Very Low
+Mail Plugin,WebVella.Erp.Plugins.Mail/Services/SmtpInternalService.cs,C#,See project dependencies,880,2025-11-18,Application service,Medium
+Mail Plugin,WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj,MSBuild,See project dependencies,35,2025-11-18,Project manifest,Very Low
+Microsoft CDM Plugin,WebVella.Erp.Plugins.MicrosoftCDM/MicrosoftCDMPlugin._.cs,C#,See project dependencies,106,2025-11-18,Plugin migration patch,Low
+Microsoft CDM Plugin,WebVella.Erp.Plugins.MicrosoftCDM/MicrosoftCDMPlugin.cs,C#,See project dependencies,23,2025-11-18,Plugin initialization,Very Low
+Microsoft CDM Plugin,WebVella.Erp.Plugins.MicrosoftCDM/Model/PluginSettings.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Microsoft CDM Plugin,WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj,MSBuild,See project dependencies,20,2025-11-18,Project manifest,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Configuration.cs,C#,See project dependencies,24,2025-11-18,Source file,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Hooks/Api/AccountHook.cs,C#,See project dependencies,22,2025-11-18,Extensibility hook,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Hooks/Api/CaseHook.cs,C#,See project dependencies,22,2025-11-18,Extensibility hook,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Hooks/Api/ContactHook.cs,C#,See project dependencies,22,2025-11-18,Extensibility hook,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Hooks/Api/TaskHook.cs,C#,See project dependencies,22,2025-11-18,Extensibility hook,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Model/PluginSettings.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.20190203.cs,C#,See project dependencies,11502,2025-11-18,Plugin migration patch,Very High
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.20190204.cs,C#,See project dependencies,2663,2025-11-18,Plugin migration patch,High
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.20190205.cs,C#,See project dependencies,81,2025-11-18,Plugin migration patch,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.20190206.cs,C#,See project dependencies,1396,2025-11-18,Plugin migration patch,Medium
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.20190222.cs,C#,See project dependencies,159,2025-11-18,Plugin migration patch,Low
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin._.cs,C#,See project dependencies,208,2025-11-18,Plugin migration patch,Low
+Next Plugin,WebVella.Erp.Plugins.Next/NextPlugin.cs,C#,See project dependencies,27,2025-11-18,Plugin initialization,Very Low
+Next Plugin,WebVella.Erp.Plugins.Next/Services/SearchService.cs,C#,See project dependencies,288,2025-11-18,Application service,Low
+Next Plugin,WebVella.Erp.Plugins.Next/WebVella.Erp.Plugins.Next.csproj,MSBuild,See project dependencies,17,2025-11-18,Project manifest,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/HookMetaHead/HookMetaHead.cs,C#,See project dependencies,44,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/HookMetaHead/Project_HookMetaHead.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/Design.cshtml,Razor,See project dependencies,4,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/Display.cshtml,Razor,See project dependencies,4,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/Options.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/PcFeedList.cs,C#,See project dependencies,130,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcFeedList/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/Design.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/Display.cshtml,Razor,See project dependencies,32,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/Options.cshtml,Razor,See project dependencies,18,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/PcPostList.cs,C#,See project dependencies,167,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcPostList/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/Design.cshtml,Razor,See project dependencies,48,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/Display.cshtml,Razor,See project dependencies,48,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/Options.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/PcProjectWidgetBudgetChart.cs,C#,See project dependencies,189,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetBudgetChart/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/Design.cshtml,Razor,See project dependencies,51,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/Display.cshtml,Razor,See project dependencies,50,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/Options.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/PcProjectWidgetTaskDistribution.cs,C#,See project dependencies,189,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTaskDistribution/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/Design.cshtml,Razor,See project dependencies,38,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/Display.cshtml,Razor,See project dependencies,38,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/Options.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/PcProjectWidgetTasksChart.cs,C#,See project dependencies,153,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksChart/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/Design.cshtml,Razor,See project dependencies,61,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/Display.cshtml,Razor,See project dependencies,61,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/Options.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/PcProjectWidgetTasksPriorityChart.cs,C#,See project dependencies,161,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksPriorityChart/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/Design.cshtml,Razor,See project dependencies,79,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/Display.cshtml,Razor,See project dependencies,76,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/Options.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/PcProjectWidgetTasksQueue.cs,C#,See project dependencies,154,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTasksQueue/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/Design.cshtml,Razor,See project dependencies,45,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/Display.cshtml,Razor,See project dependencies,45,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/Options.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/PcProjectWidgetTimesheet.cs,C#,See project dependencies,240,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcProjectWidgetTimesheet/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/Design.cshtml,Razor,See project dependencies,15,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/Display.cshtml,Razor,See project dependencies,59,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/Options.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/PcReportAccountMonthlyTimelogs.cs,C#,See project dependencies,166,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcReportAccountMonthlyTimelogs/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/Design.cshtml,Razor,See project dependencies,2,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/Display.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/Options.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/PcTaskRepeatRecurrenceSet.cs,C#,See project dependencies,141,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTaskRepeatRecurrenceSet/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/Design.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/Display.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/Options.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/PcTimelogList.cs,C#,See project dependencies,161,2025-11-18,Page component,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Components/PcTimelogList/service.js,JavaScript,See project dependencies,42,2025-11-18,Page component,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs,C#,See project dependencies,498,2025-11-18,API/Web controller,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Datasource/MonthSelectOptions.cs,C#,See project dependencies,41,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Datasource/TrackTimeTasks.cs,C#,See project dependencies,66,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Files/task-details.js,JavaScript,See project dependencies,38,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Files/timetrack.js,JavaScript,See project dependencies,184,2025-11-18,Source file,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Api/Comment.cs,C#,See project dependencies,23,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Api/Task.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Api/Timelog.cs,C#,See project dependencies,28,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Page/PageHook.cs,C#,See project dependencies,49,2025-11-18,Extensibility hook,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Page/SetTaskRecurrence.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Hooks/Page/_TimeTrackCreateLog.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Jobs/StartTasksOnStartDate.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Model/PluginSettings.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Model/TasksQueueType.cs,C#,See project dependencies,23,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190203.cs,C#,See project dependencies,11035,2025-11-18,Plugin migration patch,Very High
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190205.cs,C#,See project dependencies,357,2025-11-18,Plugin migration patch,Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190206.cs,C#,See project dependencies,144,2025-11-18,Plugin migration patch,Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190207.cs,C#,See project dependencies,79,2025-11-18,Plugin migration patch,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190208.cs,C#,See project dependencies,47,2025-11-18,Plugin migration patch,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20190222.cs,C#,See project dependencies,1356,2025-11-18,Plugin migration patch,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20211012.cs,C#,See project dependencies,1426,2025-11-18,Plugin migration patch,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.20211013.cs,C#,See project dependencies,53,2025-11-18,Plugin migration patch,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin._.cs,C#,See project dependencies,253,2025-11-18,Plugin migration patch,Low
+Project Plugin,WebVella.Erp.Plugins.Project/ProjectPlugin.cs,C#,See project dependencies,74,2025-11-18,Plugin initialization,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/BaseService.cs,C#,See project dependencies,19,2025-11-18,Application service,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/CommentService.cs,C#,See project dependencies,227,2025-11-18,Application service,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/FeedItemService.cs,C#,See project dependencies,55,2025-11-18,Application service,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/ProjectService.cs,C#,See project dependencies,37,2025-11-18,Application service,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/RenderService.cs,C#,See project dependencies,29,2025-11-18,Application service,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/ReportService.cs,C#,See project dependencies,137,2025-11-18,Application service,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Services/TaskService.cs,C#,See project dependencies,643,2025-11-18,Application service,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/Services/TimeLogService.cs,C#,See project dependencies,369,2025-11-18,Application service,Low
+Project Plugin,WebVella.Erp.Plugins.Project/Utils/EntityRecordUtils.cs,C#,See project dependencies,43,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Utils/TimeUtils.cs,C#,See project dependencies,87,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/Utils/UrlUtils.cs,C#,See project dependencies,27,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj,MSBuild,See project dependencies,59,2025-11-18,Project manifest,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-66jkzmn8.system.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-7ee22736.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-8e75cc10.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-a614138e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-d8631f0b.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-da98e445.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/p-lzwqwltl.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/wv-feed-list.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-feed-list/wv-feed-list.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-5ugxowv3.system.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-852caade.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-a614138e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-ad30cd92.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-d8631f0b.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-f8772569.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/p-fl6wzscq.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/wv-post-list.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-post-list/wv-post-list.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-00c55fa7.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-98d616ee.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-a614138e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-ac45fd19.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-arqnlskd.system.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-d8631f0b.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/p-udy5cavj.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/wv-recurrence-template.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-recurrence-template/wv-recurrence-template.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-00014dac.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-0wj4ougw.system.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-40768f81.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-a614138e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-d8631f0b.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-f00b9929.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/p-kqlrldvr.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/wv-timelog-list.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Project Plugin,WebVella.Erp.Plugins.Project/wwwroot/js/wv-timelog-list/wv-timelog-list.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/BodyTopIncludes/BodyTopIncludes.cs,C#,See project dependencies,40,2025-11-18,Page component,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/BodyTopIncludes/Sdk_Default.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/WvSdkPageSitemap/Display.cshtml,Razor,See project dependencies,63,2025-11-18,Page component,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/WvSdkPageSitemap/Error.cshtml,Razor,See project dependencies,0,2025-11-18,Page component,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/WvSdkPageSitemap/Form.cshtml,Razor,See project dependencies,93,2025-11-18,Page component,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/WvSdkPageSitemap/WvSdkPageSitemap.cs,C#,See project dependencies,248,2025-11-18,Page component,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Components/WvSdkPageSitemap/form.js,JavaScript,See project dependencies,290,2025-11-18,Page component,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs,C#,See project dependencies,522,2025-11-18,API/Web controller,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/DataSource/SampleCodeDataSource.cs,C#,See project dependencies,70,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Jobs/ClearJobAndErrorLogsJob.cs,C#,See project dependencies,28,2025-11-18,Background job,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Jobs/SampleJob.cs,C#,See project dependencies,18,2025-11-18,Background job,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Model/AppSelectionTree.cs,C#,See project dependencies,23,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Model/AreaSelectionTree.cs,C#,See project dependencies,17,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Model/PageSelectionTree.cs,C#,See project dependencies,23,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Model/PluginSettings.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Model/SitemapNodeSubmit.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/Shared/RenderModelNode.cshtml,Razor,See project dependencies,46,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/_ViewImports.cshtml,Razor,See project dependencies,12,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/create.cshtml,Razor,See project dependencies,60,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/create.cshtml.cs,C#,See project dependencies,114,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/details.cshtml,Razor,See project dependencies,65,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/details.cshtml.cs,C#,See project dependencies,130,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/list.cshtml,Razor,See project dependencies,54,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/list.cshtml.cs,C#,See project dependencies,167,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/manage.cshtml,Razor,See project dependencies,65,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/manage.cshtml.cs,C#,See project dependencies,155,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/pages.cshtml,Razor,See project dependencies,49,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/pages.cshtml.cs,C#,See project dependencies,91,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/sitemap.cshtml,Razor,See project dependencies,83,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/application/sitemap.cshtml.cs,C#,See project dependencies,71,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/create.cshtml,Razor,See project dependencies,221,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/create.cshtml.cs,C#,See project dependencies,108,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/details.cshtml,Razor,See project dependencies,243,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/details.cshtml.cs,C#,See project dependencies,158,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/list.cshtml,Razor,See project dependencies,65,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/list.cshtml.cs,C#,See project dependencies,217,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/manage.cshtml,Razor,See project dependencies,182,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/data_source/manage.cshtml.cs,C#,See project dependencies,142,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/clone.cshtml,Razor,See project dependencies,58,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/clone.cshtml.cs,C#,See project dependencies,254,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create-field-select.cshtml,Razor,See project dependencies,35,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create-field-select.cshtml.cs,C#,See project dependencies,56,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create-field.cshtml,Razor,See project dependencies,353,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create-field.cshtml.cs,C#,See project dependencies,986,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create.cshtml,Razor,See project dependencies,58,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/create.cshtml.cs,C#,See project dependencies,204,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data-create.cshtml,Razor,See project dependencies,308,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data-create.cshtml.cs,C#,See project dependencies,163,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data-manage.cshtml,Razor,See project dependencies,337,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data-manage.cshtml.cs,C#,See project dependencies,173,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data.cshtml,Razor,See project dependencies,426,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/data.cshtml.cs,C#,See project dependencies,324,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/details.cshtml,Razor,See project dependencies,76,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/details.cshtml.cs,C#,See project dependencies,177,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/field-details.cshtml,Razor,See project dependencies,442,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/field-details.cshtml.cs,C#,See project dependencies,181,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/fields.cshtml,Razor,See project dependencies,68,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/fields.cshtml.cs,C#,See project dependencies,196,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/list.cshtml,Razor,See project dependencies,57,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/list.cshtml.cs,C#,See project dependencies,172,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/manage-field.cshtml,Razor,See project dependencies,345,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/manage-field.cshtml.cs,C#,See project dependencies,1346,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/manage.cshtml,Razor,See project dependencies,77,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/manage.cshtml.cs,C#,See project dependencies,252,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/pages.cshtml,Razor,See project dependencies,82,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/pages.cshtml.cs,C#,See project dependencies,309,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-create.cshtml,Razor,See project dependencies,65,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-create.cshtml.cs,C#,See project dependencies,186,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-details.cshtml,Razor,See project dependencies,81,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-details.cshtml.cs,C#,See project dependencies,127,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-manage.cshtml,Razor,See project dependencies,71,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relation-manage.cshtml.cs,C#,See project dependencies,146,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relations.cshtml,Razor,See project dependencies,58,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/relations.cshtml.cs,C#,See project dependencies,189,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/web-api.cshtml,Razor,See project dependencies,624,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/entity/web-api.cshtml.cs,C#,See project dependencies,74,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/list.cshtml,Razor,See project dependencies,82,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/list.cshtml.cs,C#,See project dependencies,152,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/plan-manage.cshtml,Razor,See project dependencies,79,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/plan-manage.cshtml.cs,C#,See project dependencies,248,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/plan.cshtml,Razor,See project dependencies,83,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/job/plan.cshtml.cs,C#,See project dependencies,146,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/log/list.cshtml,Razor,See project dependencies,95,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/log/list.cshtml.cs,C#,See project dependencies,130,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/create.cshtml,Razor,See project dependencies,41,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/create.cshtml.cs,C#,See project dependencies,103,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/custom-body.cshtml,Razor,See project dependencies,46,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/custom-body.cshtml.cs,C#,See project dependencies,65,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/details.cshtml,Razor,See project dependencies,81,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/details.cshtml.cs,C#,See project dependencies,183,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/generated-body.cshtml,Razor,See project dependencies,41,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/generated-body.cshtml.cs,C#,See project dependencies,89,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/list.cshtml,Razor,See project dependencies,77,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/list.cshtml.cs,C#,See project dependencies,299,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/manage-custom.cshtml,Razor,See project dependencies,47,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/manage-custom.cshtml.cs,C#,See project dependencies,102,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/manage.cshtml,Razor,See project dependencies,74,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/manage.cshtml.cs,C#,See project dependencies,152,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/model.cshtml,Razor,See project dependencies,240,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/page/model.cshtml.cs,C#,See project dependencies,215,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/create.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/create.cshtml.cs,C#,See project dependencies,61,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/list.cshtml,Razor,See project dependencies,40,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/list.cshtml.cs,C#,See project dependencies,88,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/manage.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/role/manage.cshtml.cs,C#,See project dependencies,82,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/tools/cogegen.cshtml,Razor,See project dependencies,128,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/tools/cogegen.cshtml.cs,C#,See project dependencies,140,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/create.cshtml,Razor,See project dependencies,57,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/create.cshtml.cs,C#,See project dependencies,125,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/list.cshtml,Razor,See project dependencies,50,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/list.cshtml.cs,C#,See project dependencies,113,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/manage.cshtml,Razor,See project dependencies,57,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Pages/user/manage.cshtml.cs,C#,See project dependencies,158,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/README.md,Markdown,See project dependencies,2,2025-11-18,Documentation,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.20181215.cs,C#,See project dependencies,213,2025-11-18,Plugin migration patch,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.20190227.cs,C#,See project dependencies,219,2025-11-18,Plugin migration patch,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.20200610.cs,C#,See project dependencies,33,2025-11-18,Plugin migration patch,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.20201221.cs,C#,See project dependencies,110,2025-11-18,Plugin migration patch,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.20210429.cs,C#,See project dependencies,52,2025-11-18,Plugin migration patch,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin._.cs,C#,See project dependencies,165,2025-11-18,Plugin migration patch,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/SdkPlugin.cs,C#,See project dependencies,109,2025-11-18,Plugin initialization,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Services/CodeGenService.cs,C#,See project dependencies,9321,2025-11-18,Application service,Very High
+SDK Plugin,WebVella.Erp.Plugins.SDK/Services/LogService.cs,C#,See project dependencies,136,2025-11-18,Application service,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/Utils/AdminPageUtils.cs,C#,See project dependencies,247,2025-11-18,Source file,Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/WebVella.Erp.Plugins.SDK.csproj,MSBuild,See project dependencies,53,2025-11-18,Project manifest,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/core-a8682c5d.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/core-c7ac21f4.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/css-shim-978387b1-1e75855f.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/css-shim-978387b1-45911f05.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/dom-76cc7c7d-0a082895.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/dom-76cc7c7d-c4101f94.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/index.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/wv-datasource-manage.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/wv-datasource-manage.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/wv-datasource-manage.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/wv-datasource-manage_4.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-datasource-manage/wv-datasource-manage_4.system.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-1b4b3940.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-4e385a20.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-a614138e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-b936be6e.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-d8631f0b.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-ledrsdq5.system.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/p-lhcicmgg.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/wv-pb-manager.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-pb-manager/wv-pb-manager.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-3b66a627.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-447ccb56.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-73bc5e11.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-7f10eb01.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-b7e7ce2a.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-ba4f137e.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-ed09b763.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-mvv1meam.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-nbwiefc8.system.entry.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/p-tahlqbo4.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/wv-sitemap-manager.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/js/wv-sitemap-manager/wv-sitemap-manager.js,JavaScript,See project dependencies,898,2025-11-18,Source file,Medium
+SDK Plugin,WebVella.Erp.Plugins.SDK/wwwroot/lib/jstree/jstree.min.js,JavaScript,See project dependencies,5,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Crm/Config.json,JSON,See project dependencies,26,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.Crm/Program.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Crm/Startup.cs,C#,See project dependencies,134,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.Crm/WebVella.Erp.Site.Crm.csproj,MSBuild,See project dependencies,24,2025-11-18,Project manifest,Very Low
+Other,WebVella.Erp.Site.Mail/Config.json,JSON,See project dependencies,26,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.Mail/Program.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Mail/Startup.cs,C#,See project dependencies,134,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.Mail/WebVella.Erp.Site.Mail.csproj,MSBuild,See project dependencies,23,2025-11-18,Project manifest,Very Low
+Other,WebVella.Erp.Site.MicrosoftCDM/Config.json,JSON,See project dependencies,26,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.MicrosoftCDM/Program.cs,C#,See project dependencies,25,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.MicrosoftCDM/Startup.cs,C#,See project dependencies,134,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.MicrosoftCDM/WebVella.Erp.Site.MicrosoftCDM.csproj,MSBuild,See project dependencies,19,2025-11-18,Project manifest,Very Low
+Other,WebVella.Erp.Site.MicrosoftCDM/appsettings.Development.json,JSON,See project dependencies,9,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.MicrosoftCDM/appsettings.json,JSON,See project dependencies,10,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Next/Config.json,JSON,See project dependencies,26,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.Next/Program.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Next/Startup.cs,C#,See project dependencies,135,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.Next/WebVella.Erp.Site.Next.csproj,MSBuild,See project dependencies,22,2025-11-18,Project manifest,Very Low
+Other,WebVella.Erp.Site.Project/Config.json,JSON,See project dependencies,32,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.Project/Program.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Project/Startup.cs,C#,See project dependencies,184,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj,MSBuild,See project dependencies,26,2025-11-18,Project manifest,Very Low
+Other,WebVella.Erp.Site.Sdk/Config.json,JSON,See project dependencies,28,2025-11-18,Runtime configuration,Very Low
+Other,WebVella.Erp.Site.Sdk/Program.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Other,WebVella.Erp.Site.Sdk/Startup.cs,C#,See project dependencies,136,2025-11-18,Source file,Low
+Other,WebVella.Erp.Site.Sdk/WebVella.Erp.Site.Sdk.csproj,MSBuild,See project dependencies,22,2025-11-18,Project manifest,Very Low
+Site Host - Primary,WebVella.Erp.Site/Config.json,JSON,See project dependencies,35,2025-11-18,Runtime configuration,Very Low
+Site Host - Primary,WebVella.Erp.Site/Pages/EQL.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Pages/EQL.cshtml.cs,C#,See project dependencies,159,2025-11-18,Source file,Low
+Site Host - Primary,WebVella.Erp.Site/Pages/debug.cshtml,Razor,See project dependencies,110,2025-11-18,Source file,Low
+Site Host - Primary,WebVella.Erp.Site/Pages/debug.cshtml.cs,C#,See project dependencies,39,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Pages/search.cshtml,Razor,See project dependencies,30,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Pages/search.cshtml.cs,C#,See project dependencies,35,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Program.cs,C#,See project dependencies,19,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Properties/AppSettings.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Site Host - Primary,WebVella.Erp.Site/Startup.cs,C#,See project dependencies,197,2025-11-18,Source file,Low
+Site Host - Primary,WebVella.Erp.Site/WebVella.Erp.Site.csproj,MSBuild,See project dependencies,87,2025-11-18,Project manifest,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ApplicationMenu/ApplicationMenu.cs,C#,See project dependencies,33,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ApplicationMenu/ApplicationMenu.cshtml,Razor,See project dependencies,14,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/BodyBottomIncludes/BodyBottomIncludes.cs,C#,See project dependencies,49,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/BodyBottomIncludes/Default.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/BodyTopIncludes/BodyTopIncludes.cs,C#,See project dependencies,38,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/BodyTopIncludes/Default.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/HeadBottomIncludes/Default.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/HeadBottomIncludes/HeadBottomIncludes.cs,C#,See project dependencies,123,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/HeadTopIncludes/Default.cshtml,Razor,See project dependencies,34,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/HeadTopIncludes/HeadTopIncludes.cs,C#,See project dependencies,208,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/Nav/Nav.Default.cshtml,Razor,See project dependencies,42,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/Nav/NavViewComponent.cs,C#,See project dependencies,94,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/Nav/script.js,JavaScript,See project dependencies,53,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/NodeNav/NodeNav.Default.cshtml,Razor,See project dependencies,79,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/NodeNav/NodeNavViewComponent.cs,C#,See project dependencies,106,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/Design.cshtml,Razor,See project dependencies,65,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/Display.cshtml,Razor,See project dependencies,93,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/Help.cshtml,Razor,See project dependencies,0,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/Options.cshtml,Razor,See project dependencies,0,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/PcApplications.cs,C#,See project dependencies,141,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcApplications/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/Design.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/Display.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/Help.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/Options.cshtml,Razor,See project dependencies,33,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/PcBtnGroup.cs,C#,See project dependencies,142,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnGroup/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/Design.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/Display.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/Help.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/Options.cshtml,Razor,See project dependencies,33,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/PcBtnToolbar.cs,C#,See project dependencies,142,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcBtnToolbar/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/Design.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/Display.cshtml,Razor,See project dependencies,15,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/Options.cshtml,Razor,See project dependencies,79,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/PcButton.cs,C#,See project dependencies,188,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcButton/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/Design.cshtml,Razor,See project dependencies,19,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/Display.cshtml,Razor,See project dependencies,17,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/Options.cshtml,Razor,See project dependencies,46,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/PcChart.cs,C#,See project dependencies,221,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcChart/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/Design.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/Display.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/Error.cshtml,Razor,See project dependencies,8,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/Help.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/Options.cshtml,Razor,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/PcDrawer.cs,C#,See project dependencies,143,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcDrawer/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/Options.cshtml,Razor,See project dependencies,76,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/PcFieldAutonumber.cs,C#,See project dependencies,192,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldAutonumber/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldBase/PcFieldBase.cs,C#,See project dependencies,704,2025-11-18,Page component,Medium
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/Options.cshtml,Razor,See project dependencies,91,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/PcFieldCheckbox.cs,C#,See project dependencies,234,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckbox/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/Design.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/Options.cshtml,Razor,See project dependencies,92,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/PcFieldCheckboxGrid.cs,C#,See project dependencies,311,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxGrid/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/Options.cshtml,Razor,See project dependencies,80,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/PcFieldCheckboxList.cs,C#,See project dependencies,268,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCheckboxList/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/Design.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/Options.cshtml,Razor,See project dependencies,85,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/PcFieldCode.cs,C#,See project dependencies,183,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCode/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/Options.cshtml,Razor,See project dependencies,73,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/PcFieldColor.cs,C#,See project dependencies,175,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldColor/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/Design.cshtml,Razor,See project dependencies,32,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/Display.cshtml,Razor,See project dependencies,28,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/Options.cshtml,Razor,See project dependencies,98,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/PcFieldCurrency.cs,C#,See project dependencies,201,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldCurrency/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/Display.cshtml,Razor,See project dependencies,31,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/Help.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/Options.cshtml,Razor,See project dependencies,96,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/PcFieldDataCsv.cs,C#,See project dependencies,236,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDataCsv/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/Options.cshtml,Razor,See project dependencies,84,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/PcFieldDate.cs,C#,See project dependencies,198,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDate/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/Options.cshtml,Razor,See project dependencies,84,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/PcFieldDateTime.cs,C#,See project dependencies,196,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldDateTime/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/Options.cshtml,Razor,See project dependencies,88,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/PcFieldEmail.cs,C#,See project dependencies,195,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldEmail/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/Options.cshtml,Razor,See project dependencies,84,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/PcFieldFile.cs,C#,See project dependencies,189,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldFile/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/Display.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/Options.cshtml,Razor,See project dependencies,81,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/PcFieldGuid.cs,C#,See project dependencies,186,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldGuid/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/Design.cshtml,Razor,See project dependencies,16,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/Display.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/Options.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/PcFieldHidden.cs,C#,See project dependencies,172,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHidden/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/Design.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/Options.cshtml,Razor,See project dependencies,90,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/PcFieldHtml.cs,C#,See project dependencies,198,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldHtml/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/Display.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/Options.cshtml,Razor,See project dependencies,73,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/PcFieldIcon.cs,C#,See project dependencies,174,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldIcon/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/Design.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/Display.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/Options.cshtml,Razor,See project dependencies,106,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/PcFieldImage.cs,C#,See project dependencies,215,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldImage/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/Design.cshtml,Razor,See project dependencies,28,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/Display.cshtml,Razor,See project dependencies,26,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/Options.cshtml,Razor,See project dependencies,112,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/PcFieldMultiFileUpload.cs,C#,See project dependencies,209,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiFileUpload/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/Design.cshtml,Razor,See project dependencies,36,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/Display.cshtml,Razor,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/Options.cshtml,Razor,See project dependencies,104,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/PcFieldMultiSelect.cs,C#,See project dependencies,329,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldMultiSelect/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/Design.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/Display.cshtml,Razor,See project dependencies,23,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/Options.cshtml,Razor,See project dependencies,95,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/PcFieldNumber.cs,C#,See project dependencies,199,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldNumber/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/Options.cshtml,Razor,See project dependencies,92,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/PcFieldPassword.cs,C#,See project dependencies,195,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPassword/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/Design.cshtml,Razor,See project dependencies,30,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/Display.cshtml,Razor,See project dependencies,28,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/Options.cshtml,Razor,See project dependencies,98,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/PcFieldPercent.cs,C#,See project dependencies,203,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPercent/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/Options.cshtml,Razor,See project dependencies,87,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/PcFieldPhone.cs,C#,See project dependencies,191,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldPhone/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/Display.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/Options.cshtml,Razor,See project dependencies,79,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/PcFieldRadioList.cs,C#,See project dependencies,229,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldRadioList/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/Design.cshtml,Razor,See project dependencies,37,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/Display.cshtml,Razor,See project dependencies,36,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/Options.cshtml,Razor,See project dependencies,106,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/PcFieldSelect.cs,C#,See project dependencies,323,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldSelect/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/Design.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/Display.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/Options.cshtml,Razor,See project dependencies,90,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/PcFieldText.cs,C#,See project dependencies,221,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldText/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/Design.cshtml,Razor,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/Display.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/Options.cshtml,Razor,See project dependencies,84,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/PcFieldTextarea.cs,C#,See project dependencies,185,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTextarea/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/Options.cshtml,Razor,See project dependencies,84,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/PcFieldTime.cs,C#,See project dependencies,186,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldTime/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/Design.cshtml,Razor,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/Display.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/Options.cshtml,Razor,See project dependencies,86,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/PcFieldUrl.cs,C#,See project dependencies,189,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcFieldUrl/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/Design.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/Display.cshtml,Razor,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/Help.cshtml,Razor,See project dependencies,6,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/Options.cshtml,Razor,See project dependencies,58,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/PcForm.cs,C#,See project dependencies,196,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcForm/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/Design.cshtml,Razor,See project dependencies,110,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/Display.cshtml,Razor,See project dependencies,68,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/Options.cshtml,Razor,See project dependencies,142,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/PcGrid.cs,C#,See project dependencies,801,2025-11-18,Page component,Medium
+Web UI Library,WebVella.Erp.Web/Components/PcGrid/service.js,JavaScript,See project dependencies,53,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/Design.cshtml,Razor,See project dependencies,89,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/Display.cshtml,Razor,See project dependencies,89,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/Options.cshtml,Razor,See project dependencies,56,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/PcGridFilterField.cs,C#,See project dependencies,247,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcGridFilterField/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/Design.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/Display.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/Options.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/PcHtmlBlock.cs,C#,See project dependencies,129,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcHtmlBlock/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/Design.cshtml,Razor,See project dependencies,10,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/Display.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/Options.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/PcJavaScriptBlock.cs,C#,See project dependencies,125,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcJavaScriptBlock/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/Design.cshtml,Razor,See project dependencies,11,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/Display.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/Options.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/PcLazyLoad.cs,C#,See project dependencies,128,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcLazyLoad/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/Design.cshtml,Razor,See project dependencies,15,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/Display.cshtml,Razor,See project dependencies,51,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/Help.cshtml,Razor,See project dependencies,27,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/Options.cshtml,Razor,See project dependencies,37,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/PcModal.cs,C#,See project dependencies,148,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcModal/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/Design.cshtml,Razor,See project dependencies,32,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/Display.cshtml,Razor,See project dependencies,91,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/Options.cshtml,Razor,See project dependencies,66,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/PcPageHeader.cs,C#,See project dependencies,303,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcPageHeader/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/Design.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/Display.cshtml,Razor,See project dependencies,75,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/Options.cshtml,Razor,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/PcRepeater.cs,C#,See project dependencies,140,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcRepeater/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/Design.cshtml,Razor,See project dependencies,114,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/Display.cshtml,Razor,See project dependencies,259,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/Options.cshtml,Razor,See project dependencies,115,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcRow/PcRow.cs,C#,See project dependencies,625,2025-11-18,Page component,Medium
+Web UI Library,WebVella.Erp.Web/Components/PcRow/service.js,JavaScript,See project dependencies,38,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/Design.cshtml,Razor,See project dependencies,15,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/Display.cshtml,Razor,See project dependencies,30,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/Help.cshtml,Razor,See project dependencies,0,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/Options.cshtml,Razor,See project dependencies,54,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/PcSection.cs,C#,See project dependencies,278,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcSection/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Design-Pills.cshtml,Razor,See project dependencies,102,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Design-Tabs.cshtml,Razor,See project dependencies,106,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Display-Pills.cshtml,Razor,See project dependencies,211,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Display-Tabs.cshtml,Razor,See project dependencies,214,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Help.cshtml,Razor,See project dependencies,3,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/Options.cshtml,Razor,See project dependencies,44,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/PcTabNav.cs,C#,See project dependencies,203,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcTabNav/service.js,JavaScript,See project dependencies,63,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/Design.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/Display.cshtml,Razor,See project dependencies,13,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/Error.cshtml,Razor,See project dependencies,9,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/Help.cshtml,Razor,See project dependencies,5,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/Options.cshtml,Razor,See project dependencies,20,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/PcValidation.cs,C#,See project dependencies,131,2025-11-18,Page component,Low
+Web UI Library,WebVella.Erp.Web/Components/PcValidation/service.js,JavaScript,See project dependencies,35,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/RenderHook/RenderHook.cs,C#,See project dependencies,86,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Components/RenderHook/RenderHook.cshtml,Razor,See project dependencies,6,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ScreenMessage/Default.cshtml,Razor,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ScreenMessage/ScreenMessageViewComponent.cs,C#,See project dependencies,22,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SearchNav/SearchNav.Default.cshtml,Razor,See project dependencies,25,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SearchNav/SearchNavViewComponent.cs,C#,See project dependencies,17,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SidebarMenu/SidebarMenu.cs,C#,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SidebarMenu/SidebarMenu.cshtml,Razor,See project dependencies,18,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SiteMenu/SiteMenu.cs,C#,See project dependencies,24,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/SiteMenu/SiteMenu.cshtml,Razor,See project dependencies,31,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ToobarMenu/ToobarMenu.cs,C#,See project dependencies,26,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/ToobarMenu/ToobarMenu.cshtml,Razor,See project dependencies,15,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/UserMenu/UserMenu.cs,C#,See project dependencies,29,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/UserMenu/UserMenu.cshtml,Razor,See project dependencies,12,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/UserNav/UserNav.Default.cshtml,Razor,See project dependencies,59,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Components/UserNav/UserNavViewComponent.cs,C#,See project dependencies,31,2025-11-18,Page component,Very Low
+Web UI Library,WebVella.Erp.Web/Controllers/ApiControllerBase.cs,C#,See project dependencies,64,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Controllers/WebApiController.cs,C#,See project dependencies,4313,2025-11-18,API/Web controller,Very High
+Web UI Library,WebVella.Erp.Web/Datasource/CurrentDate.cs,C#,See project dependencies,63,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Datasource/CurrentDateTime.cs,C#,See project dependencies,62,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Datasource/EntityRecordListToSelectOptionConverter.cs,C#,See project dependencies,238,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/ErpAppContext.cs,C#,See project dependencies,97,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/ErpDateTimeJsonConverter.cs,C#,See project dependencies,56,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/ErpMvcExtensions.cs,C#,See project dependencies,174,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/ErpRequestContext.cs,C#,See project dependencies,216,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/ErpViewLocationExpander.cs,C#,See project dependencies,22,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IApplicationHomePageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IApplicationNodePageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IIndexPageHook.cs,C#,See project dependencies,14,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/ILoginPageHook.cs,C#,See project dependencies,14,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/ILogoutPageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IPageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordCreatePageHook.cs,C#,See project dependencies,16,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordDetailsPageHook.cs,C#,See project dependencies,12,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordListPageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordManagePageHook.cs,C#,See project dependencies,16,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordRelatedRecordCreatePageHook.cs,C#,See project dependencies,16,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordRelatedRecordDetailsPageHook.cs,C#,See project dependencies,12,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordRelatedRecordManagePageHook.cs,C#,See project dependencies,16,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/IRecordRelatedRecordsListPageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/ISitePageHook.cs,C#,See project dependencies,13,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/MasterPageHookAttachmentAttribute.cs,C#,See project dependencies,21,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestApplicationHomePageHook.cs,C#,See project dependencies,20,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestApplicationNodePageHook.cs,C#,See project dependencies,20,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestLoginPageHook.cs,C#,See project dependencies,21,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestLogoutPageHook.cs,C#,See project dependencies,20,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestRecordCreatePageHook.cs,C#,See project dependencies,31,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestRecordManagePageHook.cs,C#,See project dependencies,31,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestRecordRelatedRecordCreatePageHook.cs,C#,See project dependencies,31,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Hooks/TestHooks/TestRecordRelatedRecrordManagePageHook.cs,C#,See project dependencies,31,2025-11-18,Extensibility hook,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/ErpAppBuilderExtensions.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/ErpDebugLogMiddleware.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/ErpErrorHandlingMiddleware.cs,C#,See project dependencies,69,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/ErpMiddleware.cs,C#,See project dependencies,54,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/JwtMiddleware.cs,C#,See project dependencies,67,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Middleware/SecuritityCircuitHandler.cs,C#,See project dependencies,47,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Models/App.cs,C#,See project dependencies,46,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/AppEntity.cs,C#,See project dependencies,20,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/AutoMapperConfiguration.cs,C#,See project dependencies,44,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/AppProfile.cs,C#,See project dependencies,61,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/ErpPageProfile.cs,C#,See project dependencies,73,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/PageBodyNodeProfile.cs,C#,See project dependencies,40,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/PageDataSourceProfile.cs,C#,See project dependencies,40,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/SitemapAreaProfile.cs,C#,See project dependencies,71,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/SitemapGroupProfile.cs,C#,See project dependencies,46,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/SitemapNodeProfile.cs,C#,See project dependencies,140,2025-11-18,Data model/DTO,Low
+Web UI Library,WebVella.Erp.Web/Models/Automapper/Profiles/ValidationErrorProfile.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/BaseErpPageModel.cs,C#,See project dependencies,473,2025-11-18,Data model/DTO,Low
+Web UI Library,WebVella.Erp.Web/Models/ComponentMode.cs,C#,See project dependencies,10,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/DataSourceCodeTestModel.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/DataSourceTestModel.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/DatasourceVariable.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/EqlQuery.cs,C#,See project dependencies,25,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ErpPage.cs,C#,See project dependencies,74,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ErpTranslationDictionary.cs,C#,See project dependencies,26,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Filter.cs,C#,See project dependencies,25,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/FilterType.cs,C#,See project dependencies,37,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ICodeVariable.cs,C#,See project dependencies,7,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/JwtTokenModels.cs,C#,See project dependencies,13,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/KeyStringList.cs,C#,See project dependencies,16,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/LinkTagInclude.cs,C#,See project dependencies,80,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ListFilter.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/MenuItem.cs,C#,See project dependencies,37,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/MetaTagInclude.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ModelNode.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/MovedNodeInfo.cs,C#,See project dependencies,28,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageBodyNode.cs,C#,See project dependencies,38,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageComponent.cs,C#,See project dependencies,24,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageComponentAttribute.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageComponentContext.cs,C#,See project dependencies,30,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageComponentMeta.cs,C#,See project dependencies,53,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageDataModel.cs,C#,See project dependencies,860,2025-11-18,Data model/DTO,Medium
+Web UI Library,WebVella.Erp.Web/Models/PageDataSource.cs,C#,See project dependencies,25,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageSwitchItem.cs,C#,See project dependencies,19,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageType.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageUtilsActionType.cs,C#,See project dependencies,15,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/PageVisit.cs,C#,See project dependencies,47,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/QueryFilterJson.cs,C#,See project dependencies,44,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/QuerySortJson.cs,C#,See project dependencies,32,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ScreenMessage.cs,C#,See project dependencies,32,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/ScriptTagInclude.cs,C#,See project dependencies,67,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/SelectOptionsAjaxDatasource.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Sitemap.cs,C#,See project dependencies,13,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/SitemapArea.cs,C#,See project dependencies,54,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/SitemapGroup.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/SitemapNode.cs,C#,See project dependencies,59,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/SitemapNodeType.cs,C#,See project dependencies,18,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Snippet.cs,C#,See project dependencies,20,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/TabNavRenderType.cs,C#,See project dependencies,13,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/Theme.cs,C#,See project dependencies,321,2025-11-18,Data model/DTO,Low
+Web UI Library,WebVella.Erp.Web/Models/TranslationResource.cs,C#,See project dependencies,19,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/TypeaheadResponse.cs,C#,See project dependencies,43,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/UrlInfo.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Models/WebSettings.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/ApplicationHome.cshtml,Razor,See project dependencies,33,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/ApplicationHome.cshtml.cs,C#,See project dependencies,89,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/ApplicationNode.cshtml,Razor,See project dependencies,33,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/ApplicationNode.cshtml.cs,C#,See project dependencies,102,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/Dev.cshtml,Razor,See project dependencies,46,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Dev.cshtml.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/HelloWorld.razor,Blazor,See project dependencies,82,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Index.cshtml,Razor,See project dependencies,39,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Index.cshtml.cs,C#,See project dependencies,99,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordCreate.cshtml,Razor,See project dependencies,37,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordCreate.cshtml.cs,C#,See project dependencies,150,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordDetails.cshtml,Razor,See project dependencies,35,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordDetails.cshtml.cs,C#,See project dependencies,111,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordList.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordList.cshtml.cs,C#,See project dependencies,96,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordManage.cshtml,Razor,See project dependencies,36,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordManage.cshtml.cs,C#,See project dependencies,144,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordCreate.cshtml,Razor,See project dependencies,37,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordCreate.cshtml.cs,C#,See project dependencies,170,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordDetails.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordDetails.cshtml.cs,C#,See project dependencies,90,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordManage.cshtml,Razor,See project dependencies,34,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordManage.cshtml.cs,C#,See project dependencies,146,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordsList.cshtml,Razor,See project dependencies,32,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/RecordRelatedRecordsList.cshtml.cs,C#,See project dependencies,94,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Shared/FieldTableDataPreview.cshtml,Razor,See project dependencies,58,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Shared/NavItem.cshtml,Razor,See project dependencies,36,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Shared/NavMenu.cshtml,Razor,See project dependencies,44,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Site.cshtml,Razor,See project dependencies,36,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/Site.cshtml.cs,C#,See project dependencies,83,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/_AppMaster.cshtml,Razor,See project dependencies,30,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/_Imports.razor,Blazor,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/_SystemMaster.cshtml,Razor,See project dependencies,16,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/_ViewImports.cshtml,Razor,See project dependencies,13,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/_ViewStart.cshtml,Razor,See project dependencies,4,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/ckeditor/ImageFinder.cshtml,Razor,See project dependencies,415,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/ckeditor/ImageFinder.cshtml.cs,C#,See project dependencies,197,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/ckeditor/Index.cshtml,Razor,See project dependencies,105,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/ckeditor/Index.cshtml.cs,C#,See project dependencies,187,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/error.cshtml,Razor,See project dependencies,38,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/error.cshtml.cs,C#,See project dependencies,20,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/login.cshtml,Razor,See project dependencies,28,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/login.cshtml.cs,C#,See project dependencies,120,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Pages/logout.cshtml,Razor,See project dependencies,3,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Pages/logout.cshtml.cs,C#,See project dependencies,58,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/README.md,Markdown,See project dependencies,2,2025-11-18,Documentation,Very Low
+Web UI Library,WebVella.Erp.Web/Repositories/AppRepository.cs,C#,See project dependencies,333,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/BaseDBRepository.cs,C#,See project dependencies,89,2025-11-18,Data access repository,Very Low
+Web UI Library,WebVella.Erp.Web/Repositories/ErpPageRepository.cs,C#,See project dependencies,257,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/PageBodyNodeRepository.cs,C#,See project dependencies,207,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/PageDataSourceRepository.cs,C#,See project dependencies,142,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/SitemapAreaGroupRepository.cs,C#,See project dependencies,145,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/SitemapAreaNodeRepository.cs,C#,See project dependencies,235,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Repositories/SitemapAreaRepository.cs,C#,See project dependencies,171,2025-11-18,Data access repository,Low
+Web UI Library,WebVella.Erp.Web/Security/AuthCache.cs,C#,See project dependencies,61,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Security/AuthToken.cs,C#,See project dependencies,146,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Security/AuthorizeAttribute.cs,C#,See project dependencies,146,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Security/ErpIdentity.cs,C#,See project dependencies,28,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Security/ErpPrincipal.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Security/HttpForbiddenResult.cs,C#,See project dependencies,19,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Security/HttpUnauthorizedResult.cs,C#,See project dependencies,19,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Security/WebSecurityUtil.cs,C#,See project dependencies,232,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Services/AppSearchService.cs,C#,See project dependencies,11,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/AppService.cs,C#,See project dependencies,593,2025-11-18,Application service,Medium
+Web UI Library,WebVella.Erp.Web/Services/AuthService.cs,C#,See project dependencies,168,2025-11-18,Application service,Low
+Web UI Library,WebVella.Erp.Web/Services/BaseService.cs,C#,See project dependencies,25,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/CodeEvalService.cs,C#,See project dependencies,62,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/FileService.cs,C#,See project dependencies,94,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/LogService.cs,C#,See project dependencies,78,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/MailService.cs,C#,See project dependencies,142,2025-11-18,Application service,Low
+Web UI Library,WebVella.Erp.Web/Services/MetaService.cs,C#,See project dependencies,23,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/PageComponentLibraryService.cs,C#,See project dependencies,73,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/PageService.cs,C#,See project dependencies,1962,2025-11-18,Application service,High
+Web UI Library,WebVella.Erp.Web/Services/RenderService.cs,C#,See project dependencies,487,2025-11-18,Application service,Low
+Web UI Library,WebVella.Erp.Web/Services/SnippetService.cs,C#,See project dependencies,44,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/ThemeService.cs,C#,See project dependencies,69,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/UserFileService.cs,C#,See project dependencies,121,2025-11-18,Application service,Low
+Web UI Library,WebVella.Erp.Web/Services/UserPreferencies.cs,C#,See project dependencies,127,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Services/UserService.cs,C#,See project dependencies,38,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Services/WebSettingsService.cs,C#,See project dependencies,14,2025-11-18,Application service,Very Low
+Web UI Library,WebVella.Erp.Web/Snippets/EmptySampleClassSnippet.cs,C#,See project dependencies,24,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/Extensions.cs,C#,See project dependencies,45,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvAuthorize/WvAuthorize.cs,C#,See project dependencies,100,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvDrawer/WvDrawer.cs,C#,See project dependencies,158,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvDrawer/drawer.js,JavaScript,See project dependencies,88,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFieldDatasource/WvFieldDatasource.cs,C#,See project dependencies,826,2025-11-18,Razor tag helper,Medium
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFieldDatasource/form.js,JavaScript,See project dependencies,467,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFieldUserFileMultiple/WvFieldUserFileMultiple.cs,C#,See project dependencies,616,2025-11-18,Razor tag helper,Medium
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFieldUserFileMultiple/form.js,JavaScript,See project dependencies,195,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFieldUserFileMultiple/inline-edit.js,JavaScript,See project dependencies,241,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterAutonumber/WvFilterAutonumber.cs,C#,See project dependencies,41,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterBase/WvFilterBase.cs,C#,See project dependencies,414,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterBase/base.js,JavaScript,See project dependencies,105,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterCheckbox/WvFilterCheckbox.cs,C#,See project dependencies,73,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterCurrency/WvFilterCurrency.cs,C#,See project dependencies,37,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterDate/WvFilterDate.cs,C#,See project dependencies,77,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterDateTime/WvFilterDateTime.cs,C#,See project dependencies,75,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterEmail/WvFilterEmail.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterFile/WvFilterFile.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterGuid/WvFilterGuid.cs,C#,See project dependencies,39,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterHtml/WvFilterHtml.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterImage/WvFilterImage.cs,C#,See project dependencies,39,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterMultiSelect/WvFilterMultiSelect.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterNumber/WvFilterNumber.cs,C#,See project dependencies,41,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterPercent/WvFilterPercent.cs,C#,See project dependencies,140,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterPercent/percent.js,JavaScript,See project dependencies,35,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterPhone/WvFilterPhone.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterSelect/WvFilterSelect.cs,C#,See project dependencies,73,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterText/WvFilterText.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterTextarea/WvFilterTextarea.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvFilterUrl/WvFilterUrl.cs,C#,See project dependencies,40,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvPageHeader/WvPageHeader.cs,C#,See project dependencies,386,2025-11-18,Razor tag helper,Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvPageHeader/script.js,JavaScript,See project dependencies,38,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvPageHeaderActions/WvPageHeaderActions.cs,C#,See project dependencies,28,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvPageHeaderActionsAux/WvPageHeaderActionsAux.cs,C#,See project dependencies,28,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/WvPageHeaderToolbar/WvPageHeaderToolbar.cs,C#,See project dependencies,26,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/TagHelpers/js-test/script.js,JavaScript,See project dependencies,54,2025-11-18,Razor tag helper,Very Low
+Web UI Library,WebVella.Erp.Web/Utils/Cache.cs,C#,See project dependencies,54,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Utils/DataUtils.cs,C#,See project dependencies,278,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Utils/HtmlHelperExtension.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/Utils/ModelExtensions.cs,C#,See project dependencies,133,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Utils/PageUtils.cs,C#,See project dependencies,2317,2025-11-18,Source file,High
+Web UI Library,WebVella.Erp.Web/Utils/ReflectionExtensions.cs,C#,See project dependencies,101,2025-11-18,Source file,Low
+Web UI Library,WebVella.Erp.Web/Utils/TempDataExtensions.cs,C#,See project dependencies,26,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/WVPageModel.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/WebConfigurationOptions.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/WebVella.Erp.Web.csproj,MSBuild,See project dependencies,206,2025-11-18,Project manifest,Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/base.js,JavaScript,See project dependencies,584,2025-11-18,Source file,Medium
+Web UI Library,WebVella.Erp.Web/wwwroot/js/site.js,JavaScript,See project dependencies,571,2025-11-18,Source file,Medium
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/index.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-1635c1a0.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-50ea2036.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-5b416380.system.js,JavaScript,See project dependencies,20,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-7e344a40.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-7edf8b60.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-9b741424.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-c95bcb30.system.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-d0882b30.js,JavaScript,See project dependencies,18,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-gxpdhutk.system.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/p-uxfmis6g.entry.js,JavaScript,See project dependencies,6,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/wv-lazyload.esm.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Web UI Library,WebVella.Erp.Web/wwwroot/js/wv-lazyload/wv-lazyload.js,JavaScript,See project dependencies,880,2025-11-18,Source file,Medium
+Web UI Library,WebVella.Erp.Web/wwwroot/lib/js-cookie/js.cookie.min.js,JavaScript,See project dependencies,0,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/ApiService/ApiService.Auth.cs,C#,See project dependencies,27,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/ApiService/ApiService.Project.cs,C#,See project dependencies,19,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/ApiService/ApiService.System.cs,C#,See project dependencies,33,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/ApiService/ApiService.cs,C#,See project dependencies,33,2025-11-18,Application service,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/App.razor,Blazor,See project dependencies,12,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/AppState.razor,Blazor,See project dependencies,18,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/AppState.razor.cs,C#,See project dependencies,99,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/ComponentState.cs,C#,See project dependencies,14,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/WvBaseComponent.cs,C#,See project dependencies,73,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/WvContainer.razor,Blazor,See project dependencies,65,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/WvContainer.razor.cs,C#,See project dependencies,17,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/WvContainerStates.razor,Blazor,See project dependencies,1,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/Base/WvContainerStates.razor.cs,C#,See project dependencies,22,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/General/WvLogin.razor,Blazor,See project dependencies,14,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Components/General/WvLogin.razor.cs,C#,See project dependencies,60,2025-11-18,Page component,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Exceptions/ApiConnectionException.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Exceptions/ApiException.cs,C#,See project dependencies,13,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Exceptions/ApiTokenException.cs,C#,See project dependencies,11,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Exceptions/BaseException.cs,C#,See project dependencies,80,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Exceptions/ValidationException.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/MainLayout.razor,Blazor,See project dependencies,5,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Models/ApiErrorModel.cs,C#,See project dependencies,18,2025-11-18,Data model/DTO,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Models/AuthResponse.cs,C#,See project dependencies,6,2025-11-18,Data model/DTO,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Models/JwtToken.cs,C#,See project dependencies,5,2025-11-18,Data model/DTO,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Models/LoginModel.cs,C#,See project dependencies,7,2025-11-18,Data model/DTO,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Models/WvUser.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Pages/Index.razor,Blazor,See project dependencies,15,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Pages/Index.razor.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Pages/LoginPage.razor,Blazor,See project dependencies,3,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Pages/LoginPage.razor.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Program.cs,C#,See project dependencies,29,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Services/AuthenticationService.cs,C#,See project dependencies,59,2025-11-18,Application service,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Services/ConfigurationService.cs,C#,See project dependencies,21,2025-11-18,Application service,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Services/CustomAuthenticationProvider.cs,C#,See project dependencies,35,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Services/TokenManagerService.cs,C#,See project dependencies,106,2025-11-18,Application service,Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Utilities/DateOnlyUtils.cs,C#,See project dependencies,49,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Utilities/DateTimeUtils.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Utilities/HttpExt.cs,C#,See project dependencies,206,2025-11-18,Source file,Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/Utilities/NavigatorExt.cs,C#,See project dependencies,322,2025-11-18,Source file,Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/WasmConstants.cs,C#,See project dependencies,17,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj,MSBuild,See project dependencies,24,2025-11-18,Project manifest,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/_GlobalUsings.cs,C#,See project dependencies,24,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/_Imports.razor,Blazor,See project dependencies,8,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/_global.cs,C#,See project dependencies,5,2025-11-18,Source file,Very Low
+Blazor WebAssembly Client,WebVella.Erp.WebAssembly/Client/wwwroot/appsettings.json,JSON,See project dependencies,2,2025-11-18,Source file,Very Low
+Blazor WebAssembly Server,WebVella.Erp.WebAssembly/Server/Program.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Blazor WebAssembly Server,WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj,MSBuild,See project dependencies,18,2025-11-18,Project manifest,Very Low
+Blazor WebAssembly Server,WebVella.Erp.WebAssembly/Server/appsettings.Development.json,JSON,See project dependencies,8,2025-11-18,Source file,Very Low
+Blazor WebAssembly Server,WebVella.Erp.WebAssembly/Server/appsettings.json,JSON,See project dependencies,9,2025-11-18,Source file,Very Low
+Blazor WebAssembly Shared,WebVella.Erp.WebAssembly/Shared/SharedClass.cs,C#,See project dependencies,1,2025-11-18,Source file,Very Low
+Blazor WebAssembly Shared,WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj,MSBuild,See project dependencies,12,2025-11-18,Project manifest,Very Low
+Core Library,WebVella.Erp/Api/Cache.cs,C#,See project dependencies,134,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Api/DataSourceManager.cs,C#,See project dependencies,539,2025-11-18,Business logic manager,Medium
+Core Library,WebVella.Erp/Api/Definitions.cs,C#,See project dependencies,110,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Api/EntityManager.cs,C#,See project dependencies,1873,2025-11-18,Business logic manager,High
+Core Library,WebVella.Erp/Api/EntityRelationManager.cs,C#,See project dependencies,568,2025-11-18,Business logic manager,Medium
+Core Library,WebVella.Erp/Api/ImportExportManager.cs,C#,See project dependencies,1106,2025-11-18,Business logic manager,Medium
+Core Library,WebVella.Erp/Api/Models/ActionItemSection.cs,C#,See project dependencies,21,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/AutoMapperConfiguration.cs,C#,See project dependencies,57,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/AutoMapperExtensions.cs,C#,See project dependencies,105,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/ErpAutoMapper.cs,C#,See project dependencies,18,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/CurrencyProfile.cs,C#,See project dependencies,69,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/DataSourceProfile.cs,C#,See project dependencies,43,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/DatabaseNNRelationRecordProfile.cs,C#,See project dependencies,31,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/EntityProfile.cs,C#,See project dependencies,22,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/EntityRelationOptionsProfile.cs,C#,See project dependencies,14,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/EntityRelationProfile.cs,C#,See project dependencies,13,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/ErpRoleConverter.cs,C#,See project dependencies,22,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/ErpUserConverter.cs,C#,See project dependencies,83,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/ErrorModelProfile.cs,C#,See project dependencies,26,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/FieldPermissionsProfile.cs,C#,See project dependencies,15,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/FieldProfile.cs,C#,See project dependencies,216,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/JobProfile.cs,C#,See project dependencies,170,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/RecordPermissionsProfile.cs,C#,See project dependencies,14,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/SearchResultProfile.cs,C#,See project dependencies,50,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Profiles/UserFileProfile.cs,C#,See project dependencies,39,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Resolvers/DateTimeTypeConverter.cs,C#,See project dependencies,12,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Resolvers/GuidToStringConverter.cs,C#,See project dependencies,12,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Resolvers/SanitizeHtml.cs,C#,See project dependencies,65,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Resolvers/StringToGuidConverter.cs,C#,See project dependencies,26,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/AutoMapper/Resolvers/UrlResolver.cs,C#,See project dependencies,17,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/BaseModels.cs,C#,See project dependencies,83,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/CodeDataSource.cs,C#,See project dependencies,16,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/Currency.cs,C#,See project dependencies,56,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DataSourceBase.cs,C#,See project dependencies,44,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DataSourceModelFieldMeta.cs,C#,See project dependencies,44,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DataSourceParameter.cs,C#,See project dependencies,20,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DataSourceType.cs,C#,See project dependencies,12,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DatabaseDataSource.cs,C#,See project dependencies,19,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/DatabaseNNRelationRecord.cs,C#,See project dependencies,15,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/Entity.cs,C#,See project dependencies,111,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/EntityQuery.cs,C#,See project dependencies,125,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/EntityRecord.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/EntityRecordList.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/EntityRelation.cs,C#,See project dependencies,160,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/ErpRole.cs,C#,See project dependencies,18,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/ErpUser.cs,C#,See project dependencies,68,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/ErpUserPreferences.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FSResponse.cs,C#,See project dependencies,34,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/AutoNumberField.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/BaseField.cs,C#,See project dependencies,456,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/CheckboxField.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/CurrencyField.cs,C#,See project dependencies,41,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/DateField.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/DateTimeField.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/EmailField.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/FieldType.cs,C#,See project dependencies,50,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/FileField.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/FormulaField.cs,C#,See project dependencies,13,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/GeographyField.cs,C#,See project dependencies,54,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/GuidField.cs,C#,See project dependencies,46,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/HtmlField.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/ImageField.cs,C#,See project dependencies,23,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/MultiLineTextField.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/MultiSelectField.cs,C#,See project dependencies,31,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/NumberField.cs,C#,See project dependencies,41,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/PasswordField.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/PercentField.cs,C#,See project dependencies,41,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/PhoneField.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/RelationFieldMeta.cs,C#,See project dependencies,52,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/SelectField.cs,C#,See project dependencies,70,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/TextField.cs,C#,See project dependencies,29,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/TreeSelectField.cs,C#,See project dependencies,51,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/FieldTypes/UrlField.cs,C#,See project dependencies,36,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/MetaChange.cs,C#,See project dependencies,68,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QueryCountResponse.cs,C#,See project dependencies,14,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QueryObject.cs,C#,See project dependencies,35,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QueryResponse.cs,C#,See project dependencies,18,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QueryResult.cs,C#,See project dependencies,14,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QuerySecurity.cs,C#,See project dependencies,5,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QuerySortObject.cs,C#,See project dependencies,22,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QuerySortType.cs,C#,See project dependencies,12,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/QueryType.cs,C#,See project dependencies,21,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SearchQuery.cs,C#,See project dependencies,34,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SearchResult.cs,C#,See project dependencies,39,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SearchResultList.cs,C#,See project dependencies,9,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SearchResultType.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SearchType.cs,C#,See project dependencies,11,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SelectOptionAttribute.cs,C#,See project dependencies,30,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/SystemSettings.cs,C#,See project dependencies,26,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/UserComponentUsage.cs,C#,See project dependencies,19,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/UserFile.cs,C#,See project dependencies,53,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Api/Models/ValidationUtility.cs,C#,See project dependencies,132,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Api/RecordManager.cs,C#,See project dependencies,2109,2025-11-18,Business logic manager,High
+Core Library,WebVella.Erp/Api/SearchManager.cs,C#,See project dependencies,242,2025-11-18,Business logic manager,Low
+Core Library,WebVella.Erp/Api/SecurityContext.cs,C#,See project dependencies,169,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Api/SecurityManager.cs,C#,See project dependencies,371,2025-11-18,Business logic manager,Low
+Core Library,WebVella.Erp/Database/AutoMapper/AutoMapperConfiguration.cs,C#,See project dependencies,44,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/AutoMapperExtensions.cs,C#,See project dependencies,41,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbEntityProfile.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbEntityRelationOptionsProfile.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbEntityRelationProfile.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbFieldPermissionsProfile.cs,C#,See project dependencies,31,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbFieldProfile.cs,C#,See project dependencies,363,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbRecordPermissionsProfile.cs,C#,See project dependencies,32,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbRecordTreeProfile.cs,C#,See project dependencies,60,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbRecordViewProfile.cs,C#,See project dependencies,326,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/AutoMapper/Profiles/DbRecordsListProfile.cs,C#,See project dependencies,191,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/DBTypeConverter.cs,C#,See project dependencies,211,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/DbConnection.cs,C#,See project dependencies,222,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/DbContext.cs,C#,See project dependencies,191,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/DbDataSourceRepository.cs,C#,See project dependencies,157,2025-11-18,Data access repository,Low
+Core Library,WebVella.Erp/Database/DbDocumentBase.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbEntity.cs,C#,See project dependencies,50,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbEntityRelation.cs,C#,See project dependencies,35,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbEntityRelationOptions.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbEntityRepository.cs,C#,See project dependencies,302,2025-11-18,Data access repository,Low
+Core Library,WebVella.Erp/Database/DbException.cs,C#,See project dependencies,11,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbFile.cs,C#,See project dependencies,106,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/DbFileRepository.cs,C#,See project dependencies,512,2025-11-18,Data access repository,Medium
+Core Library,WebVella.Erp/Database/DbParameter.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbRecordRepository.cs,C#,See project dependencies,2097,2025-11-18,Data access repository,High
+Core Library,WebVella.Erp/Database/DbRelationRepository.cs,C#,See project dependencies,310,2025-11-18,Data access repository,Low
+Core Library,WebVella.Erp/Database/DbRepository.cs,C#,See project dependencies,669,2025-11-18,Data access repository,Medium
+Core Library,WebVella.Erp/Database/DbSystemSettings.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/DbSystemSettingsRepository.cs,C#,See project dependencies,106,2025-11-18,Data access repository,Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbAutoNumberField.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbBaseField.cs,C#,See project dependencies,162,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbCheckboxField.cs,C#,See project dependencies,10,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbCurrencyField.cs,C#,See project dependencies,46,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbDateField.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbDateTimeField.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbEmailField.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbFieldPermissions.cs,C#,See project dependencies,21,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbFileField.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbFormulaField.cs,C#,See project dependencies,13,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbGeographyField.cs,C#,See project dependencies,29,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbGuidField.cs,C#,See project dependencies,13,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbHtmlField.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbImageField.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbMultiLineTextField.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbMultiSelectField.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbNumberField.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbPasswordField.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbPercentField.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbPhoneField.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbSelectField.cs,C#,See project dependencies,28,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbTextField.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbTreeSelectField.cs,C#,See project dependencies,23,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Database/FieldTypes/DbUrlField.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Diagnostics/Log.cs,C#,See project dependencies,130,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/ERPService.cs,C#,See project dependencies,1472,2025-11-18,Application service,Medium
+Core Library,WebVella.Erp/Eql/EqlAbstractTree.cs,C#,See project dependencies,149,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Eql/EqlBuildResult.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlBuilder.Sql.cs,C#,See project dependencies,960,2025-11-18,Source file,Medium
+Core Library,WebVella.Erp/Eql/EqlBuilder.cs,C#,See project dependencies,456,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Eql/EqlCommand.cs,C#,See project dependencies,321,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Eql/EqlError.cs,C#,See project dependencies,9,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlException.cs,C#,See project dependencies,28,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlFieldMeta.cs,C#,See project dependencies,21,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlGrammar.cs,C#,See project dependencies,121,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Eql/EqlNodeType.cs,C#,See project dependencies,22,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlParameter.cs,C#,See project dependencies,89,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlRelationDirectionType.cs,C#,See project dependencies,8,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Eql/EqlSettings.cs,C#,See project dependencies,13,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/ErpPlugin.cs,C#,See project dependencies,117,2025-11-18,Plugin initialization,Low
+Core Library,WebVella.Erp/ErpSettings.cs,C#,See project dependencies,125,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Exceptions/StorageException.cs,C#,See project dependencies,20,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Exceptions/ValidationError.cs,C#,See project dependencies,50,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Exceptions/ValidationException.cs,C#,See project dependencies,39,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Fts/BulStem/Stemmer.cs,C#,See project dependencies,166,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Fts/BulStem/StemmingLevel.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Fts/FtsAnalyzer.cs,C#,See project dependencies,38,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Hooks/ErpBaseHook.cs,C#,See project dependencies,6,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/ErpRecordHook.cs,C#,See project dependencies,33,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/ErpRecordHookAttribute.cs,C#,See project dependencies,16,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Hooks/HookAttachmentAttribute.cs,C#,See project dependencies,18,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Hooks/HookAttribute.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Hooks/HookInfo.cs,C#,See project dependencies,35,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Hooks/HookManager.cs,C#,See project dependencies,68,2025-11-18,Business logic manager,Very Low
+Core Library,WebVella.Erp/Hooks/HooksManager.cs,C#,See project dependencies,163,2025-11-18,Business logic manager,Low
+Core Library,WebVella.Erp/Hooks/IErpPostCreateManyToManyRelationHook.cs,C#,See project dependencies,10,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPostCreateRecordHook.cs,C#,See project dependencies,10,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPostDeleteManyToManyRelationHook.cs,C#,See project dependencies,10,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPostDeleteRecordHook.cs,C#,See project dependencies,10,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPostSearchRecordHook.cs,C#,See project dependencies,11,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPostUpdateRecordHook.cs,C#,See project dependencies,10,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreCreateManyToManyRelationHook.cs,C#,See project dependencies,12,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreCreateRecordHook.cs,C#,See project dependencies,11,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreDeleteManyToManyRelationHook.cs,C#,See project dependencies,12,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreDeleteRecordHook.cs,C#,See project dependencies,11,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreSearchRecordHook.cs,C#,See project dependencies,12,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/IErpPreUpdateRecordHook.cs,C#,See project dependencies,11,2025-11-18,Extensibility hook,Very Low
+Core Library,WebVella.Erp/Hooks/RecordHookManager.cs,C#,See project dependencies,167,2025-11-18,Business logic manager,Low
+Core Library,WebVella.Erp/IErpService.cs,C#,See project dependencies,16,2025-11-18,Application service,Very Low
+Core Library,WebVella.Erp/IQueryRepository.cs,C#,See project dependencies,5,2025-11-18,Data access repository,Very Low
+Core Library,WebVella.Erp/Jobs/ErpBackgroundServices.cs,C#,See project dependencies,40,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Jobs/ErpJob.cs,C#,See project dependencies,9,2025-11-18,Background job,Very Low
+Core Library,WebVella.Erp/Jobs/JobAttribute.cs,C#,See project dependencies,42,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Jobs/JobDataService.cs,C#,See project dependencies,525,2025-11-18,Application service,Medium
+Core Library,WebVella.Erp/Jobs/JobManager.cs,C#,See project dependencies,303,2025-11-18,Business logic manager,Low
+Core Library,WebVella.Erp/Jobs/JobPool.cs,C#,See project dependencies,180,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Jobs/Models/Job.cs,C#,See project dependencies,84,2025-11-18,Background job,Very Low
+Core Library,WebVella.Erp/Jobs/Models/JobContext.cs,C#,See project dependencies,34,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Jobs/Models/JobSettings.cs,C#,See project dependencies,17,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Jobs/Models/JobType.cs,C#,See project dependencies,43,2025-11-18,Data model/DTO,Very Low
+Core Library,WebVella.Erp/Jobs/Models/SchedulePlan.cs,C#,See project dependencies,175,2025-11-18,Data model/DTO,Low
+Core Library,WebVella.Erp/Jobs/SheduleManager.cs,C#,See project dependencies,724,2025-11-18,Business logic manager,Medium
+Core Library,WebVella.Erp/Notifications/ErpRecordChangeNotification.cs,C#,See project dependencies,11,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Notifications/Listener.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Notifications/Notification.cs,C#,See project dependencies,13,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Notifications/NotificationContext.cs,C#,See project dependencies,172,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Notifications/NotificationHandlerAttribute.cs,C#,See project dependencies,17,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/README.md,Markdown,See project dependencies,2,2025-11-18,Documentation,Very Low
+Core Library,WebVella.Erp/Recurrence/RecurrenceChangeType.cs,C#,See project dependencies,15,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Recurrence/RecurrenceEndType.cs,C#,See project dependencies,14,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Recurrence/RecurrencePeriodType.cs,C#,See project dependencies,22,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Recurrence/RecurrencePlan.cs,C#,See project dependencies,314,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Recurrence/RecurrenceRepeatMonthType.cs,C#,See project dependencies,12,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Recurrence/RecurrenceTemplate.cs,C#,See project dependencies,245,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Recurrence/RecurrenceType.cs,C#,See project dependencies,24,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/CryptoUtility.cs,C#,See project dependencies,341,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Utilities/DatasetExtensions.cs,C#,See project dependencies,69,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/DateTimeExtensions.cs,C#,See project dependencies,62,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/Dynamic/DynamicObjectCreater.cs,C#,See project dependencies,44,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/Dynamic/Expando.cs,C#,See project dependencies,414,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Utilities/Dynamic/PropertyBag.cs,C#,See project dependencies,232,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Utilities/Dynamic/SerializationUtils.cs,C#,See project dependencies,468,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Utilities/Dynamic/Utilities.cs,C#,See project dependencies,106,2025-11-18,Source file,Low
+Core Library,WebVella.Erp/Utilities/Helpers.cs,C#,See project dependencies,2642,2025-11-18,Source file,High
+Core Library,WebVella.Erp/Utilities/Json.Net.Extensions.cs,C#,See project dependencies,17,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/JsonCreationConverter.cs,C#,See project dependencies,48,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/PasswordUtil.cs,C#,See project dependencies,34,2025-11-18,Source file,Very Low
+Core Library,WebVella.Erp/Utilities/TextExtensions.cs,C#,See project dependencies,54,2025-11-18,Source file,Very Low
+Other,WebVella.Erp/WebVella.Erp.csproj,MSBuild,See project dependencies,82,2025-11-18,Project manifest,Very Low
+Documentation,docs/developer/applications/create-application.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/applications/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/applications/home-pages.md,Markdown,See project dependencies,20,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/applications/overview.md,Markdown,See project dependencies,12,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/applications/sitemap.md,Markdown,See project dependencies,19,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/background-jobs/background-job.md,Markdown,See project dependencies,76,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/background-jobs/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/background-jobs/jobs-log.md,Markdown,See project dependencies,11,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/background-jobs/overview.md,Markdown,See project dependencies,13,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/background-jobs/schedule-plan.md,Markdown,See project dependencies,111,2025-11-18,Documentation,Low
+Documentation,docs/developer/components/create-your-own.md,Markdown,See project dependencies,507,2025-11-18,Documentation,Medium
+Documentation,docs/developer/components/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/components/overview.md,Markdown,See project dependencies,11,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/data-sources/code.md,Markdown,See project dependencies,115,2025-11-18,Documentation,Low
+Documentation,docs/developer/data-sources/database.md,Markdown,See project dependencies,19,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/data-sources/eql.md,Markdown,See project dependencies,415,2025-11-18,Documentation,Low
+Documentation,docs/developer/data-sources/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/data-sources/overview.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/entities/create-entity-field.md,Markdown,See project dependencies,83,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/entities/create-entity-relation.md,Markdown,See project dependencies,70,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/entities/create-entity.md,Markdown,See project dependencies,75,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/entities/entity-fields.md,Markdown,See project dependencies,814,2025-11-18,Documentation,Medium
+Documentation,docs/developer/entities/entity-relations.md,Markdown,See project dependencies,108,2025-11-18,Documentation,Low
+Documentation,docs/developer/entities/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/entities/overview.md,Markdown,See project dependencies,86,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/attach-to-api-hook.md,Markdown,See project dependencies,97,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/attach-to-general-page-hook.md,Markdown,See project dependencies,70,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/attach-to-page-type-hook.md,Markdown,See project dependencies,73,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/attach-to-render-hook.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/create-render-hook.md,Markdown,See project dependencies,45,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/hooks/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/hooks/overview.md,Markdown,See project dependencies,560,2025-11-18,Documentation,Medium
+Documentation,docs/developer/introduction/feature-request.md,Markdown,See project dependencies,3,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/introduction/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/introduction/get-involved.md,Markdown,See project dependencies,7,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/introduction/getting-started.md,Markdown,See project dependencies,52,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/introduction/issue-reporting.md,Markdown,See project dependencies,3,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/introduction/overview.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/application-page.md,Markdown,See project dependencies,11,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/create-page.md,Markdown,See project dependencies,19,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/pages/home-page.md,Markdown,See project dependencies,7,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/manage-custom-body.md,Markdown,See project dependencies,24,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/manage-generated-body.md,Markdown,See project dependencies,27,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/overview.md,Markdown,See project dependencies,137,2025-11-18,Documentation,Low
+Documentation,docs/developer/pages/record-create.md,Markdown,See project dependencies,7,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/record-details.md,Markdown,See project dependencies,5,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/record-list.md,Markdown,See project dependencies,5,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/record-manage.md,Markdown,See project dependencies,5,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/routing.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/pages/site-page.md,Markdown,See project dependencies,7,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/plugins/create-your-own.md,Markdown,See project dependencies,88,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/plugins/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/plugins/overview.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/server-api/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/server-api/overview.md,Markdown,See project dependencies,35,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/system-log/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/system-log/overview.md,Markdown,See project dependencies,7,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/tag-helpers/wv-active-page-equals.md,Markdown,See project dependencies,40,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-active-page-regex.md,Markdown,See project dependencies,30,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-active-page-starts.md,Markdown,See project dependencies,43,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-authorize.md,Markdown,See project dependencies,59,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-button-group.md,Markdown,See project dependencies,54,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-button-toolbar.md,Markdown,See project dependencies,63,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-button.md,Markdown,See project dependencies,147,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-chart.md,Markdown,See project dependencies,76,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-code-highlight.md,Markdown,See project dependencies,40,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-column.md,Markdown,See project dependencies,136,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-drawer.md,Markdown,See project dependencies,94,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-append.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-autonumber.md,Markdown,See project dependencies,32,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-base.md,Markdown,See project dependencies,219,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-field-checkbox-grid.md,Markdown,See project dependencies,57,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-checkbox-list.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-checkbox.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-code.md,Markdown,See project dependencies,45,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-color.md,Markdown,See project dependencies,23,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-currency.md,Markdown,See project dependencies,53,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-datasource.md,Markdown,See project dependencies,38,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-date.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-datetime.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-email.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-file.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-guid.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-html.md,Markdown,See project dependencies,36,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-image.md,Markdown,See project dependencies,69,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-multiselect.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-number.md,Markdown,See project dependencies,52,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-password.md,Markdown,See project dependencies,44,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-percent.md,Markdown,See project dependencies,44,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-phone.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-plaintext.md,Markdown,See project dependencies,23,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-prepend.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-radio-list.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-select.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-text.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-textarea.md,Markdown,See project dependencies,37,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-time.md,Markdown,See project dependencies,23,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-field-url.md,Markdown,See project dependencies,29,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-autonumber.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-base.md,Markdown,See project dependencies,75,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-checkbox.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-currency.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-date.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-datetime.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-email.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-file.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-guid.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-html.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-image.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-multiselect.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-number.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-percent.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-phone.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-select.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-text.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-textarea.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-filter-url.md,Markdown,See project dependencies,22,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-form.md,Markdown,See project dependencies,132,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-grid-column.md,Markdown,See project dependencies,60,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-grid-row.md,Markdown,See project dependencies,30,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-grid.md,Markdown,See project dependencies,196,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-icon-card.md,Markdown,See project dependencies,85,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-modal-body.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-modal-footer.md,Markdown,See project dependencies,28,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-modal.md,Markdown,See project dependencies,94,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-page-header-actions.md,Markdown,See project dependencies,30,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-page-header-toolbar.md,Markdown,See project dependencies,30,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-page-header.md,Markdown,See project dependencies,108,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-row.md,Markdown,See project dependencies,55,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/tag-helpers/wv-section.md,Markdown,See project dependencies,110,2025-11-18,Documentation,Low
+Documentation,docs/developer/tag-helpers/wv-validation.md,Markdown,See project dependencies,35,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/users-and-roles/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/users-and-roles/overview.md,Markdown,See project dependencies,3,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/users-and-roles/roles.md,Markdown,See project dependencies,15,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/users-and-roles/users.md,Markdown,See project dependencies,14,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/web-api/folder.json,JSON,See project dependencies,5,2025-11-18,Source file,Very Low
+Documentation,docs/developer/web-api/overview.md,Markdown,See project dependencies,30,2025-11-18,Documentation,Very Low
+Documentation,docs/developer/web-api/response.md,Markdown,See project dependencies,96,2025-11-18,Documentation,Very Low
+Documentation,docs/reverse-engineering/README.md,Markdown,See project dependencies,304,2025-11-18,Documentation,Low
+Documentation,docs/reverse-engineering/code-inventory.md,Markdown,See project dependencies,822,2025-11-18,Documentation,Medium
+Other,global.json,JSON,See project dependencies,4,2025-11-18,Source file,Very Low
