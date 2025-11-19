@@ -52,21 +52,21 @@ Validation rules enforce data quality and constraint compliance during entity cr
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| VR-001 | Entity name must be unique within system | Throw ValidationException | EntityManager | EntityManager.cs:450-460 | High |
-| VR-002 | Entity name length must not exceed 63 characters (PostgreSQL identifier limit) | Throw ValidationException | EntityManager | EntityManager.cs:465-470 | High |
-| VR-003 | Field name must be unique within entity | Throw ValidationException | EntityManager | EntityManager.cs:650-660 | High |
-| VR-004 | Required fields must have non-null values or defaults | Throw ValidationException | RecordManager | RecordManager.cs:200-210 | High |
-| VR-005 | Email field must match email regex pattern | Throw ValidationException | RecordManager | RecordManager.cs:850-860 | Medium |
-| VR-006 | GUID fields must parse to valid GUID | Throw ValidationException | RecordManager | RecordManager.cs:780-790 | High |
-| VR-007 | Date fields must be valid ISO 8601 dates | Throw ValidationException | RecordManager | RecordManager.cs:820-830 | High |
-| VR-008 | One unique identifier field required per entity | Add ErrorModel to response | EntityManager | EntityManager.cs:132 | High |
-| VR-009 | Only one primary field allowed per entity | Add ErrorModel to response | EntityManager | EntityManager.cs:135 | High |
-| VR-010 | AutoNumber DisplayFormat required when field is required | Add ErrorModel to response | EntityManager | EntityManager.cs:164-167 | Medium |
-| VR-011 | Date format required for DateField | Add ErrorModel to response | EntityManager | EntityManager.cs:201 | Medium |
-| VR-012 | DateTime format required for DateTimeField | Add ErrorModel to response | EntityManager | EntityManager.cs:217 | Medium |
-| VR-013 | GuidField with Unique=true must have GenerateNewId enabled | Add ErrorModel to response | EntityManager | EntityManager.cs:263 | High |
-| VR-014 | Default value required for required fields without auto-generation | Add ErrorModel to response | EntityManager | EntityManager.cs:164-268 | High |
-| VR-015 | Select/MultiSelect fields require at least one option with unique values | Validation check and error response | EntityManager | EntityManager.cs:300-320 | Medium |
+| VR-001 | Entity name must be unique within system | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:450-460 | High |
+| VR-002 | Entity name length must not exceed 63 characters (PostgreSQL identifier limit) | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:465-470 | High |
+| VR-003 | Field name must be unique within entity | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:650-660 | High |
+| VR-004 | Required fields must have non-null values or defaults | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:200-210 | High |
+| VR-005 | Email field must match email regex pattern | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:850-860 | Medium |
+| VR-006 | GUID fields must parse to valid GUID | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:780-790 | High |
+| VR-007 | Date fields must be valid ISO 8601 dates | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:820-830 | High |
+| VR-008 | One unique identifier field required per entity | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:132 | High |
+| VR-009 | Only one primary field allowed per entity | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:135 | High |
+| VR-010 | AutoNumber DisplayFormat required when field is required | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:164-167 | Medium |
+| VR-011 | Date format required for DateField | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:201 | Medium |
+| VR-012 | DateTime format required for DateTimeField | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:217 | Medium |
+| VR-013 | GuidField with Unique=true must have GenerateNewId enabled | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:263 | High |
+| VR-014 | Default value required for required fields without auto-generation | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:164-268 | High |
+| VR-015 | Select/MultiSelect fields require at least one option with unique values | Validation check and error response | EntityManager | WebVella.Erp/Api/EntityManager.cs:300-320 | Medium |
 
 ### Validation Rule Details
 
@@ -108,21 +108,21 @@ Process rules define workflow execution sequences, hook invocation patterns, bac
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| PR-001 | On entity creation, generate database table | Execute CREATE TABLE DDL with rec_{name} prefix | EntityManager | EntityManager.cs:300-350 | Critical |
-| PR-002 | On field addition, modify database schema | Execute ALTER TABLE DDL to add column | EntityManager | EntityManager.cs:700-750 | Critical |
-| PR-003 | On record creation, invoke pre-create hooks | Call RecordHookManager.InvokePre() | RecordManager | RecordManager.cs:180-190 | High |
-| PR-004 | After record creation, invoke post-create hooks | Call RecordHookManager.InvokePost() | RecordManager | RecordManager.cs:250-260 | High |
-| PR-005 | Pre-update hooks execute before record modification | RecordHookManager invocation with update context | RecordManager | RecordManager.cs:980-990 | High |
-| PR-006 | Post-update hooks execute after successful update | RecordHookManager invocation with modified record | RecordManager | RecordManager.cs:1050-1060 | High |
-| PR-007 | Pre-delete hooks execute before record deletion | RecordHookManager invocation with deletion context | RecordManager | RecordManager.cs:1645-1655 | High |
-| PR-008 | Plugin patches execute sequentially by version number | ProcessPatches() version checking and ordered execution | ErpPlugin | ErpPlugin.cs:50-100 | Critical |
-| PR-009 | Job execution follows schedule plan recurrence | ScheduleManager.GetSchedulePlan() evaluation | JobManager | JobManager.cs:150-200 | High |
-| PR-010 | Email queue processed every 10 minutes | ProcessSmtpQueueJob scheduled execution | Mail Plugin | ProcessSmtpQueueJob.cs:30-50 | Medium |
-| PR-011 | Field validation executes before database persistence | ExtractFieldValue normalization and validation | RecordManager | RecordManager.cs:2100-2200 | High |
-| PR-012 | Metadata cache refreshes on entity modification | Cache invalidation triggers 1-hour expiration | EntityManager | EntityManager.cs:850-900 | Medium |
-| PR-013 | File attachments stored in configured storage backend | DbFileRepository.Save() with Storage.Net abstraction | RecordManager | DbFileRepository.cs:100-150 | Medium |
-| PR-014 | Transaction rollback on validation failure | Database transaction scope with automatic rollback | RecordManager | RecordManager.cs:300-350 | Critical |
-| PR-015 | Background jobs execute in fixed-size thread pool | JobPool concurrency management | JobManager | JobManager.cs:80-120 | High |
+| PR-001 | On entity creation, generate database table | Execute CREATE TABLE DDL with rec_{name} prefix | EntityManager | WebVella.Erp/Api/EntityManager.cs:300-350 | Critical |
+| PR-002 | On field addition, modify database schema | Execute ALTER TABLE DDL to add column | EntityManager | WebVella.Erp/Api/EntityManager.cs:700-750 | Critical |
+| PR-003 | On record creation, invoke pre-create hooks | Call RecordHookManager.InvokePre() | RecordManager | WebVella.Erp/Api/RecordManager.cs:180-190 | High |
+| PR-004 | After record creation, invoke post-create hooks | Call RecordHookManager.InvokePost() | RecordManager | WebVella.Erp/Api/RecordManager.cs:250-260 | High |
+| PR-005 | Pre-update hooks execute before record modification | RecordHookManager invocation with update context | RecordManager | WebVella.Erp/Api/RecordManager.cs:980-990 | High |
+| PR-006 | Post-update hooks execute after successful update | RecordHookManager invocation with modified record | RecordManager | WebVella.Erp/Api/RecordManager.cs:1050-1060 | High |
+| PR-007 | Pre-delete hooks execute before record deletion | RecordHookManager invocation with deletion context | RecordManager | WebVella.Erp/Api/RecordManager.cs:1645-1655 | High |
+| PR-008 | Plugin patches execute sequentially by version number | ProcessPatches() version checking and ordered execution | ErpPlugin | WebVella.Erp/ErpPlugin.cs:50-100 | Critical |
+| PR-009 | Job execution follows schedule plan recurrence | ScheduleManager.GetSchedulePlan() evaluation | JobManager | WebVella.Erp/Jobs/JobManager.cs:150-200 | High |
+| PR-010 | Email queue processed every 10 minutes | ProcessSmtpQueueJob scheduled execution | Mail Plugin | WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs:30-50 | Medium |
+| PR-011 | Field validation executes before database persistence | ExtractFieldValue normalization and validation | RecordManager | WebVella.Erp/Api/RecordManager.cs:2100-2200 | High |
+| PR-012 | Metadata cache refreshes on entity modification | Cache invalidation triggers 1-hour expiration | EntityManager | WebVella.Erp/Api/EntityManager.cs:850-900 | Medium |
+| PR-013 | File attachments stored in configured storage backend | DbFileRepository.Save() with Storage.Net abstraction | RecordManager | WebVella.Erp/Database/DbFileRepository.cs:100-150 | Medium |
+| PR-014 | Transaction rollback on validation failure | Database transaction scope with automatic rollback | RecordManager | WebVella.Erp/Api/RecordManager.cs:300-350 | Critical |
+| PR-015 | Background jobs execute in fixed-size thread pool | JobPool concurrency management | JobManager | WebVella.Erp/Jobs/JobManager.cs:80-120 | High |
 
 ### Process Rule Details
 
@@ -164,16 +164,16 @@ Data integrity rules enforce referential constraints, relationship multiplicity,
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| DI-001 | OneToMany relation must reference existing target entity | Foreign key constraint validation before relation creation | EntityRelationManager | EntityRelationManager.cs:200-210 | High |
-| DI-002 | ManyToMany relation creates junction table | Generate nm_{relation_name} table with dual foreign keys | EntityRelationManager | EntityRelationManager.cs:350-400 | High |
-| DI-003 | Cascade delete behavior for related records | ON DELETE CASCADE or RESTRICT based on relation configuration | DbRecordRepository | DbRecordRepository.cs:450-460 | High |
-| DI-004 | Referential integrity enforced for all foreign key fields | Database constraint validation on record insert/update | DbContext | DbContext.cs:200-250 | Critical |
-| DI-005 | Unique constraints enforced at database level | UNIQUE index creation for fields with Unique=true | EntityManager | EntityManager.cs:400-420 | High |
-| DI-006 | Primary key fields cannot be null or duplicated | NOT NULL PRIMARY KEY constraint on id columns | EntityManager | EntityManager.cs:320-340 | Critical |
-| DI-007 | Relationship endpoints must be valid entities | Entity existence validation before relation creation | EntityRelationManager | EntityRelationManager.cs:180-200 | High |
-| DI-008 | Junction table records automatically managed | Insert/delete junction records during relation operations | RelationManager | RelationManager.cs:500-550 | Medium |
-| DI-009 | Orphaned file attachments cleanup on record deletion | DbFileRepository removal of files when records deleted | DbFileRepository | DbFileRepository.cs:200-250 | Medium |
-| DI-010 | Transaction savepoints for nested operations | Savepoint creation/release for hierarchical transaction control | DbContext | DbContext.cs:100-150 | Medium |
+| DI-001 | OneToMany relation must reference existing target entity | Foreign key constraint validation before relation creation | EntityRelationManager | WebVella.Erp/Api/EntityRelationManager.cs:200-210 | High |
+| DI-002 | ManyToMany relation creates junction table | Generate nm_{relation_name} table with dual foreign keys | EntityRelationManager | WebVella.Erp/Api/EntityRelationManager.cs:350-400 | High |
+| DI-003 | Cascade delete behavior for related records | ON DELETE CASCADE or RESTRICT based on relation configuration | DbRecordRepository | WebVella.Erp/Database/DbRecordRepository.cs:450-460 | High |
+| DI-004 | Referential integrity enforced for all foreign key fields | Database constraint validation on record insert/update | DbContext | WebVella.Erp/Database/DbContext.cs:200-250 | Critical |
+| DI-005 | Unique constraints enforced at database level | UNIQUE index creation for fields with Unique=true | EntityManager | WebVella.Erp/Api/EntityManager.cs:400-420 | High |
+| DI-006 | Primary key fields cannot be null or duplicated | NOT NULL PRIMARY KEY constraint on id columns | EntityManager | WebVella.Erp/Api/EntityManager.cs:320-340 | Critical |
+| DI-007 | Relationship endpoints must be valid entities | Entity existence validation before relation creation | EntityRelationManager | WebVella.Erp/Api/EntityRelationManager.cs:180-200 | High |
+| DI-008 | Junction table records automatically managed | Insert/delete junction records during relation operations | RelationManager | WebVella.Erp/Api/EntityRelationManager.cs:500-550 | Medium |
+| DI-009 | Orphaned file attachments cleanup on record deletion | DbFileRepository removal of files when records deleted | DbFileRepository | WebVella.Erp/Database/DbFileRepository.cs:200-250 | Medium |
+| DI-010 | Transaction savepoints for nested operations | Savepoint creation/release for hierarchical transaction control | DbContext | WebVella.Erp/Database/DbContext.cs:100-150 | Medium |
 
 ### Data Integrity Rule Details
 
@@ -215,11 +215,11 @@ Calculation rules implement computed values, data transformations, and algorithm
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| CR-001 | Currency fields rounded to 2 decimal places | Math.Round(value, 2, MidpointRounding.AwayFromZero) | RecordManager | RecordManager.cs:890-895 | Medium |
-| CR-002 | AutoNumber fields increment from max value | SELECT MAX(field) + 1 with table-level locking | RecordManager | RecordManager.cs:920-930 | High |
-| CR-003 | Percent fields stored as decimal 0.0-1.0 | Convert percentage input (0-100) to decimal fraction | RecordManager | RecordManager.cs:900-910 | Medium |
-| CR-004 | DateTime fields convert to configured timezone | TimeZoneInfo.ConvertTime() using ErpSettings.TimeZoneName | RecordManager | RecordManager.cs:850-860 | Medium |
-| CR-005 | GUID fields auto-generate with sequential IDs | Guid.NewGuid() or database newsequentialid() function | RecordManager | RecordManager.cs:780-790 | High |
+| CR-001 | Currency fields rounded to 2 decimal places | Math.Round(value, 2, MidpointRounding.AwayFromZero) | RecordManager | WebVella.Erp/Api/RecordManager.cs:890-895 | Medium |
+| CR-002 | AutoNumber fields increment from max value | SELECT MAX(field) + 1 with table-level locking | RecordManager | WebVella.Erp/Api/RecordManager.cs:920-930 | High |
+| CR-003 | Percent fields stored as decimal 0.0-1.0 | Convert percentage input (0-100) to decimal fraction | RecordManager | WebVella.Erp/Api/RecordManager.cs:900-910 | Medium |
+| CR-004 | DateTime fields convert to configured timezone | TimeZoneInfo.ConvertTime() using ErpSettings.TimeZoneName | RecordManager | WebVella.Erp/Api/RecordManager.cs:850-860 | Medium |
+| CR-005 | GUID fields auto-generate with sequential IDs | Guid.NewGuid() or database newsequentialid() function | RecordManager | WebVella.Erp/Api/RecordManager.cs:780-790 | High |
 
 ### Calculation Rule Details
 
@@ -261,16 +261,16 @@ Authorization rules enforce security policies, permission checks, and access con
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| AR-001 | User must have EntityPermission.Read to query records | Check SecurityContext.HasEntityPermission() | RecordManager | RecordManager.cs:1761 | Critical |
-| AR-002 | User must have EntityPermission.Create to insert records | Check SecurityContext.HasEntityPermission() | RecordManager | RecordManager.cs:284 | Critical |
-| AR-003 | User must have EntityPermission.Update to modify records | Check SecurityContext.HasEntityPermission() | RecordManager | RecordManager.cs:984 | Critical |
-| AR-004 | User must have EntityPermission.Delete to remove records | Check SecurityContext.HasEntityPermission() | RecordManager | RecordManager.cs:1647 | Critical |
-| AR-005 | User must have MetaPermission to create entities | Check SecurityContext.HasMetaPermission() | EntityManager | EntityManager.cs:80-90 | Critical |
-| AR-006 | System scope bypasses all permission checks | SecurityContext.OpenSystemScope() elevation | SecurityContext | SecurityContext.cs:150-160 | Critical |
-| AR-007 | Role-based permissions evaluated for all operations | SecurityContext.HasEntityPermission with role checks | SecurityManager | SecurityManager.cs:200-250 | Critical |
-| AR-008 | Administrator role grants full system access | Role GUID BDC56420-CAF0-4030-8A0E-D264938E0CDA | SecurityManager | Definitions.cs:10-15 | Critical |
-| AR-009 | Regular role grants data access per entity permissions | Role GUID F16EC6DB-626D-4C27-8DE0-3E7CE542C55F | SecurityManager | Definitions.cs:16-20 | High |
-| AR-010 | Guest role limited to explicitly granted read access | Role GUID 987148B1-AFA8-4B33-8616-55861E5FD065 | SecurityManager | Definitions.cs:21-25 | High |
+| AR-001 | User must have EntityPermission.Read to query records | Check SecurityContext.HasEntityPermission() | RecordManager | WebVella.Erp/Api/RecordManager.cs:1761 | Critical |
+| AR-002 | User must have EntityPermission.Create to insert records | Check SecurityContext.HasEntityPermission() | RecordManager | WebVella.Erp/Api/RecordManager.cs:284 | Critical |
+| AR-003 | User must have EntityPermission.Update to modify records | Check SecurityContext.HasEntityPermission() | RecordManager | WebVella.Erp/Api/RecordManager.cs:984 | Critical |
+| AR-004 | User must have EntityPermission.Delete to remove records | Check SecurityContext.HasEntityPermission() | RecordManager | WebVella.Erp/Api/RecordManager.cs:1647 | Critical |
+| AR-005 | User must have MetaPermission to create entities | Check SecurityContext.HasMetaPermission() | EntityManager | WebVella.Erp/Api/EntityManager.cs:80-90 | Critical |
+| AR-006 | System scope bypasses all permission checks | SecurityContext.OpenSystemScope() elevation | SecurityContext | WebVella.Erp/Api/SecurityContext.cs:150-160 | Critical |
+| AR-007 | Role-based permissions evaluated for all operations | SecurityContext.HasEntityPermission with role checks | SecurityManager | WebVella.Erp/Api/SecurityManager.cs:200-250 | Critical |
+| AR-008 | Administrator role grants full system access | Role GUID BDC56420-CAF0-4030-8A0E-D264938E0CDA | SecurityManager | WebVella.Erp/Api/Definitions.cs:10-15 | Critical |
+| AR-009 | Regular role grants data access per entity permissions | Role GUID F16EC6DB-626D-4C27-8DE0-3E7CE542C55F | SecurityManager | WebVella.Erp/Api/Definitions.cs:16-20 | High |
+| AR-010 | Guest role limited to explicitly granted read access | Role GUID 987148B1-AFA8-4B33-8616-55861E5FD065 | SecurityManager | WebVella.Erp/Api/Definitions.cs:21-25 | High |
 
 ### Authorization Rule Details
 

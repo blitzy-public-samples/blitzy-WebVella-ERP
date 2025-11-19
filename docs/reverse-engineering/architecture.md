@@ -783,7 +783,7 @@ public class Patch20240115 : ErpPatch
 - ANALYZE statistics for query planner optimization
 
 **Example Connection String**:
-```
+```text
 Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;
 ```
 
@@ -795,11 +795,12 @@ Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=
 
 **Storage Architecture**:
 
-```
-WebVella.Erp.Database.DbFileRepository
-    ↓ (Storage.Net abstraction)
-    ├─→ Local File System: C:\erp-files\
-    └─→ UNC Network Path: \\server\share\erp-files\
+```mermaid
+graph TD
+    App[Application] --> DbFileRepo[DbFileRepository]
+    DbFileRepo --> StorageNet[Storage.Net Abstraction]
+    StorageNet --> LocalFS[Local File System<br/>C:\erp-files\]
+    StorageNet --> UNC[UNC Network Path<br/>\\server\share\erp-files\]
 ```
 
 **File Storage Operations**:
@@ -948,18 +949,36 @@ WebVella.Erp.Database.DbFileRepository
 
 **Blazor Project Structure**:
 
-```
-WebVella.Erp.WebAssembly/
-├── Client/ (Blazor WebAssembly app executing in browser)
-│   ├── CustomAuthenticationProvider.cs (JWT token validation)
-│   ├── IApiService.cs (API client abstraction)
-│   ├── wwwroot/index.html (SPA entry point)
-│   └── AppState.cs (Shared application state)
-├── Server/ (ASP.NET Core host serving Blazor client)
-│   ├── Controllers/ (API endpoints optimized for Blazor)
-│   └── Startup.cs (MapFallbackToFile("index.html"))
-└── Shared/ (DTOs, interfaces, contracts)
-    └── Models/ (Request/response objects)
+```mermaid
+graph TB
+    Root["WebVella.Erp.WebAssembly/"]
+    
+    Client["Client/<br/>(Blazor WebAssembly app<br/>executing in browser)"]
+    ClientAuth["CustomAuthenticationProvider.cs<br/>(JWT token validation)"]
+    ClientApi["IApiService.cs<br/>(API client abstraction)"]
+    ClientWww["wwwroot/index.html<br/>(SPA entry point)"]
+    ClientState["AppState.cs<br/>(Shared application state)"]
+    
+    Server["Server/<br/>(ASP.NET Core host<br/>serving Blazor client)"]
+    ServerCtrl["Controllers/<br/>(API endpoints optimized for Blazor)"]
+    ServerStart["Startup.cs<br/>(MapFallbackToFile)"]
+    
+    Shared["Shared/<br/>(DTOs, interfaces, contracts)"]
+    SharedModels["Models/<br/>(Request/response objects)"]
+    
+    Root --> Client
+    Root --> Server
+    Root --> Shared
+    
+    Client --> ClientAuth
+    Client --> ClientApi
+    Client --> ClientWww
+    Client --> ClientState
+    
+    Server --> ServerCtrl
+    Server --> ServerStart
+    
+    Shared --> SharedModels
 ```
 
 **Authentication Integration**:

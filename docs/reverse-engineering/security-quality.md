@@ -198,7 +198,7 @@ This security and quality assessment identifies **25 security findings** and com
 | **Issue ID** | SEC-005 |
 | **Severity** | High |
 | **Description** | Newtonsoft.Json TypeNameHandling.Auto enables polymorphic deserialization allowing arbitrary object instantiation and potential remote code execution |
-| **Affected Component** | Job result serialization in `WebVella.Erp/Jobs/JobDataService.cs` |
+| **Affected Component** | Job result serialization in `WebVella.Erp/Jobs/WebVella.Erp/Jobs/JobDataService.cs` |
 | **CVE/CWE** | CWE-502: Deserialization of Untrusted Data, CVE-2024-43484 (Newtonsoft.Json) |
 | **Code Reference** | Job result persistence with TypeNameHandling.Auto for diagnostic data |
 

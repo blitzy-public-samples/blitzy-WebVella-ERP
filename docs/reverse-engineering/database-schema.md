@@ -58,13 +58,13 @@ WebVella ERP leverages PostgreSQL 16's advanced capabilities:
 |-------------------|----------------------|----------|
 | **JSONB Data Type** | Flexible schema storage for entity configurations and dynamic fields | Field definition storage, component options |
 | **UUID Primary Keys** | All tables use UUID (type `uuid`) for distributed-system-friendly identifiers | Standard across all entity tables |
-| **Full-Text Search** | PostgreSQL `tsvector` with `gin` indexes for search functionality | `CreateFtsIndexIfNotExists` in DbRepository.cs:889-940 |
-| **Array Types** | `text[]`, `uuid[]` for multi-select and multi-relation fields | MultiSelectField -> `text[]` per DBTypeConverter.cs:42 |
-| **Referential Integrity** | `FOREIGN KEY` constraints enforce relationships | `CreateRelation` in DbRepository.cs:534-610 |
+| **Full-Text Search** | PostgreSQL `tsvector` with `gin` indexes for search functionality | `CreateFtsIndexIfNotExists` in WebVella.Erp/Database/DbRepository.cs:889-940 |
+| **Array Types** | `text[]`, `uuid[]` for multi-select and multi-relation fields | MultiSelectField -> `text[]` per WebVella.Erp/Database/DBTypeConverter.cs:42 |
+| **Referential Integrity** | `FOREIGN KEY` constraints enforce relationships | `CreateRelation` in WebVella.Erp/Database/DbRepository.cs:534-610 |
 | **Transactional DDL** | Schema modifications within transactions for atomic operations | All DDL methods wrapped in transaction context |
 | **GIN Indexes** | Generalized Inverted Indexes for array and full-text search columns | `CREATE INDEX USING gin` for tsvector columns |
-| **GIST Indexes** | Geometric indexes for spatial data fields (geography type) | `CreateIndex` with GIST option in DbRepository.cs:828 |
-| **Timezone-Aware Timestamps** | `timestamptz` for all datetime fields with automatic timezone conversion | DateTimeField -> `timestamptz` per DBTypeConverter.cs:31 |
+| **GIST Indexes** | Geometric indexes for spatial data fields (geography type) | `CreateIndex` with GIST option in WebVella.Erp/Database/DbRepository.cs:828 |
+| **Timezone-Aware Timestamps** | `timestamptz` for all datetime fields with automatic timezone conversion | DateTimeField -> `timestamptz` per WebVella.Erp/Database/DBTypeConverter.cs:31 |
 
 ### Database Connection Configuration
 
