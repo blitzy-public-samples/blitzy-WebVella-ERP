@@ -308,7 +308,7 @@ Flexible SMTP provider management:
 - Service-specific authentication credentials encrypted in database
 - IMemoryCache-backed service lookup with 1-hour expiration
 
-Source: `WebVella.Erp.Plugins.Mail/Services/EmailServiceManager.cs`
+Source: `WebVella.Erp.Plugins.Mail/Api/EmailServiceManager.cs`
 
 #### Primary Entities
 
@@ -421,7 +421,7 @@ recordManager.CreateRecord("email", email);
 - Cache clearing on commits ensures configuration changes propagate
 - Default service enforcement prevents multiple default services
 
-Source: `WebVella.Erp.Plugins.Mail/Hooks/SmtpServiceRecordHook.cs`
+Source: `WebVella.Erp.Plugins.Mail/Hooks/Api/SmtpServiceRecordHook.cs`
 
 **Background Job Scheduling:**
 - ProcessSmtpQueueJob registered via [Job] attribute with GUID "39c1c8e6-ce91-4263-b0ae-9c51a9df54e6"
@@ -813,7 +813,7 @@ public class StartTasksOnStartDate : ErpJob
 }
 ```
 
-Source: `WebVella.Erp.Plugins.Project/Jobs/StartTasksOnStartDate.cs`
+Source: `WebVella.Erp.Plugins.Project/StartTasksOnStartDate.cs`
 
 **Schedule Configuration:**
 - Execution time: Daily at 00:00:02 UTC
@@ -2839,9 +2839,9 @@ public class CustomerProjectSummaryDataSource : CodeDataSource
 - `WebVella.Erp.Plugins.SDK/` - SDK Plugin source code
 - `WebVella.Erp.Plugins.Mail/` - Mail Plugin source code
 - `WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs` - Email queue processing
-- `WebVella.Erp.Plugins.Mail/Hooks/SmtpServiceRecordHook.cs` - SMTP service validation
+- `WebVella.Erp.Plugins.Mail/SmtpServiceRecordHook.cs` - SMTP service validation
 - `WebVella.Erp.Plugins.Project/` - Project Plugin source code
-- `WebVella.Erp.Plugins.Project/Jobs/StartTasksOnStartDate.cs` - Task automation
+- `WebVella.Erp.Plugins.Project/StartTasksOnStartDate.cs` - Task automation
 - `WebVella.Erp.Plugins.Crm/` - CRM Plugin source code
 - `WebVella.Erp.Plugins.Next/` - Next Plugin source code
 - `WebVella.Erp.Plugins.MicrosoftCDM/` - Microsoft CDM Plugin source code

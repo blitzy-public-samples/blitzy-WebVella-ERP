@@ -317,12 +317,62 @@ This security and quality assessment identifies **25 security findings** and com
 | **Affected Component** | DbRepository classes in `WebVella.Erp/Database/` |
 | **CVE/CWE** | CWE-89: Improper Neutralization of Special Elements used in an SQL Command (SQL Injection) |
 
-**Assessment**: Manual review of DbRecordRepository, DbFileRepository, DbDataSourceRepository shows consistent use of Npgsql parameterized queries with `@parameter` syntax. No string concatenation detected in SQL query construction. **Risk: Low** (good practices followed).
+**Assessment**: Manual review of DbRecordRepository, DbFileRepository, DbDataSourceRepository shows consistent use of Npgsql parameterized queries with `@parameter` syntax. **Risk: Low** (good practices followed with effective mitigations).
 
-**Validation Recommendations**:
-1. Implement automated static analysis scanning for SQL injection patterns
-2. Code review checklist requiring parameterization verification
-3. Consider migrating to Entity Framework Core for additional safety layer
+**Detailed Analysis - Dynamic Table Name Construction**:
+
+The `DbRecordRepository.cs` class constructs table names dynamically using string concatenation:
+
+```csharp
+// WebVella.Erp/Database/DbRecordRepository.cs
+string tableName = $"rec_{entity.Name}";
+```
+
+Source: `WebVella.Erp/Database/DbRecordRepository.cs` (multiple methods including Create, Find, Count)
+
+At first inspection, this appears vulnerable to SQL injection if `entity.Name` contains malicious input (e.g., `"user; DROP TABLE users--"`). However, investigation reveals this vector is **effectively mitigated** by upstream whitelist validation.
+
+**Mitigation Mechanism**:
+
+All calls to `DbRecordRepository` methods pass through `EntityManager.ReadEntity(string name)` first:
+
+```csharp
+// Example from RecordManager
+Entity entity = entMan.ReadEntity(entityName).Object;
+```
+
+Source: `WebVella.Erp/Api/RecordManager.cs` (multiple methods)
+
+The `ReadEntity` method implements **whitelist validation**:
+1. Retrieves all valid entities from database/cache via `ReadEntities()`
+2. Performs in-memory LINQ comparison: `entities.FirstOrDefault(e => e.Name == name)`
+3. Returns null if no matching entity exists
+
+Source: `WebVella.Erp/Api/EntityManager.cs`, lines 800-808
+
+**Why This Prevents SQL Injection**:
+- Entity name validation happens in C# memory, NOT in SQL queries
+- Only pre-existing entity names from the database will pass validation
+- Invalid entity names return null, causing `NullReferenceException` before SQL construction
+- Attack payloads fail at validation stage, never reaching SQL execution
+
+**Attack Scenario (Blocked)**:
+```
+Attacker input: "user; DROP TABLE users--"
+→ ReadEntity searches for entity name "user; DROP TABLE users--"
+→ No such entity exists in database
+→ Returns null
+→ Code throws NullReferenceException before DbRecordRepository
+→ SQL injection prevented
+```
+
+**Defense-in-Depth Recommendations**:
+1. Add explicit null checks after `ReadEntity` calls with clear error messages (preventing NullReferenceException exposure)
+2. Implement entity name format validation: alphanumeric + underscore only (PostgreSQL identifier constraints)
+3. Log suspicious entity name requests with special characters for security monitoring
+4. Implement automated static analysis scanning for SQL injection patterns
+5. Code review checklist requiring parameterization verification
+6. Consider migrating to Entity Framework Core for additional safety layer
 
 ---
 
