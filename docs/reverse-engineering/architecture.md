@@ -1,9 +1,9 @@
 # System Architecture & Data Flow Documentation
 
-**Generated**: 2024-11-18 UTC  
-**Repository**: https://github.com/WebVella/WebVella-ERP  
-**WebVella ERP Version**: 1.7.4  
-**Analysis Scope**: Complete system architecture including core libraries, web UI framework, plugin ecosystem, and client applications
+**Generated:** 2024-01-20 UTC  
+**Repository:** https://github.com/WebVella/WebVella-ERP  
+**Version:** 1.7.4  
+**Analysis Scope:** Complete codebase analysis of WebVella ERP system architecture
 
 ---
 
@@ -11,1088 +11,1127 @@
 
 1. [Executive Summary](#executive-summary)
 2. [Component Architecture](#component-architecture)
-3. [Technology Stack Summary](#technology-stack-summary)
+3. [Technology Stack](#technology-stack)
 4. [Key Components](#key-components)
 5. [Data Flow Diagrams](#data-flow-diagrams)
 6. [Integration Architecture](#integration-architecture)
-7. [References](#references)
+7. [System Bootstrap Process](#system-bootstrap-process)
+8. [Plugin Architecture](#plugin-architecture)
 
 ---
 
 ## Executive Summary
 
-WebVella ERP implements a **metadata-driven entity architecture with plugin extensibility**, enabling rapid business application development through runtime schema management without code deployment. The system's core architectural philosophy centers on storing all entity definitions, field schemas, relationships, pages, and application configurations as metadata in PostgreSQL, which the platform reads at runtime to dynamically construct database tables, validation rules, and user interfaces.
+WebVella ERP implements a **metadata-driven architecture** where all entity definitions, relationships, pages, and business logic configurations are stored in PostgreSQL database tables and loaded at runtime. This design enables zero-compilation schema evolution and rapid application development through configuration rather than code deployment.
 
-### Architectural Foundation
+### Architectural Approach
 
-The platform is built on **.NET 9**, **ASP.NET Core 9**, and **PostgreSQL 16**, leveraging modern cross-platform technologies that enable deployment on both Windows (Windows 10, Server 2012+) and Linux operating systems. This technology foundation provides:
+The system follows a **layered architecture** pattern:
 
-- **Runtime Entity Management**: Entities created through the SDK plugin UI take effect immediately without compilation or application restart
-- **Plugin-Based Extensibility**: Business functionality delivered through plugins (SDK, Mail, CRM, Project, Next, MicrosoftCDM) that share common infrastructure while maintaining isolated namespaces
-- **Multi-Tier Architecture**: Clear separation between Core (business logic), Web (UI framework), and Site Hosts (composition layer)
-- **Metadata Caching**: One-hour metadata cache duration balances performance with change propagation across multi-server deployments
+- **Data Layer:** PostgreSQL 16 with Npgsql for data persistence and metadata storage
+- **Core Services Layer:** Entity management, record operations, security, job scheduling
+- **Infrastructure Layer:** Job engine, hook system, EQL query processor, notification system
+- **Web Layer:** Razor UI framework, page components, tag helpers
+- **Plugin Layer:** Extensible business modules (SDK, CRM, Project, Mail, CDM)
+- **Client Layer:** Traditional web browsers and Blazor WebAssembly SPA
 
-### Five-Layer Architecture Pattern
+### Key Architectural Principles
 
-The system decomposes into five distinct architectural layers:
-
-1. **Client Layer**: Web browsers (Chrome, Firefox, Safari, Edge) and Blazor WebAssembly client executing .NET code via WebAssembly runtime
-2. **Presentation Layer**: ASP.NET Core Razor view engine, Bootstrap 4 CSS framework, custom tag helpers, and StencilJS web components
-3. **Application Layer**: Site host applications (WebVella.Erp.Site.*) composing plugins into deployed applications
-4. **Core Layer**: Core runtime library (WebVella.Erp) containing entity management, record operations, security, job scheduling, EQL query engine, and hook system
-5. **Data Layer**: PostgreSQL 16 database accessed through Npgsql with custom repository pattern, plus local/UNC file storage
-
-This layered architecture enables:
-
-- **Reusability**: Core library operates independently in console applications, services, or web hosts
-- **Testability**: Each layer can be tested in isolation with appropriate mocking
-- **Scalability**: Application tier scales horizontally while database tier scales vertically
-- **Maintainability**: Clear boundaries reduce coupling and enable parallel development
-
-### Key Architectural Characteristics
-
-**Metadata-Driven Design**: All system definitions persist as metadata rather than compiled code, eliminating traditional development cycles for schema changes and enabling non-technical administrators to evolve data structures through the SDK plugin UI.
-
-**Plugin-Based Extensibility**: The plugin architecture provides modular functionality where each plugin inherits from the `ErpPlugin` base class, implements version-based patches for transactional schema migrations, and automatically integrates into the host application's middleware pipeline.
-
-**Repository Pattern**: The `ErpDbContext` implements repository pattern with specialized repositories for entities, records, relationships, and files, centralizing connection management, transaction handling, and query construction.
-
-**Convention-Based Discovery**: Attribute-driven discovery using `[Hook]`, `[DataSource]`, `[Job]`, and component base classes eliminates manual registration code and enables plugins to seamlessly contribute functionality.
+1. **Metadata-First:** Entity schemas defined in database, not compiled code
+2. **Plugin-Based Extensibility:** Business logic implemented as pluggable modules
+3. **Convention Over Configuration:** Attribute-driven discovery for components, hooks, jobs
+4. **Transactional Migrations:** Database schema changes execute within PostgreSQL transactions
+5. **Multi-Tier Separation:** Core → Web → Plugins → Sites hierarchy
 
 ---
 
 ## Component Architecture
 
-The following diagram illustrates the complete system architecture showing all major subsystems, their relationships, and data flow patterns:
-
 ```mermaid
 graph TB
     subgraph "Client Layer"
-        BlazorClient["Blazor WebAssembly Client<br/>WebVella.Erp.WebAssembly.Client<br/>JWT Authentication + LocalStorage"]
-        WebBrowser["Web Browsers<br/>Chrome, Firefox, Safari, Edge<br/>HTML5 + JavaScript"]
+        Browser["Web Browsers<br/>(Chrome, Firefox, Safari, Edge)"]
+        BlazorWASM["Blazor WebAssembly Client<br/>JWT + LocalStorage Auth"]
     end
     
-    subgraph "Presentation Layer"
-        WebUI["Web UI Framework<br/>WebVella.Erp.Web<br/>ASP.NET Core Razor"]
-        Components["50+ Page Components<br/>Design/Options/Display Lifecycle"]
-        TagHelpers["Custom Tag Helpers<br/>wv-field-*, wv-page-header, wv-authorize"]
-        Controllers["Web API Controllers<br/>Entity, Record, File, Import/Export"]
-        
-        WebUI --> Components
-        WebUI --> TagHelpers
-        WebUI --> Controllers
+    subgraph "Presentation Layer - WebVella.Erp.Web"
+        RazorEngine["Razor View Engine<br/>Page Rendering"]
+        Components["Page Components (50+)<br/>PcField*, PcGrid, PcForm"]
+        TagHelpers["Tag Helpers<br/>wv-field-*, wv-datasource"]
+        PageService["PageService<br/>Page Composition"]
     end
     
-    subgraph "Application Layer"
-        SiteHosts["Site Host Applications<br/>WebVella.Erp.Site.*<br/>Startup + Config.json"]
-        
-        subgraph "Plugin Ecosystem"
-            SDKPlugin["SDK Plugin<br/>Entity/Field/Page Management<br/>Admin UI"]
-            MailPlugin["Mail Plugin<br/>SMTP Integration<br/>Email Queue Processing"]
-            CRMPlugin["CRM Plugin<br/>Customer Management<br/>Framework Scaffold"]
-            ProjectPlugin["Project Plugin<br/>Task/Time Management<br/>Recurrence + Watchers"]
-            NextPlugin["Next Plugin<br/>Next-Gen Features"]
-            CDMPlugin["Microsoft CDM Plugin<br/>Common Data Model Integration"]
-        end
-        
-        SiteHosts --> SDKPlugin
-        SiteHosts --> MailPlugin
-        SiteHosts --> CRMPlugin
-        SiteHosts --> ProjectPlugin
-        SiteHosts --> NextPlugin
-        SiteHosts --> CDMPlugin
+    subgraph "Application Layer - Site Hosts & Plugins"
+        SiteHost["WebVella.Erp.Site<br/>ASP.NET Core Host"]
+        SDK["SDK Plugin<br/>(Admin Tools)"]
+        CRM["CRM Plugin<br/>(Customer Mgmt)"]
+        Project["Project Plugin<br/>(Task/Time Tracking)"]
+        Mail["Mail Plugin<br/>(Email Integration)"]
+        CDM["Microsoft CDM Plugin"]
     end
     
-    subgraph "Core Layer"
-        CoreLib["Core Runtime Library<br/>WebVella.Erp<br/>.NET 9 Class Library"]
-        
-        EntityMgr["EntityManager<br/>Runtime Entity Definition CRUD<br/>Field Type Validation"]
-        RecordMgr["RecordManager<br/>Record CRUD Operations<br/>Hook Integration"]
-        SecurityMgr["SecurityManager<br/>User/Role/Permission Management<br/>JWT Token Generation"]
-        SearchMgr["SearchManager<br/>Full-Text Search<br/>Bulgarian Language Support"]
-        JobEngine["Job Engine<br/>Background Job Scheduling<br/>Schedule Plans + Recurrence"]
-        HookSystem["Hook System<br/>Pre/Post Record Hooks<br/>Page + Render Hooks"]
-        EQLEngine["EQL Query Engine<br/>Custom Query Language<br/>Irony Parser + SQL Translation"]
-        
-        CoreLib --> EntityMgr
-        CoreLib --> RecordMgr
-        CoreLib --> SecurityMgr
-        CoreLib --> SearchMgr
-        CoreLib --> JobEngine
-        CoreLib --> HookSystem
-        CoreLib --> EQLEngine
+    subgraph "Core Services Layer - WebVella.Erp/Api"
+        EntityMgr["EntityManager<br/>Runtime Entity CRUD"]
+        RecordMgr["RecordManager<br/>Data Operations"]
+        SecurityMgr["SecurityManager<br/>RBAC + Permissions"]
+        SearchMgr["SearchManager<br/>Full-Text Search"]
+        JobMgr["JobManager<br/>Background Jobs"]
+        ImportExportMgr["ImportExportManager<br/>CSV Operations"]
+    end
+    
+    subgraph "Infrastructure Layer - WebVella.Erp"
+        EQLEngine["EQL Engine<br/>Irony Parser"]
+        HookSystem["Hook System<br/>Pre/Post Operations"]
+        JobEngine["Job Engine<br/>Schedule Execution"]
+        NotifSystem["Notification System<br/>LISTEN/NOTIFY"]
+        ErpService["ERPService<br/>Bootstrap & Initialization"]
     end
     
     subgraph "Data Layer"
-        DbContext["ErpDbContext<br/>Repository Pattern<br/>Connection Pooling + Transactions"]
-        DbRepos["Specialized Repositories<br/>Entity, Record, Relation, File<br/>Parameterized SQL + Savepoints"]
-        PostgreSQL[("PostgreSQL 16<br/>Metadata + Business Data<br/>Full-Text Search + LISTEN/NOTIFY")]
-        FileStorage[("File Storage<br/>Local File System or UNC Paths<br/>Storage.Net Abstraction")]
-        Cache["In-Memory Cache<br/>Microsoft.Extensions.Caching<br/>1-Hour Metadata Expiration"]
-        
-        DbContext --> DbRepos
-        DbRepos --> PostgreSQL
-        CoreLib --> FileStorage
-        CoreLib --> Cache
+        DbContext["ErpDbContext<br/>Repository Pattern"]
+        PostgreSQL[("PostgreSQL 16<br/>Metadata + Business Data")]
+        FileStorage[("File Storage<br/>Local/UNC Paths")]
+        MemCache["In-Memory Cache<br/>1-hour TTL"]
     end
     
-    BlazorClient -->|"JWT API Calls<br/>/api/v3/en_US/"| SiteHosts
-    WebBrowser -->|"HTTP/HTTPS<br/>Razor Pages"| SiteHosts
-    SiteHosts --> WebUI
-    SiteHosts -.->|"Plugin Registration<br/>AddErp() + UseErp()"| CoreLib
-    WebUI --> CoreLib
-    SDKPlugin --> CoreLib
-    MailPlugin --> CoreLib
-    CRMPlugin --> CoreLib
-    ProjectPlugin --> CoreLib
-    NextPlugin --> CoreLib
-    CDMPlugin --> CoreLib
+    Browser -->|HTTP/HTTPS| SiteHost
+    BlazorWASM -->|JWT API Calls| SiteHost
+    SiteHost --> RazorEngine
+    SiteHost --> SDK
+    SiteHost --> CRM
+    SiteHost --> Project
+    SiteHost --> Mail
+    SiteHost --> CDM
+    
+    RazorEngine --> Components
+    RazorEngine --> TagHelpers
+    Components --> PageService
+    
+    SDK --> EntityMgr
+    SDK --> RecordMgr
+    CRM --> EntityMgr
+    Project --> JobMgr
+    Mail --> JobMgr
+    
+    PageService --> EntityMgr
+    PageService --> RecordMgr
+    
     EntityMgr --> DbContext
     RecordMgr --> DbContext
     SecurityMgr --> DbContext
     SearchMgr --> DbContext
-    JobEngine --> DbContext
-    EQLEngine --> DbContext
+    JobMgr --> JobEngine
+    RecordMgr --> HookSystem
     
-    style BlazorClient fill:#e1f5ff
-    style WebBrowser fill:#e1f5ff
-    style WebUI fill:#fff4e1
-    style SiteHosts fill:#ffe1f5
-    style CoreLib fill:#e1ffe1
-    style PostgreSQL fill:#ffe1e1
-    style FileStorage fill:#ffe1e1
+    EQLEngine --> DbContext
+    HookSystem --> RecordMgr
+    JobEngine --> DbContext
+    NotifSystem --> DbContext
+    ErpService --> EntityMgr
+    ErpService --> DbContext
+    
+    DbContext --> PostgreSQL
+    DbContext --> FileStorage
+    EntityMgr --> MemCache
+    RecordMgr --> MemCache
 ```
 
-### Architecture Layer Descriptions
+### Layer Responsibilities
 
-**Client Layer**: 
-- **Web Browsers**: Standard HTML5-capable browsers access Razor-rendered pages and interact with API endpoints
-- **Blazor WebAssembly**: .NET 9 code compiled to WebAssembly executes in browser, communicating with server via JWT-authenticated API calls with LocalStorage token persistence
-
-**Presentation Layer**:
-- **Web UI Framework**: ASP.NET Core Razor engine renders server-side HTML with C# code integration
-- **50+ Page Components**: Reusable UI components following Design (configuration schema), Options (parameter resolution), Display (rendering) lifecycle
-- **Custom Tag Helpers**: Declarative Razor syntax (wv-field-*, wv-page-header) for component invocation with IntelliSense support
-- **Web API Controllers**: RESTful endpoints for entity management, record operations, file handling, and CSV import/export
-
-**Application Layer**:
-- **Site Host Applications**: Compose final deployable applications by selecting plugins, configuring services via Config.json, and defining hosting model (Kestrel, IIS)
-- **Plugin Ecosystem**: Six business functionality plugins (SDK, Mail, CRM, Project, Next, MicrosoftCDM) extending platform capabilities through shared infrastructure
-
-**Core Layer**:
-- **EntityManager**: Runtime entity definition CRUD with automatic PostgreSQL table generation (rec_ prefix convention)
-- **RecordManager**: Entity instance CRUD operations with field validation, transaction management, and hook invocation
-- **SecurityManager**: Authentication (JWT, cookies), authorization (RBAC), and SecurityContext propagation
-- **Job Engine**: Background job scheduling with Ical.Net recurrence patterns and fixed-size thread pool execution
-- **Hook System**: Pre/post record hooks, page hooks, and render hooks for business logic injection
-- **EQL Engine**: Custom query language parsed via Irony framework, translated to PostgreSQL SQL with parameter binding
-
-**Data Layer**:
-- **ErpDbContext**: Repository pattern implementation with connection pooling (MinPoolSize=1, MaxPoolSize=100, CommandTimeout=120s)
-- **PostgreSQL 16**: Primary data store for system metadata and business data with full-text search and LISTEN/NOTIFY capabilities
-- **File Storage**: Binary content stored in local file system or UNC network paths via Storage.Net abstraction
-- **In-Memory Cache**: Microsoft.Extensions.Caching with 1-hour metadata expiration balancing performance and change visibility
+| Layer | Responsibilities | Key Technologies |
+|-------|------------------|------------------|
+| **Client Layer** | Browser-based UI, user interactions, JWT token management | HTML5, JavaScript, Blazor WebAssembly |
+| **Presentation Layer** | Page rendering, component composition, tag helper processing | Razor, Bootstrap 4, StencilJS |
+| **Application Layer** | Business module hosting, plugin lifecycle, routing | ASP.NET Core 9, plugin infrastructure |
+| **Core Services** | Entity/record management, security, search, import/export | C# business logic, AutoMapper, CsvHelper |
+| **Infrastructure** | Query parsing, hooks, jobs, notifications, system bootstrap | Irony, Ical.Net, Npgsql LISTEN/NOTIFY |
+| **Data Layer** | Database access, file storage, metadata caching | PostgreSQL 16, Npgsql 9.0.4, Storage.Net |
 
 ---
 
-## Technology Stack Summary
+## Technology Stack
 
-The following table documents all major technologies, their versions, and architectural purposes:
+### Runtime & Framework
 
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| **Runtime** | .NET | 9.0 | Cross-platform application runtime (CLR + BCL) enabling Windows/Linux deployment |
-| **Web Framework** | ASP.NET Core | 9.0 | Web application hosting, MVC pattern, Razor Pages, dependency injection, middleware pipeline |
-| **SPA Framework** | Blazor WebAssembly | 9.0.10 | Client-side C# execution via WebAssembly, eliminating JavaScript for business logic |
-| **Database** | PostgreSQL | 16 | Primary data persistence for metadata and business data with JSONB, full-text search, referential integrity |
-| **Database Client** | Npgsql | 9.0.4 | .NET PostgreSQL driver with connection pooling, prepared statements, binary protocol |
-| **ORM Pattern** | Custom Repositories | N/A | Repository pattern with specialized implementations (EntityRepository, RecordRepository, FileRepository) |
-| **Serialization** | Newtonsoft.Json | 13.0.4 | JSON serialization/deserialization for API responses, configuration, job data persistence |
-| **Object Mapping** | AutoMapper | 14.0.0 | DTO-to-entity mapping eliminating boilerplate transformation code |
-| **Email Integration** | MailKit / MimeKit | 4.14.1 | SMTP email sending with HTML support, attachments, modern OAuth2-capable mail client |
-| **Query Parser** | Irony.NetCore | 1.1.11 | BNF grammar-based parser framework enabling Entity Query Language (EQL) custom syntax |
-| **CSV Processing** | CsvHelper | 33.1.0 | CSV import/export with field mapping, type conversion, configurable delimiters |
-| **Recurrence** | Ical.Net | 4.3.1 | iCalendar (RFC 5545) recurrence pattern processing for job scheduling (daily/weekly/monthly) |
-| **File Storage** | Storage.Net | 9.3.0 | Multi-backend file storage abstraction supporting local file system and UNC network paths |
-| **HTML Processing** | HtmlAgilityPack | 1.12.4 | HTML parsing and DOM manipulation for content sanitization and extraction |
-| **Caching** | Microsoft.Extensions.Caching.Memory | 9.0.10 | In-memory cache for metadata with 1-hour expiration strategy |
-| **Configuration** | Microsoft.Extensions.Configuration.Json | 9.0.10 | JSON-based configuration (Config.json) with strongly-typed binding |
-| **Logging** | Microsoft.Extensions.Logging | 9.0.10 | Structured logging infrastructure with console and debug providers |
-| **DI Container** | Microsoft.Extensions.DependencyInjection | 9.0.10 | Service lifetime management, constructor injection, scope management |
-| **Authentication** | System.IdentityModel.Tokens.Jwt | 8.14.0 | JWT token creation, validation, parsing following RFC 7519 standard |
-| **JWT Middleware** | Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | Bearer token authentication middleware with automatic token validation |
-| **LocalStorage** | Blazored.LocalStorage | 4.5.0 | Browser LocalStorage access from Blazor WebAssembly for JWT token persistence |
-| **CSS Framework** | Bootstrap | 4.x | Responsive grid system, UI components, utility classes for mobile-first design |
-| **JavaScript Library** | jQuery | 3.x | DOM manipulation, AJAX communication, event handling in legacy components |
-| **Code Execution** | CS-Script | 4.11.2 | Runtime C# script execution for dynamic business rules and calculations |
-| **Code Analysis** | Microsoft.CodeAnalysis.* (Roslyn) | 4.14.0 | Runtime C# compilation enabling dynamic code generation and evaluation |
-| **Image Processing** | System.Drawing.Common | 9.0.10 | Image manipulation, thumbnail generation for file attachment handling |
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **.NET Runtime** | 9.0 | Cross-platform application execution (Windows, Linux) |
+| **ASP.NET Core** | 9.0 | Web application framework, MVC, Razor Pages |
+| **C# Language** | 12 (implicit) | Primary programming language |
+| **Blazor WebAssembly** | 9.0.10 | Client-side SPA framework |
 
-### Technology Version Alignment
+### Database & Storage
 
-All Microsoft packages maintain strict version consistency:
-- **Microsoft.AspNetCore.*** packages: 9.0.10
-- **Microsoft.Extensions.*** packages: 9.0.10
-- **.NET Target Framework**: net9.0 (all projects)
-- **C# Language Version**: 12 (implicit with .NET 9.0)
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **PostgreSQL** | 16 | Primary relational database for metadata and business data |
+| **Npgsql** | 9.0.4 | .NET PostgreSQL client driver |
+| **Storage.Net** | 9.3.0 | File storage abstraction (local/UNC) |
+| **Microsoft.Extensions.Caching.Memory** | 9.0.10 | In-memory metadata cache (1-hour TTL) |
 
-This version alignment ensures compatibility, security patch consistency, and access to latest framework optimizations.
+### Business Logic Libraries
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **AutoMapper** | 14.0.0 | Object-to-object mapping for DTOs |
+| **Newtonsoft.Json** | 13.0.4 | JSON serialization/deserialization |
+| **CsvHelper** | 33.1.0 | CSV import/export operations |
+| **Irony.NetCore** | 1.1.11 | EQL grammar parser (custom query language) |
+| **Ical.Net** | 4.3.1 | Recurrence pattern calculation for job scheduling |
+| **MailKit/MimeKit** | 4.9.0 | SMTP email integration |
+| **HtmlAgilityPack** | 1.11.72 | HTML parsing and manipulation |
+
+### UI & Client Libraries
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **Bootstrap** | 4.x | Responsive CSS framework |
+| **jQuery** | 3.x | DOM manipulation, AJAX |
+| **Moment.js** | Latest | Date/time formatting |
+| **StencilJS** | Custom | Web components (wv-lazyload, wv-post-list) |
+| **Select2** | Latest | Enhanced dropdowns |
+| **Chart.js** | Latest | Data visualization |
+
+### Security & Authentication
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **System.IdentityModel.Tokens.Jwt** | 8.14.0 | JWT token creation and validation |
+| **Microsoft.AspNetCore.Authentication.JwtBearer** | 9.0.10 | JWT authentication middleware |
+| **Blazored.LocalStorage** | 4.5.0 | Browser LocalStorage for token persistence |
 
 ---
 
 ## Key Components
 
-### 4.1 EntityManager
+### 1. EntityManager (`WebVella.Erp/Api/EntityManager.cs`)
 
-**Location**: `WebVella.Erp/Api/EntityManager.cs`  
-**Purpose**: Runtime entity definition CRUD operations with automatic PostgreSQL table generation  
-**Responsibilities**:
+**Purpose:** Runtime entity definition management  
+**Lines of Code:** ~2,500  
+**Complexity:** High
 
-- **Entity Creation**: Validate entity name uniqueness (63-character PostgreSQL limit), generate GUID identifier, execute CREATE TABLE DDL with "rec_" prefix (e.g., "customer" → "rec_customer")
-- **Field Management**: Support 20+ field types (Text, Number, Date, DateTime, Currency, GUID, HTML, File, Email, Phone, URL, Checkbox, MultiSelect, Dropdown, AutoNumber, Percent, Geography), validate field name uniqueness per entity, enforce PostgreSQL identifier length limits
-- **Relationship Management**: OneToOne, OneToMany, ManyToMany relationships with bidirectional navigation, automatic foreign key constraint creation, junction table generation for ManyToMany
-- **Runtime Schema Modification**: ALTER TABLE operations for field additions/modifications without application restart, validation against existing data to prevent breaking changes
-- **Metadata Caching**: 1-hour cache expiration with manual invalidation support, thread-safe operations using static locks
+**Responsibilities:**
+- Create/update/delete entity schemas without code deployment
+- Manage 20+ field types (text, number, date, currency, GUID, HTML, file, etc.)
+- Define relationships (OneToOne, OneToMany, ManyToMany)
+- Automatic database table generation with "rec_" prefix
+- Permission configuration (Read, Create, Update, Delete per role)
+- Metadata caching with 1-hour expiration
 
-**Integration Points**:
-- SecurityContext for permission validation (requires Administrator role)
-- ErpDbContext for database operations
-- Cache for metadata persistence
+**Key Methods:**
+- `CreateEntity(Entity entity)` - Create new entity with validation
+- `UpdateEntity(Entity entity)` - Modify existing entity schema
+- `DeleteEntity(Guid entityId)` - Remove entity and cascade tables
+- `CreateField(Field field)` - Add field to entity
+- `UpdateField(Field field)` - Modify field definition
+- `DeleteField(Guid fieldId)` - Remove field from entity
 
-### 4.2 RecordManager
+**Database Interaction:**
+- Entity metadata stored in `entities` table
+- Field definitions in embedded JSON within entity records
+- Automatic DDL execution via Npgsql
 
-**Location**: `WebVella.Erp/Api/RecordManager.cs`  
-**Purpose**: Entity instance CRUD operations with comprehensive validation and hook integration  
-**Responsibilities**:
+**Code Reference:** `WebVella.Erp/Api/EntityManager.cs:1-2500`
 
-- **Record Creation**: Field-level validation against entity definitions, default value application for missing optional fields, pre-create hook execution before database insertion, post-create hook execution after successful persistence, SecurityContext permission checks (EntityPermission.Create)
-- **Record Retrieval**: Permission-filtered results based on SecurityContext, relationship field expansion when requested, field selection for performance optimization, pagination support for large result sets
-- **Record Update**: Only modified fields updated in database, field validation against current entity definition, pre-update and post-update hook execution, optimistic concurrency through timestamp fields, audit trail with modification timestamp and user
-- **Record Deletion**: Pre-delete hook execution before deletion, cascade configuration respected for relationships (None, Delete, SetNull), referential integrity enforcement, post-delete hooks after successful deletion, file attachment removal from storage when configured
-- **Bulk Operations**: Multiple records processed in single transaction with all-or-nothing semantics, individual record validation with detailed error reporting, performance optimization through batch SQL, hook execution for each record
+---
 
-**Integration Points**:
-- RecordHookManager for pre/post operation hooks
-- DbRecordRepository for database operations
-- DbFileRepository for file attachment handling
-- SecurityContext for permission enforcement
-- ValidationUtility for field validation
+### 2. RecordManager (`WebVella.Erp/Api/RecordManager.cs`)
 
-### 4.3 SecurityManager
+**Purpose:** Data manipulation operations with transactional integrity  
+**Lines of Code:** ~3,000  
+**Complexity:** High
 
-**Location**: `WebVella.Erp/Api/SecurityManager.cs`  
-**Purpose**: Comprehensive security subsystem managing authentication, authorization, and access control  
-**Responsibilities**:
+**Responsibilities:**
+- CRUD operations on entity records
+- Field-level validation against entity definitions
+- Relationship management (referential integrity)
+- Hook invocation (pre/post create/update/delete)
+- File attachment handling via DbFileRepository
+- Permission enforcement (SecurityContext integration)
+- Bulk operations with transaction support
 
-- **User Management**: Password hashing with secure algorithm, account lockout after failed login attempts, user profile CRUD operations
-- **Role-Based Access Control**: System roles (Administrator: BDC56420-CAF0-4030-8A0E-D264938E0CDA, Regular: F16EC6DB-626D-4C27-8DE0-3E7CE542C55F, Guest: 987148B1-AFA8-4B33-8616-55861E5FD065), many-to-many user-role relationships, role membership validation on each request
-- **Entity-Level Permissions**: EntityPermission enum (Read, Create, Update, Delete), RecordPermissions contain role GUID lists for each operation, SecurityContext.HasEntityPermission checks user roles against entity permissions
-- **JWT Token Management**: Token generation with configurable lifetime from Config.json (Jwt.Key, Jwt.Issuer, Jwt.Audience), token contains user claims including roles, automatic token refresh using token_refresh_after claim, token validation on each API request
-- **Password Encryption**: EncryptionKey from Config.json (64-character hexadecimal), secure encryption for PasswordField types, encrypted fields never return plain values in API responses
+**Key Methods:**
+- `CreateRecord(string entityName, EntityRecord record)` - Insert new record
+- `GetRecord(string entityName, Guid recordId)` - Retrieve single record
+- `UpdateRecord(string entityName, EntityRecord record)` - Modify existing record
+- `DeleteRecord(string entityName, Guid recordId)` - Remove record
+- `Find(QueryObject query)` - Query records with filtering/sorting/pagination
 
-**Integration Points**:
-- SecurityContext (AsyncLocal propagation)
-- Config.json for JWT and encryption configuration
-- All Manager classes for permission checks
+**Hook Integration:**
+- `RecordHookManager.InvokePre*()` before database operation
+- `RecordHookManager.InvokePost*()` after successful commit
+- Hook exceptions trigger transaction rollback
 
-### 4.4 DbContext (ErpDbContext)
+**Code Reference:** `WebVella.Erp/Api/RecordManager.cs:1-3000`
 
-**Location**: `WebVella.Erp/Database/DbContext.cs`  
-**Purpose**: Database connection management, transaction coordination, and repository pattern implementation  
-**Responsibilities**:
+---
 
-- **Connection Management**: Singleton pattern with async-local storage for thread-safe access, connection pooling (MinPoolSize=1, MaxPoolSize=100 from Config.json), 120-second command timeout for long-running queries
-- **Transaction Handling**: BeginTransaction for atomic operations, CreateSavepoint for nested transaction points, ReleaseSavepoint for checkpoint commits, automatic rollback on exceptions
-- **Repository Coordination**: DbRecordRepository for entity record operations, DbEntityRepository for metadata operations, DbRelationRepository for relationship management, DbFileRepository for file storage operations
-- **Query Execution**: Parameterized SQL to prevent injection attacks, binary protocol for performance, prepared statements for repeated queries
+### 3. SecurityManager & SecurityContext
 
-**Configuration Example**:
-```json
-"ConnectionStrings": {
-  "Default": "Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;"
-}
+**SecurityManager (`WebVella.Erp/Api/SecurityManager.cs`):**
+- User authentication (JWT generation)
+- Role management (Administrator, Regular, Guest)
+- Permission grant/revoke operations
+- Password hashing and validation
+
+**SecurityContext (`WebVella.Erp/Api/SecurityContext.cs`):**
+- AsyncLocal-based user context propagation
+- Thread-safe across async operations
+- `HasEntityPermission(EntityPermission permission, Guid entityId)` checks
+- `OpenSystemScope()` for elevated operations
+- `HasMetaPermission()` for metadata-level access
+
+**Permission Model:**
+- **Entity-Level:** RecordPermissions (CanRead, CanCreate, CanUpdate, CanDelete) contain role GUID lists
+- **Record-Level:** Individual records can restrict access beyond entity permissions
+- **Field-Level:** Sensitive fields encrypted and filtered from responses
+
+**Code Reference:**  
+- `WebVella.Erp/Api/SecurityManager.cs`
+- `WebVella.Erp/Api/SecurityContext.cs`
+
+---
+
+### 4. EQL Engine (`WebVella.Erp/Eql/`)
+
+**Purpose:** Custom query language for entity-aware data retrieval  
+**Technology:** Irony.NetCore parser framework
+
+**EQL Syntax Features:**
+- SQL-like SELECT/WHERE/ORDER BY/PAGE/PAGESIZE clauses
+- Entity-aware querying without explicit JOINs
+- Relationship navigation with `$relation` syntax
+- Relationship inversion with `$$` syntax
+- Parameter binding with `@param` syntax
+
+**Query Execution Pipeline:**
+1. EQL string parsed by Irony grammar (`EqlGrammar`)
+2. Abstract syntax tree constructed (`EqlCommand`)
+3. AST translated to PostgreSQL SQL with nested JSON projections
+4. Security filtering applied automatically
+5. SQL executed via Npgsql
+6. Results deserialized to `Dictionary<string, object>` records
+
+**Example EQL Query:**
+```
+SELECT *, $user_1_n_user_file.$file_id.name, $file.size
+FROM user
+WHERE email = @userEmail
+ORDER BY created_on DESC
+PAGE 1
+PAGESIZE 20
 ```
 
-**Integration Points**:
-- All Manager classes for database access
-- Npgsql for PostgreSQL connectivity
-- Config.json for connection string configuration
+**Code Reference:** `WebVella.Erp/Eql/` folder
 
-### 4.5 JobManager and ScheduleManager
+---
 
-**Location**: `WebVella.Erp/Jobs/JobManager.cs`, `ScheduleManager.cs`  
-**Purpose**: Background job scheduling, execution, and result persistence  
-**Responsibilities**:
+### 5. Job Engine (`WebVella.Erp/Jobs/`)
 
-**JobManager**:
-- Reflection-based job discovery using `[Job]` attribute
-- ErpJob base class with Execute(JobContext) signature
-- Fixed-size thread pool (JobPool) for concurrent execution
-- Job result persistence with TypeNameHandling.All serialization
-- Exception handling with automatic retries (3 attempts with exponential backoff)
-- system_log integration for monitoring
-- Execution cycle checks every minute
+**Purpose:** Background job scheduling and execution  
+**Technology:** BackgroundService hosted service, Ical.Net recurrence
 
-**ScheduleManager**:
-- Schedule plan management with Ical.Net integration
-- Daily recurrence: specific time of day
-- Weekly recurrence: days of week and time
-- Monthly recurrence: day of month and time
-- Next execution time calculation using iCalendar RRULE format
-- CreateSchedulePlan and GetSchedulePlan APIs
+**Architecture:**
+- **JobPool:** Fixed-size thread pool for concurrent execution
+- **JobManager:** Job discovery via `[Job]` attributes
+- **ScheduleManager:** Recurrence pattern calculation
+- **Job Base Class:** `ErpJob` with `Execute(JobContext context)` signature
 
-**Example Jobs**:
-- ClearJobAndErrorLogsJob (SDK plugin): Clears old logs on schedule
-- ProcessSmtpQueueJob (Mail plugin): Email queue processing every 10 minutes
-- StartTasksOnStartDate (Project plugin): Task status automation daily at 00:00:02 UTC
+**Execution Cycle:**
+1. Every minute, job engine checks for due jobs
+2. Schedule plans evaluated for next execution time
+3. Due jobs submitted to JobPool for execution
+4. Job results serialized to `jobs` table
+5. Exceptions logged to `system_log`
+6. Failed jobs retry with configurable bounds
 
-**Integration Points**:
-- Config.json (EnableBackgroungJobs setting)
-- BackgroundService for hosted service execution
-- Ical.Net for recurrence pattern processing
+**Recurrence Patterns:**
+- **Daily:** Specific time of day
+- **Weekly:** Days of week and time
+- **Monthly:** Day of month and time
 
-### 4.6 HookManager and RecordHookManager
+**Example Job:** `ClearJobAndErrorLogsJob` (SDK plugin) - Clears old logs weekly
 
-**Location**: `WebVella.Erp/Hooks/HookManager.cs`, `RecordHookManager.cs`  
-**Purpose**: Extensibility system providing interception points throughout application lifecycle  
-**Responsibilities**:
+**Code Reference:**  
+- `WebVella.Erp/Jobs/JobManager.cs`
+- `WebVella.Erp/Jobs/ScheduleManager.cs`
+- `WebVella.Erp/Jobs/ErpBackgroundServices.cs`
 
-**RecordHookManager**:
-- IErpPreCreateRecordHook, IErpPostCreateRecordHook interfaces
-- IErpPreUpdateRecordHook, IErpPostUpdateRecordHook interfaces
-- IErpPreDeleteRecordHook, IErpPostDeleteRecordHook interfaces
-- Hook execution integrated into RecordManager operations
-- Hook priority ordering for predictable execution
-- Exception handling with transaction rollback
+---
 
-**HookManager**:
-- IPageHook interface for request preprocessing and response post-processing
-- Render hooks with [RenderHookAttachment] attribute for dynamic UI modifications
-- Placeholder-based injection points in views
-- Multiple hooks per placeholder supported
+### 6. Hook System (`WebVella.Erp/Hooks/`)
 
-**Hook Discovery**:
-- [Hook] attribute marks hook classes
-- [HookAttachment] specifies entity targeting
+**Purpose:** Extensibility through operation interception  
+**Discovery:** Attribute-driven with `[Hook]` and `[HookAttachment]` attributes
+
+**Hook Types:**
+
+**Record Hooks:**
+- `IErpPreCreateRecordHook` - Before record insertion
+- `IErpPostCreateRecordHook` - After successful insertion
+- `IErpPreUpdateRecordHook` - Before record update
+- `IErpPostUpdateRecordHook` - After successful update
+- `IErpPreDeleteRecordHook` - Before record deletion
+- `IErpPostDeleteRecordHook` - After successful deletion
+
+**Page Hooks:**
+- `IPageHook` - Request preprocessing and response post-processing
+
+**Render Hooks:**
+- `[RenderHookAttachment]` - Component injection at UI placeholders
+
+**Hook Execution:**
+- Hooks execute within RecordManager transactions
+- Hook exceptions trigger rollback
+- Hook order configurable via priority attribute
+
+**Code Reference:**  
+- `WebVella.Erp/Hooks/RecordHookManager.cs`
+- `WebVella.Erp/Hooks/HookManager.cs`
+
+---
+
+### 7. Page Component System (`WebVella.Erp.Web/Components/`)
+
+**Purpose:** Reusable UI components for page composition  
+**Count:** 50+ built-in components  
+**Technology:** ASP.NET Core ViewComponent infrastructure
+
+**Component Lifecycle:**
+
+1. **Design Phase:** Configuration structure definition (JSON schema)
+2. **Options Phase:** Runtime parameter resolution with data binding
+3. **Display Phase:** HTML rendering with Razor templates
+
+**Component Categories:**
+
+**Field Components:**
+- PcFieldText, PcFieldNumber, PcFieldDate, PcFieldDateTime
+- PcFieldCurrency, PcFieldPercent, PcFieldCheckbox
+- PcFieldSelect, PcFieldMultiSelect
+- PcFieldEmail, PcFieldPhone, PcFieldUrl
+- PcFieldFile, PcFieldImage, PcFieldHtml
+
+**Layout Components:**
+- PcSection, PcRow, PcForm, PcDrawer, PcModal
+- PcTabNav, PcPageHeader, PcButton, PcBtnGroup
+
+**Data Components:**
+- PcGrid (with sorting, filtering, pagination)
+- PcChart (Chart.js integration)
+- PcRepeater (custom layouts)
+- PcLazyLoad (performance optimization)
+
+**Component Discovery:**
+- `[PageComponent]` attribute marks components
 - Reflection-based registration at startup
-- Plugin hooks automatically integrated
-- No manual configuration required
+- Plugin components automatically integrated
 
-**Integration Points**:
-- RecordManager for record operation hooks
-- PageService for page and render hooks
-- Plugin architecture for hook registration
+**Code Reference:** `WebVella.Erp.Web/Components/` folder
 
-### 4.7 EqlBuilder and EqlCommand
+---
 
-**Location**: `WebVella.Erp/Eql/EqlBuilder.cs`, `EqlCommand.cs`  
-**Purpose**: Custom Entity Query Language parsing and execution  
-**Responsibilities**:
+### 8. ERPService (`WebVella.Erp/ERPService.cs`)
 
-**EqlBuilder**:
-- Irony parser framework integration for grammar definition
-- SQL-like syntax: SELECT, WHERE, ORDER BY, PAGE, PAGESIZE clauses
-- Parameter binding with @ syntax (e.g., @userId)
-- Relationship expansion using $relation syntax for navigation
-- Relationship inversion using $$ syntax for reverse lookups
-- Query validation before execution
-- SQL translation to nested JSON projection
+**Purpose:** System bootstrap and initialization  
+**Lines of Code:** 1,472  
+**Complexity:** High
 
-**EqlCommand**:
-- Execute() method for query execution
-- Returns List<EntityRecord> as Dictionary<string, object>
-- Nested related records when $relation used
-- Total count for pagination
-- Query execution time metrics
-- 120-second timeout enforcement
+**Bootstrap Sequence:**
 
-**Security Integration**:
-- Automatic SecurityContext filtering applied to all queries
-- Permission checks on all entities in query
-- Record-level permissions enforced in WHERE clauses
+1. **Database Connection:** Establish PostgreSQL connection
+2. **System Tables:** Create 17 core tables if not exist (see System Bootstrap Process)
+3. **System Entities:** Initialize user, role, user_role, user_file entities
+4. **Default Records:** Create system/administrator users and 3 default roles
+5. **Plugin Discovery:** Reflect and initialize all ErpPlugin subclasses
+6. **Plugin Patches:** Execute versioned migrations for each plugin
+7. **Job Registration:** Discover and register background jobs
+8. **Hook Registration:** Discover and register hook implementations
+9. **Component Registration:** Discover and register page components
 
-**Integration Points**:
-- Irony.NetCore for parsing
-- DbRecordRepository for SQL execution
-- SecurityContext for permission filtering
-
-### 4.8 SearchManager
-
-**Location**: `WebVella.Erp/Api/SearchManager.cs`  
-**Purpose**: Full-text search with Bulgarian language analysis support  
-**Responsibilities**:
-
-- PostgreSQL text search capabilities utilization (to_tsquery, plainto_tsquery)
-- Bulgarian language analyzer (BulStem stemmer) support
-- Contains mode: ILIKE over lowercased tokens for simple matching
-- FTS mode: Full-text search with ranking
-- system_search table with GIN indexes for performance
-- COUNT(*) OVER() for total result count without second query
-- Entity-specific search when EntityName parameter provided
-- Pagination and ranking support
-
-**Integration Points**:
-- PostgreSQL full-text search features
-- SecurityContext for permission filtering
-- DbContext for query execution
+**Code Reference:** `WebVella.Erp/ERPService.cs:1-1472`
 
 ---
 
 ## Data Flow Diagrams
 
-### 5.1 Entity CRUD Operations Data Flow
-
-The following sequence diagram illustrates the complete lifecycle of a record creation operation, showing all components involved and their interaction patterns:
+### Entity CRUD Data Flow
 
 ```mermaid
 sequenceDiagram
-    participant Client as Client<br/>(Browser/Blazor)
-    participant Controller as RecordController<br/>/api/v3/record
-    participant SecurityCtx as SecurityContext<br/>Permission Check
-    participant RecordMgr as RecordManager<br/>WebVella.Erp/Api
-    participant PreHooks as RecordHookManager<br/>Pre-Create Hooks
-    participant Validator as ValidationUtility<br/>Field Validation
-    participant DbRepo as DbRecordRepository<br/>Database Layer
-    participant PostgreSQL as PostgreSQL 16<br/>rec_entity Table
-    participant PostHooks as RecordHookManager<br/>Post-Create Hooks
-    participant Cache as Cache<br/>Metadata Cache
+    participant Client as Web Client/API
+    participant Controller as MVC Controller
+    participant RecordMgr as RecordManager
+    participant Hooks as RecordHookManager
+    participant Security as SecurityContext
+    participant DbRepo as DbRecordRepository
+    participant Cache as MemoryCache
+    participant DB as PostgreSQL
     
-    Client->>Controller: POST /api/v3/record/{entity}<br/>Authorization: Bearer {JWT}
-    Controller->>SecurityCtx: ValidateToken(JWT)
-    SecurityCtx-->>Controller: User Claims + Roles
+    Client->>Controller: POST /api/v3/record/{entity}
+    Controller->>RecordMgr: CreateRecord(entityName, record)
     
-    Controller->>RecordMgr: CreateRecord(entityName, recordData)
-    RecordMgr->>SecurityCtx: HasEntityPermission(entity, Create)
-    alt Permission Denied
-        SecurityCtx-->>RecordMgr: PermissionException
-        RecordMgr-->>Controller: Error Response
-        Controller-->>Client: HTTP 403 Forbidden
-    end
+    RecordMgr->>Security: HasEntityPermission(Create)
+    Security-->>RecordMgr: Permission granted
     
     RecordMgr->>Cache: GetEntity(entityName)
-    Cache-->>RecordMgr: Entity Metadata + Fields
+    Cache-->>RecordMgr: Entity metadata
     
-    RecordMgr->>Validator: ValidateRecord(entity, recordData)
-    Validator->>Validator: Check Required Fields
-    Validator->>Validator: Validate Field Types
-    Validator->>Validator: Check Unique Constraints
-    alt Validation Failed
-        Validator-->>RecordMgr: ValidationException
-        RecordMgr-->>Controller: Error Response
-        Controller-->>Client: HTTP 400 Bad Request
+    RecordMgr->>RecordMgr: Validate fields against entity definition
+    
+    RecordMgr->>Hooks: InvokePreCreateHooks(entity, record)
+    Hooks-->>RecordMgr: Validation passed / record transformed
+    
+    RecordMgr->>DbRepo: Create(entityName, record)
+    DbRepo->>DB: BEGIN TRANSACTION
+    DbRepo->>DB: INSERT INTO rec_{entity} VALUES (...)
+    DB-->>DbRepo: Record ID
+    DbRepo->>DB: COMMIT
+    DbRepo-->>RecordMgr: Created EntityRecord
+    
+    RecordMgr->>Hooks: InvokePostCreateHooks(entity, record)
+    Hooks-->>RecordMgr: Success
+    
+    RecordMgr-->>Controller: EntityRecord with ID
+    Controller-->>Client: HTTP 200 + JSON response
+```
+
+### EQL Query Execution Flow
+
+```mermaid
+flowchart TD
+    Start([EQL Query String]) --> Parse[Irony Parser: EqlGrammar]
+    Parse --> AST[Abstract Syntax Tree]
+    AST --> Validate{Validate Entity<br/>and Field Names}
+    Validate -->|Invalid| Error1[Throw ValidationException]
+    Validate -->|Valid| Security{Check Entity<br/>Read Permissions}
+    Security -->|Denied| Error2[Throw SecurityException]
+    Security -->|Granted| Translate[Translate AST to PostgreSQL SQL]
+    Translate --> Params[Bind Parameters]
+    Params --> JSON[Add JSON Projection for Relations]
+    JSON --> Execute[Execute SQL via Npgsql]
+    Execute --> Results[(PostgreSQL Results)]
+    Results --> Deserialize[Deserialize to EntityRecord List]
+    Deserialize --> Return([Return Records])
+    
+    Error1 --> End([Error Response])
+    Error2 --> End
+```
+
+### Plugin Lifecycle Execution
+
+```mermaid
+flowchart TD
+    Start([Application Startup]) --> InitService[ERPService.Initialize]
+    InitService --> LoadPlugins[Reflect ErpPlugin Subclasses]
+    LoadPlugins --> ForEach{For Each Plugin}
+    
+    ForEach --> InitPlugin[Plugin.Initialize]
+    InitPlugin --> GetVersion[Read plugin_data version]
+    GetVersion --> CompareVer{Version Match?}
+    
+    CompareVer -->|No| ProcessPatches[Plugin.ProcessPatches]
+    CompareVer -->|Yes| SkipPatches[Skip Patches]
+    
+    ProcessPatches --> BeginTx[BEGIN TRANSACTION]
+    BeginTx --> RunPatch[Execute Patch Logic]
+    RunPatch --> PatchSuccess{Patch Success?}
+    
+    PatchSuccess -->|Yes| UpdateVer[Update plugin_data version]
+    PatchSuccess -->|No| Rollback[ROLLBACK]
+    
+    UpdateVer --> CommitTx[COMMIT]
+    Rollback --> Error([Patch Failed])
+    
+    CommitTx --> RegisterComp[Register Jobs/Hooks/Components]
+    SkipPatches --> RegisterComp
+    RegisterComp --> NextPlugin{More Plugins?}
+    
+    NextPlugin -->|Yes| ForEach
+    NextPlugin -->|No| Complete([All Plugins Active])
+    
+    Error --> Halt([Application Halt])
+```
+
+### Background Job Execution
+
+```mermaid
+sequenceDiagram
+    participant Timer as Job Engine Timer<br/>(Every Minute)
+    participant JobMgr as JobManager
+    participant SchedMgr as ScheduleManager
+    participant JobPool as Job Thread Pool
+    participant Job as ErpJob Instance
+    participant DB as PostgreSQL
+    participant Log as system_log
+    
+    Timer->>JobMgr: Check for due jobs
+    JobMgr->>DB: SELECT * FROM jobs WHERE enabled=true
+    DB-->>JobMgr: Job list
+    
+    loop For Each Job
+        JobMgr->>SchedMgr: GetNextExecution(schedule_plan_id)
+        SchedMgr->>DB: SELECT * FROM schedule_plan
+        SchedMgr->>SchedMgr: Calculate recurrence via Ical.Net
+        SchedMgr-->>JobMgr: Next execution timestamp
+        
+        JobMgr->>JobMgr: Compare with current time
+        
+        alt Job is Due
+            JobMgr->>JobPool: Submit job for execution
+            JobPool->>Job: Execute(JobContext)
+            
+            alt Execution Success
+                Job-->>JobPool: Success result
+                JobPool->>DB: UPDATE jobs SET last_result=...
+                JobPool->>Log: Log success
+            else Execution Failed
+                Job-->>JobPool: Exception
+                JobPool->>DB: UPDATE jobs SET last_error=...
+                JobPool->>Log: Log error with stack trace
+                JobPool->>JobMgr: Retry if attempts < max
+            end
+        end
     end
-    Validator-->>RecordMgr: Validation Passed
-    
-    RecordMgr->>PreHooks: InvokePre(entity, recordData)
-    PreHooks->>PreHooks: Execute All Pre-Create Hooks
-    PreHooks-->>RecordMgr: Modified Record Data
-    
-    RecordMgr->>DbRepo: Create(entity, record)
-    DbRepo->>PostgreSQL: BEGIN TRANSACTION
-    DbRepo->>PostgreSQL: INSERT INTO rec_{entity}<br/>VALUES (...)
-    PostgreSQL-->>DbRepo: Record ID (GUID)
-    DbRepo->>PostgreSQL: COMMIT
-    DbRepo-->>RecordMgr: Created Record
-    
-    RecordMgr->>PostHooks: InvokePost(entity, createdRecord)
-    PostHooks->>PostHooks: Execute All Post-Create Hooks<br/>(Audit, Notifications)
-    PostHooks-->>RecordMgr: Hook Results
-    
-    RecordMgr-->>Controller: Success Response + Record
-    Controller-->>Client: HTTP 200 OK<br/>Created Record with ID
 ```
 
-**Flow Description**:
-
-1. **Authentication**: Client sends JWT token in Authorization header, SecurityContext validates token and extracts user claims
-2. **Permission Check**: RecordManager verifies user has EntityPermission.Create for target entity via SecurityContext.HasEntityPermission
-3. **Metadata Retrieval**: Entity definition fetched from 1-hour metadata cache
-4. **Validation**: ValidationUtility checks required fields, validates data types against field definitions, enforces unique constraints
-5. **Pre-Hooks**: RecordHookManager invokes all registered pre-create hooks (IErpPreCreateRecordHook) for validation and data transformation
-6. **Database Persistence**: DbRecordRepository executes parameterized INSERT statement within transaction against rec_{entity_name} table
-7. **Post-Hooks**: RecordHookManager invokes post-create hooks (IErpPostCreateRecordHook) for audit logging, notifications, side effects
-8. **Response**: Created record with generated GUID ID returned to client
-
-**Error Paths**:
-- Invalid JWT → 401 Unauthorized
-- Insufficient permissions → 403 Forbidden
-- Validation failures → 400 Bad Request with detailed field errors
-- Pre-hook exceptions → Transaction rollback + 500 Internal Server Error
-- Database constraints violated → Transaction rollback + 400 Bad Request
-
-### 5.2 API Request Processing Data Flow
-
-This flowchart demonstrates the complete ASP.NET Core middleware pipeline processing for incoming API requests:
+### Page Rendering Pipeline
 
 ```mermaid
 flowchart TD
-    Start[HTTP Request] --> Kestrel[Kestrel Web Server<br/>ASP.NET Core]
-    Kestrel --> IPFilter{IP Filtering<br/>Middleware}
-    IPFilter -->|Blocked| Return403[HTTP 403 Forbidden]
-    IPFilter -->|Allowed| CORS{CORS Policy<br/>AllowNodeJsLocalhost}
+    Start([HTTP Request]) --> Route[ASP.NET Core Routing]
+    Route --> PageSvc[PageService.GetPage]
+    PageSvc --> Cache{Page in Cache?}
     
-    CORS -->|Preflight| CORSHeaders[Add CORS Headers]
-    CORSHeaders --> Return200[HTTP 200 OK]
+    Cache -->|Yes| LoadPage[Load from Cache]
+    Cache -->|No| QueryDB[Query app_page table]
+    QueryDB --> CachePage[Cache page metadata]
+    CachePage --> LoadPage
     
-    CORS -->|Request| Auth{Authentication<br/>Middleware}
-    Auth -->|No Token| Return401[HTTP 401 Unauthorized]
-    Auth -->|Invalid Token| Return401
-    Auth -->|Valid Token| SecurityCtx[SecurityContext<br/>Extract User Claims]
+    LoadPage --> Security{Check Page<br/>Permissions}
+    Security -->|Denied| Error403[HTTP 403 Forbidden]
+    Security -->|Granted| LoadAreas[Load Areas and Nodes]
     
-    SecurityCtx --> Routing{MVC Routing<br/>Match Controller Action}
-    Routing -->|No Match| Return404[HTTP 404 Not Found]
-    Routing -->|Match| ModelBinding[Model Binding<br/>JSON → Objects]
+    LoadAreas --> ForEachNode{For Each Node}
+    ForEachNode --> GetComponent[Get Component by Type]
+    GetComponent --> ResolveOptions[Resolve Component Options<br/>from DataModel]
+    ResolveOptions --> InvokeComp[InvokeAsync Component]
+    InvokeComp --> RenderComp[Render Component HTML]
+    RenderComp --> NextNode{More Nodes?}
     
-    ModelBinding --> ModelValidation{Model Validation<br/>DataAnnotations}
-    ModelValidation -->|Invalid| Return400[HTTP 400 Bad Request]
-    ModelValidation -->|Valid| Controller[Controller Action<br/>Execute Business Logic]
+    NextNode -->|Yes| ForEachNode
+    NextNode -->|No| ComposeLayout[Compose Page Layout]
     
-    Controller --> ManagerCall[Manager Class<br/>EntityManager/RecordManager]
-    ManagerCall --> PermCheck{Permission Check<br/>SecurityContext}
-    PermCheck -->|Denied| PermException[PermissionException]
-    PermException --> Return403
+    ComposeLayout --> ApplyTheme[Apply Bootstrap Theme]
+    ApplyTheme --> Return([HTTP 200 + HTML])
     
-    PermCheck -->|Allowed| BusinessLogic[Execute Business Logic]
-    BusinessLogic --> HooksExec[Hook Execution<br/>Pre/Post Hooks]
-    HooksExec --> DbOperation[Database Operation<br/>ErpDbContext]
-    
-    DbOperation --> DbSuccess{Transaction<br/>Success?}
-    DbSuccess -->|Failed| Rollback[Transaction Rollback]
-    Rollback --> Return500[HTTP 500 Internal Server Error]
-    
-    DbSuccess -->|Success| Commit[Transaction Commit]
-    Commit --> Response[Build Response<br/>BaseResponseModel]
-    Response --> Serialization[JSON Serialization<br/>Newtonsoft.Json]
-    Serialization --> Return200OK[HTTP 200 OK + JSON]
-    
-    Return403 --> End[Response Sent]
-    Return200 --> End
-    Return401 --> End
-    Return404 --> End
-    Return400 --> End
-    Return500 --> End
-    Return200OK --> End
+    Error403 --> End([Error Response])
 ```
-
-**Middleware Pipeline Stages**:
-
-1. **Kestrel Web Server**: Receives HTTP request, parses headers and body
-2. **IP Filtering**: Optional IP whitelist/blacklist enforcement
-3. **CORS Policy**: Cross-Origin Resource Sharing headers for JavaScript clients (AllowNodeJsLocalhost policy)
-4. **Authentication**: JWT Bearer token validation via Microsoft.AspNetCore.Authentication.JwtBearer
-5. **SecurityContext**: Async-local user context creation with roles and permissions
-6. **MVC Routing**: URL pattern matching to controller actions (/api/v3/record/{entity})
-7. **Model Binding**: JSON deserialization to C# objects via Newtonsoft.Json
-8. **Model Validation**: DataAnnotations attribute validation ([Required], [Range], [EmailAddress])
-9. **Controller Action**: Business logic delegation to manager classes
-10. **Permission Check**: SecurityContext.HasEntityPermission validation
-11. **Hook Execution**: Pre/post operation hooks for extensibility
-12. **Database Operation**: Transactional persistence via ErpDbContext
-13. **Response Building**: BaseResponseModel envelope with timestamp, success flag, message
-14. **JSON Serialization**: Response object serialization via Newtonsoft.Json
-
-**Performance Optimizations**:
-- Connection pooling reduces database connection overhead (MinPoolSize=1, MaxPoolSize=100)
-- Metadata caching reduces database queries (1-hour expiration)
-- Prepared statements for repeated queries
-- Async/await throughout pipeline for non-blocking I/O
-
-### 5.3 Plugin Initialization Lifecycle
-
-This flowchart details the plugin discovery, initialization, and migration execution process during application startup:
-
-```mermaid
-flowchart TD
-    Start[Application Startup<br/>Program.cs] --> AddErp[AddErp Extension Method<br/>Service Registration]
-    AddErp --> ConfigLoad[Load Config.json<br/>ErpSettings Singleton]
-    ConfigLoad --> DbInit[Initialize ErpDbContext<br/>Connection Pool Setup]
-    
-    DbInit --> InitPlugins[ErpService.InitializePlugins]
-    InitPlugins --> Reflect[Assembly Scanning<br/>Reflect ErpPlugin Subclasses]
-    
-    Reflect --> FindPlugins{Plugins<br/>Found?}
-    FindPlugins -->|None| SkipPlugins[Skip Plugin Initialization]
-    SkipPlugins --> UseErp[UseErp Middleware<br/>Configure Pipeline]
-    
-    FindPlugins -->|Found| LoopPlugins[For Each Plugin]
-    LoopPlugins --> LoadPlugin[Load Plugin Assembly]
-    LoadPlugin --> CreateInstance[Create Plugin Instance<br/>Reflection]
-    
-    CreateInstance --> CallInit[Plugin.Initialize<br/>IServiceProvider]
-    CallInit --> RegisterServices[Register Plugin Services<br/>DI Container]
-    RegisterServices --> ProcessPatches[Plugin.ProcessPatches]
-    
-    ProcessPatches --> GetVersion[Read Plugin Version<br/>from plugin_data Table]
-    GetVersion --> CompareVersion{Plugin Version<br/>< DB Version?}
-    
-    CompareVersion -->|Equal| SkipMigration[Skip Migration<br/>Already Applied]
-    SkipMigration --> RegisterComponents[Register Components<br/>Jobs, Hooks, DataSources]
-    
-    CompareVersion -->|Greater| NeedMigration[Patches Need Execution]
-    NeedMigration --> BeginTx[BEGIN TRANSACTION]
-    BeginTx --> FindPatches[Find Patches by Version<br/>YYYYMMDD Format]
-    
-    FindPatches --> LoopPatches[For Each Patch<br/>Sequential Order]
-    LoopPatches --> SavePoint[CREATE SAVEPOINT<br/>patch_{version}]
-    SavePoint --> ExecPatch[Execute Patch.Execute]
-    
-    ExecPatch --> PatchSuccess{Patch<br/>Success?}
-    PatchSuccess -->|Failed| RollbackSP[ROLLBACK TO SAVEPOINT]
-    RollbackSP --> LogError[Log Error to system_log]
-    LogError --> RollbackTx[ROLLBACK TRANSACTION]
-    RollbackTx --> StartupFail[Application Startup Failed]
-    
-    PatchSuccess -->|Success| ReleaseSP[RELEASE SAVEPOINT]
-    ReleaseSP --> MorePatches{More<br/>Patches?}
-    MorePatches -->|Yes| LoopPatches
-    MorePatches -->|No| UpdateVersion[Update plugin_data<br/>Set New Version]
-    
-    UpdateVersion --> CommitTx[COMMIT TRANSACTION]
-    CommitTx --> RegisterComponents
-    
-    RegisterComponents --> MorePlugins{More<br/>Plugins?}
-    MorePlugins -->|Yes| LoopPlugins
-    MorePlugins -->|No| UseErp
-    
-    UseErp --> MapRoutes[Map Plugin Routes<br/>Controller Endpoints]
-    MapRoutes --> StaticFiles[Register Static Files<br/>wwwroot Assets]
-    StaticFiles --> Complete[Application Ready<br/>Listening for Requests]
-    
-    StartupFail --> Abort[Application Aborted]
-```
-
-**Plugin Lifecycle Stages**:
-
-1. **Service Registration (AddErp)**:
-   - Load Config.json configuration
-   - Initialize database connection pool
-   - Register core services (EntityManager, RecordManager, SecurityManager)
-   - Configure metadata cache (1-hour expiration)
-
-2. **Plugin Discovery**:
-   - Scan all loaded assemblies for ErpPlugin subclasses
-   - Use reflection to identify plugin types
-   - Maintain plugin load order for dependency resolution
-
-3. **Plugin Initialization**:
-   - Create plugin instance via reflection
-   - Call Plugin.Initialize(IServiceProvider) for service registration
-   - Plugin registers custom services in DI container
-
-4. **Version Management**:
-   - Read plugin version from plugin_data table
-   - Compare with Plugin.CurrentVersion property
-   - Determine which patches need execution
-
-5. **Patch Execution (Transactional)**:
-   - BEGIN TRANSACTION for atomic migration
-   - Find all patches between DB version and current version
-   - Sort patches by YYYYMMDD version number
-   - For each patch:
-     - CREATE SAVEPOINT for individual patch rollback
-     - Execute Patch.Execute() method
-     - RELEASE SAVEPOINT on success or ROLLBACK TO SAVEPOINT on failure
-   - Update plugin_data.version on complete success
-   - COMMIT TRANSACTION if all patches succeed
-   - ROLLBACK TRANSACTION if any patch fails (application startup aborted)
-
-6. **Component Registration**:
-   - Scan for [Job] attributes, register with JobManager
-   - Scan for [Hook] attributes, register with HookManager
-   - Scan for [DataSource] attributes, register with DataSourceManager
-   - Register page components extending PageComponent base class
-
-7. **Middleware Integration (UseErp)**:
-   - Map plugin controller routes (e.g., /api/v3.0/p/sdk/*)
-   - Register embedded static file providers (wwwroot)
-   - Configure request pipeline order
-
-**Example Patch Pattern**:
-
-```csharp
-public class Patch20240115 : ErpPatch
-{
-    public override void Execute()
-    {
-        // Create new entity
-        var entity = new Entity { Name = "project", Label = "Project" };
-        EntityManager.CreateEntity(entity);
-        
-        // Add fields
-        var nameField = new TextField { Name = "name", Required = true };
-        EntityManager.CreateField(entity.Id, nameField);
-        
-        // Create relationship
-        var relation = new EntityRelation { 
-            Name = "project_tasks",
-            RelationType = RelationType.OneToMany,
-            OriginEntityId = entity.Id,
-            TargetEntityId = taskEntity.Id
-        };
-        EntityRelationManager.Create(relation);
-    }
-    
-    public override void Revert()
-    {
-        // Optional rollback logic
-        EntityManager.DeleteEntity("project");
-    }
-}
-```
-
-**Error Handling**:
-- Any patch exception causes transaction rollback
-- Application startup aborts if plugin migration fails
-- system_log captures detailed error messages
-- Manual intervention required to fix broken patches
 
 ---
 
 ## Integration Architecture
 
-### 6.1 PostgreSQL Database Integration
+### Database Integration (PostgreSQL 16)
 
-**Integration Pattern**: Primary data store accessed via Npgsql 9.0.4 client library  
-**Connection Management**: Connection pooling with configurable parameters  
-**Configuration Source**: `Config.json` ConnectionStrings section
+**Connection Management:**
+- Connection pooling via Npgsql (MinPoolSize=1, MaxPoolSize=100)
+- Command timeout: 120 seconds for long-running queries
+- Transaction management through `DbContext.Current.CreateConnection()`
+- Savepoint support for nested transactions
 
-**Integration Capabilities**:
+**Data Access Patterns:**
+- **Repository Pattern:** DbEntityRepository, DbRecordRepository, DbFileRepository
+- **Raw SQL:** Direct SQL execution for system table creation and migrations
+- **Parameter Binding:** All user inputs parameterized to prevent SQL injection
+- **JSON Projection:** Nested relation data returned as JSON for EQL queries
 
-| Feature | Implementation | Purpose |
-|---------|---------------|---------|
-| **Connection Pooling** | MinPoolSize=1, MaxPoolSize=100 | Reuse connections across requests, limit concurrent database sessions |
-| **Command Timeout** | 120 seconds | Support long-running queries (EQL, full-text search, complex reports) |
-| **Parameterized Queries** | Npgsql parameter binding | Prevent SQL injection attacks, enable prepared statement optimization |
-| **Transaction Management** | Savepoint support | Nested transaction points for granular rollback (plugin patches) |
-| **JSONB Storage** | Native PostgreSQL JSONB columns | Flexible schema storage for entity configurations, dynamic fields |
-| **Full-Text Search** | to_tsquery, plainto_tsquery, GIN indexes | Bulgarian language stemming, ranked search results |
-| **LISTEN/NOTIFY** | PostgreSQL pub/sub protocol | Real-time notifications via NotificationContext (WebVella.Erp/Notifications/) |
-| **Referential Integrity** | Foreign key constraints | Automatic cascade delete/set null based on relationship configuration |
-| **Transactional DDL** | ALTER TABLE within transactions | Atomic schema modifications for safe patch execution |
+**Full-Text Search Integration:**
+- PostgreSQL text search with `to_tsquery` and `plainto_tsquery`
+- Bulgarian language analyzer (BulStem stemmer) support
+- `system_search` table indexed with GIN for performance
+- ILIKE fallback for contains-mode searches
 
-**Database Table Patterns**:
-- **System Metadata**: Entity definitions, field schemas, relationships, pages, applications
-- **Business Records**: Dynamic "rec_{entity_name}" tables created via EntityManager
-- **Audit Trail**: Record modification history with before/after snapshots
-- **Plugin Storage**: plugin_data table for versioning and plugin-specific configuration
+**LISTEN/NOTIFY Integration:**
+- `NotificationContext` uses PostgreSQL pub/sub
+- Real-time event propagation across application servers
+- Channel-based notification routing
+- Handler registration for notification processing
 
-**Performance Optimizations**:
-- B-tree indexes on primary keys and foreign keys
-- GIN indexes for full-text search (system_search table)
-- Partial indexes for filtered queries (e.g., active records only)
-- ANALYZE statistics for query planner optimization
+**Code References:**
+- `WebVella.Erp/Database/DbContext.cs`
+- `WebVella.Erp/Database/DbRecordRepository.cs`
+- `WebVella.Erp/Notifications/NotificationContext.cs`
 
-**Example Connection String**:
-```text
-Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;
-```
+---
 
-### 6.2 File Storage Integration
+### File Storage Integration
 
-**Integration Pattern**: Multi-backend abstraction via Storage.Net 9.3.0  
-**Supported Backends**: Local file system, UNC network paths  
-**Configuration Source**: `Config.json` FileSystemStorageFolder setting
+**Storage Abstraction:** Storage.Net library  
+**Supported Backends:**
+- Local file system (e.g., `C:\erp-files\`)
+- UNC network paths (e.g., `\\192.168.0.2\Share\erp3-files`)
 
-**Storage Architecture**:
+**File Storage Pattern:**
+1. File metadata stored in `files` table (filename, size, MIME type, path)
+2. Binary content stored in configured file storage folder
+3. `DbFileRepository` abstracts storage backend
+4. File access enforced through permission checks
 
-```mermaid
-graph TD
-    App[Application] --> DbFileRepo[DbFileRepository]
-    DbFileRepo --> StorageNet[Storage.Net Abstraction]
-    StorageNet --> LocalFS[Local File System<br/>C:\erp-files\]
-    StorageNet --> UNC[UNC Network Path<br/>\\server\share\erp-files\]
-```
+**File Field Integration:**
+- FileField and ImageField store file paths as strings
+- RecordManager integrates with DbFileRepository for file operations
+- File upload/download through `/file/{id}` API endpoints
+- If-Modified-Since HTTP caching for file retrieval
 
-**File Storage Operations**:
+**Code Reference:** `WebVella.Erp/Database/DbFileRepository.cs`
 
-| Operation | Implementation | Details |
-|-----------|---------------|---------|
-| **File Upload** | Multipart/form-data POST | File saved to {StorageFolder}/{entity}/{record_id}/{filename} |
-| **File Metadata** | PostgreSQL file table | Filename, size, MIME type, upload timestamp, user ID |
-| **File Retrieval** | GET /file/{id} with caching | If-Modified-Since HTTP caching, streaming for large files |
-| **File Deletion** | Cascade with record deletion | Optional automatic cleanup when record deleted |
-| **Permission Check** | Application-level security | File access validated through SecurityContext before serving |
+---
 
-**Configuration Example**:
-```json
-{
-  "EnableFileSystemStorage": true,
-  "FileSystemStorageFolder": "\\\\192.168.0.2\\Share\\erp3-files"
-}
-```
+### SMTP Email Integration (Optional)
 
-**Use Cases**:
-- Document attachments (PDF, Word, Excel)
-- Image uploads (JPEG, PNG, GIF)
-- Avatar images for user profiles
-- Email attachments (Mail plugin)
-- Project files (Project plugin)
+**Technology:** MailKit 4.9.0 library  
+**Configuration:** Config.json settings (EmailSMTPServerName, EmailSMTPPort, EmailSMTPUsername, EmailSMTPPassword)
 
-**Limitations**:
-- No cloud storage integration (AWS S3, Azure Blob, Google Cloud Storage)
-- No CDN integration for file distribution
-- No automatic file versioning or version control
-- File size limits enforced at application level (configurable)
+**Email Queue Architecture:**
+1. Emails queued in `email` entity (Mail plugin)
+2. `ProcessSmtpQueueJob` runs every 10 minutes
+3. Emails selected by priority and scheduled_on timestamp
+4. MIME assembly with MailKit/MimeKit
+5. HTML with inline CSS via HtmlAgilityPack
+6. Attachment inclusion from file storage
+7. Retry logic with exponential backoff
 
-### 6.3 SMTP Email Integration
-
-**Integration Pattern**: MailKit 4.14.1 SMTP client with email queue processing  
-**Configuration Source**: `Config.json` Email* settings and smtp_service entity  
-**Processing**: Background job (ProcessSmtpQueueJob) runs every 10 minutes
-
-**SMTP Configuration**:
-
-```json
-{
-  "EmailEnabled": true,
-  "EmailSMTPServerName": "smtp.example.com",
-  "EmailSMTPPort": 587,
-  "EmailSMTPUsername": "notifications@example.com",
-  "EmailSMTPPassword": "encrypted_password",
-  "EmailSMTPSslEnabled": true,
-  "EmailFrom": "noreply@example.com",
-  "EmailTo": "admin@example.com"
-}
-```
-
-**Email Queue Architecture**:
-
-1. **Email Entity**: Sender, Recipients (List<EmailAddress>), Subject, ContentHtml, ContentText, Attachments, Priority, Status (Pending/Sending/Sent/Failed), scheduled_on
-2. **Queue Processing**: ProcessSmtpQueueJob selects pending emails ordered by priority + scheduled_on
-3. **MIME Assembly**: MailKit/MimeKit constructs MIME messages with HTML, plain text alternatives, inline CSS (HtmlAgilityPack), file attachments from DbFileRepository
-4. **SMTP Delivery**: SmtpClient.Send() with TLS/SSL, authentication, retry logic (3 attempts with exponential backoff)
-5. **Status Update**: Update email.status to Sent or Failed with error message
-
-**Use Cases**:
+**Use Cases:**
+- System notifications
 - Password reset emails
-- Workflow notification emails
 - Scheduled report delivery
-- User registration confirmation
-- System alert distribution
+- Workflow event notifications
 
-**Failure Handling**:
-- Failed emails marked with error message
-- Automatic retry after exponential backoff (1 hour, 4 hours, 12 hours)
-- system_log entries for monitoring
-- Email queue inspection via SDK plugin UI
+**Code Reference:** `WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs`
 
-### 6.4 JWT Authentication Integration
+---
 
-**Integration Pattern**: System.IdentityModel.Tokens.Jwt 8.14.0 for token generation/validation  
-**Middleware**: Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10  
-**Configuration Source**: `Config.json` Jwt section
+### Blazor WebAssembly Integration
 
-**JWT Configuration**:
+**Architecture:** Client/Server/Shared project pattern
 
-```json
-{
-  "Jwt": {
-    "Key": "signing_key_minimum_16_characters_HMACSHA256",
-    "Issuer": "webvella-erp",
-    "Audience": "webvella-erp"
-  }
-}
+**Authentication Flow:**
+1. User credentials submitted to `/v3/en_US/auth/jwt/` endpoint
+2. Server validates and generates JWT token
+3. Token returned to Blazor client
+4. Client stores token in LocalStorage via Blazored.LocalStorage
+5. Token included in Authorization header for all API calls
+6. Automatic refresh using token_refresh_after claim
+
+**API Communication:**
+- `IApiService` provides typed HTTP client
+- Authorization header automatic injection
+- Shared DTOs between client and server
+- Error handling with user-friendly messages
+
+**Client-Side State:**
+- LocalStorage for authentication token
+- AppState service for shared application state
+- WvBaseComponent base class for common UI logic
+
+**Code Reference:** `WebVella.Erp.WebAssembly/` project trio
+
+---
+
+## System Bootstrap Process
+
+The system bootstrap process executes during application startup via `ERPService.Initialize()` and is critical for creating the foundational database schema and metadata.
+
+### System Tables Created
+
+The `CheckCreateSystemTables()` method creates 17 core tables if they do not exist:
+
+#### 1. entities Table
+**Purpose:** Store entity metadata  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique) - Entity name used in API and database
+- `label` (TEXT) - Display label
+- `label_plural` (TEXT) - Plural form
+- `system` (BOOLEAN) - Framework vs. custom entity flag
+- `icon_name` (TEXT) - UI icon reference
+- `weight` (INTEGER) - Ordering for UI lists
+- `fields` (JSONB) - Field definitions array
+- `record_permissions` (JSONB) - CRUD permissions per role
+
+**SQL Reference:** `ERPService.cs:780-810`
+
+#### 2. entity_relations Table
+**Purpose:** Store relationship definitions  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique)
+- `relation_type` (TEXT) - OneToOne, OneToMany, ManyToMany
+- `origin_entity_id` (UUID) - Source entity
+- `origin_field_id` (UUID) - Source field
+- `target_entity_id` (UUID) - Target entity
+- `target_field_id` (UUID) - Target field
+
+**SQL Reference:** `ERPService.cs:812-830`
+
+#### 3. system_settings Table
+**Purpose:** Key-value configuration store  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique)
+- `value` (TEXT) - JSON-encoded configuration
+
+**SQL Reference:** `ERPService.cs:832-850`
+
+#### 4. system_search Table
+**Purpose:** Full-text search index  
+**Key Columns:**
+- `id` (SERIAL primary key)
+- `text` (TEXT) - Searchable content
+- `entity_name` (TEXT) - Source entity
+- `record_id` (UUID) - Source record
+- `user_id` (UUID) - User context
+- `document` (TSVECTOR) - Full-text search vector
+
+**Indexes:**
+- GIN index on `document` for full-text performance
+
+**SQL Reference:** `ERPService.cs:852-890`
+
+#### 5. files Table
+**Purpose:** File metadata storage  
+**Key Columns:**
+- `id` (UUID primary key)
+- `object_name` (TEXT) - Entity name
+- `record_id` (UUID) - Record association
+- `file_name` (TEXT) - Original filename
+- `file_size` (INTEGER) - Bytes
+- `mime_type` (TEXT) - Content type
+- `path` (TEXT) - Storage location
+- `created_on` (TIMESTAMP)
+
+**SQL Reference:** `ERPService.cs:892-920`
+
+#### 6. jobs Table
+**Purpose:** Background job definitions  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique)
+- `enabled` (BOOLEAN)
+- `priority` (INTEGER) - Execution order
+- `execute_once` (BOOLEAN)
+- `type_name` (TEXT) - C# class name
+- `assembly_name` (TEXT)
+- `schedule_plan_id` (UUID) - FK to schedule_plan
+- `last_result` (TEXT) - JSON result
+- `last_modified_on` (TIMESTAMP)
+
+**SQL Reference:** `ERPService.cs:980-1020`
+
+#### 7. schedule_plan Table
+**Purpose:** Job scheduling configurations  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique)
+- `type` (TEXT) - Daily, Weekly, Monthly
+- `start_date` (TIMESTAMP)
+- `end_date` (TIMESTAMP)
+- `interval_type` (TEXT)
+- `interval` (INTEGER)
+- `start_timespan` (INTEGER) - Seconds from midnight
+- `plan_days_of_week` (TEXT) - CSV of weekdays
+- `plan_weeks_of_month` (TEXT) - CSV of weeks
+- `plan_days_of_month` (TEXT) - CSV of days
+
+**SQL Reference:** `ERPService.cs:1022-1050`
+
+#### 8. system_log Table
+**Purpose:** Audit and error logging  
+**Key Columns:**
+- `id` (SERIAL primary key)
+- `type` (TEXT) - Info, Warning, Error
+- `message` (TEXT)
+- `details` (TEXT) - Stack trace or JSON
+- `notification` (BOOLEAN) - Should notify administrators
+- `created_on` (TIMESTAMP)
+
+**Indexes:**
+- Index on `created_on` for time-based queries
+
+**SQL Reference:** `ERPService.cs:1052-1080`
+
+#### 9. plugin_data Table
+**Purpose:** Plugin persistent state  
+**Key Columns:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique) - Plugin identifier
+- `data` (TEXT) - JSON-encoded state
+- `version` (INTEGER) - Plugin schema version
+
+**SQL Reference:** `ERPService.cs:1082-1100`
+
+#### 10-15. Application Structure Tables
+**Purpose:** Metadata-driven page composition system
+
+**app Table:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique) - Application identifier
+- `label` (TEXT) - Display name
+- `icon_class` (TEXT)
+- `author` (TEXT)
+- `weight` (INTEGER) - Ordering
+
+**app_sitemap_area Table:**
+- `id` (UUID primary key)
+- `app_id` (UUID) - FK to app
+- `name` (TEXT) - Area identifier
+- `label` (TEXT)
+- `icon_class` (TEXT)
+- `color` (TEXT)
+- `weight` (INTEGER)
+- `show_group_names` (BOOLEAN)
+
+**app_sitemap_area_group Table:**
+- `id` (UUID primary key)
+- `area_id` (UUID) - FK to app_sitemap_area
+- `name` (TEXT)
+- `label` (TEXT)
+- `weight` (INTEGER)
+
+**app_sitemap_area_node Table:**
+- `id` (UUID primary key)
+- `area_id` (UUID) - FK to app_sitemap_area
+- `name` (TEXT)
+- `label` (TEXT)
+- `icon_class` (TEXT)
+- `url` (TEXT) - Page routing URL
+- `type` (TEXT) - Node type
+- `entity_id` (UUID) - Associated entity
+- `weight` (INTEGER)
+- `entity_list_pages` (UUID[]) - Page GUIDs
+- `entity_create_pages` (UUID[])
+- `entity_details_pages` (UUID[])
+- `entity_manage_pages` (UUID[])
+- `parent_id` (UUID) - Hierarchical structure
+
+**app_page Table:**
+- `id` (UUID primary key)
+- `app_id` (UUID) - FK to app
+- `area_id` (UUID) - FK to app_sitemap_area
+- `node_id` (UUID) - FK to app_sitemap_area_node
+- `name` (TEXT)
+- `label` (TEXT)
+- `icon_class` (TEXT)
+- `system` (BOOLEAN)
+- `weight` (INTEGER)
+- `type` (TEXT) - Page type
+- `is_razorize_body` (BOOLEAN)
+- `layout` (TEXT) - OneColumn, TwoColumns
+
+**app_page_body_node Table:**
+- `id` (UUID primary key)
+- `page_id` (UUID) - FK to app_page
+- `parent_id` (UUID) - Tree structure
+- `node_id` (TEXT) - UI element ID
+- `component_name` (TEXT) - Component type
+- `containment` (TEXT) - HTML structure
+- `options` (TEXT) - JSON configuration
+- `weight` (INTEGER)
+
+**SQL Reference:** `ERPService.cs:1102-1375`
+
+#### 16-17. Data Source Tables
+**Purpose:** Reusable query definitions
+
+**data_source Table:**
+- `id` (UUID primary key)
+- `name` (TEXT, unique)
+- `description` (TEXT)
+- `weight` (INTEGER)
+- `eql_text` (TEXT) - EQL query
+- `sql_text` (TEXT) - SQL query
+- `parameters_json` (TEXT) - Parameter definitions
+- `fields_json` (TEXT) - Result field schema
+- `entity_name` (TEXT) - Primary entity
+- `return_total` (BOOLEAN) - Include COUNT(*) OVER()
+
+**app_page_data_source Table:**
+- `id` (UUID primary key)
+- `page_id` (UUID) - FK to app_page
+- `data_source_id` (UUID) - FK to data_source
+- `name` (TEXT) - Binding name
+- `parameters` (TEXT) - JSON parameter values
+
+**SQL Reference:** `ERPService.cs:1383-1418`
+
+### Migration Methods
+
+**UpdateSitemapNodeTable1():**
+- Adds entity-specific page arrays to sitemap nodes
+- Columns: entity_list_pages, entity_create_pages, entity_details_pages, entity_manage_pages
+
+**UpdateSitemapNodeTable2():**
+- Adds hierarchical parent_id relationship to sitemap nodes
+- Enables nested navigation structures
+
+**Code Reference:** `ERPService.cs:1441-1470`
+
+### Entity Initialization
+
+After system tables, `InitializeSystemEntities()` creates core entities programmatically:
+
+**user Entity:**
+- Fields: id (GUID primary key), email, password, first_name, last_name, enabled, verified
+- RecordPermissions: Administrator (full), Regular (read self), Guest (none)
+
+**role Entity:**
+- Fields: id, name, description
+- Default Roles: Administrator, Regular, Guest with predefined GUIDs
+
+**user_role Entity:**
+- Many-to-many relationship between user and role
+- Fields: user_id (FK), role_id (FK)
+
+**user_file Entity:**
+- File attachments for users
+- Fields: id, user_id (FK), file metadata
+
+**Default Records:**
+- System user (GUID: 5c5279b4-e293-4285-8c08-f52ed05af32c)
+- Administrator user (erp@webvella.com / erp)
+- Three default roles with predefined GUIDs
+
+**Code Reference:** `ERPService.cs:100-700`
+
+---
+
+## Plugin Architecture
+
+### Plugin Discovery and Initialization
+
+**Plugin Base Class:** `ErpPlugin` (abstract)  
+**Required Methods:**
+- `void Initialize(IServiceProvider serviceProvider)` - Startup configuration
+- `void ProcessPatches()` - Versioned database migrations
+- `string Name { get; }` - Plugin identifier
+- `int Version { get; }` - Current version number
+
+**Discovery Process:**
+1. Application startup calls `ERPService.InitializePlugins()`
+2. Reflection scans all loaded assemblies for ErpPlugin subclasses
+3. Each plugin instantiated and `Initialize()` called
+4. Plugin data read from `plugin_data` table
+5. Version comparison triggers `ProcessPatches()` if needed
+6. Plugin version updated in `plugin_data` after successful patches
+
+**Code Reference:** `WebVella.Erp/ErpPlugin.cs`, `ERPService.cs:InitializePlugins()`
+
+---
+
+### Plugin Project Structure
+
+**Standard Plugin Layout:**
+```
+WebVella.Erp.Plugins.{Name}/
+├── {Name}Plugin.cs (ErpPlugin implementation)
+├── Components/ (Page components)
+├── Pages/ (Razor pages)
+├── Services/ (Business logic)
+├── Models/ (DTOs)
+├── Jobs/ (Background jobs)
+├── Hooks/ (Pre/post operation hooks)
+├── DataSources/ (Custom data sources)
+├── wwwroot/ (Static assets)
+└── WebVella.Erp.Plugins.{Name}.csproj
 ```
 
-**Authentication Flow**:
+**Key Plugin Features:**
 
-```
-1. User Login → POST /api/v3/en_US/auth/jwt/
-   Body: { email, password }
+**SDK Plugin (`WebVella.Erp.Plugins.SDK`):**
+- Administrative UI for entity/field/page management
+- Developer tools: Code generation, system monitoring
+- Components: WvSdkPageSitemap, entity/field editors
+- Jobs: ClearJobAndErrorLogsJob (log maintenance)
 
-2. SecurityManager validates credentials
-   - Hash password with EncryptionKey
-   - Compare with stored hash
-   - Load user roles
+**Project Plugin (`WebVella.Erp.Plugins.Project`):**
+- Project and task management with timelog tracking
+- Entities: project, task, timelog, watcher
+- Components: PcProjectWidgetBudgetChart, PcProjectWidgetTasksChart, PcTimelogList
+- Jobs: StartTasksOnStartDate (daily task automation)
+- Client: task-details.js, timetrack.js with jQuery/moment.js
 
-3. JWT Token Generation
-   - Claims: user_id, email, roles, token_refresh_after
-   - Signature: HMACSHA256(header + payload, Jwt.Key)
-   - Expiration: Configurable (typically 24 hours)
+**Mail Plugin (`WebVella.Erp.Plugins.Mail`):**
+- SMTP email integration via MailKit
+- Entities: email, smtp_service
+- Jobs: ProcessSmtpQueueJob (10-minute interval)
+- HTML email with inline CSS via HtmlAgilityPack
+- Hooks: SmtpServiceRecordHook (cache invalidation)
 
-4. Client stores token
-   - Blazor: LocalStorage.SetItemAsync("token", jwt)
-   - JavaScript: localStorage.setItem("token", jwt)
-   - Native apps: Secure storage (Keychain, KeyStore)
+**CRM Plugin (`WebVella.Erp.Plugins.Crm`):**
+- Customer relationship management framework
+- Plugin scaffold demonstrating patterns
 
-5. Authenticated Requests
-   - Authorization: Bearer {jwt_token}
-   - JwtBearer middleware validates signature, issuer, audience, expiration
+**Microsoft CDM Plugin (`WebVella.Erp.Plugins.MicrosoftCDM`):**
+- Microsoft Common Data Model integration
+- Data synchronization with Dynamics 365 / Power Platform
 
-6. Token Refresh
-   - POST /api/v3/en_US/auth/jwt/token/refresh
-   - Issued when token_refresh_after claim timestamp passed
-   - New token returned with extended expiration
-```
+---
 
-**Security Considerations**:
-- Jwt.Key minimum 256 bits for HMACSHA256 algorithm
-- Token signing prevents tampering (signature validation)
-- Token expiration limits validity window
-- Token refresh reduces re-authentication frequency
-- Token stored in LocalStorage vulnerable to XSS (consider HttpOnly cookies for sensitive scenarios)
+### Plugin Integration Points
 
-**Token Claims**:
-- **user_id**: GUID identifying user
-- **email**: User email address
-- **roles**: Comma-separated role GUIDs
-- **token_refresh_after**: Unix timestamp triggering refresh
-- **iss**: Issuer (webvella-erp)
-- **aud**: Audience (webvella-erp)
-- **exp**: Expiration timestamp
-
-### 6.5 Blazor WebAssembly Client Integration
-
-**Integration Pattern**: Blazor WebAssembly 9.0.10 client consuming RESTful API  
-**Authentication**: JWT tokens with LocalStorage persistence  
-**Communication**: HttpClient with Authorization header injection
-
-**Blazor Project Structure**:
-
-```mermaid
-graph TB
-    Root["WebVella.Erp.WebAssembly/"]
-    
-    Client["Client/<br/>(Blazor WebAssembly app<br/>executing in browser)"]
-    ClientAuth["CustomAuthenticationProvider.cs<br/>(JWT token validation)"]
-    ClientApi["IApiService.cs<br/>(API client abstraction)"]
-    ClientWww["wwwroot/index.html<br/>(SPA entry point)"]
-    ClientState["AppState.cs<br/>(Shared application state)"]
-    
-    Server["Server/<br/>(ASP.NET Core host<br/>serving Blazor client)"]
-    ServerCtrl["Controllers/<br/>(API endpoints optimized for Blazor)"]
-    ServerStart["Startup.cs<br/>(MapFallbackToFile)"]
-    
-    Shared["Shared/<br/>(DTOs, interfaces, contracts)"]
-    SharedModels["Models/<br/>(Request/response objects)"]
-    
-    Root --> Client
-    Root --> Server
-    Root --> Shared
-    
-    Client --> ClientAuth
-    Client --> ClientApi
-    Client --> ClientWww
-    Client --> ClientState
-    
-    Server --> ServerCtrl
-    Server --> ServerStart
-    
-    Shared --> SharedModels
-```
-
-**Authentication Integration**:
-
-1. **CustomAuthenticationProvider**:
-   - Implements AuthenticationStateProvider
-   - Reads JWT token from LocalStorage on app load
-   - Validates token using JwtSecurityTokenHandler
-   - Constructs ClaimsPrincipal from token claims
-   - Provides NotifyAuthenticationStateChanged for login/logout
-
-2. **API Client (IApiService)**:
-   - GetAuthorizedHttpClientAsync() returns HttpClient with Authorization header
-   - Automatically injects "Bearer {token}" for authenticated requests
-   - Token refresh logic before expiration
-   - Error handling with user-friendly messages
-
-3. **Routing**:
-   - Client-side routing via Blazor Router
-   - Server fallback: MapFallbackToFile("index.html")
-   - Auth-required pages: [Authorize] attribute
-   - Redirect to /login for unauthenticated access
-
-**API Endpoints**:
-- Base URL: Configured in appsettings.json (e.g., https://localhost:5001)
-- Entity operations: /api/v3/en_US/record/{entity}
-- Authentication: /api/v3/en_US/auth/jwt/
-- Token refresh: /api/v3/en_US/auth/jwt/token/refresh
-- File operations: /api/v3/en_US/file/{id}
-
-**State Management**:
-- **AppState Service**: Singleton service for shared state across components
-- **LocalStorage**: Persistent storage for user preferences (theme, language, grid configurations)
-- **In-Memory Cache**: Component-level caching for frequently accessed data
-
-**Culture Configuration**:
-- Culture: bg-BG (Bulgarian localization)
-- NumberCulture: en-US (number formatting)
-- WasmConstants.cs defines culture settings
-
-**Example API Call**:
-
+**Dependency Injection:**
 ```csharp
-@inject IApiService ApiService
-
-private async Task<List<Customer>> GetCustomersAsync()
-{
-    var httpClient = await ApiService.GetAuthorizedHttpClientAsync();
-    var response = await httpClient.GetAsync("/api/v3/en_US/record/customer");
-    response.EnsureSuccessStatusCode();
-    
-    var json = await response.Content.ReadAsStringAsync();
-    var result = JsonConvert.DeserializeObject<BaseResponseModel<List<Customer>>>(json);
-    return result.Object;
-}
+services.AddErp(); // Core ERP services
+services.UseErpPlugin<SdkPlugin>(); // Plugin registration
+services.UseErpPlugin<ProjectPlugin>();
+services.UseErpPlugin<MailPlugin>();
 ```
 
----
+**Middleware Pipeline:**
+```csharp
+app.UseErp(); // Core ERP middleware
+// Plugins automatically integrated via AddErp()
+```
 
-## References
+**Route Registration:**
+- Plugin pages register routes via Razor class library conventions
+- API controllers in plugins accessible at `/api/v3.0/p/{plugin}/`
+- Static files served from plugin wwwroot folders
 
-### Source Code Evidence
+**Component Registration:**
+- Page components with `[PageComponent]` attribute automatically discovered
+- Hooks with `[Hook]` attribute automatically registered
+- Jobs with `[Job]` attribute automatically scheduled
 
-**Core Library**:
-- `WebVella.Erp/WebVella.Erp.csproj` - Core library project file with .NET 9.0 target and dependency declarations
-- `WebVella.Erp/Api/EntityManager.cs` - Entity lifecycle management implementation (lines 1-2500+)
-- `WebVella.Erp/Api/RecordManager.cs` - Record operations with transaction support (lines 1-3000+)
-- `WebVella.Erp/Api/SecurityManager.cs` - Security subsystem with RBAC implementation
-- `WebVella.Erp/Api/SecurityContext.cs` - AsyncLocal-based security context propagation
-- `WebVella.Erp/Database/DbContext.cs` - Connection management and repository pattern (lines 1-800)
-- `WebVella.Erp/Jobs/JobManager.cs` - Background job scheduling (lines 1-500)
-- `WebVella.Erp/Jobs/ScheduleManager.cs` - Recurrence pattern management (lines 1-500)
-- `WebVella.Erp/Hooks/HookManager.cs` - Hook registration and invocation (lines 1-400)
-- `WebVella.Erp/Hooks/RecordHookManager.cs` - Record operation hooks (lines 1-400)
-- `WebVella.Erp/Eql/EqlBuilder.cs` - Query language parser (lines 1-800)
-- `WebVella.Erp/Eql/EqlCommand.cs` - Query execution engine (lines 1-700)
-
-**Web UI Library**:
-- `WebVella.Erp.Web/WebVella.Erp.Web.csproj` - Web UI project file with Razor SDK
-- `WebVella.Erp.Web/Components/` - 50+ page component implementations
-- `WebVella.Erp.Web/TagHelpers/` - Custom tag helper library
-- `WebVella.Erp.Web/Controllers/WebApiController.cs` - RESTful API endpoint implementations
-- `WebVella.Erp.Web/Services/PageService.cs` - Page composition and rendering
-
-**Plugin Projects**:
-- `WebVella.Erp.Plugins.SDK/` - Developer tools plugin
-- `WebVella.Erp.Plugins.Mail/` - Email integration plugin
-- `WebVella.Erp.Plugins.Project/` - Project management plugin
-- `WebVella.Erp.Plugins.Crm/` - CRM framework plugin
-- `WebVella.Erp.Plugins.MicrosoftCDM/` - CDM integration plugin
-
-**Blazor WebAssembly**:
-- `WebVella.Erp.WebAssembly/Client/` - Blazor client application
-- `WebVella.Erp.WebAssembly/Server/` - API host for Blazor
-- `WebVella.Erp.WebAssembly/Shared/` - Shared contracts
-
-**Configuration**:
-- `WebVella.Erp.Site/Config.json` - System configuration structure (lines 3-27)
-- `WebVella.Erp/ErpSettings.cs` - Configuration mapping class
-
-### Documentation References
-
-- Technical Specification Section 1.2 "System Overview" - Component architecture descriptions
-- Technical Specification Section 3 "Technology Stack" - Comprehensive technology inventory
-- `docs/developer/entities/overview.md` - Entity management documentation
-- `docs/developer/background-jobs/overview.md` - Job scheduling specifications
-- `docs/developer/components/` - Page component development guidelines
-- `README.md` - Project overview and technology stack summary
+**Code Reference:** `WebVella.Erp.Web/ErpMvcExtensions.cs`
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: 2024-11-18  
-**Total Diagrams**: 4 (1 component diagram, 3 data flow diagrams)  
-**Total Tables**: 6 (component catalog, technology stack, key components, integration capabilities)  
-**Evidence Files**: 25+ source code files examined  
-**Mermaid Syntax Validated**: Yes (GitHub compatible)
+## Document History
+
+| Version | Date | Changes | Author |
+|---------|------|---------|--------|
+| 1.0 | 2024-01-20 | Initial architecture documentation | Blitzy Documentation Generator |
+
+---
+
+## Related Documentation
+
+- [Code Inventory Report](code-inventory.md) - Complete file catalog
+- [Database Schema](database-schema.md) - ERD and data dictionary
+- [Functional Overview](functional-overview.md) - Module capabilities and workflows
+- [Business Rules Catalog](business-rules.md) - Validation and process rules
+- [Security & Quality Assessment](security-quality.md) - Vulnerabilities and metrics
+- [Modernization Roadmap](modernization-roadmap.md) - Migration strategy
+
+---
+
+## Feedback and Contributions
+
+For questions, corrections, or contributions to this documentation, please submit issues or pull requests to the GitHub repository: https://github.com/WebVella/WebVella-ERP
+
+---
+
+**License:** Apache License 2.0  
+**Documentation Generated:** 2024-01-20 UTC

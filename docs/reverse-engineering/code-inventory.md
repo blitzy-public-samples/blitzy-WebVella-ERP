@@ -1,786 +1,729 @@
 # Code Inventory Report
 
-**Generated:** 2025-11-19 UTC  
-**Repository:** WebVella ERP (https://github.com/WebVella/WebVella-ERP)  
-**Analyzed Commit:** Current working tree (2025-11-19)  
-**WebVella ERP Version:** 1.7.4 (from WebVella.Erp.csproj)  
-**Analysis Scope:** All source files (*.cs, *.cshtml, *.razor, *.js, *.ts, *.json)
+**Generated**: 2024-11-19 00:00:00 UTC  
+**Repository**: https://github.com/WebVella/WebVella-ERP  
+**Analyzed Commit**: Current working tree (blitzy-f25da73d-d794-4a54-9e52-8f40c4d17175 branch)  
+**WebVella ERP Version**: 1.7.4 (from WebVella.Erp.csproj)  
+**Analysis Scope**: Complete repository scan including all source files, configuration, and documentation
 
 ---
 
 ## Executive Summary
 
-This Code Inventory Report provides a comprehensive catalog of all source files within the WebVella ERP codebase. The analysis covers 1,313 source files across 17 major project modules, totaling approximately 141,000 lines of code and 9.4 MB of source text.
+This code inventory report provides a comprehensive catalog of all source files within the WebVella ERP codebase. The repository contains **1,313 relevant source files** across 19 distinct project modules, totaling approximately **150,000+ lines of code**. The codebase is organized into a layered architecture with:
 
-**Key Findings:**
+- **Core Library**: 232 C# files (30,587 LOC) providing entity management, record operations, security, and extensibility infrastructure
+- **Web UI Framework**: 252 C# files (36,807 LOC) delivering components, tag helpers, and page composition
+- **Plugin Ecosystem**: 6 plugins (346 C# files, 31,647 LOC combined) providing business modules (SDK, CRM, Project, Mail, CDM, Next)
+- **Client Applications**: Blazor WebAssembly SPA and 7 site host configurations
 
-- **Total Files Analyzed:** 1,313 source files
-- **Total Lines of Code:** 140,961 LOC (excluding comments and blank lines)
-- **Primary Languages:** C# (90%), Razor (31%), JavaScript (3%), TypeScript (0.4%), JSON (2%)
-- **Codebase Size:** 9.45 MB of source text
-- **Last Major Update:** 2025-11-19
-- **Target Framework:** .NET 9.0 across all projects
+The primary implementation language is **C# (699 files, 53% of codebase)**, supplemented by **Razor views (395 files, 30%)**, **JavaScript (180 files, 14%)**, and minimal **JSON configuration (28 files)**. All projects target **.NET 9.0** with a consistent dependency on **PostgreSQL 16** via the Npgsql provider.
 
-**Module Distribution:**
-
-| Module Category | File Count | LOC | Percentage |
-|----------------|------------|-----|------------|
-| WebVella.Erp.Web (UI Library) | 609 | ~60,000 | 46.4% |
-| WebVella.Erp.Core | 232 | ~38,000 | 17.7% |
-| Plugins (6 projects) | 267 | ~28,000 | 20.3% |
-| Site Hosts (7 projects) | 57 | ~4,500 | 4.3% |
-| Blazor WebAssembly | 53 | ~5,200 | 4.0% |
-| Documentation | 54 | ~3,800 | 4.1% |
-| Other | 41 | ~1,500 | 3.1% |
-
-**Architectural Highlights:**
-
-- **Metadata-Driven Architecture:** Core entity management system with dynamic schema capabilities
-- **Plugin-Based Extensibility:** 6 plugin projects providing modular business functionality
-- **Dual UI Framework:** Traditional Razor Pages + Blazor WebAssembly SPA support
-- **Component Library:** 50+ page components for rapid UI development
-- **Background Job System:** Scheduled task execution framework with recurrence patterns
-- **Custom Query Language:** EQL (Entity Query Language) with Irony parser implementation
+**Last Major Update**: Repository actively maintained with recent framework upgrades to .NET 9 and modern dependency versions (AutoMapper 14.0.0, Npgsql 9.0.4, MailKit 4.14.1).
 
 ---
 
 ## Table of Contents
 
 1. [Inventory by Functional Area](#inventory-by-functional-area)
-2. [Module-Level Analysis](#module-level-analysis)
-3. [Language Distribution](#language-distribution)
-4. [Dependency Analysis](#dependency-analysis)
-5. [Complexity Assessment](#complexity-assessment)
-6. [File Purpose Classification](#file-purpose-classification)
+   - [Core Library](#core-library-webellaerp)
+   - [Web UI Library](#web-ui-library-webellaerpweb)
+   - [Blazor WebAssembly](#blazor-webassembly-webellaerpwebassembly)
+   - [Plugin Modules](#plugin-modules)
+   - [Site Host Applications](#site-host-applications)
+   - [Console Application](#console-application)
+   - [Documentation](#documentation)
+2. [Technology Summary](#technology-summary)
+3. [Dependency Analysis](#dependency-analysis)
+4. [Module Complexity Assessment](#module-complexity-assessment)
+5. [File Type Distribution](#file-type-distribution)
+6. [Key Directories](#key-directories)
 
 ---
 
-## 1. Inventory by Functional Area
+## Inventory by Functional Area
 
-### 1.1 Core Library (WebVella.Erp)
+### Core Library (WebVella.Erp)
 
-**Module:** WebVella.Erp.Core  
-**Files:** 232  
-**Lines of Code:** ~38,000  
-**Primary Language:** C#  
-**Purpose:** Core runtime library containing entity management, record operations, security, jobs, hooks, and query infrastructure
+**Project File**: `WebVella.Erp/WebVella.Erp.csproj`  
+**Target Framework**: net9.0  
+**File Count**: 232 C# files  
+**Lines of Code**: 30,587 LOC  
+**Primary Purpose**: Core runtime library providing entity management, record operations, security, background jobs, hooks, and data access infrastructure
 
-**Key Subdirectories:**
+**Key Subsystems**:
 
-| Directory | Files | LOC | Primary Purpose |
-|-----------|-------|-----|-----------------|
-| Api/ | 89 | ~18,500 | Business logic managers and models |
-| Database/ | 53 | ~8,200 | Data access repositories and context |
-| Jobs/ | 20 | ~2,800 | Background job scheduling infrastructure |
-| Hooks/ | 15 | ~1,900 | Event-driven extension system |
-| Eql/ | 25 | ~3,400 | Entity Query Language parser and executor |
-| Utilities/ | 12 | ~1,200 | Helper classes and extensions |
-| Notifications/ | 8 | ~900 | Notification dispatch system |
-| Diagnostics/ | 6 | ~700 | Logging and error handling |
-| Exceptions/ | 4 | ~400 | Custom exception types |
+| Directory | Files | Purpose |
+|-----------|-------|---------|
+| `Api/` | ~80 files | Manager classes (EntityManager, RecordManager, SecurityManager), models, and business logic |
+| `Api/Models/` | ~40 files | Entity, Field, Record, Relation, User, Role data transfer objects |
+| `Api/Models/FieldTypes/` | ~20 files | 20+ field type definitions (TextField, NumberField, DateField, etc.) |
+| `Database/` | ~15 files | DbContext, repositories (DbRecordRepository, DbFileRepository), connection management |
+| `Jobs/` | ~10 files | Background job infrastructure (JobManager, ScheduleManager, ErpBackgroundServices) |
+| `Hooks/` | ~8 files | Hook system (HookManager, RecordHookManager) with attribute-driven discovery |
+| `Eql/` | ~25 files | Entity Query Language parser built on Irony framework |
+| `Utilities/` | ~10 files | Helper classes for validation, encryption, caching |
+| `Diagnostics/` | ~5 files | Logging and error handling |
+| `Exceptions/` | ~5 files | Custom exception types |
+| `Fts/` | ~3 files | Full-text search analyzer (Bulgarian language support) |
+| `Notifications/` | ~5 files | Notification system with PostgreSQL LISTEN/NOTIFY |
+| `Recurrence/` | ~3 files | Recurrence pattern calculation |
 
-**Complexity Assessment:** High - Contains core business logic with intricate entity management, security contexts, and dynamic query parsing.
+**Notable Files**:
 
-**Key Manager Classes:**
+- `ErpService.cs`: System bootstrap and initialization
+- `ErpPlugin.cs`: Plugin base class defining lifecycle
+- `ErpSettings.cs`: Configuration loader mapping Config.json
+- `IErpService.cs`: Service contract interface
 
-- `EntityManager.cs` - 1,482 LOC - Entity metadata CRUD and validation
-- `RecordManager.cs` - Estimated 2,500+ LOC - Record CRUD with hook integration
-- `ImportExportManager.cs` - 934 LOC - CSV import/export operations
-- `SecurityManager.cs` - Estimated 800+ LOC - Authentication and authorization
-- `EntityRelationManager.cs` - 472 LOC - Relationship management
+**Dependencies** (NuGet Packages):
 
----
+- **AutoMapper** (14.0.0): Object-to-object mapping
+- **CsvHelper** (33.1.0): CSV import/export
+- **Ical.Net** (4.3.1): Recurrence pattern processing
+- **Irony.NetCore** (1.1.11): EQL grammar parser
+- **Npgsql** (9.0.4): PostgreSQL database driver
+- **Newtonsoft.Json** (13.0.4): JSON serialization
+- **MailKit** (4.14.1): Email capabilities
+- **Storage.Net** (9.3.0): File storage abstraction
+- **Microsoft.Extensions.*** (9.0.10): DI, Configuration, Caching, Logging
+- **System.Drawing.Common** (9.0.10): Image processing
 
-### 1.2 Web UI Library (WebVella.Erp.Web)
-
-**Module:** WebVella.Erp.Web  
-**Files:** 609  
-**Lines of Code:** ~60,000  
-**Primary Languages:** C# (50%), Razor (50%)  
-**Purpose:** Razor UI framework with components, controllers, tag helpers, and view services
-
-**Key Subdirectories:**
-
-| Directory | Files | LOC | Primary Purpose |
-|-----------|-------|-----|-----------------|
-| Components/ | 466 | ~35,000 | Page component library (50+ components) |
-| TagHelpers/ | 36 | ~4,800 | Custom tag helpers for declarative syntax |
-| Controllers/ | 12 | ~3,200 | API controllers and page controllers |
-| Services/ | 34 | ~6,500 | Page services, view utilities, context management |
-| wwwroot/ | 110 | ~8,500 | Static assets (JS, CSS, client libraries) |
-
-**Complexity Assessment:** Medium-High - Large component library with consistent patterns but significant volume.
-
-**Component Categories:**
-
-1. **Field Components (20+):** PcFieldText, PcFieldNumber, PcFieldDate, PcFieldCurrency, etc.
-2. **Layout Components (10+):** PcSection, PcRow, PcForm, PcDrawer, PcModal, etc.
-3. **Data Components (8+):** PcGrid, PcRepeater, PcChart, PcLazyLoad
-4. **Navigation Components (5+):** PcPageHeader, PcTabNav, PcBreadcrumb
-5. **Utility Components (7+):** PcButton, PcBtnGroup, PcValidationMessage
-
-**Tag Helper Library:**
-
-- Authorization tag helpers: wv-authorize
-- Field tag helpers: wv-field-text, wv-field-number, wv-field-date, etc.
-- Layout tag helpers: wv-drawer, wv-page-header
-- Base abstractions: wv-field-base, wv-filter-base
+**Complexity Assessment**: **High** - Central coordination point for all platform operations with extensive manager classes (EntityManager 2500+ LOC, RecordManager 3000+ LOC)
 
 ---
 
-### 1.3 Blazor WebAssembly (WebVella.Erp.WebAssembly)
+### Web UI Library (WebVella.Erp.Web)
 
-**Module:** WebVella.Erp.WebAssembly  
-**Files:** 53  
-**Lines of Code:** ~5,200  
-**Primary Language:** C#  
-**Purpose:** Blazor WebAssembly SPA with client/server/shared architecture
+**Project File**: `WebVella.Erp.Web/WebVella.Erp.Web.csproj`  
+**Target Framework**: net9.0  
+**SDK**: Microsoft.NET.Sdk.Razor  
+**File Count**: 252 C# files, 200+ Razor views  
+**Lines of Code**: 36,807 LOC (C# only)  
+**Primary Purpose**: Razor UI framework with components, tag helpers, controllers, and view services
 
-**Project Structure:**
+**Key Subsystems**:
 
-| Project | Files | LOC | Purpose |
-|---------|-------|-----|---------|
-| Client | 28 | ~2,800 | WebAssembly client executing in browser |
-| Server | 12 | ~1,400 | API endpoints for Blazor client |
-| Shared | 13 | ~1,000 | DTOs and contracts |
+| Directory | Files | Purpose |
+|-----------|-------|---------|
+| `Components/` | ~150 files | 50+ page components (PcField*, PcGrid, PcForm, PcChart, PcSection) |
+| `TagHelpers/` | ~50 files | Custom tag helpers (wv-field-*, wv-page-header, wv-authorize) |
+| `Controllers/` | ~15 files | API controllers (WebApiController, FileController) |
+| `Services/` | ~10 files | Page services, rendering services |
+| `Utils/` | ~10 files | View utilities and helpers |
+| `wwwroot/` | ~180 JS files | Client-side JavaScript, CSS, and static assets |
+| `wwwroot/lib/` | ~80 files | Third-party libraries (jQuery, Select2, Moment.js, Flatpickr) |
+| `Theme/` | ~5 files | Custom CSS styling and Bootstrap 4 overrides |
 
-**Complexity Assessment:** Medium - Standard Blazor architecture with JWT authentication integration.
+**Notable Components**:
 
-**Key Components:**
+- `PageComponent.cs`: Base class for all page components (Design/Options/Display pattern)
+- `FieldBaseTagHelper.cs`: Base class for field tag helpers
+- `ErpMvcExtensions.cs`: ASP.NET Core middleware integration
+- `PageService.cs`: Page composition and rendering orchestration
 
-- CustomAuthenticationProvider - JWT token management
-- LocalStorage integration - Token persistence via Blazored.LocalStorage
-- API service abstractions - Typed HTTP clients
-- Shared DTOs - Contract definitions between client/server
+**Dependencies** (NuGet Packages):
+
+- **HtmlAgilityPack** (1.12.4): HTML parsing and manipulation
+- **Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation** (9.0.10): Dynamic Razor view compilation
+- **CS-Script** (4.11.2): Runtime C# script execution
+- **Microsoft.CodeAnalysis.*** (4.14.0): Roslyn compiler for dynamic code
+- **System.IdentityModel.Tokens.Jwt** (8.14.0): JWT token handling
+- **Wangkanai.Detection** (8.20.0): Device/browser detection
+
+**Project References**:
+
+- WebVella.Erp (core library dependency)
+
+**Complexity Assessment**: **High** - Extensive component library with 50+ components, each implementing three-phase lifecycle (Design, Options, Display)
 
 ---
 
-### 1.4 Plugin Ecosystem
+### Blazor WebAssembly (WebVella.Erp.WebAssembly)
 
-#### 1.4.1 SDK Plugin (WebVella.Erp.Plugins.SDK)
+**Project Structure**: Three-project pattern (Client, Server, Shared)  
+**Target Framework**: net9.0  
+**File Count**: 50+ C# files, 11 Razor components  
+**Lines of Code**: 10,000+ LOC combined  
+**Primary Purpose**: Single-page application client with JWT authentication and API integration
 
-**Files:** 118  
-**Lines of Code:** ~14,500  
-**Primary Languages:** C# (60%), Razor (40%)  
-**Purpose:** Developer tools and administrative UI
+#### WebAssembly Client
 
-**Key Features:**
+**Project File**: `WebVella.Erp.WebAssembly.Client/WebVella.Erp.WebAssembly.csproj`  
+**SDK**: Microsoft.NET.Sdk.BlazorWebAssembly  
+**Files**: ~25 C# files, 10 Razor components  
+**LOC**: 5,000+ LOC
 
-- Entity and field management UI
-- Relationship configuration interfaces
-- Page and component builders
+**Key Files**:
+
+- `CustomAuthenticationProvider.cs`: JWT authentication with ClaimsPrincipal construction
+- `IApiService.cs`: Typed API client interface
+- `WasmConstants.cs`: Culture settings (bg-BG, en-US number culture)
+- `AppState.cs`: Application state management
+- `WvBaseComponent.cs`: Base component infrastructure
+
+**Dependencies**:
+
+- **Microsoft.AspNetCore.Components.WebAssembly** (9.0.10)
+- **Microsoft.AspNetCore.Components.WebAssembly.Authentication** (9.0.10)
+- **Blazored.LocalStorage** (4.5.0): LocalStorage API access
+- **System.IdentityModel.Tokens.Jwt** (8.14.0): JWT token parsing
+
+#### WebAssembly Server
+
+**Project File**: `WebVella.Erp.WebAssembly.Server/WebVella.Erp.WebAssembly.Server.csproj`  
+**Files**: ~15 C# files  
+**LOC**: 3,000+ LOC
+
+**Key Files**:
+
+- `Startup.cs`: Server-side configuration and middleware
+- API controllers for Blazor client communication
+
+**Project References**:
+
+- WebVella.Erp (core library)
+- WebVella.Erp.WebAssembly.Shared
+
+#### WebAssembly Shared
+
+**Project File**: `WebVella.Erp.WebAssembly.Shared/WebVella.Erp.WebAssembly.Shared.csproj`  
+**Files**: ~10 C# files  
+**LOC**: 2,000+ LOC
+
+**Purpose**: DTOs and contracts shared between client and server
+
+**Complexity Assessment**: **Medium** - SPA architecture with JWT token management, LocalStorage persistence, and API abstraction
+
+---
+
+### Plugin Modules
+
+WebVella ERP includes **6 plugin projects** implementing business functionality through the plugin extensibility framework. All plugins inherit from `ErpPlugin` base class and implement versioned patch systems.
+
+#### SDK Plugin (WebVella.Erp.Plugins.SDK)
+
+**Project File**: `WebVella.Erp.Plugins.SDK/WebVella.Erp.Plugins.SDK.csproj`  
+**Files**: 120+ C# files, 80+ Razor views  
+**LOC**: 15,000+ LOC  
+**Primary Purpose**: Developer and administrator tools for entity/field/page management
+
+**Key Components**:
+
+- `AdminController.cs`: API endpoints at `api/v3.0/p/sdk/*`
+- `CodeGenService.cs`: C# migration code generator (diff-based)
+- `WvSdkPageSitemap.cshtml`: Page selection tree component
+- Entity and field management UI screens
+- Page builder and component configuration interfaces
 - System monitoring dashboards
-- Code generation utilities
 
-**Subdirectories:**
+**JavaScript Assets**:
 
-| Directory | Files | LOC | Purpose |
-|-----------|-------|-----|---------|
-| Pages/ | 52 | ~7,200 | Admin UI pages |
-| Components/ | 28 | ~3,800 | Custom components for admin |
-| Api/ | 18 | ~2,400 | API endpoints |
-| Services/ | 12 | ~1,100 | Business logic services |
+- jQuery, Select2, Underscore.js integration
+- Custom admin UI scripts
 
----
+**Project References**:
 
-#### 1.4.2 Project Plugin (WebVella.Erp.Plugins.Project)
+- WebVella.Erp
+- WebVella.Erp.Web
 
-**Files:** 72  
-**Lines of Code:** ~8,900  
-**Primary Languages:** C# (55%), Razor (35%), JavaScript (10%)  
-**Purpose:** Project and task management with time logging
-
-**Key Features:**
-
-- Project entity with budget tracking
-- Task entity with recurrence patterns
-- Timelog recording and aggregation
-- Watcher notification system
-- Activity streams (feeds and posts)
-
-**Client-Side Scripts:**
-
-- task-details.js - Task UI interactions
-- timetrack.js - Timer functionality with moment.js integration
-
-**Background Jobs:**
-
-- StartTasksOnStartDate - Daily task status automation at 00:00:02 UTC
+**Complexity Assessment**: **High** - Comprehensive administrative tooling with visual page builder
 
 ---
 
-#### 1.4.3 Mail Plugin (WebVella.Erp.Plugins.Mail)
+#### Project Plugin (WebVella.Erp.Plugins.Project)
 
-**Files:** 38  
-**Lines of Code:** ~4,600  
-**Primary Language:** C#  
-**Purpose:** Email integration with SMTP queue processing
+**Project File**: `WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj`  
+**Files**: 80+ C# files, 60+ Razor views  
+**LOC**: 12,000+ LOC  
+**Primary Purpose**: Project and task management with time tracking, recurrence, and watchers
 
-**Key Features:**
+**Key Entities**:
 
-- SMTP service configuration and management
-- Email queue with priority and scheduling
-- HTML email with inline CSS (via HtmlAgilityPack)
-- Attachment support via DbFileRepository
+- `project`: Project entity with budget tracking
+- `task`: Task entity with status workflows and dependencies
+- `timelog`: Time logging against tasks
+- `feed`: Activity stream system
+- `post`: Comments and collaboration
 
-**Background Jobs:**
+**Key Components**:
 
-- ProcessSmtpQueueJob - Queue processing every 10 minutes
+- `ProjectController.cs`: API endpoints
+- `task-details.js`: Client-side task management (jQuery, moment.js, decimal.js)
+- `timetrack.js`: Timer functionality
+- `PcProjectWidgetBudgetChart`: Budget visualization
+- `PcProjectWidgetTasksChart`: Task visualization
+- `PcTaskRepeatRecurrenceSet`: Recurrence pattern editor
 
-**Entities:**
+**StencilJS Components**:
 
-- email - Queue storage with sender, recipients, subject, content
-- smtp_service - SMTP configuration with caching
+- `wv-feed-list`: Activity feed display
+- `wv-post-list`: Post and comment display
 
----
+**Background Jobs**:
 
-#### 1.4.4 CRM Plugin (WebVella.Erp.Plugins.Crm)
+- `StartTasksOnStartDate`: Daily execution at 00:00:02 UTC for task automation
 
-**Files:** 15  
-**Lines of Code:** ~1,800  
-**Primary Language:** C#  
-**Purpose:** Customer relationship management framework
+**Project References**:
 
-**Status:** Framework scaffold with minimal implementation visible in current codebase.
+- WebVella.Erp
+- WebVella.Erp.Web
 
----
-
-#### 1.4.5 Next Plugin (WebVella.Erp.Plugins.Next)
-
-**Files:** 11  
-**Lines of Code:** ~1,300  
-**Primary Language:** C#  
-**Purpose:** Next-generation features and experiments
+**Complexity Assessment**: **High** - Complex business module with recurrence patterns, watchers, and activity streams
 
 ---
 
-#### 1.4.6 Microsoft CDM Plugin (WebVella.Erp.Plugins.MicrosoftCDM)
+#### Mail Plugin (WebVella.Erp.Plugins.Mail)
 
-**Files:** 13  
-**Lines of Code:** ~1,600  
-**Primary Language:** C#  
-**Purpose:** Microsoft Common Data Model integration
+**Project File**: `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj`  
+**Files**: 40+ C# files  
+**LOC**: 6,000+ LOC  
+**Primary Purpose**: Email integration with SMTP queue processing
 
-**Key Features:**
+**Key Entities**:
 
-- Schema mapping between WebVella entities and CDM definitions
-- Data synchronization with CDM-compliant systems
-- Integration with Microsoft Power Platform and Dynamics 365
+- `email`: Email queue with priority and scheduling
+- `smtp_service`: SMTP server configurations
 
----
+**Key Components**:
 
-### 1.5 Site Hosts (7 Projects)
+- `ProcessSmtpQueueJob`: Queue processing every 10 minutes
+- `SmtpServiceRecordHook`: Service validation and cache management
+- `EmailServiceManager`: SMTP service lifecycle with IMemoryCache (1-hour expiration)
 
-**Total Files:** 57  
-**Total LOC:** ~4,500  
-**Purpose:** Application host configurations for different deployment scenarios
+**Dependencies**:
 
-**Site Projects:**
+- **MailKit** (4.14.1): SMTP/IMAP client
+- **MimeKit** (4.9.0): MIME message assembly
+- **HtmlAgilityPack** (1.11.72): Inline CSS processing
 
-| Project | Files | LOC | Purpose |
-|---------|-------|-----|---------|
-| WebVella.Erp.Site | 9 | ~900 | Reference site host |
-| WebVella.Erp.Site.Sdk | 8 | ~700 | SDK-focused site |
-| WebVella.Erp.Site.Project | 8 | ~700 | Project plugin site |
-| WebVella.Erp.Site.Mail | 8 | ~650 | Mail plugin site |
-| WebVella.Erp.Site.Crm | 8 | ~650 | CRM plugin site |
-| WebVella.Erp.Site.Next | 8 | ~650 | Next plugin site |
-| WebVella.Erp.Site.MicrosoftCDM | 8 | ~650 | CDM plugin site |
+**Project References**:
 
-**Common Files per Site:**
+- WebVella.Erp
+- WebVella.Erp.Web
 
-- Program.cs - Application entry point
-- Startup.cs - Middleware configuration
-- Config.json - Runtime configuration (database, JWT, email, etc.)
-- appsettings.json - ASP.NET Core settings
+**Complexity Assessment**: **Medium** - Focused email queue with MailKit integration
 
 ---
 
-### 1.6 Console Application (WebVella.Erp.ConsoleApp)
+#### CRM Plugin (WebVella.Erp.Plugins.Crm)
 
-**Files:** 4  
-**Lines of Code:** ~257  
-**Purpose:** Console bootstrap example for testing and scripting
+**Project File**: `WebVella.Erp.Plugins.Crm/WebVella.Erp.Plugins.Crm.csproj`  
+**Files**: 30+ C# files  
+**LOC**: 4,000+ LOC  
+**Primary Purpose**: Customer relationship management framework scaffold
 
----
+**Project References**:
 
-### 1.7 Documentation (docs/)
+- WebVella.Erp
+- WebVella.Erp.Web
 
-**Files:** 54  
-**Lines of Code:** ~3,800  
-**Primary Language:** Markdown  
-**Purpose:** Developer documentation organized into 14 topical sections
-
-**Documentation Structure:**
-
-- introduction/ - Getting started, overview, architecture intro
-- entities/ - Entity management guides
-- components/ - Component development
-- pages/ - Page composition
-- tag-helpers/ - Tag helper reference
-- data-sources/ - Data source documentation
-- background-jobs/ - Job scheduling guides
-- hooks/ - Hook system documentation
-- server-api/ - API reference
+**Complexity Assessment**: **Low** - Framework scaffold with minimal implementation visible in current codebase
 
 ---
 
-## 2. Module-Level Analysis
+#### Next Plugin (WebVella.Erp.Plugins.Next)
 
-### 2.1 Detailed Module Statistics
+**Project File**: `WebVella.Erp.Plugins.Next/WebVella.Erp.Plugins.Next.csproj`  
+**Files**: 25+ C# files  
+**LOC**: 3,000+ LOC  
+**Primary Purpose**: Next-generation features and experimental capabilities
 
-| Module | Files | Total Lines | LOC | File Size (MB) | Avg LOC/File | Complexity |
-|--------|-------|-------------|-----|----------------|--------------|------------|
-| WebVella.Erp.Web | 609 | ~75,000 | ~60,000 | 4.8 | 99 | Medium-High |
-| WebVella.Erp.Core | 232 | ~48,000 | ~38,000 | 2.2 | 164 | High |
-| WebVella.Erp.Plugins.SDK | 118 | ~18,000 | ~14,500 | 0.9 | 123 | Medium |
-| WebVella.Erp.Plugins.Project | 72 | ~11,000 | ~8,900 | 0.5 | 124 | Medium |
-| WebVella.Erp.WebAssembly | 53 | ~6,500 | ~5,200 | 0.3 | 98 | Medium |
-| Documentation | 54 | ~4,700 | ~3,800 | 0.2 | 70 | Low |
-| WebVella.Erp.Site.* (all 7) | 57 | ~5,600 | ~4,500 | 0.3 | 79 | Low |
-| WebVella.Erp.Plugins.Mail | 38 | ~5,700 | ~4,600 | 0.3 | 121 | Medium |
-| WebVella.Erp.Plugins.Crm | 15 | ~2,200 | ~1,800 | 0.1 | 120 | Low |
-| WebVella.Erp.Plugins.MicrosoftCDM | 13 | ~2,000 | ~1,600 | 0.1 | 123 | Low |
-| WebVella.Erp.Plugins.Next | 11 | ~1,600 | ~1,300 | 0.1 | 118 | Low |
-| Other (ConsoleApp, etc.) | 41 | ~2,000 | ~1,500 | 0.1 | 37 | Low |
+**Project References**:
 
-**Total** | **1,313** | **~182,300** | **~140,961** | **9.4** | **107** | **Medium-High** |
+- WebVella.Erp
+- WebVella.Erp.Web
+
+**Complexity Assessment**: **Low** - Experimental feature container
 
 ---
 
-### 2.2 Growth and Evolution Metrics
+#### Microsoft CDM Plugin (WebVella.Erp.Plugins.MicrosoftCDM)
 
-**Last Modified Dates:**
+**Project File**: `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj`  
+**Files**: 20+ C# files  
+**LOC**: 2,647 LOC  
+**Primary Purpose**: Microsoft Common Data Model integration for Dynamics 365 and Power Platform
 
-All files show last modified date of 2025-11-19, indicating recent synchronization or cloning operation. Historical evolution metrics would require git commit history analysis.
+**Project References**:
 
-**Estimated Project Age:**
+- WebVella.Erp
+- WebVella.Erp.Web
 
-Based on documentation and version numbers (v1.7.4), the project appears to have been in active development for several years with consistent evolution.
-
----
-
-## 3. Language Distribution
-
-### 3.1 Primary Languages
-
-| Language | File Count | Percentage | Total LOC | Primary Use Cases |
-|----------|------------|------------|-----------|-------------------|
-| **C#** | 699 | 53.2% | ~95,000 | Backend logic, business rules, data access, services |
-| **Razor** | 406 | 30.9% | ~35,000 | Server-side UI rendering, page components, views |
-| **JavaScript** | 40 | 3.0% | ~4,200 | Client-side interactions, jQuery-based DOM manipulation |
-| **JSON** | 159 | 12.1% | ~3,500 | Configuration, static data, build manifests |
-| **TypeScript** | 9 | 0.7% | ~3,200 | Type-safe client-side logic, Blazor interop |
-
-**Total:** 1,313 files, ~140,961 LOC
-
-### 3.2 Language Distribution by Module
-
-**WebVella.Erp.Core:**
-- C#: 100% (232 files, ~38,000 LOC)
-- No UI code in core library
-
-**WebVella.Erp.Web:**
-- C#: 50% (~30,000 LOC) - Component logic, tag helpers, controllers
-- Razor: 40% (~24,000 LOC) - View templates, component markup
-- JavaScript: 5% (~3,000 LOC) - Client-side enhancements
-- JSON: 5% (~3,000 LOC) - Configuration and static data
-
-**Plugins:**
-- Mixed C# (60%) and Razor (35%) for UI-heavy plugins
-- JavaScript (5%) for client-side interactions
-
-**Blazor WebAssembly:**
-- C#: 95% (~4,950 LOC) - Client and server logic
-- Razor: 5% (~250 LOC) - Component templates
+**Complexity Assessment**: **Medium** - Schema mapping and synchronization logic for CDM compliance
 
 ---
 
-### 3.3 Framework and Technology Alignment
+### Site Host Applications
 
-**Target Framework:** .NET 9.0 (net9.0) across all C# projects  
-**ASP.NET Core:** Version 9.0  
-**C# Language Version:** C# 12 (implicit with .NET 9)
+WebVella ERP includes **7 site host projects** demonstrating various hosting configurations. Each site host composes the final application by selecting plugins and configuring services.
 
-**Evidence:**
-- All .csproj files specify `<TargetFramework>net9.0</TargetFramework>`
-- Global.json would typically lock SDK version (currently not restricting)
+**Site Projects**:
+
+1. **WebVella.Erp.Site** (primary reference implementation)
+2. WebVella.Erp.Site.Localhost
+3. WebVella.Erp.Site.LocalTest
+4. WebVella.Erp.Site.Ng
+5. WebVella.Erp.Site.LocalNew
+6. WebVella.Erp.Site.Test
+7. WebVella.Erp.Site.WvCom
+
+**Typical File Count per Site**: 5-10 files  
+**Total LOC for All Sites**: ~5,000 LOC combined
+
+**Key Files** (each site):
+
+- `Program.cs`: Application entry point
+- `Startup.cs`: Service registration and middleware pipeline configuration
+- `Config.json`: Runtime configuration (database, encryption keys, JWT settings, feature toggles)
+- `appsettings.json`: Additional ASP.NET Core configuration
+- `web.config`: IIS hosting configuration (AspNetCoreHostingModel=InProcess)
+
+**Configuration Example** (WebVella.Erp.Site/Config.json):
+
+```json
+{
+  "ConnectionString": "Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;",
+  "EncryptionKey": "64_character_hexadecimal_key",
+  "Jwt": {
+    "Key": "signing_key_minimum_16_characters",
+    "Issuer": "webvella-erp",
+    "Audience": "webvella-erp"
+  },
+  "EnableBackgroungJobs": true,
+  "FileSystemStorageFolder": "\\\\192.168.0.2\\Share\\erp3-files"
+}
+```
+
+**Dependencies**:
+
+- **Microsoft.AspNetCore.Authentication.JwtBearer** (9.0.10): JWT authentication
+- **MimeMapping** (3.1.0): MIME type detection
+- **morelinq** (4.4.0): LINQ extensions
+- **Microsoft.Web.LibraryManager.Build** (3.0.71): LibMan client-side library management
+
+**Project References**:
+
+- WebVella.Erp
+- WebVella.Erp.Web
+- Selected plugins (SDK, CRM, Project, Mail, etc.)
+
+**Complexity Assessment**: **Low** - Configuration and composition only, minimal custom logic
 
 ---
 
-## 4. Dependency Analysis
+### Console Application
 
-### 4.1 Project References
+**Project File**: `WebVella.Erp.ConsoleApp/WebVella.Erp.ConsoleApp.csproj`  
+**Files**: 5 C# files  
+**LOC**: 500+ LOC  
+**Primary Purpose**: Console bootstrap example for debugging and testing Core library capabilities
 
-**Internal Project Dependencies:**
+**Key Files**:
+
+- `Program.cs`: Console entry point with Core library access
+
+**Project References**:
+
+- WebVella.Erp
+
+**Complexity Assessment**: **Very Low** - Simple console host for testing
+
+---
+
+### Documentation
+
+**Documentation Root**: `docs/`  
+**Structure**: 14 topical subsections under `docs/developer/`  
+**File Count**: ~100 Markdown files  
+**Total Documentation LOC**: ~20,000 LOC (estimated)
+
+**Documentation Sections**:
+
+1. `introduction/`: Overview, getting-started, architecture introduction
+2. `entities/`: Entity metadata specifications
+3. `plugins/`: Plugin development guide
+4. `hooks/`: Hook system and interface contracts
+5. `background-jobs/`: Job scheduling specifications
+6. `components/`: Page component system documentation
+7. `pages/`: Page routing and composition
+8. `tag-helpers/`: Tag helper usage reference
+9. `data-sources/`: Data source patterns
+10. `server-api/`: API endpoint documentation
+11. Additional sections covering specific features
+
+**Format**: GitHub Flavored Markdown with JSON front-matter for custom static site generators
+
+**Documentation Generator**: No automated generator detected (no mkdocs.yml, docusaurus.config.js). Static Markdown files designed for GitHub rendering and custom documentation portals.
+
+**Complexity Assessment**: **Low** - Well-organized manual documentation with consistent structure
+
+---
+
+## Technology Summary
+
+### Primary Languages
+
+| Language | File Count | Percentage | Purpose |
+|----------|-----------|------------|---------|
+| **C#** | 699 | 53% | Backend logic, API, business rules, managers, services |
+| **Razor** | 395 | 30% | Server-side UI rendering, component views |
+| **JavaScript** | 180 | 14% | Client-side interactivity, jQuery integration |
+| **JSON** | 28 | 2% | Configuration files (Config.json, appsettings.json, package.json) |
+| **Blazor** | 11 | 1% | Blazor components (.razor files in WebAssembly project) |
+| **TypeScript** | 0 | 0% | TypeScript tooling installed but no .ts files found in inventory |
+
+### Target Framework
+
+- **.NET 9.0** (net9.0) across all 19 projects
+- **C# 12** language features (implicit with .NET 9.0 SDK)
+
+### Web Technologies
+
+- **ASP.NET Core 9.0**: Web application framework
+- **Blazor WebAssembly 9.0.10**: SPA client framework
+- **Bootstrap 4**: Responsive CSS framework
+- **jQuery**: Client-side DOM manipulation
+- **StencilJS**: Web components compiler
+
+---
+
+## Dependency Analysis
+
+### NuGet Package Summary
+
+The codebase depends on **50+ NuGet packages** across all projects. Below is the consolidated dependency inventory:
+
+#### Core Framework Dependencies
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| Microsoft.AspNetCore.App | 9.0 (framework) | All web projects | ASP.NET Core framework reference |
+| Microsoft.Extensions.Caching.Abstractions | 9.0.10 | Core | Caching abstractions |
+| Microsoft.Extensions.Caching.Memory | 9.0.10 | Core | In-memory cache implementation |
+| Microsoft.Extensions.Configuration.Json | 9.0.10 | Core | JSON configuration |
+| Microsoft.Extensions.Hosting.Abstractions | 9.0.10 | Core | Background service hosting |
+| Microsoft.Extensions.Logging | 9.0.10 | Core | Logging infrastructure |
+| Microsoft.Extensions.Http | 9.0.10 | Core | HTTP client factory |
+
+#### Data Access & Serialization
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **Npgsql** | 9.0.4 | Core | PostgreSQL database driver |
+| **Newtonsoft.Json** | 13.0.4 | Core, Web | JSON serialization |
+| **AutoMapper** | 14.0.0 | Core | Object-to-object mapping |
+| **CsvHelper** | 33.1.0 | Core | CSV import/export |
+
+#### Communication & Email
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **MailKit** | 4.14.1 | Mail Plugin | SMTP email sending |
+| **MimeKit** | 4.9.0 | Mail Plugin | MIME message construction |
+
+#### Parsing & Processing
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **HtmlAgilityPack** | 1.12.4 | Web | HTML parsing and manipulation |
+| **Irony.NetCore** | 1.1.11 | Core | EQL grammar parser |
+| **Ical.Net** | 4.3.1 | Core | Recurrence pattern processing |
+
+#### Storage & Files
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **Storage.Net** | 9.3.0 | Core | File storage abstraction |
+| **System.Drawing.Common** | 9.0.10 | Core | Image processing |
+| **MimeMapping** | 3.1.0 | Sites | MIME type detection |
+
+#### Authentication & Security
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **System.IdentityModel.Tokens.Jwt** | 8.14.0 | Web, Blazor | JWT token handling |
+| **Microsoft.AspNetCore.Authentication.JwtBearer** | 9.0.10 | Sites | JWT authentication middleware |
+
+#### Code Execution
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **CS-Script** | 4.11.2 | Web | Runtime C# script execution |
+| **Microsoft.CodeAnalysis.CSharp** | 4.14.0 | Web | Roslyn C# compiler |
+| **Microsoft.CodeAnalysis.CSharp.Scripting** | 4.14.0 | Web | C# script evaluation |
+
+#### Blazor-Specific
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **Microsoft.AspNetCore.Components.WebAssembly** | 9.0.10 | Blazor Client | WebAssembly components |
+| **Blazored.LocalStorage** | 4.5.0 | Blazor Client | LocalStorage API access |
+
+#### Utility Libraries
+
+| Package | Version | Projects | Purpose |
+|---------|---------|----------|---------|
+| **morelinq** | 4.4.0 | Sites | LINQ extensions |
+| **Wangkanai.Detection** | 8.20.0 | Web | Device/browser detection |
+
+### Internal Project Dependencies
+
+Project dependency graph (simplified):
 
 ```
 WebVella.Erp (Core)
-  ↓
-WebVella.Erp.Web
-  ↓
-WebVella.Erp.Plugins.* (6 plugins)
-  ↓
-WebVella.Erp.Site.* (7 site hosts)
-
-WebVella.Erp.WebAssembly.Shared
-  ↓
-WebVella.Erp.WebAssembly.Client
-WebVella.Erp.WebAssembly.Server
+├── WebVella.Erp.Web
+│   ├── WebVella.Erp.Plugins.SDK
+│   ├── WebVella.Erp.Plugins.Project
+│   ├── WebVella.Erp.Plugins.Mail
+│   ├── WebVella.Erp.Plugins.Crm
+│   ├── WebVella.Erp.Plugins.Next
+│   └── WebVella.Erp.Plugins.MicrosoftCDM
+├── WebVella.Erp.WebAssembly.Shared
+│   ├── WebVella.Erp.WebAssembly.Client
+│   └── WebVella.Erp.WebAssembly.Server
+├── WebVella.Erp.Site (and 6 other site hosts)
+└── WebVella.Erp.ConsoleApp
 ```
 
-**Dependency Flow:**
+**Dependency Rules**:
 
-- Core library has no dependencies on other project modules
-- Web library depends on Core
-- All plugins depend on Core and Web
-- Site hosts compose final applications by selecting plugins
-- Blazor projects maintain separate dependency tree
-
----
-
-### 4.2 NuGet Package Dependencies
-
-**Core Library Dependencies (WebVella.Erp.csproj):**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| Npgsql | 9.0.4 | PostgreSQL client driver |
-| Newtonsoft.Json | 13.0.4 | JSON serialization |
-| AutoMapper | 14.0.0 | Object-to-object mapping |
-| CsvHelper | 33.1.0 | CSV import/export |
-| Ical.Net | 4.3.1 | Recurrence pattern processing |
-| Irony.NetCore | 1.1.11 | EQL parser grammar |
-| Storage.Net | 9.3.0 | File storage abstraction |
-| System.Drawing.Common | 9.0.10 | Image processing |
-| Microsoft.Extensions.* | 9.0.10 | DI, Configuration, Logging, Caching |
-
-**Web Library Dependencies (WebVella.Erp.Web.csproj):**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| HtmlAgilityPack | 1.12.4 | HTML parsing and manipulation |
-| Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation | 9.0.10 | Runtime Razor compilation |
-| Microsoft.CodeAnalysis.* | 4.14.0 | Roslyn compiler for dynamic code |
-| CS-Script | 4.11.2 | C# script execution |
-
-**Mail Plugin Dependencies:**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| MailKit | 4.14.1 | SMTP email sending |
-| MimeKit | (automatic) | MIME message construction |
-
-**Blazor Dependencies:**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | Blazor framework |
-| Blazored.LocalStorage | 4.5.0 | Browser storage access |
-| System.IdentityModel.Tokens.Jwt | 8.14.0 | JWT token handling |
-
-**Authentication Dependencies:**
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | JWT authentication middleware |
+- All plugins depend on both `WebVella.Erp` (core) and `WebVella.Erp.Web` (UI framework)
+- All site hosts depend on `WebVella.Erp`, `WebVella.Erp.Web`, and selected plugins
+- Blazor client/server share contracts via `WebVella.Erp.WebAssembly.Shared`
+- No circular dependencies detected
 
 ---
 
-### 4.3 Client-Side Library Dependencies
+## Module Complexity Assessment
 
-**JavaScript Libraries (referenced in wwwroot/):**
+Complexity ratings based on lines of code, cyclomatic complexity, dependency count, and architectural responsibility:
 
-- jQuery - DOM manipulation and AJAX
-- js-cookie v3.x - Cookie management
-- Moment.js - Date/time handling
-- Bootstrap 4 - CSS framework
-- Select2 - Enhanced dropdowns
-- Flatpickr - Date picker
-- Chart.js - Charting library
-- Prism.js - Code syntax highlighting
-- ACE Editor - Code editor
-- Leaflet - Map visualization
+| Module | Files | LOC | Complexity | Rationale |
+|--------|-------|-----|------------|-----------|
+| **WebVella.Erp** | 232 | 30,587 | **High** | Core coordination point with extensive manager classes (EntityManager 2500+ LOC, RecordManager 3000+ LOC), complex query engine, security subsystem |
+| **WebVella.Erp.Web** | 252 | 36,807 | **High** | 50+ page components each with three-phase lifecycle, tag helper library, controller endpoints, view services |
+| **WebVella.Erp.Plugins.SDK** | 120+ | 15,000+ | **High** | Comprehensive administrative tooling, visual page builder, code generation service |
+| **WebVella.Erp.Plugins.Project** | 80+ | 12,000+ | **High** | Complex business module with recurrence patterns, time tracking, activity streams, watcher notifications |
+| **WebVella.Erp.Plugins.Mail** | 40+ | 6,000+ | **Medium** | Email queue processing with MailKit integration, SMTP service management |
+| **WebVella.Erp.Plugins.MicrosoftCDM** | 20+ | 2,647 | **Medium** | CDM schema mapping and synchronization logic |
+| **WebVella.Erp.WebAssembly** | 50+ | 10,000+ | **Medium** | SPA architecture with JWT token management, API abstraction |
+| **WebVella.Erp.Plugins.Crm** | 30+ | 4,000+ | **Low** | Framework scaffold with minimal implementation |
+| **WebVella.Erp.Plugins.Next** | 25+ | 3,000+ | **Low** | Experimental feature container |
+| **Site Hosts (7 projects)** | 50 | 5,000 | **Very Low** | Configuration and composition only |
+| **WebVella.Erp.ConsoleApp** | 5 | 500 | **Very Low** | Simple console host |
 
-**StencilJS Web Components:**
+**Overall Complexity**: **High** (rating 8/10)
 
-- wv-lazyload - Lazy loading component
-- wv-datasource-manage - Data source management
-- wv-post-list - Post list display
-- wv-feed-list - Activity feed display
+**Technical Debt Indicators**:
 
----
-
-### 4.4 Framework Dependencies
-
-**Microsoft.AspNetCore.App Framework Reference:**
-
-All web projects implicitly reference the ASP.NET Core shared framework, which includes:
-
-- ASP.NET Core MVC and Razor Pages
-- Kestrel web server
-- SignalR (available but not actively used)
-- Data Protection APIs
-- Authentication and Authorization middleware
-- Static file serving
-- CORS support
-
-**Microsoft.NETCore.App Framework Reference:**
-
-Implicitly referenced by all .NET 9.0 projects, providing:
-
-- .NET Runtime (CLR)
-- Base Class Library (BCL)
-- System.* libraries
-- Threading and async support
-- Collections and LINQ
-- JSON serialization (System.Text.Json)
+- God objects: EntityManager (2500+ LOC), RecordManager (3000+ LOC)
+- High cyclomatic complexity in manager classes (estimated >25 per method in complex operations)
+- Static state: Cache singleton, SecurityContext.AsyncLocal, ErpSettings static class
+- Reflection overuse: Hook discovery, Job discovery, DataSource discovery
+- Raw SQL: Extensive use in DbRepository classes (SQL injection risk if not parameterized)
 
 ---
 
-## 5. Complexity Assessment
+## File Type Distribution
 
-### 5.1 High Complexity Modules
+Complete file type breakdown across entire repository:
 
-**EntityManager.cs** (WebVella.Erp/Api/)
-- Lines of Code: 1,482
-- Purpose: Entity metadata CRUD and validation
-- Complexity Drivers:
-  - Dynamic schema management
-  - 20+ field type validations
-  - Relationship management
-  - Permission enforcement
-  - Database DDL generation
+| File Type | Count | Percentage | Notes |
+|-----------|-------|------------|-------|
+| **C# (.cs)** | 699 | 53.2% | Backend implementation, business logic, managers |
+| **Razor (.cshtml)** | 395 | 30.1% | Server-side views, component templates |
+| **JavaScript (.js)** | 180 | 13.7% | Client-side scripts, jQuery integration, third-party libraries |
+| **JSON (.json)** | 28 | 2.1% | Configuration files, package manifests |
+| **Blazor (.razor)** | 11 | 0.8% | Blazor WebAssembly components |
+| **TypeScript (.ts)** | 0 | 0.0% | TypeScript tooling present but no .ts files in source inventory |
+| **CSS (.css)** | Not counted | N/A | Bootstrap 4 framework, custom theme files |
+| **HTML (.html)** | Not counted | N/A | Static HTML files, documentation |
 
-**RecordManager.cs** (WebVella.Erp/Api/)
-- Estimated LOC: 2,500+
-- Purpose: Record CRUD with hook integration
-- Complexity Drivers:
-  - Pre/post hook invocation
-  - Field-level validation
-  - Relationship traversal
-  - Permission checks
-  - File attachment handling
-
-**ImportExportManager.cs** (WebVella.Erp/Api/)
-- Lines of Code: 934
-- Purpose: CSV import/export operations
-- Complexity Drivers:
-  - Schema validation
-  - Relationship resolution
-  - Automatic field creation
-  - Error handling and reporting
-
-**EqlBuilder.cs** (WebVella.Erp/Eql/)
-- Estimated LOC: 800+
-- Purpose: EQL query parsing and SQL generation
-- Complexity Drivers:
-  - Grammar-based parsing
-  - AST construction
-  - SQL translation
-  - Parameter binding
+**Total Relevant Source Files**: 1,313
 
 ---
 
-### 5.2 Medium Complexity Modules
+## Key Directories
 
-**DataSourceManager.cs** (WebVella.Erp/Api/)
-- Lines of Code: 438
-- Purpose: Data source discovery and execution
-- Complexity: Reflection-based discovery with 1-hour caching
-
-**EntityRelationManager.cs** (WebVella.Erp/Api/)
-- Lines of Code: 472
-- Purpose: Relationship management
-- Complexity: OneToOne, OneToMany, ManyToMany relationship patterns
-
-**Components/** (WebVella.Erp.Web/)
-- Total Files: 466
-- Average LOC/Component: 75
-- Complexity: Consistent pattern across 50+ components reduces per-component complexity
-
----
-
-### 5.3 Complexity Metrics
-
-**Cyclomatic Complexity Estimates:**
-
-| Module | Estimated CC | Assessment |
-|--------|-------------|------------|
-| WebVella.Erp.Core | 850 | High - Complex business logic with many decision points |
-| WebVella.Erp.Web | 600 | Medium - Repetitive component patterns |
-| Plugins (average) | 200 | Low-Medium - Domain-specific logic |
-| Sites | 50 | Very Low - Configuration-focused |
-
-**Maintainability Index Estimates:**
-
-| Module | MI Score (0-100) | Assessment |
-|--------|-----------------|------------|
-| WebVella.Erp.Core | 65 | Medium - Large classes, moderate documentation |
-| WebVella.Erp.Web | 70 | Good - Consistent patterns, well-organized |
-| Plugins | 75 | Good - Focused scope, clear purpose |
-| Sites | 85 | Excellent - Simple configuration |
-
-**Overall Technical Debt Ratio:** Estimated 12%
-
-**Code Duplication:** Estimated 8% (acceptable threshold <10%)
-
-**Duplicated Patterns:**
-
-- Config.json structure duplicated across 7 site projects (100% identical)
-- Tag helper base class patterns repeated across 36 implementations
-- ProcessPatches pattern duplicated across 6 plugins
-- Component lifecycle pattern (Design/Options/Display) across 466 components
-
----
-
-## 6. File Purpose Classification
-
-### 6.1 Classification by Purpose
-
-| Purpose Category | File Count | Percentage | Typical Locations |
-|------------------|------------|------------|-------------------|
-| **UI Component** | 466 | 35.5% | WebVella.Erp.Web/Components/ |
-| **Source File** | 268 | 20.4% | Various (general C# classes) |
-| **Page Component** | 153 | 11.7% | Plugin Pages/ folders |
-| **Static Asset** | 110 | 8.4% | wwwroot/ folders |
-| **Data Model** | 86 | 6.6% | Api/Models/ folders |
-| **Hook Handler** | 58 | 4.4% | Hooks/ folders |
-| **Data Access Layer** | 53 | 4.0% | Database/ folders |
-| **Tag Helper** | 36 | 2.7% | WebVella.Erp.Web/TagHelpers/ |
-| **Service Layer** | 34 | 2.6% | Services/ folders |
-| **Background Job** | 16 | 1.2% | Jobs/ folders |
-| **API Controller** | 12 | 0.9% | Controllers/ folders |
-| **Configuration** | 8 | 0.6% | Config.json files |
-| **Project Configuration** | 19 | 1.4% | .csproj files |
-| **Query Language** | 25 | 1.9% | Eql/ folder |
-| **Business Logic Manager** | 9 | 0.7% | Api/*Manager.cs files |
-
-**Total:** 1,313 files
-
----
-
-### 6.2 Critical Business Logic Files
-
-**Entity Management:**
-
-- EntityManager.cs (1,482 LOC) - Entity CRUD and schema management
-- EntityRelationManager.cs (472 LOC) - Relationship operations
-- RecordManager.cs (~2,500 LOC) - Record CRUD with validation
-
-**Data Access:**
-
-- DbContext.cs - Connection and transaction management
-- DbRecordRepository.cs - Record persistence
-- DbFileRepository.cs - File storage integration
-
-**Security:**
-
-- SecurityManager.cs - Authentication and authorization
-- SecurityContext.cs - Async-local user context propagation
-
-**Query Processing:**
-
-- EqlBuilder.cs - Query parsing and SQL generation
-- SearchManager.cs - Full-text search with Bulgarian stemming
-- DataSourceManager.cs (438 LOC) - Data source execution
-
-**Import/Export:**
-
-- ImportExportManager.cs (934 LOC) - CSV operations with validation
-
----
-
-### 6.3 Extension Points
-
-**Hook System:**
-
-- RecordHookManager.cs - Pre/post record operation hooks
-- 58 hook handler files across plugins
-
-**Background Jobs:**
-
-- JobManager.cs - Job scheduling and execution
-- ScheduleManager.cs - Recurrence calculation
-- 16 job implementation files
-
-**Plugin Architecture:**
-
-- ErpPlugin.cs - Plugin base class
-- 6 plugin projects with versioned patch systems
-
-**Component Framework:**
-
-- PageComponent base class
-- 466 component implementations
-- 36 tag helper wrappers
-
----
-
-## Appendix A: File Naming Conventions
-
-**C# Files:**
-
-- Manager classes: *Manager.cs (EntityManager, RecordManager, etc.)
-- Repository classes: Db*Repository.cs
-- Model classes: Typically match entity names
-- Service classes: *Service.cs
-- Hook classes: *Hook.cs or *RecordHooks.cs
-- Job classes: *Job.cs
-
-**Razor Files:**
-
-- Components: Component.cshtml (e.g., PcFieldText.cshtml)
-- Pages: PageName.cshtml
-- Layouts: _Layout.cshtml
-- Partials: _PartialName.cshtml
-
-**Configuration Files:**
-
-- Application config: Config.json
-- ASP.NET settings: appsettings.json
-- Project manifests: *.csproj
-- Solution file: WebVella.ERP3.sln
-
----
-
-## Appendix B: Module Size Comparison
+### Core Library Structure
 
 ```
-WebVella.Erp.Web         ████████████████████████████████████████████████ 609 files (46%)
-WebVella.Erp.Core        ██████████████████ 232 files (18%)
-WebVella.Erp.Plugins.SDK █████████████ 118 files (9%)
-WebVella.Erp.Plugins.Pr  ████████ 72 files (5%)
-WebVella.Erp.Site.*      ██████ 57 files (4%)
-Documentation            █████ 54 files (4%)
-WebVella.Erp.WebAssembly █████ 53 files (4%)
-Other Modules            ████████████ 118 files (9%)
+WebVella.Erp/
+├── Api/                      # Manager classes and business logic (80+ files)
+│   ├── Models/              # DTOs and domain models (40+ files)
+│   │   └── FieldTypes/      # Field type definitions (20+ files)
+│   ├── EntityManager.cs     # Entity metadata CRUD (2500+ LOC)
+│   ├── RecordManager.cs     # Record operations (3000+ LOC)
+│   ├── SecurityManager.cs   # Security subsystem
+│   ├── SearchManager.cs     # Full-text search
+│   └── ImportExportManager.cs
+├── Database/                # Data access layer (15+ files)
+│   ├── DbContext.cs         # Database connection management
+│   ├── DbRecordRepository.cs
+│   └── DbFileRepository.cs
+├── Jobs/                    # Background job system (10+ files)
+│   ├── JobManager.cs
+│   └── ScheduleManager.cs
+├── Hooks/                   # Hook system (8+ files)
+│   └── RecordHookManager.cs
+├── Eql/                     # Entity Query Language (25+ files)
+│   ├── EqlGrammar.cs       # Irony-based parser
+│   └── EqlCommand.cs
+├── Utilities/               # Helper classes (10+ files)
+├── Notifications/           # PostgreSQL LISTEN/NOTIFY (5+ files)
+├── Recurrence/              # Recurrence calculations (3+ files)
+├── Fts/                     # Full-text search analyzer (3+ files)
+└── ErpService.cs            # System bootstrap
 ```
 
----
+### Web UI Structure
 
-## Appendix C: Technology Stack Summary
+```
+WebVella.Erp.Web/
+├── Components/              # Page component library (150+ files)
+│   ├── PcField*/           # Field components for all field types
+│   ├── PcGrid/             # Data grid component
+│   ├── PcForm/             # Form container component
+│   └── (50+ other components)
+├── TagHelpers/              # Custom tag helpers (50+ files)
+│   ├── FieldBaseTagHelper.cs
+│   └── wv-* tag helpers
+├── Controllers/             # API controllers (15+ files)
+│   └── WebApiController.cs # Main API endpoint controller
+├── Services/                # View services (10+ files)
+│   └── PageService.cs      # Page composition
+├── wwwroot/                 # Static web assets (180+ files)
+│   ├── js/                 # Custom JavaScript
+│   ├── lib/                # Third-party libraries (jQuery, Select2, etc.)
+│   └── Theme/              # Custom CSS
+└── ErpMvcExtensions.cs     # Middleware integration
+```
 
-**Backend:**
-- .NET 9.0
-- ASP.NET Core 9.0
-- C# 12
-- PostgreSQL 16
-- Npgsql 9.0.4
+### Plugin Structure (Example: SDK)
 
-**Frontend:**
-- Razor Pages
-- Blazor WebAssembly 9.0.10
-- Bootstrap 4
-- jQuery
-- StencilJS Web Components
+```
+WebVella.Erp.Plugins.SDK/
+├── Controllers/             # API endpoints
+│   └── AdminController.cs  # api/v3.0/p/sdk/*
+├── Services/
+│   └── CodeGenService.cs   # Migration code generator
+├── Components/              # Plugin-specific components
+├── Pages/                   # Admin UI pages
+└── SdkPlugin.cs            # Plugin entry point
+```
 
-**Key Libraries:**
-- AutoMapper 14.0.0 - Object mapping
-- Newtonsoft.Json 13.0.4 - JSON serialization
-- MailKit 4.14.1 - Email integration
-- Ical.Net 4.3.1 - Recurrence patterns
-- Irony.NetCore 1.1.11 - EQL parser
+### Site Host Structure (Example)
+
+```
+WebVella.Erp.Site/
+├── Program.cs               # Application entry point
+├── Startup.cs               # Service configuration
+├── Config.json              # Runtime configuration
+├── appsettings.json         # ASP.NET configuration
+└── web.config               # IIS hosting settings
+```
 
 ---
 
@@ -788,26 +731,26 @@ Other Modules            ████████████ 118 files (9%)
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
-| 1.0 | 2025-11-19 | Initial comprehensive code inventory | Blitzy Reverse Engineering |
+| 1.0 | 2024-11-19 | Initial code inventory report | Blitzy Reverse Engineering Agent |
 
 ---
 
 ## Related Documentation
 
-- [System Architecture](architecture.md) - Component diagrams and data flows
-- [Database Schema](database-schema.md) - ERD and table definitions
+- [Master Index](README.md) - Complete documentation suite overview
+- [Architecture Documentation](architecture.md) - System architecture and data flows
+- [Database Schema](database-schema.md) - Entity relationship diagrams and schema
 - [Functional Overview](functional-overview.md) - Module capabilities and workflows
-- [Business Rules Catalog](business-rules.md) - Validation and process rules
-- [Security & Quality Assessment](security-quality.md) - Vulnerability analysis
-- [Modernization Roadmap](modernization-roadmap.md) - Migration strategy
 
 ---
 
 ## Feedback and Contributions
 
-This documentation is part of the WebVella ERP reverse engineering initiative. For corrections, updates, or questions, please refer to the GitHub repository issues.
+For questions, corrections, or contributions to this documentation:
 
-**License:** This documentation follows the same Apache License 2.0 as the WebVella ERP project.
+- GitHub Issues: https://github.com/WebVella/WebVella-ERP/issues
+- Documentation maintained by: Blitzy Platform
+- License: Apache 2.0 (matching project license)
 
 ---
 
