@@ -1,950 +1,1102 @@
-# Database Schema & Data Dictionary
+# WebVella ERP - Database Schema & Data Dictionary
 
-**Generated**: November 18, 2024  
-**Repository**: https://github.com/WebVella/WebVella-ERP  
-**Analyzed Commit**: master branch HEAD  
-**WebVella ERP Version**: 1.7.4  
-**Database Technology**: PostgreSQL 16  
-**Analysis Scope**: Entity models, DbRepository.cs DDL/DML, DBTypeConverter.cs type mappings, plugin migrations
-
----
-
-## Table of Contents
-
-1. [Executive Summary](#executive-summary)
-2. [Database Technology Overview](#database-technology-overview)
-3. [Entity Relationship Diagram](#entity-relationship-diagram)
-4. [Schema Overview by Domain](#schema-overview-by-domain)
-5. [Field Type to Column Type Mapping](#field-type-to-column-type-mapping)
-6. [Table Naming Conventions](#table-naming-conventions)
-7. [Constraints and Referential Integrity](#constraints-and-referential-integrity)
-8. [Indexes and Performance](#indexes-and-performance)
-9. [Migration History and Schema Evolution](#migration-history-and-schema-evolution)
-10. [Database Access Patterns](#database-access-patterns)
+**Generated:** 2024-11-20 UTC  
+**Repository:** https://github.com/WebVella/WebVella-ERP  
+**Analyzed Commit:** Current branch state  
+**Documentation Suite:** Reverse Engineering Documentation  
 
 ---
 
 ## Executive Summary
 
-WebVella ERP employs PostgreSQL 16 as its exclusive database platform, storing both system metadata (entity definitions, field schemas, relationships, pages, applications) and business data (records, attachments, audit trails) in a single database instance. The architecture follows a **metadata-driven design** where entity definitions stored at runtime determine the physical database schema, enabling zero-code schema evolution through the SDK plugin UI.
+WebVella ERP employs a **hybrid database schema** combining **static system tables** for framework metadata with **dynamic entity tables** generated at runtime. All data persists in PostgreSQL 16, leveraging JSONB columns for flexible schema storage, full-text search capabilities, and transactional DDL for atomic schema modifications.
 
-**Key Database Characteristics:**
+### Database Architecture Highlights
 
-- **Total Tables**: 50+ tables across system metadata, security, operational data, and runtime entities
-- **Table Naming Convention**: System tables use descriptive names (`entity`, `field`, `user`); runtime entity tables use `rec_{entity_name}` prefix; N:N junction tables use `nm_{relation_name}` prefix
-- **Primary Key Strategy**: All tables use UUID (`uuid`) primary keys with column name `id`
-- **Referential Integrity**: Foreign key constraints enforce relationships between entities, users, roles, and permissions
-- **Indexing Strategy**: B-tree indexes on foreign keys and frequently queried fields; GIN indexes for full-text search columns
-- **Schema Management**: Transactional DDL operations via `DbRepository.cs` ensure atomic schema modifications
-- **Data Types**: 21 application field types map to 14 distinct PostgreSQL column types via deterministic conversion in `DBTypeConverter.cs`
+- **Database Technology:** PostgreSQL 16 (exclusive)
+- **Total Schema Size:** 50-70 tables (system + plugin + runtime entities)
+- **Schema Management:** Mixed static (system tables) + dynamic (runtime DDL generation)
+- **Relationship Patterns:** One-to-One, One-to-Many, Many-to-Many via junction tables
+- **Special Features:** JSONB storage, full-text search (Bulgarian), LISTEN/NOTIFY pub/sub
 
-**Database Size and Scale Characteristics:**
+### Key Database Characteristics
 
-- **System Metadata**: ~20 core tables for entity definitions, fields, relationships, pages, components, applications
-- **Security Tables**: 5 tables managing users, roles, permissions, and access control
-- **Operational Tables**: ~10 tables for logging, background jobs, notifications, plugin state
-- **Runtime Entities**: Variable count based on application requirements; each entity creates 1 table plus junction tables for N:N relationships
-- **Audit Trail**: Modification history captured per entity with before/after snapshots
-
----
-
-## Database Technology Overview
-
-### PostgreSQL 16 Feature Utilization
-
-WebVella ERP leverages PostgreSQL 16's advanced capabilities:
-
-| PostgreSQL Feature | Usage in WebVella ERP | Evidence |
-|-------------------|----------------------|----------|
-| **JSONB Data Type** | Flexible schema storage for entity configurations and dynamic fields | Field definition storage, component options |
-| **UUID Primary Keys** | All tables use UUID (type `uuid`) for distributed-system-friendly identifiers | Standard across all entity tables |
-| **Full-Text Search** | PostgreSQL `tsvector` with `gin` indexes for search functionality | `CreateFtsIndexIfNotExists` in WebVella.Erp/Database/DbRepository.cs:889-940 |
-| **Array Types** | `text[]`, `uuid[]` for multi-select and multi-relation fields | MultiSelectField -> `text[]` per WebVella.Erp/Database/DBTypeConverter.cs:42 |
-| **Referential Integrity** | `FOREIGN KEY` constraints enforce relationships | `CreateRelation` in WebVella.Erp/Database/DbRepository.cs:534-610 |
-| **Transactional DDL** | Schema modifications within transactions for atomic operations | All DDL methods wrapped in transaction context |
-| **GIN Indexes** | Generalized Inverted Indexes for array and full-text search columns | `CREATE INDEX USING gin` for tsvector columns |
-| **GIST Indexes** | Geometric indexes for spatial data fields (geography type) | `CreateIndex` with GIST option in WebVella.Erp/Database/DbRepository.cs:828 |
-| **Timezone-Aware Timestamps** | `timestamptz` for all datetime fields with automatic timezone conversion | DateTimeField -> `timestamptz` per WebVella.Erp/Database/DBTypeConverter.cs:31 |
-
-### Database Connection Configuration
-
-**Connection String Structure** (from Config.json):
-
-```
-Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;
-Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;
-```
-
-**Connection Pool Parameters**:
-
-- **Pooling**: Enabled for connection reuse across requests
-- **MinPoolSize**: 1 connection maintained for rapid startup
-- **MaxPoolSize**: 100 concurrent connections (scales with concurrent user load)
-- **CommandTimeout**: 120 seconds for long-running queries (EQL, reports, migrations)
-
-**Client Library**: Npgsql 9.0.4 provides the .NET PostgreSQL driver with:
-- Binary protocol for performance
-- Prepared statement caching
-- Bulk copy operations for CSV import
-- Asynchronous I/O support
+| Characteristic | Implementation | Rationale |
+|---------------|----------------|-----------|
+| **Metadata Storage** | JSONB columns in system tables | Flexible schema evolution without migration scripts |
+| **Entity Tables** | Dynamic CREATE TABLE at runtime | Metadata-driven architecture enables zero-compilation entity creation |
+| **Table Naming Convention** | `rec_{entity_name}` for entities, `nm_{relation_name}` for junctions | Clear separation between system and business data |
+| **Primary Keys** | GUID (UUID) columns named `id` | Distributed system readiness, no auto-increment sequences |
+| **Foreign Keys** | Database-level constraints | Referential integrity enforced at database layer |
+| **Full-Text Search** | PostgreSQL to_tsquery with GIN indexes | Built-in search without external dependencies |
+| **Audit Trail** | Optional per-entity audit tables | Compliance and change tracking |
 
 ---
 
-## Entity Relationship Diagram
+## Entity Relationship Diagram - System Entities
 
-### Core System Entities ERD
-
-The following Mermaid diagram illustrates the relationships between core system metadata tables, security tables, and the pattern for runtime entity tables:
+### Core Metadata Schema
 
 ```mermaid
 erDiagram
-    Entity ||--o{ Field : "contains"
-    Entity ||--o{ EntityRelation : "originates"
-    Entity ||--o{ EntityRelation : "targets"
-    Entity ||--o{ EntityPermission : "secured_by"
-    Entity ||--o{ RuntimeRecord : "instances"
+    ENTITY ||--o{ FIELD : contains
+    ENTITY ||--o{ ENTITY_RELATION : participates
+    ENTITY ||--o{ ENTITY_PERMISSION : secured_by
+    ENTITY ||--o{ RECORD : instances
     
-    User ||--o{ UserRole : "has_roles"
-    Role ||--o{ UserRole : "assigned_to_users"
-    Role ||--o{ EntityPermission : "grants_permissions"
+    USER ||--o{ USER_ROLE : has
+    ROLE ||--o{ USER_ROLE : assigned_to
+    ROLE ||--o{ ENTITY_PERMISSION : grants
     
-    Entity ||--o{ Page : "referenced_by"
-    Application ||--o{ Page : "contains"
-    Page ||--o{ PageBodyNode : "composed_of"
+    APPLICATION ||--o{ SITEMAP : contains
+    SITEMAP ||--o{ AREA : organizes
+    AREA ||--o{ NODE : contains
+    NODE ||--o| PAGE_COMPONENT : hosts
     
-    RuntimeRecord ||--o{ RelationNtoN : "many_to_many"
+    DATA_SOURCE ||--o{ PAGE_COMPONENT : feeds
     
-    Entity {
-        uuid id PK
-        string name UK "Unique entity identifier"
+    ENTITY {
+        uuid id PK "Primary Key"
+        string name UK "Unique entity name"
         string label "Display label"
         string label_plural "Plural form"
-        boolean system "System vs custom entity flag"
-        text icon_class "Icon CSS class"
-        jsonb record_permissions "Role-based CRUD permissions"
+        boolean system "Framework entity flag"
+        string icon_class "UI icon CSS class"
+        string record_screen_id_field "Field for record display"
+        jsonb record_permissions "CRUD permissions by role"
     }
     
-    Field {
-        uuid id PK
+    FIELD {
+        uuid id PK "Primary Key"
         uuid entity_id FK "Parent entity"
-        string name "Field identifier"
+        string name "Field name (unique per entity)"
         int field_type "FieldType enum value"
-        boolean required "Mandatory field flag"
+        string label "Display label"
+        boolean required "Mandatory flag"
+        boolean unique "Uniqueness constraint"
+        boolean searchable "Full-text search eligible"
+        boolean auditable "Track changes"
         text default_value "Default value expression"
-        boolean unique "Unique constraint flag"
-        boolean searchable "Full-text search flag"
-        boolean auditable "Audit trail flag"
+        jsonb settings "Field-type specific config"
     }
     
-    EntityRelation {
-        uuid id PK
-        string name UK "Relationship identifier"
-        int relation_type "OneToOne=1, OneToMany=2, ManyToMany=3"
+    ENTITY_RELATION {
+        uuid id PK "Primary Key"
+        string name UK "Unique relation name"
+        int relation_type "OneToOne/OneToMany/ManyToMany"
         uuid origin_entity_id FK "Source entity"
         uuid origin_field_id FK "Source field"
         uuid target_entity_id FK "Target entity"
         uuid target_field_id FK "Target field"
+        string description "Relation purpose"
     }
     
-    User {
-        uuid id PK
-        string email UK "Authentication email"
-        string password "Encrypted password hash"
-        string first_name "Given name"
-        string last_name "Family name"
+    RECORD {
+        uuid id PK "Dynamic per entity"
+        timestamp created_on "Record creation timestamp"
+        uuid created_by FK "Creator user ID"
+        timestamp modified_on "Last modification timestamp"
+        uuid modified_by FK "Last modifier user ID"
+        text custom_fields "Entity-specific fields (dynamic)"
+    }
+    
+    USER {
+        uuid id PK "Primary Key"
+        string email UK "Unique email for login"
+        string password "Hashed password"
+        string first_name "User first name"
+        string last_name "User last name"
         boolean enabled "Account active flag"
-        timestamptz last_logged_in "Last login timestamp"
+        timestamp last_logged_in "Last login timestamp"
     }
     
-    Role {
-        uuid id PK
-        string name UK "Role identifier"
+    ROLE {
+        uuid id PK "Primary Key"
+        string name UK "Unique role name"
         string description "Role purpose"
     }
     
-    UserRole {
-        uuid id PK
+    USER_ROLE {
         uuid user_id FK "User reference"
         uuid role_id FK "Role reference"
     }
     
-    EntityPermission {
-        uuid id PK
-        uuid entity_id FK "Protected entity"
-        uuid role_id FK "Authorized role"
-        boolean can_read "Query permission"
-        boolean can_create "Insert permission"
-        boolean can_update "Modify permission"
-        boolean can_delete "Remove permission"
+    ENTITY_PERMISSION {
+        uuid entity_id FK "Entity reference"
+        uuid role_id FK "Role reference"
+        boolean can_read "Read permission"
+        boolean can_create "Create permission"
+        boolean can_update "Update permission"
+        boolean can_delete "Delete permission"
     }
     
-    RuntimeRecord {
-        uuid id PK "Generated per entity table"
-        timestamptz created_on "Creation timestamp"
-        uuid created_by FK "User.id creator"
-        timestamptz last_modified_on "Update timestamp"
-        uuid last_modified_by FK "User.id modifier"
-        text custom_fields "Dynamic fields per entity definition"
-    }
-    
-    RelationNtoN {
-        uuid id PK
-        uuid origin_record_id FK "Source record"
-        uuid target_record_id FK "Target record"
-    }
-    
-    Application {
-        uuid id PK
-        string name UK "Application identifier"
-        string label "Display name"
-        text description "Purpose description"
-        text icon_class "Icon CSS class"
+    APPLICATION {
+        uuid id PK "Primary Key"
+        string name UK "Unique app name"
+        string label "Display label"
+        string icon_class "UI icon"
         int weight "Sort order"
     }
     
-    Page {
-        uuid id PK
-        string name "Page identifier"
-        string label "Display title"
-        uuid app_id FK "Parent application"
-        int type "Page type enum"
-        uuid entity_id FK "Associated entity (nullable)"
-        jsonb layout "Page structure definition"
+    SITEMAP {
+        uuid id PK "Primary Key"
+        uuid application_id FK "Parent application"
+        uuid area_id FK "Area reference"
+        int weight "Sort order"
     }
     
-    PageBodyNode {
-        uuid id PK
-        uuid page_id FK "Parent page"
-        string component_name "Component type identifier"
+    AREA {
+        uuid id PK "Primary Key"
+        string name "Area name"
+        string label "Display label"
+        jsonb nodes "Node configuration"
+    }
+    
+    NODE {
+        uuid id PK "Primary Key"
+        uuid area_id FK "Parent area"
+        uuid component_id FK "Component reference"
         jsonb options "Component configuration"
-        int weight "Display order"
+        int weight "Sort order"
+    }
+    
+    PAGE_COMPONENT {
+        uuid id PK "Primary Key"
+        string name UK "Unique component name"
+        string label "Display label"
+        jsonb design "Configuration schema"
+    }
+    
+    DATA_SOURCE {
+        uuid id PK "Primary Key"
+        string name UK "Unique data source name"
+        int type "Code/Database enum"
+        string eql_query "EQL query for database sources"
+        jsonb parameters "Query parameters"
     }
 ```
 
-### Relationship Cardinality Explanation
+### System Administration Schema
 
-- **Entity → Field**: One-to-Many (each entity has 0 to N fields)
-- **Entity → EntityRelation**: One-to-Many on both sides (entity can be origin or target of multiple relationships)
-- **User → UserRole**: One-to-Many (user can have multiple roles)
-- **Role → UserRole**: One-to-Many (role assigned to multiple users)
-- **Entity → RuntimeRecord**: One-to-Many (each entity table has N record instances)
-- **RuntimeRecord → RelationNtoN**: Many-to-Many through junction table
+```mermaid
+erDiagram
+    SYSTEM_LOG {
+        uuid id PK "Primary Key"
+        timestamp created_on "Log entry timestamp"
+        string level "Debug/Info/Warning/Error"
+        string category "Log category"
+        text message "Log message"
+        text details "Stack trace or details"
+        uuid user_id FK "User who triggered"
+    }
+    
+    JOB_SCHEDULE {
+        uuid id PK "Primary Key"
+        string job_name "Job identifier"
+        string schedule_plan "iCalendar recurrence rule"
+        timestamp last_execution "Last run timestamp"
+        timestamp next_execution "Next scheduled run"
+        boolean enabled "Job active flag"
+        int priority "Execution priority"
+    }
+    
+    JOB_RESULT {
+        uuid id PK "Primary Key"
+        uuid job_schedule_id FK "Job reference"
+        timestamp started_on "Execution start time"
+        timestamp finished_on "Execution end time"
+        string status "Success/Failed/Running"
+        text result_message "Execution output"
+        text error_message "Error details if failed"
+    }
+    
+    PLUGIN_DATA {
+        uuid id PK "Primary Key"
+        string plugin_name UK "Unique plugin identifier"
+        string version "Current plugin version"
+        jsonb configuration "Plugin-specific settings"
+        timestamp installed_on "Installation timestamp"
+        timestamp updated_on "Last update timestamp"
+    }
+    
+    SYSTEM_SEARCH {
+        uuid id PK "Primary Key"
+        uuid entity_id FK "Entity being searched"
+        uuid record_id FK "Record reference"
+        tsvector search_vector "Full-text search index"
+        timestamp indexed_on "Last indexing timestamp"
+    }
+    
+    NOTIFICATION {
+        uuid id PK "Primary Key"
+        uuid user_id FK "Target user"
+        string type "Notification category"
+        string title "Notification title"
+        text message "Notification content"
+        boolean read "Read status"
+        timestamp created_on "Creation timestamp"
+    }
+```
 
 ---
 
 ## Schema Overview by Domain
 
-### System Metadata Tables
+### System Metadata Domain
 
-These tables store the runtime entity definitions, field schemas, and relationship configurations that drive the metadata-driven architecture:
+**Purpose:** Store entity definitions, field schemas, relationships, and application structure.
 
-| Table Name | Primary Purpose | Key Columns | Row Estimate |
-|-----------|----------------|-------------|--------------|
-| **entity** | Entity definitions and configurations | id, name, label, label_plural, system, icon_class, record_permissions | 50-200 entities |
-| **field** | Field definitions per entity | id, entity_id, name, field_type, required, unique, default_value | 500-2000 fields |
-| **entity_relation** | Relationship definitions between entities | id, name, relation_type, origin_entity_id, origin_field_id, target_entity_id, target_field_id | 100-500 relations |
-| **entity_list** | Entity list view definitions | id, entity_id, name, label, columns, query | Variable |
-| **entity_view** | Entity detail view definitions | id, entity_id, name, label, regions, items | Variable |
-| **page** | Page definitions for UI composition | id, name, label, app_id, entity_id, type, layout, weight | 100-1000 pages |
-| **page_body_node** | Component instances within pages | id, page_id, component_name, parent_id, options, weight | 500-5000 nodes |
-| **application** | Application definitions (grouping mechanism) | id, name, label, description, icon_class, access, weight | 5-50 apps |
-| **area** | Page area definitions for layout | id, name, label, page_id, weight | Variable |
-| **data_source** | Data source definitions (DB and Code) | id, name, description, entity_id, type, eql_text, parameters | 50-500 sources |
+**Tables:**
+- **entity:** Entity definitions with names, labels, icons, permissions
+- **field:** Field definitions with types, constraints, defaults
+- **entity_relation:** Relationship definitions (1:1, 1:N, N:M)
+- **application:** Application definitions for UI organization
+- **sitemap:** Application navigation structure
+- **area:** Page layout regions
+- **node:** Component placements within areas
+- **page_component:** Reusable UI component definitions
+- **data_source:** Query and data source abstractions
 
-**Evidence**: Entity.cs at WebVella.Erp/Api/Models/Entity.cs:1-150, Field.cs at WebVella.Erp/Api/Models/Field.cs:1-100
+**Key Characteristics:**
+- JSONB columns for flexible configuration storage
+- Cached in memory for 1 hour after retrieval
+- Modified through SDK plugin UI or EntityManager API
+- Changes trigger runtime DDL generation for entity tables
 
-### Security Tables
+**Sample Query - List All Entities:**
+```sql
+SELECT id, name, label, label_plural, system 
+FROM entity 
+ORDER BY label;
+```
 
-Access control infrastructure supporting role-based permissions at entity and record levels:
+### Security Domain
 
-| Table Name | Primary Purpose | Key Columns | Row Estimate |
-|-----------|----------------|-------------|--------------|
-| **user** | User accounts for authentication | id, email, password, first_name, last_name, enabled, last_logged_in, created_on | 10-10,000 users |
-| **role** | Role definitions for permission grouping | id, name, description | 3-50 roles |
-| **user_role** | Many-to-many user-role assignments | id, user_id, role_id | 10-50,000 assignments |
-| **entity_permission** | Entity-level CRUD permissions per role | id, entity_id, role_id, can_read, can_create, can_update, can_delete | 100-5000 permissions |
-| **record_permission** (optional) | Record-level access control | id, entity_name, record_id, role_id, permissions | Variable if implemented |
+**Purpose:** User authentication, authorization, role-based access control.
 
-**Default System Roles** (from Definitions.cs):
-- **Administrator**: UUID `BDC56420-CAF0-4030-8A0E-D264938E0CDA` (full system access including metadata management)
-- **Regular**: UUID `F16EC6DB-626D-4C27-8DE0-3E7CE542C55F` (standard user access to assigned entities)
-- **Guest**: UUID `987148B1-AFA8-4B33-8616-55861E5FD065` (read-only access to public entities)
+**Tables:**
+- **user:** User accounts with credentials and profile
+- **role:** Role definitions for permission grouping
+- **user_role:** Many-to-many relationship between users and roles
+- **entity_permission:** Per-entity CRUD permissions by role
 
-**Evidence**: User.cs at WebVella.Erp/Api/Models/User.cs, Definitions.cs at WebVella.Erp/Api/Definitions.cs:33-35
+**System Roles:**
+- **Administrator (BDC56420-CAF0-4030-8A0E-D264938E0CDA):** Full system access including metadata management
+- **Regular (F16EC6DB-626D-4C27-8DE0-3E7CE542C55F):** Standard user with entity-level permissions
+- **Guest (987148B1-AFA8-4B33-8616-55861E5FD065):** Limited read-only access where explicitly granted
 
-### Operational Tables
+**Password Storage:**
+- Hashed using secure algorithm (implementation in SecurityManager)
+- EncryptionKey from Config.json for additional sensitive field encryption
 
-System-level tables for logging, background processing, notifications, and plugin state:
+**Sample Query - User Roles:**
+```sql
+SELECT u.email, r.name AS role_name
+FROM user u
+JOIN user_role ur ON u.id = ur.user_id
+JOIN role r ON ur.role_id = r.id
+WHERE u.enabled = true;
+```
 
-| Table Name | Primary Purpose | Key Columns | Row Estimate |
-|-----------|----------------|-------------|--------------|
-| **system_log** | Application and audit logging | id, type, message, details, created_on, user_id | High volume (10K-1M+) |
-| **system_search** | Full-text search index | id, entity_id, record_id, title, snippet, created_on | High volume (matching records) |
-| **job** | Background job definitions | id, type, name, priority, enabled, schedule_plan, last_execution | 10-100 jobs |
-| **job_execution** | Job execution history and results | id, job_id, started_on, finished_on, status, result_json | High volume (time-series) |
-| **plugin_data** | Plugin persistent state and versioning | id, plugin_name, key, value_json, version | 10-100 entries per plugin |
-| **notification** | User notification queue | id, user_id, type, title, body, read, created_on | Variable (cleared periodically) |
-| **session** (if implemented) | User session tracking | id, user_id, token, expires_at, created_on | Active sessions only |
+### Operational Domain
 
-**Cleanup Jobs**: The SDK plugin includes `ClearJobAndErrorLogsJob` that periodically purges old log entries to prevent unbounded table growth.
+**Purpose:** Application logging, job scheduling, notifications, audit trails.
 
-**Evidence**: DbRepository.cs contains table creation logic; plugin ProcessPatches methods create operational tables
+**Tables:**
+- **system_log:** Application-level logging with categories and stack traces
+- **job_schedule:** Background job definitions with recurrence patterns
+- **job_result:** Job execution history and results
+- **plugin_data:** Plugin version tracking and configuration
+- **system_search:** Full-text search index with tsvector
+- **notification:** User notification queue
 
-### Runtime Entity Tables
+**Log Levels:**
+- Debug: Detailed diagnostic information
+- Info: General informational messages
+- Warning: Potential issues that don't prevent operation
+- Error: Errors requiring attention
 
-Dynamically created tables for business entities defined through the SDK plugin or programmatically:
+**Sample Query - Recent Errors:**
+```sql
+SELECT created_on, category, message, details
+FROM system_log
+WHERE level = 'Error'
+ORDER BY created_on DESC
+LIMIT 50;
+```
 
-**Table Naming Pattern**: `rec_{entity_name_lowercase}`
+### Runtime Entity Domain
 
-**Standard Columns** (present in all runtime entity tables):
+**Purpose:** Store business data for dynamically created entities.
 
-| Column Name | Data Type | Purpose | Nullable |
-|-------------|-----------|---------|----------|
-| **id** | uuid | Primary key, unique record identifier | NOT NULL |
-| **created_on** | timestamptz | Record creation timestamp (UTC) | NOT NULL |
-| **created_by** | uuid | Foreign key to user.id (creator) | NULL |
-| **last_modified_on** | timestamptz | Last modification timestamp (UTC) | NULL |
-| **last_modified_by** | uuid | Foreign key to user.id (last modifier) | NULL |
+**Table Naming Convention:**
+- **rec_{entity_name}:** Entity instance data (e.g., rec_customer, rec_invoice)
+- **nm_{relation_name}:** Many-to-many junction tables (e.g., nm_customer_tags)
 
-**Dynamic Columns**: Additional columns correspond to entity field definitions, with column names matching field names and data types determined by field type (see Field Type Mapping section).
+**Standard Columns (All Entity Tables):**
+- `id` (uuid): Primary key, generated on insert
+- `created_on` (timestamp): Record creation timestamp
+- `created_by` (uuid): User who created record
+- `modified_on` (timestamp): Last modification timestamp
+- `modified_by` (uuid): User who last modified record
+- Dynamic columns per entity field definitions
 
-**Example Runtime Tables** (from Project plugin):
+**Sample Entity Table - rec_customer:**
+```sql
+CREATE TABLE rec_customer (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    created_on timestamp NOT NULL DEFAULT now(),
+    created_by uuid REFERENCES user(id),
+    modified_on timestamp,
+    modified_by uuid REFERENCES user(id),
+    
+    -- Entity-specific fields
+    name varchar(255) NOT NULL,
+    email varchar(255) UNIQUE,
+    phone varchar(50),
+    address text,
+    credit_limit decimal(18,2),
+    is_active boolean DEFAULT true,
+    
+    -- Relationship fields
+    account_manager_id uuid REFERENCES user(id),
+    industry_id uuid REFERENCES rec_industry(id)
+);
+```
 
-- **rec_project**: Project entity with custom fields (name, description, status, budget, etc.)
-- **rec_task**: Task entity with fields (title, description, priority, status, project_id, etc.)
-- **rec_timelog**: Timelog entity with fields (hours, billable, user_id, task_id, logged_on, etc.)
+**Sample Query - Entity Records with Creator:**
+```sql
+SELECT 
+    c.id, 
+    c.name, 
+    c.email, 
+    c.created_on,
+    u.email AS created_by_email
+FROM rec_customer c
+LEFT JOIN user u ON c.created_by = u.id
+WHERE c.is_active = true
+ORDER BY c.created_on DESC;
+```
 
-**Example Runtime Tables** (from CRM plugin):
+### Plugin-Specific Domain
 
-- **rec_customer**: Customer entity
-- **rec_contact**: Contact entity  
-- **rec_opportunity**: Sales opportunity entity
-- **rec_activity**: Activity log entity
+**Purpose:** Store plugin-defined entities and business logic data.
 
-**Evidence**: DbRepository.cs `CreateTable` method at line 96-168 shows table creation with standard columns
+**SDK Plugin Tables:**
+- Minimal - primarily uses system metadata tables
+- May extend with custom configuration tables
 
-### Junction Tables for Many-to-Many Relationships
+**Mail Plugin Tables:**
+- **rec_email:** Email queue with sender, recipients, subject, content
+- **rec_smtp_service:** SMTP server configurations
+- **rec_email_template:** Email templates for notifications
 
-**Table Naming Pattern**: `nm_{relation_name_lowercase}`
+**Project Plugin Tables:**
+- **rec_project:** Project definitions with budget, dates, status
+- **rec_task:** Task definitions with assignments, dependencies, recurrence
+- **rec_timelog:** Time entries against projects and tasks
+- **rec_watcher:** User notification subscriptions for tasks
+- **rec_feed:** Activity stream entries
+- **rec_post:** Discussion posts within feeds
 
-**Standard Columns**:
+**CRM Plugin Tables:**
+- **rec_account:** Customer accounts
+- **rec_contact:** Contact persons
+- **rec_opportunity:** Sales opportunities
+- **rec_activity:** Customer interactions
 
-| Column Name | Data Type | Purpose | Nullable |
-|-------------|-----------|---------|----------|
-| **id** | uuid | Primary key | NOT NULL |
-| **origin_id** | uuid | Foreign key to origin entity table | NOT NULL |
-| **target_id** | uuid | Foreign key to target entity table | NOT NULL |
-| **created_on** | timestamptz | Association creation timestamp | NULL |
-| **created_by** | uuid | Foreign key to user.id (creator) | NULL |
-
-**Example**: For a relationship named "project_users" between `rec_project` and `user`:
-- Table name: `nm_project_users`
-- Columns: `id`, `origin_id` (references rec_project.id), `target_id` (references user.id)
-
-**Evidence**: DbRepository.cs `CreateRelationNtoN` method at line 612-710 shows junction table creation logic
+**Sample Query - Project Time Logs:**
+```sql
+SELECT 
+    p.name AS project_name,
+    t.name AS task_name,
+    tl.logged_on,
+    tl.minutes,
+    u.email AS user_email
+FROM rec_timelog tl
+JOIN rec_task t ON tl.task_id = t.id
+JOIN rec_project p ON t.project_id = p.id
+JOIN user u ON tl.user_id = u.id
+WHERE tl.logged_on >= current_date - interval '30 days'
+ORDER BY tl.logged_on DESC;
+```
 
 ---
 
-## Field Type to Column Type Mapping
-
-WebVella ERP defines 21 application field types (FieldType enum) that map to PostgreSQL column types. The deterministic conversion logic resides in `DBTypeConverter.cs`.
-
-### Complete Field Type to PostgreSQL Type Mapping
-
-| FieldType Enum | FieldType Value | PostgreSQL SQL Type | NpgsqlDbType | Description |
-|----------------|----------------|---------------------|--------------|-------------|
-| **GuidField** | 1 | `uuid` | Uuid | Universally unique identifier (RFC 4122) |
-| **TextField** | 2 | `varchar(...)` | Varchar | Variable-length character string with max length |
-| **MultiLineTextField** | 3 | `text` | Text | Unlimited length text |
-| **HtmlField** | 4 | `text` | Text | HTML content storage |
-| **NumberField** | 5 | `numeric(...)` | Numeric | Exact numeric with precision/scale |
-| **CurrencyField** | 6 | `numeric(...)` | Numeric | Monetary values with currency metadata |
-| **CheckboxField** | 7 | `boolean` | Boolean | True/false flag |
-| **SelectField** | 8 | `varchar(...)` | Varchar | Single selection from predefined options |
-| **MultiSelectField** | 9 | `text[]` | Array &#124; Text | Multiple selections stored as text array |
-| **DateField** | 10 | `date` | Date | Date only (no time component) |
-| **DateTimeField** | 11 | `timestamptz` | TimestampTz | Timestamp with timezone (UTC storage) |
-| **AutoNumberField** | 12 | `numeric(...)` | Numeric | Auto-incrementing sequential number |
-| **FileField** | 13 | `varchar(...)` | Varchar | File path reference to storage |
-| **ImageField** | 14 | `varchar(...)` | Varchar | Image file path reference |
-| **GeographyField** | 15 | `text` | Text | Geospatial data (GeoJSON or WKT format) |
-| **EmailField** | 16 | `varchar(...)` | Varchar | Email address with validation |
-| **PhoneField** | 17 | `varchar(...)` | Varchar | Phone number with formatting |
-| **PercentField** | 18 | `numeric(5,4)` | Numeric | Percentage stored as decimal (0.0000-1.0000) |
-| **UrlField** | 19 | `varchar(...)` | Varchar | URL with validation |
-| **PasswordField** | 20 | `varchar(...)` | Varchar | Encrypted password hash |
-| **TreeSelectField** | 21 | `uuid[]` | Array &#124; Uuid | Hierarchical selection (UUID array) |
-
-**Evidence**: 
-- FieldType enum definition: WebVella.Erp/Api/Models/FieldTypes/FieldType.cs
-- Type conversion logic: WebVella.Erp/Database/DBTypeConverter.cs:11-82 (`ConvertToDatabaseSqlType`)
-- NpgsqlDbType mapping: WebVella.Erp/Database/DBTypeConverter.cs:84-148 (`ConvertToDatabaseType`)
-
-### Variable-Length Type Parameters
-
-Some PostgreSQL types include variable parameters determined by field configuration:
-
-**varchar(length)**:
-- Default: `varchar(200)` for most text fields
-- Maximum: `varchar(500)` for longer text fields
-- Configurable via field definition `MaxLength` property
-
-**numeric(precision, scale)**:
-- NumberField: `numeric(p, s)` where p and s come from field DecimalPlaces configuration
-- CurrencyField: `numeric(18, 4)` standard for monetary values (4 decimal places)
-- PercentField: `numeric(5, 4)` fixed (supports 0.0000 to 1.0000 range)
-- AutoNumberField: `numeric(20, 0)` for integer sequences
-
-**text[]** (array types):
-- MultiSelectField: PostgreSQL text array for multiple string values
-- TreeSelectField: PostgreSQL UUID array for hierarchical relationships
-
-### Special Field Type Handling
-
-**FileField and ImageField**:
-- Database column stores file path as `varchar`
-- Actual binary content stored in file system via Storage.Net abstraction
-- File metadata (size, MIME type) may be stored in separate columns or JSON
-
-**PasswordField**:
-- Stores encrypted hash, not plaintext password
-- Encryption uses EncryptionKey from Config.json (64-character hex key)
-- Evidence: CryptoUtility handles password hashing
-
-**GeographyField**:
-- Stores as `text` (GeoJSON or WKT format)
-- Supports GIST indexing for spatial queries
-- SRID (Spatial Reference System Identifier) defaults to ErpSettings.DefaultSRID
-
-**HtmlField**:
-- Stores raw HTML content
-- Sanitization and validation performed at application layer
-- Full-text search indexing optional via searchable flag
-
----
-
-## Table Naming Conventions
-
-WebVella ERP follows consistent naming conventions for database objects:
-
-### Table Names
-
-| Pattern | Example | Usage |
-|---------|---------|-------|
-| **Lowercase snake_case** | `entity`, `field`, `user_role` | System metadata and operational tables |
-| **rec_{entity_name}** | `rec_customer`, `rec_project`, `rec_task` | Runtime entity tables for business data |
-| **nm_{relation_name}** | `nm_project_users`, `nm_task_watchers` | Many-to-many junction tables |
-
-**Evidence**: DbRepository.cs line 96 `CREATE TABLE rec_{entity.Name.ToLowerInvariant()}`
-
-### Column Names
-
-| Pattern | Example | Usage |
-|---------|---------|-------|
-| **Lowercase snake_case** | `created_on`, `last_modified_by`, `record_permissions` | Standard across all tables |
-| **id** | `id` | Primary key column (always uuid type) |
-| **{field_name}** | Matches entity field name | Dynamic columns in runtime entity tables |
-| **{entity_name}_id** | `project_id`, `user_id` | Foreign key columns (reference pattern) |
-
-### Index Names
-
-| Pattern | Example | Usage |
-|---------|---------|-------|
-| **idx_{table}_{column}** | `idx_rec_task_status`, `idx_user_email` | Standard B-tree indexes |
-| **idx_{table}_{column}_fts** | `idx_rec_customer_name_fts` | Full-text search GIN indexes |
-| **uk_{table}_{column}** | `uk_entity_name`, `uk_user_email` | Unique constraint indexes |
-
-**Evidence**: DbRepository.cs `CreateIndex` method at line 782-886
-
-### Constraint Names
-
-| Pattern | Example | Usage |
-|---------|---------|-------|
-| **pk_{table}** | `pk_entity`, `pk_rec_customer` | Primary key constraints |
-| **fk_{table}_{ref_table}** | `fk_field_entity`, `fk_rec_task_rec_project` | Foreign key constraints |
-| **uk_{table}_{column}** | `uk_entity_name`, `uk_user_email` | Unique constraints |
-
-**Evidence**: DbRepository.cs constraint creation methods
-
----
-
-## Constraints and Referential Integrity
-
-### Primary Key Constraints
-
-All tables use UUID primary keys with constraint naming pattern `pk_{table_name}`:
-
-```sql
-ALTER TABLE rec_customer 
-ADD CONSTRAINT pk_rec_customer PRIMARY KEY (id);
-```
-
-**Implementation**: DbRepository.cs `CreatePrimaryKey` method at line 445-480
-
-**Properties**:
-- Column name: Always `id`
-- Data type: `uuid`
-- Generation: Application-generated (Guid.NewGuid() in C#)
-- Uniqueness: Guaranteed globally unique (RFC 4122 compliance)
-
-### Foreign Key Constraints
-
-Foreign key constraints enforce referential integrity between tables:
-
-```sql
-ALTER TABLE field 
-ADD CONSTRAINT fk_field_entity 
-FOREIGN KEY (entity_id) 
-REFERENCES entity(id) 
-ON DELETE CASCADE;
-```
-
-**Implementation**: DbRepository.cs `CreateRelation` method at line 534-610
-
-**Cascade Options**:
-- `ON DELETE CASCADE`: Delete child records when parent deleted
-- `ON DELETE SET NULL`: Set foreign key to NULL when parent deleted
-- `ON DELETE RESTRICT`: Prevent parent deletion if children exist (default)
-
-**Common Foreign Key Relationships**:
-
-| Child Table | Parent Table | Foreign Key Column | Cascade Behavior |
-|------------|--------------|-------------------|------------------|
-| field | entity | entity_id | CASCADE |
-| user_role | user | user_id | CASCADE |
-| user_role | role | role_id | CASCADE |
-| entity_permission | entity | entity_id | CASCADE |
-| entity_permission | role | role_id | CASCADE |
-| rec_{entity} | user | created_by | SET NULL |
-| rec_{entity} | user | last_modified_by | SET NULL |
-| page_body_node | page | page_id | CASCADE |
-| page | application | app_id | SET NULL |
-
-### Unique Constraints
-
-Unique constraints prevent duplicate values in specified columns:
-
-```sql
-CREATE UNIQUE INDEX uk_entity_name ON entity(name);
-CREATE UNIQUE INDEX uk_user_email ON "user"(email);
-```
-
-**Implementation**: DbRepository.cs `CreateUniqueConstraint` method at line 482-532
-
-**Common Unique Constraints**:
-- `entity.name`: Entity names must be unique across system
-- `user.email`: Email addresses must be unique for authentication
-- `role.name`: Role names must be unique
-- `application.name`: Application names must be unique
-
-### Check Constraints
-
-Check constraints enforce domain-specific business rules at database level (if implemented):
-
-```sql
-ALTER TABLE rec_project 
-ADD CONSTRAINT ck_project_budget_positive 
-CHECK (budget >= 0);
-```
-
-**Note**: Check constraint implementation varies by entity; primarily enforced at application layer through field validation.
-
----
-
-## Indexes and Performance
-
-### Index Types and Usage
-
-WebVella ERP creates multiple index types optimized for different query patterns:
-
-#### B-tree Indexes (Default)
-
-Standard indexes for equality and range queries:
-
-```sql
-CREATE INDEX idx_rec_task_status ON rec_task(status);
-CREATE INDEX idx_rec_task_priority ON rec_task(priority);
-CREATE INDEX idx_field_entity_id ON field(entity_id);
-```
-
-**Implementation**: DbRepository.cs `CreateIndex` method at line 782-886
-
-**Use Cases**:
-- Foreign key columns (automatic indexing recommended)
-- Enum/status columns for filtering
-- Date columns for range queries
-- Frequently queried fields
-
-#### GIN Indexes (Full-Text Search)
-
-Generalized Inverted Indexes for full-text search using tsvector:
-
-```sql
-CREATE INDEX idx_rec_customer_name_fts ON rec_customer 
-USING gin(to_tsvector('bulgarian', name));
-```
-
-**Implementation**: DbRepository.cs `CreateFtsIndexIfNotExists` method at line 889-940
-
-**Configuration**:
-- Text search configuration: `'bulgarian'` for Bulgarian language stemming
-- Vector conversion: `to_tsvector()` creates searchable document
-- Query function: `to_tsquery()` or `plainto_tsquery()` for searches
-
-**Searchable Fields**: Fields marked with `searchable=true` flag in field definition automatically get GIN indexes.
-
-#### GIST Indexes (Spatial Data)
-
-Geometric Search Tree indexes for geography fields:
-
-```sql
-CREATE INDEX idx_rec_store_location_gist ON rec_store 
-USING gist(location);
-```
-
-**Implementation**: DbRepository.cs `CreateIndex` with GIST option at line 828
-
-**Use Cases**:
-- GeographyField spatial queries
-- Proximity searches (nearest neighbor)
-- Bounding box queries
-
-#### Array Indexes
-
-GIN indexes for array column types (MultiSelectField, TreeSelectField):
-
-```sql
-CREATE INDEX idx_rec_task_tags ON rec_task USING gin(tags);
-```
-
-**Query Support**:
-- Contains operator: `tags @> ARRAY['urgent']`
-- Overlap operator: `tags && ARRAY['urgent', 'bug']`
-- Array element search
-
-### Index Maintenance
-
-**Automatic Index Creation**:
-- Primary key constraints automatically create unique B-tree indexes
-- Unique constraints create unique indexes
-- Foreign key columns benefit from indexes (not automatic in PostgreSQL)
-
-**Index Rebuild Strategy**:
-- PostgreSQL REINDEX command for corrupted or bloated indexes
-- VACUUM ANALYZE updates index statistics for query planner
-- Recommended: Weekly REINDEX on high-write tables
-
-**Evidence**: Index management performed via PostgreSQL administrative tools (pgAdmin)
-
----
-
-## Migration History and Schema Evolution
+## Migration History & Schema Evolution
 
 ### Initial Schema Bootstrap
 
-**InitializeSystemEntities Method**:
+**Source:** `ErpService.InitializeSystemEntities()` method  
+**Execution:** First application startup on empty database
 
-The core platform initialization creates system metadata tables during first startup:
+**System Entities Created:**
+1. **entity** - Core metadata table for entity definitions
+2. **field** - Field schema definitions
+3. **entity_relation** - Relationship definitions
+4. **user** - User accounts
+5. **role** - Role definitions
+6. **user_role** - User-role associations
+7. **application** - Application containers
+8. **sitemap** - Navigation structure
+9. **area** - Page layout regions
+10. **node** - Component placements
+11. **page_component** - Component registry
+12. **data_source** - Query abstractions
+13. **system_log** - Application logging
+14. **job_schedule** - Background jobs
+15. **plugin_data** - Plugin version tracking
 
-1. **entity** table: Stores entity definitions
-2. **field** table: Stores field definitions per entity
-3. **entity_relation** table: Stores relationship definitions
-4. **user** table: User accounts with default administrator (erp@webvella.com)
-5. **role** table: Default roles (Administrator, Regular, Guest)
-6. **user_role** table: Role assignments
-7. **entity_permission** table: Permission grants
-8. **application**, **page**, **page_body_node** tables: UI definition storage
-9. **data_source** table: Query definition storage
-10. **system_log** table: Logging infrastructure
-11. **job**, **job_execution** tables: Background processing infrastructure
+**Bootstrap Process:**
+1. Check if `entity` table exists
+2. If not found, execute transactional DDL script
+3. Create all system tables with initial data
+4. Insert default Administrator role and admin user
+5. Insert default system entities (self-referential)
 
-**Evidence**: IErpService.cs contains `InitializeSystemEntities` logic
+### Plugin Migration Pattern
 
-### Plugin Migration System (ProcessPatches)
+**Versioned Patch System:**
 
-Every plugin implements a version-based patch system for schema evolution:
-
-**Patch Execution Pattern**:
+Each plugin implements `ProcessPatches()` method with sequential patch methods:
 
 ```csharp
-public class MyPlugin : ErpPlugin
+public class ProjectPlugin : ErpPlugin
 {
-    public override void Initialize(IServiceProvider serviceProvider)
+    public override void ProcessPatches()
     {
-        ProcessPatches();
-    }
-    
-    private void ProcessPatches()
-    {
-        // Patches execute sequentially by date-based version number
-        Patch20190101(connection);  // YYYYMMDD format
-        Patch20190205(connection);
-        Patch20190315(connection);
-        // Version tracking prevents duplicate execution
-    }
-    
-    private void Patch20190101(DbConnection connection)
-    {
-        using (var transaction = connection.BeginTransaction())
+        using (var connection = DbContext.Current.CreateConnection())
         {
             try
             {
-                // DDL operations: CREATE TABLE, ALTER TABLE, CREATE INDEX
-                CreateEntity("customer");
-                CreateField("customer", "name", FieldType.TextField);
+                connection.BeginTransaction();
                 
-                // DML operations: INSERT default data
-                InsertRecord("customer", new { name = "Default Customer" });
+                // Check current version
+                var currentVersion = GetCurrentVersion();
                 
-                transaction.Commit();
+                // Execute patches in order
+                if (currentVersion < 20190203)
+                    Patch20190203(); // Initial schema
+                
+                if (currentVersion < 20190222)
+                    Patch20190222(); // Add fields
+                
+                if (currentVersion < 20190305)
+                    Patch20190305(); // New entities
+                
+                // Update version
+                SavePluginData("version", "20190305");
+                
+                connection.CommitTransaction();
             }
-            catch
+            catch (Exception ex)
             {
-                transaction.Rollback();
+                connection.RollbackTransaction();
                 throw;
             }
         }
     }
+    
+    [Patch("20190203")]
+    private void Patch20190203()
+    {
+        // Create project entity
+        var projectEntity = new Entity
+        {
+            Name = "project",
+            Label = "Project",
+            LabelPlural = "Projects",
+            // ... field definitions
+        };
+        EntityManager.CreateEntity(projectEntity);
+        
+        // Create related entities
+        // Create relationships
+        // Seed initial data
+    }
 }
 ```
 
-**Patch Version Tracking**:
-- Plugin state stored in `plugin_data` table
-- Key: `{plugin_name}_version`
-- Value: Highest executed patch number (e.g., "20190315")
-- Prevents re-execution on application restart
+**Patch Versioning Convention:**
+- Format: YYYYMMDD (e.g., 20190203)
+- Sequential execution by numeric order
+- Version stored in plugin_data table
+- Already-applied patches skipped automatically
 
-**Transactional Guarantees**:
-- Each patch wrapped in database transaction
-- Atomic execution: All DDL/DML succeeds or entire patch rolls back
-- Failure in patch N prevents execution of patches N+1, N+2, etc.
+**Transactional Semantics:**
+- All patches execute within single transaction
+- Rollback on any failure prevents partial migrations
+- Success updates plugin version atomically
 
-**Evidence**: All plugin projects contain ProcessPatches methods with versioned patch methods
+**Evidence:** All plugin projects contain ProcessPatches implementations
 
-### Schema Modification Patterns
+### Runtime Entity Creation
 
-**Adding New Entity**:
-1. Define entity metadata in code or SDK UI
-2. Call EntityManager.CreateEntity()
-3. DbRepository.CreateTable() executes CREATE TABLE DDL
-4. DbRepository.CreatePrimaryKey() adds primary key constraint
-5. Metadata cached for runtime access
+**Dynamic DDL Generation:**
 
-**Adding New Field**:
-1. Define field metadata in entity definition
-2. Call EntityManager.CreateField()
-3. DbRepository.CreateColumn() executes ALTER TABLE ADD COLUMN
-4. If unique=true, CreateUniqueConstraint() adds unique index
-5. If searchable=true, CreateFtsIndexIfNotExists() adds GIN index
+When EntityManager.CreateEntity is called:
 
-**Creating Relationship**:
-1. Define EntityRelation with origin and target entities
-2. For OneToOne/OneToMany: CreateRelation() adds foreign key constraint
-3. For ManyToMany: CreateRelationNtoN() creates junction table with dual foreign keys
+```csharp
+public void CreateEntity(Entity entity)
+{
+    // 1. Validate entity definition
+    ValidateEntity(entity);
+    
+    // 2. Insert entity metadata
+    DbEntityRepository.Create(entity);
+    
+    // 3. Generate CREATE TABLE statement
+    var sql = GenerateCreateTableSQL(entity);
+    
+    // 4. Execute DDL
+    DbContext.Current.ExecuteNonQuery(sql);
+    
+    // 5. Create indexes for searchable fields
+    foreach (var field in entity.Fields.Where(f => f.Searchable))
+    {
+        CreateSearchIndex(entity.Name, field.Name);
+    }
+    
+    // 6. Invalidate metadata cache
+    Cache.Remove($"entity-{entity.Id}");
+}
 
-**Deleting Entity**:
-1. EntityManager.DeleteEntity() validates no dependencies
-2. DbRepository.DropTable() executes DROP TABLE CASCADE
-3. Metadata removed from entity table
-4. Dependent objects (fields, relationships, permissions) cascade delete
+private string GenerateCreateTableSQL(Entity entity)
+{
+    var sql = new StringBuilder();
+    sql.AppendLine($"CREATE TABLE rec_{entity.Name} (");
+    sql.AppendLine("    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),");
+    sql.AppendLine("    created_on timestamp NOT NULL DEFAULT now(),");
+    sql.AppendLine("    created_by uuid REFERENCES \"user\"(id),");
+    sql.AppendLine("    modified_on timestamp,");
+    sql.AppendLine("    modified_by uuid REFERENCES \"user\"(id),");
+    
+    foreach (var field in entity.Fields)
+    {
+        sql.AppendLine($"    {field.Name} {GetPostgreSQLType(field)},");
+    }
+    
+    sql.AppendLine(");");
+    return sql.ToString();
+}
+```
+
+**Field Type Mapping:**
+| WebVella Field Type | PostgreSQL Type | Notes |
+|---------------------|----------------|-------|
+| TextField | varchar(255) | Default max length |
+| MultiLineTextField | text | Unlimited length |
+| NumberField | decimal(18,6) | Configurable precision |
+| CurrencyField | decimal(18,2) | 2 decimal places |
+| DateField | date | Date only |
+| DateTimeField | timestamp | Full timestamp |
+| CheckboxField | boolean | true/false |
+| GuidField | uuid | Primary keys, foreign keys |
+| EmailField | varchar(255) | With email validation |
+| PhoneField | varchar(50) | International format support |
+| UrlField | varchar(500) | URL strings |
+| PasswordField | varchar(500) | Encrypted storage |
+| HtmlField | text | HTML content |
+| FileField | text | File path reference |
+| ImageField | text | Image path reference |
+| SelectField | varchar(255) | Single selection |
+| MultiSelectField | text[] | Array for multiple selections |
+| PercentField | decimal(5,4) | 0.0000 to 1.0000 range |
+| AutoNumberField | bigint | Sequential auto-increment |
+| GeographyField | jsonb | GeoJSON or text format |
+
+### Schema Modification Operations
+
+**Add Field:**
+```sql
+ALTER TABLE rec_{entity_name} 
+ADD COLUMN {field_name} {postgresql_type} {constraints};
+```
+
+**Modify Field:**
+```sql
+-- Change data type
+ALTER TABLE rec_{entity_name} 
+ALTER COLUMN {field_name} TYPE {new_postgresql_type};
+
+-- Add/remove constraint
+ALTER TABLE rec_{entity_name} 
+ALTER COLUMN {field_name} SET NOT NULL;
+```
+
+**Delete Field:**
+```sql
+ALTER TABLE rec_{entity_name} 
+DROP COLUMN {field_name};
+```
+
+**Create Relationship:**
+
+One-to-Many:
+```sql
+ALTER TABLE rec_{origin_entity}
+ADD COLUMN {foreign_key_field} uuid REFERENCES rec_{target_entity}(id);
+```
+
+Many-to-Many (creates junction table):
+```sql
+CREATE TABLE nm_{relation_name} (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    {origin_entity}_id uuid REFERENCES rec_{origin_entity}(id) ON DELETE CASCADE,
+    {target_entity}_id uuid REFERENCES rec_{target_entity}(id) ON DELETE CASCADE,
+    UNIQUE({origin_entity}_id, {target_entity}_id)
+);
+```
 
 ---
 
-## Database Access Patterns
+## Indexes & Constraints
 
-### Query Execution Strategies
+### Primary Key Indexes
 
-**Entity Query Language (EQL)**:
+**Convention:** All tables have UUID primary key named `id`
 
-WebVella ERP implements a custom SQL-like query language parsed by Irony framework:
+**Benefits:**
+- Globally unique identifiers enable distributed scenarios
+- No auto-increment sequence contention
+- Safe for replication and merging
+- Consistent 16-byte storage
+
+**Generation:** `uuid_generate_v4()` PostgreSQL function
+
+### Foreign Key Constraints
+
+**Entity Relationships:**
+- All foreign keys reference `id` columns
+- ON DELETE CASCADE for many-to-many junctions
+- ON DELETE RESTRICT for critical relationships (prevent orphans)
+- Foreign key name convention: `{table}_fk_{referenced_table}`
+
+**Example:**
+```sql
+ALTER TABLE rec_task
+ADD CONSTRAINT task_fk_project 
+FOREIGN KEY (project_id) 
+REFERENCES rec_project(id) 
+ON DELETE CASCADE;
+```
+
+### Unique Constraints
+
+**System Tables:**
+- `entity.name` - Entity names must be unique
+- `field.entity_id + field.name` - Field names unique per entity
+- `user.email` - Email addresses unique for login
+- `role.name` - Role names unique
+
+**Entity Tables:**
+- Applied dynamically when field.Unique = true
+- Enforced at database level with unique index
+
+**Example:**
+```sql
+CREATE UNIQUE INDEX idx_customer_email 
+ON rec_customer(email) 
+WHERE email IS NOT NULL;
+```
+
+### Full-Text Search Indexes
+
+**GIN Indexes for tsvector:**
+
+Created on `system_search` table:
+```sql
+CREATE INDEX idx_system_search_vector 
+ON system_search 
+USING GIN(search_vector);
+```
+
+**Searchable Field Indexes:**
+
+When field.Searchable = true:
+```sql
+CREATE INDEX idx_{entity}_{field}_search 
+ON rec_{entity} 
+USING GIN(to_tsvector('bulgarian', {field}));
+```
+
+### Performance Indexes
+
+**Frequently Queried Columns:**
+- created_on, modified_on timestamps (common filters)
+- Foreign key columns (JOIN performance)
+- Status/active flags (common WHERE clauses)
+
+**Example:**
+```sql
+CREATE INDEX idx_customer_created_on 
+ON rec_customer(created_on DESC);
+
+CREATE INDEX idx_task_status 
+ON rec_task(status) 
+WHERE status != 'Completed';
+```
+
+---
+
+## Database Administration
+
+### Connection Configuration
+
+**Config.json Example:**
+```json
+{
+  "ConnectionStrings": {
+    "Default": "Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;"
+  }
+}
+```
+
+**Connection Pool Parameters:**
+- **Pooling:** true (enable connection reuse)
+- **MinPoolSize:** 1 (maintain one warm connection)
+- **MaxPoolSize:** 100 (limit concurrent connections)
+- **CommandTimeout:** 120 seconds (long-running query timeout)
+
+### Backup & Recovery
+
+**Recommended Backup Strategy:**
+
+Daily full backup:
+```bash
+pg_dump -h localhost -U postgres -Fc erp3 > erp3_backup_$(date +%Y%m%d).dump
+```
+
+Continuous WAL archiving:
+```
+wal_level = replica
+archive_mode = on
+archive_command = 'cp %p /backup/wal/%f'
+```
+
+Point-in-time recovery capability:
+```bash
+pg_basebackup -h localhost -U postgres -D /backup/base -Fp -Xs -P
+```
+
+**Retention Policy:**
+- Daily backups: Keep 30 days
+- Weekly backups: Keep 12 weeks
+- Monthly backups: Keep 12 months
+
+### Maintenance Operations
+
+**VACUUM:**
+```sql
+-- Reclaim storage and update statistics
+VACUUM ANALYZE entity;
+VACUUM ANALYZE rec_customer;
+```
+
+**REINDEX:**
+```sql
+-- Rebuild indexes for performance
+REINDEX TABLE rec_customer;
+REINDEX INDEX idx_customer_email;
+```
+
+**Statistics Update:**
+```sql
+-- Update query planner statistics
+ANALYZE entity;
+ANALYZE rec_customer;
+```
+
+**Bloat Monitoring:**
+```sql
+SELECT 
+    schemaname, 
+    tablename, 
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
+    pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) AS table_size,
+    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename) - pg_relation_size(schemaname||'.'||tablename)) AS index_size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+```
+
+---
+
+## Data Dictionary Export
+
+**Complete column-level data dictionary exported to:** `data-dictionary.csv`
+
+**CSV Schema:**
+```
+Table Name, Column Name, Data Type, Key Type, Nullable, Default Value, Description, Constraints
+```
+
+**Sample Rows:**
+```csv
+entity,id,uuid,PK,No,uuid_generate_v4(),Unique entity identifier,PRIMARY KEY
+entity,name,varchar(255),UK,No,NULL,Entity name used in API and database,UNIQUE NOT NULL
+field,id,uuid,PK,No,uuid_generate_v4(),Unique field identifier,PRIMARY KEY
+field,entity_id,uuid,FK,No,NULL,Reference to parent entity,FOREIGN KEY -> entity(id)
+user,id,uuid,PK,No,uuid_generate_v4(),Unique user identifier,PRIMARY KEY
+user,email,varchar(255),UK,No,NULL,User email for authentication,UNIQUE NOT NULL
+rec_{entity},id,uuid,PK,No,uuid_generate_v4(),Record unique identifier,PRIMARY KEY
+rec_{entity},created_on,timestamp,None,No,now(),Record creation timestamp,NOT NULL
+rec_{entity},created_by,uuid,FK,No,NULL,User who created record,FOREIGN KEY -> user(id)
+```
+
+---
+
+## Security Considerations
+
+### Password Storage
+
+**User Passwords:**
+- Hashed using secure algorithm (BCrypt or similar)
+- Never stored in plain text
+- Verified via hash comparison on authentication
+
+**Encryption Key:**
+- 64-character hexadecimal key in Config.json
+- Used for PasswordField encryption
+- Required for decrypting sensitive fields
+
+### SQL Injection Prevention
+
+**Parameterized Queries:**
+
+All database access uses parameterized SQL:
+```csharp
+var sql = "SELECT * FROM rec_customer WHERE email = @email";
+var parameters = new { email = userEmail };
+var result = DbContext.Current.Query(sql, parameters);
+```
+
+**EQL Translation:**
+
+EQL queries translate to parameterized SQL:
+```csharp
+// EQL: SELECT * FROM customer WHERE email = @userEmail
+// Translates to:
+// SELECT * FROM rec_customer WHERE email = $1
+// Parameters: [@userEmail value]
+```
+
+### Permission Enforcement
+
+**Database-Level:**
+- PostgreSQL user has full DDL/DML access
+- Application enforces permissions (not database roles)
+
+**Application-Level:**
+- SecurityContext checks before all operations
+- Entity-level permissions from RecordPermissions
+- Record-level permissions for fine-grained control
+
+### Audit Trail
+
+**Automatic Tracking:**
+- created_on, created_by on all records
+- modified_on, modified_by on updates
+- system_log captures all significant operations
+
+**Optional Full Audit:**
+- Before/after snapshots in audit tables
+- Configurable per entity
+- Compliance requirement support (GDPR, SOX)
+
+---
+
+## Performance Optimization
+
+### Query Optimization
+
+**Index Usage:**
+- Foreign keys automatically indexed
+- Searchable fields with GIN indexes
+- Frequently filtered columns with B-tree indexes
+
+**Query Planning:**
+```sql
+-- Analyze query performance
+EXPLAIN ANALYZE 
+SELECT * FROM rec_customer 
+WHERE email = 'test@example.com';
+```
+
+**Slow Query Log:**
+```
+log_min_duration_statement = 1000  # Log queries > 1 second
+```
+
+### Connection Pooling
+
+**Npgsql Configuration:**
+- MinPoolSize=1: One warm connection ready
+- MaxPoolSize=100: Limit concurrent connections
+- Connection recycling on idle timeout
+- Automatic retry on transient failures
+
+### Caching Strategy
+
+**Metadata Cache:**
+- Entity definitions cached in memory (1 hour)
+- Reduces entity lookups on every record operation
+- Manual invalidation via EntityManager.lockObj
+
+**Query Result Cache:**
+- Optional per data source
+- Configurable expiration
+- Invalidated on related record changes
+
+---
+
+## Appendix A: System Entity Reference
+
+### Entity Table Structure
 
 ```sql
-SELECT id, name, email, $project_users.project.name
-FROM user
-WHERE enabled = @enabled
-ORDER BY last_name ASC
-PAGE 1
-PAGESIZE 20
-```
-
-**EQL Compilation Process**:
-1. EqlBuilder parses query string into abstract syntax tree
-2. Query validator checks entity names, field names, and relationships
-3. SQL generator translates to PostgreSQL SELECT with JSON aggregation
-4. Parameter binder maps @parameters to SQL parameters
-5. SecurityContext filter automatically adds permission WHERE clauses
-6. Npgsql executes parameterized query
-7. Result set deserializes to EntityRecord objects or dictionaries
-
-**Evidence**: WebVella.Erp/Eql/ contains query language parser and executor
-
-### Record CRUD Operations
-
-**Create Record**:
-```csharp
-RecordManager.CreateRecord(
-    entityName: "customer",
-    record: new Dictionary<string, object> 
-    {
-        { "name", "Acme Corp" },
-        { "email", "contact@acme.com" },
-        { "enabled", true }
-    }
+CREATE TABLE entity (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name varchar(255) UNIQUE NOT NULL,
+    label varchar(255) NOT NULL,
+    label_plural varchar(255) NOT NULL,
+    system boolean DEFAULT false,
+    icon_class varchar(100),
+    color varchar(20),
+    record_screen_id_field varchar(100),
+    record_permissions jsonb,
+    created_on timestamp DEFAULT now(),
+    modified_on timestamp
 );
 ```
 
-**Database Execution**:
-1. Field validation against entity definition
-2. Type conversion via DBTypeConverter
-3. Pre-create hooks invoked (validation, transformation)
-4. INSERT statement with parameterized values
-5. Audit trail insert (created_on, created_by)
-6. Post-create hooks invoked (notifications, integrations)
+### Field Table Structure
 
-**Read Record**:
-```csharp
-RecordManager.GetRecord(
-    entityName: "customer",
-    recordId: guid
+```sql
+CREATE TABLE field (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_id uuid REFERENCES entity(id) ON DELETE CASCADE,
+    name varchar(255) NOT NULL,
+    field_type int NOT NULL,
+    label varchar(255) NOT NULL,
+    placeholder_text varchar(255),
+    description text,
+    help_text text,
+    required boolean DEFAULT false,
+    unique boolean DEFAULT false,
+    searchable boolean DEFAULT false,
+    auditable boolean DEFAULT false,
+    default_value text,
+    enable_security boolean DEFAULT false,
+    settings jsonb,
+    UNIQUE(entity_id, name)
 );
 ```
 
-**Database Execution**:
-1. SELECT statement with WHERE id = @recordId
-2. SecurityContext permission check
-3. Field value deserialization
-4. Related record expansion (if requested)
-5. Return as Dictionary<string, object>
+### User Table Structure
 
-**Update Record**:
-```csharp
-RecordManager.UpdateRecord(
-    entityName: "customer",
-    recordId: guid,
-    record: new Dictionary<string, object>
-    {
-        { "name", "Acme Corporation" }
-    }
+```sql
+CREATE TABLE "user" (
+    id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email varchar(255) UNIQUE NOT NULL,
+    password varchar(500) NOT NULL,
+    first_name varchar(100),
+    last_name varchar(100),
+    image varchar(500),
+    enabled boolean DEFAULT true,
+    verified boolean DEFAULT false,
+    last_logged_in timestamp,
+    created_on timestamp DEFAULT now(),
+    modified_on timestamp
 );
 ```
-
-**Database Execution**:
-1. SELECT existing record for comparison
-2. Pre-update hooks invoked
-3. UPDATE statement with SET for changed fields only
-4. Audit trail update (last_modified_on, last_modified_by)
-5. Post-update hooks invoked
-
-**Delete Record**:
-```csharp
-RecordManager.DeleteRecord(
-    entityName: "customer",
-    recordId: guid
-);
-```
-
-**Database Execution**:
-1. Pre-delete hooks invoked
-2. Cascade configuration checked for relationships
-3. DELETE statement with WHERE id = @recordId
-4. Related record handling (cascade, set null, or restrict)
-5. Post-delete hooks invoked
-
-**Evidence**: WebVella.Erp/Api/RecordManager.cs:1-3000+
-
-### Connection Pooling and Transaction Management
-
-**Connection Acquisition**:
-```csharp
-using (var connection = DbContext.CreateConnection())
-{
-    connection.Open();
-    using (var transaction = connection.BeginTransaction())
-    {
-        // Database operations
-        transaction.Commit();
-    }
-}
-```
-
-**Pooling Behavior**:
-- MinPoolSize=1: One connection always available (no cold start)
-- MaxPoolSize=100: Up to 100 concurrent connections
-- Connections returned to pool on disposal
-- Connection validation on acquisition (ping)
-
-**Transaction Isolation**:
-- Default: READ COMMITTED isolation level
-- Prevents dirty reads
-- Allows concurrent transactions on different rows
-- Row-level locking on UPDATE/DELETE
-
-**Savepoint Support**:
-```csharp
-transaction.Save("savepoint1");
-// operations
-transaction.Rollback("savepoint1");  // Partial rollback
-```
-
-**Evidence**: DbContext.cs at WebVella.Erp/Database/DbContext.cs
-
-### Bulk Operations and Performance
-
-**CSV Import**:
-- Uses Npgsql COPY protocol for bulk inserts
-- Batch size: 1000 records per transaction
-- Performance: 100+ records/second typical throughput
-
-**Bulk Updates**:
-- Executed as sequential UPDATE statements within transaction
-- Alternative: Temp table + UPDATE FROM JOIN pattern
-
-**Query Optimization**:
-- Prepared statements cached per connection
-- Query plan caching at PostgreSQL level
-- Index hints not required (query planner optimization)
 
 ---
 
-## Summary and Key Takeaways
+## Appendix B: Plugin Entity Inventory
 
-WebVella ERP's database architecture demonstrates a **metadata-driven design** where entity definitions stored at runtime control the physical schema. Key architectural decisions include:
+### Mail Plugin Entities
 
-1. **PostgreSQL Exclusive**: No multi-database support; all features leverage PostgreSQL-specific capabilities (JSONB, arrays, full-text search, transactional DDL)
+**rec_email:**
+- Sender (email address)
+- Recipients (array)
+- Subject
+- Content HTML/Text
+- Priority
+- Status (Pending/Sending/Sent/Failed)
+- Scheduled send time
+- Sent timestamp
 
-2. **UUID Primary Keys**: Globally unique identifiers enable distributed scenarios and avoid sequence contention
+**rec_smtp_service:**
+- Service name
+- Server name
+- Port
+- Username
+- Password (encrypted)
+- Use SSL flag
+- Default service flag
 
-3. **Metadata-First**: System metadata tables (entity, field, entity_relation) define the schema for runtime entity tables (rec_*)
+### Project Plugin Entities
 
-4. **Deterministic Type Mapping**: 21 application field types map to 14 PostgreSQL types via DBTypeConverter.cs
+**rec_project:**
+- Name
+- Description
+- Start date
+- End date
+- Budget
+- Status (Planning/Active/Completed/Cancelled)
+- Owner
+- Billable flag
 
-5. **Transactional Migrations**: Plugin patches execute in transactions ensuring atomic schema evolution
+**rec_task:**
+- Name
+- Description
+- Project reference
+- Assigned user
+- Start date
+- End date
+- Priority
+- Status (New/InProgress/Completed/Cancelled)
+- Estimated minutes
+- Recurrence pattern (iCalendar RRULE)
 
-6. **Comprehensive Indexing**: B-tree for standard queries, GIN for full-text search and arrays, GIST for spatial data
+**rec_timelog:**
+- User reference
+- Project reference
+- Task reference
+- Logged date
+- Minutes logged
+- Notes
+- Billable flag
 
-7. **Flexible Relationships**: OneToOne, OneToMany via foreign keys; ManyToMany via junction tables (nm_*)
+### CRM Plugin Entities
 
-8. **Connection Pooling**: 100-connection pool scales to hundreds of concurrent users with 120-second command timeout
+**rec_account:**
+- Company name
+- Industry
+- Annual revenue
+- Employee count
+- Account manager
+- Status
 
-9. **Audit Trail**: created_on, created_by, last_modified_on, last_modified_by columns standard across all entity tables
+**rec_contact:**
+- First name
+- Last name
+- Email
+- Phone
+- Account reference
+- Position/title
 
-10. **Security Integration**: Entity-level and record-level permissions enforced at data access layer through SecurityContext filtering
+**rec_opportunity:**
+- Name
+- Account reference
+- Amount
+- Stage
+- Probability
+- Close date
+- Owner
 
 ---
 
-## Related Documentation
-
-- [Code Inventory](code-inventory.md) - File catalog with DbRepository.cs and DBTypeConverter.cs details
-- [System Architecture](architecture.md) - Component diagrams showing data layer integration
-- [Functional Overview](functional-overview.md) - ERP modules and their entity definitions
-- [Business Rules Catalog](business-rules.md) - Data integrity rules enforced via constraints
-- [Security & Quality Assessment](security-quality.md) - Database security configuration analysis
-- [Modernization Roadmap](modernization-roadmap.md) - Future database scalability considerations
-
----
-
-**Document Version**: 1.0  
-**Analysis Evidence**: Entity.cs, Field.cs, FieldType.cs, EntityRelation.cs, DbRepository.cs (96-940), DBTypeConverter.cs (1-212), Config.json  
-**Total Tables Documented**: 50+ across metadata, security, operational, and runtime domains  
-**Field Type Mappings**: 21 application types → 14 PostgreSQL types (complete)
+**End of Database Schema & Data Dictionary**
 
