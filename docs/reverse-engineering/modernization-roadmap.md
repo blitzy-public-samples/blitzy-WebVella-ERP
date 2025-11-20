@@ -211,7 +211,7 @@ Despite strong foundations, the codebase exhibits significant technical debt req
 **Evidence**: `WebVella.Erp.Site/Config.json` line 4:
 
 ```json
-"EncryptionKey": "BC93B776A42877CFEE808823BA8B37C83B6B0AD23198AC3AF2B5A54DCB647658"
+"EncryptionKey": "<64-character-hexadecimal-encryption-key>"
 ```
 
 **Impact**:
@@ -904,7 +904,7 @@ public class Program
 
 **Environment Variables**:
 ```bash
-export ErpSettings__EncryptionKey="BC93B776A42877CFEE808823BA8B37C83B6B0AD23198AC3AF2B5A54DCB647658"
+export ErpSettings__EncryptionKey="<64-character-hexadecimal-encryption-key>"
 export ErpSettings__Jwt__Key="signing_key_minimum_16_characters"
 ```
 
@@ -1036,7 +1036,7 @@ public class EntityController : ControllerBase
 **xUnit Test Projects**:
 
 **Project Structure**:
-```
+```text
 WebVella.Erp.Tests/
 ├── Unit/
 │   ├── Services/
@@ -2492,7 +2492,7 @@ else
 - **Post-Deployment Updates**: Daily updates for first week after production deployment
 
 **Communication Template**:
-```
+```text
 WebVella ERP Modernization - Week X Update
 
 Progress:
@@ -2731,7 +2731,7 @@ Questions? Contact: [email/slack]
 | **Documentation Debt** | Outdated sections | All current | Doc review |
 
 **Technical Debt Ratio Formula**:
-```
+```text
 Technical Debt Ratio = (Remediation Cost / Development Cost) × 100%
 
 Current: 12% (estimated 120 hours remediation / 1000 hours development)

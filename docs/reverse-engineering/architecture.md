@@ -77,6 +77,7 @@ graph TB
         SearchMgr["SearchManager<br/>Full-Text Search"]
         JobMgr["JobManager<br/>Background Jobs"]
         ImportExportMgr["ImportExportManager<br/>CSV Operations"]
+        DataSourceMgr["DataSourceManager<br/>DB & Code Data Sources"]
     end
     
     subgraph "Infrastructure Layer - WebVella.Erp"
@@ -122,6 +123,9 @@ graph TB
     SearchMgr --> DbContext
     JobMgr --> JobEngine
     RecordMgr --> HookSystem
+    DataSourceMgr --> EQLEngine
+    DataSourceMgr --> DbContext
+    DataSourceMgr --> MemCache
     
     EQLEngine --> DbContext
     HookSystem --> RecordMgr
@@ -178,7 +182,7 @@ graph TB
 | **CsvHelper** | 33.1.0 | CSV import/export operations |
 | **Irony.NetCore** | 1.1.11 | EQL grammar parser (custom query language) |
 | **Ical.Net** | 4.3.1 | Recurrence pattern calculation for job scheduling |
-| **MailKit/MimeKit** | 4.9.0 | SMTP email integration |
+| **MailKit/MimeKit** | 4.14.1 | SMTP email integration |
 | **HtmlAgilityPack** | 1.11.72 | HTML parsing and manipulation |
 
 ### UI & Client Libraries
@@ -222,9 +226,19 @@ graph TB
 - `CreateEntity(Entity entity)` - Create new entity with validation
 - `UpdateEntity(Entity entity)` - Modify existing entity schema
 - `DeleteEntity(Guid entityId)` - Remove entity and cascade tables
-- `CreateField(Field field)` - Add field to entity
-- `UpdateField(Field field)` - Modify field definition
-- `DeleteField(Guid fieldId)` - Remove field from entity
+- `ReadEntities()` - Retrieve all entity definitions
+- `ReadEntity(Guid id)` - Read single entity by ID
+- `ReadEntity(string name)` - Read single entity by name
+- `CloneEntity(Guid sourceEntityId, string newEntityName, string newEntityLabel, string newEntityPluralLabel)` - Clone existing entity with new identity
+- `CreateField(Guid entityId, Field field)` - Add field to entity
+- `CreateField(string entityName, Field field)` - Add field to entity by name
+- `UpdateField(Guid entityId, Field field)` - Modify field definition
+- `UpdateField(string entityName, Field field)` - Modify field definition by entity name
+- `DeleteField(Guid entityId, Guid fieldId)` - Remove field from entity
+- `ReadFields(Guid entityId)` - Retrieve all fields for an entity
+- `ReadFields(string entityName)` - Retrieve all fields for an entity by name
+- `ReadField(Guid fieldId)` - Read single field by ID
+- `ConvertToEntityRecord(Entity entity)` - Convert entity object to EntityRecord format
 
 **Database Interaction:**
 - Entity metadata stored in `entities` table
@@ -255,7 +269,15 @@ graph TB
 - `GetRecord(string entityName, Guid recordId)` - Retrieve single record
 - `UpdateRecord(string entityName, EntityRecord record)` - Modify existing record
 - `DeleteRecord(string entityName, Guid recordId)` - Remove record
+- `DeleteRecordPermissions(Guid recordId, string entityName)` - Remove specific record permissions
+- `DeleteRecordAllPermissions(Guid recordId)` - Remove all permissions for a record
 - `Find(QueryObject query)` - Query records with filtering/sorting/pagination
+- `Count(QueryObject query)` - Count records matching query criteria
+- `CreateRelationManyToManyRecord(Guid relationId, Guid originValue, Guid targetValue)` - Create many-to-many relationship
+- `GetRelationManyToManyRecords(Guid relationId, Guid originValue, Guid? targetValue)` - Retrieve many-to-many relationships
+- `FindRelationManyToManyRecords(QueryObject query, Guid relationId)` - Query many-to-many relationships
+- `DeleteRelationManyToManyRecord(Guid relationId, Guid originValue, Guid targetValue)` - Remove many-to-many relationship
+- `ExtractFieldValue(EntityRecord record, string fieldName, FieldType fieldType, bool encryptPassword)` - Extract and normalize field values
 
 **Hook Integration:**
 - `RecordHookManager.InvokePre*()` before database operation
@@ -322,7 +344,32 @@ PAGE 1
 PAGESIZE 20
 ```
 
-**Code Reference:** `WebVella.Erp/Eql/` folder
+**Data Source Management (`DataSourceManager`):**
+
+The `DataSourceManager` orchestrates access to both database-persisted and code-implemented data sources, providing a unified abstraction for query execution:
+
+**Database Data Sources:**
+- EQL queries stored in database with parameter definitions
+- Parameter substitution using `@param` syntax
+- `EqlBuilder` validates and converts EQL to SQL before execution
+- Results cached with 1-hour expiration via IMemoryCache
+
+**Code Data Sources:**
+- Reflection-based discovery via `[DataSource]` attribute
+- Custom C# implementations with `Execute(Dictionary<string, object>)` method signature
+- Assembly scanning automatically discovers implementations (skips assemblies starting with "microsoft." or "system.")
+- Manual registration supported for additional assemblies
+
+**Caching Strategy:**
+- 1-hour absolute expiration for data source metadata
+- Cache invalidation on data source modifications
+- Cache keys based on data source name or GUID
+
+**Code Reference:**  
+- `WebVella.Erp/Eql/EqlCommand.cs`
+- `WebVella.Erp/Eql/EqlBuilder.cs`
+- `WebVella.Erp/Eql/EqlGrammar.cs`
+- `WebVella.Erp/Api/DataSourceManager.cs`
 
 ---
 
@@ -354,7 +401,7 @@ PAGESIZE 20
 
 **Code Reference:**  
 - `WebVella.Erp/Jobs/JobManager.cs`
-- `WebVella.Erp/Jobs/ScheduleManager.cs`
+- `WebVella.Erp/Jobs/SheduleManager.cs` (Note: filename contains typo; class inside is `ScheduleManager`)
 - `WebVella.Erp/Jobs/ErpBackgroundServices.cs`
 
 ---
@@ -522,7 +569,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Application Startup]) --> InitService[ERPService.Initialize]
+    Start([Application Startup]) --> InitService[ERPService.InitializePlugins]
     InitService --> LoadPlugins[Reflect ErpPlugin Subclasses]
     LoadPlugins --> ForEach{For Each Plugin}
     
@@ -690,7 +737,7 @@ flowchart TD
 
 ### SMTP Email Integration (Optional)
 
-**Technology:** MailKit 4.9.0 library  
+**Technology:** MailKit 4.14.1 library  
 **Configuration:** Config.json settings (EmailSMTPServerName, EmailSMTPPort, EmailSMTPUsername, EmailSMTPPassword)
 
 **Email Queue Architecture:**
@@ -741,7 +788,7 @@ flowchart TD
 
 ## System Bootstrap Process
 
-The system bootstrap process executes during application startup via `ERPService.Initialize()` and is critical for creating the foundational database schema and metadata.
+The system bootstrap process executes during application startup via `ERPService.InitializeSystemEntities()` and is critical for creating the foundational database schema and metadata.
 
 ### System Tables Created
 
@@ -760,7 +807,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `fields` (JSONB) - Field definitions array
 - `record_permissions` (JSONB) - CRUD permissions per role
 
-**SQL Reference:** `ERPService.cs:780-810`
+**SQL Reference:** `ERPService.cs:937-939`
 
 #### 2. entity_relations Table
 **Purpose:** Store relationship definitions  
@@ -773,7 +820,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `target_entity_id` (UUID) - Target entity
 - `target_field_id` (UUID) - Target field
 
-**SQL Reference:** `ERPService.cs:812-830`
+**SQL Reference:** `ERPService.cs:941-944`
 
 #### 3. system_settings Table
 **Purpose:** Key-value configuration store  
@@ -782,7 +829,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `name` (TEXT, unique)
 - `value` (TEXT) - JSON-encoded configuration
 
-**SQL Reference:** `ERPService.cs:832-850`
+**SQL Reference:** `DbSystemRepository.cs:28-42`
 
 #### 4. system_search Table
 **Purpose:** Full-text search index  
@@ -859,7 +906,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 **Indexes:**
 - Index on `created_on` for time-based queries
 
-**SQL Reference:** `ERPService.cs:1052-1080`
+**SQL Reference:** `DbSystemRepository.cs:75-98`
 
 #### 9. plugin_data Table
 **Purpose:** Plugin persistent state  
@@ -869,7 +916,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `data` (TEXT) - JSON-encoded state
 - `version` (INTEGER) - Plugin schema version
 
-**SQL Reference:** `ERPService.cs:1082-1100`
+Source: `WebVella.Erp/ERPService.cs:1190-1207`
 
 #### 10-15. Application Structure Tables
 **Purpose:** Metadata-driven page composition system
@@ -883,28 +930,29 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `weight` (INTEGER) - Ordering
 
 **app_sitemap_area Table:**
-- `id` (UUID primary key)
-- `app_id` (UUID) - FK to app
-- `name` (TEXT) - Area identifier
+- `id` (UUID NOT NULL primary key)
+- `app_id` (UUID NOT NULL) - FK to app
+- `name` (TEXT NOT NULL) - Area identifier
 - `label` (TEXT)
+- `label_translations` (TEXT) - Localized labels
 - `icon_class` (TEXT)
 - `color` (TEXT)
-- `weight` (INTEGER)
-- `show_group_names` (BOOLEAN)
+- `weight` (INTEGER NOT NULL)
+- `access_roles` (UUID[] NOT NULL) - Array of role IDs with area access
+
+Source: `WebVella.Erp/ERPService.cs:1238-1249`
 
 **app_sitemap_area_group Table:**
-- `id` (UUID primary key)
-- `area_id` (UUID) - FK to app_sitemap_area
-- `name` (TEXT)
-- `label` (TEXT)
-- `weight` (INTEGER)
+- `id` (UUID NOT NULL, primary key)
+- `area_id` (UUID NOT NULL) - Foreign key to app_sitemap_area
+- `name` (VARCHAR(100) NOT NULL)
+- `label` (VARCHAR(100) NOT NULL)
+- `weight` (INTEGER NOT NULL)
 
 **app_sitemap_area_node Table:**
-- `id` (UUID primary key)
-- `area_id` (UUID) - FK to app_sitemap_area
-- `name` (TEXT)
-- `label` (TEXT)
-- `icon_class` (TEXT)
+- `id` (UUID NOT NULL, primary key)
+- `area_id` (UUID NOT NULL) - Foreign key to app_sitemap_area
+- `node_id` (UUID NOT NULL) - Foreign key to app_sitemap_node
 - `url` (TEXT) - Page routing URL
 - `type` (TEXT) - Node type
 - `entity_id` (UUID) - Associated entity
@@ -981,28 +1029,32 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 
 After system tables, `InitializeSystemEntities()` creates core entities programmatically:
 
-**user Entity:**
+**rec_user Table:**
 - Fields: id (GUID primary key), email, password, first_name, last_name, enabled, verified
 - RecordPermissions: Administrator (full), Regular (read self), Guest (none)
+- Source: `DbSystemRepository.cs:100-300`
 
-**role Entity:**
+**rec_role Table:**
 - Fields: id, name, description
 - Default Roles: Administrator, Regular, Guest with predefined GUIDs
+- Source: `DbSystemRepository.cs:100-300`
 
-**user_role Entity:**
+**rec_user_role Table:**
 - Many-to-many relationship between user and role
 - Fields: user_id (FK), role_id (FK)
+- Source: `DbSystemRepository.cs:100-300`
 
-**user_file Entity:**
+**rec_user_file Table:**
 - File attachments for users
 - Fields: id, user_id (FK), file metadata
+- Source: `ERPService.cs:531-589` (InitializeSystemEntities method)
 
 **Default Records:**
 - System user (GUID: 5c5279b4-e293-4285-8c08-f52ed05af32c)
 - Administrator user (erp@webvella.com / erp)
 - Three default roles with predefined GUIDs
 
-**Code Reference:** `ERPService.cs:100-700`
+**Code Reference:** `DbSystemRepository.cs:100-300`
 
 ---
 

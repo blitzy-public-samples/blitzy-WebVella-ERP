@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This code inventory report provides a comprehensive catalog of all source files within the WebVella ERP codebase. The repository contains **1,313 relevant source files** across 19 distinct project modules, totaling approximately **150,000+ lines of code**. The codebase is organized into a layered architecture with:
+This code inventory report provides a comprehensive catalog of all source files within the WebVella ERP codebase. The repository contains **1,313 relevant source files** across 19 distinct project modules, totaling approximately **141,000 lines of code**. The codebase is organized into a layered architecture with:
 
 - **Core Library**: 232 C# files (30,587 LOC) providing entity management, record operations, security, and extensibility infrastructure
 - **Web UI Framework**: 252 C# files (36,807 LOC) delivering components, tag helpers, and page composition
@@ -390,7 +390,7 @@ WebVella ERP includes **7 site host projects** demonstrating various hosting con
     "Issuer": "webvella-erp",
     "Audience": "webvella-erp"
   },
-  "EnableBackgroungJobs": true,
+  "EnableBackgroundJobs": "false",
   "FileSystemStorageFolder": "\\\\192.168.0.2\\Share\\erp3-files"
 }
 ```

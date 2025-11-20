@@ -353,16 +353,19 @@ SMTP provider configuration records:
 
 ```json
 {
-  "EmailEnabled": true,
-  "EmailSMTPServerName": "smtp.gmail.com",
-  "EmailSMTPPort": 587,
-  "EmailSMTPUsername": "notifications@example.com",
-  "EmailSMTPPassword": "encrypted_password",
-  "EmailSMTPSslEnabled": true
+  "EmailEnabled": false,
+  "EmailSMTPServerName": "",
+  "EmailSMTPPort": "25",
+  "EmailSMTPUsername": "",
+  "EmailSMTPPassword": "",
+  "EmailFrom": "",
+  "EmailTo": ""
 }
 ```
 
 Source: `WebVella.Erp.Site/Config.json`, lines 13-19
+
+**Note**: The example above shows the default disabled configuration. To enable email functionality, set `EmailEnabled` to `true` and populate the SMTP fields with appropriate values (e.g., `EmailSMTPServerName`: "smtp.example.com", `EmailSMTPPort`: 587 for TLS, credentials, etc.).
 
 **Option 2: smtp_service Entity (Advanced Deployments)**
 

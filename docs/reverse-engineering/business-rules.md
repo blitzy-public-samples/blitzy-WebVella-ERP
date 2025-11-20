@@ -52,16 +52,16 @@ Validation rules enforce data quality and constraint compliance during entity cr
 
 | Rule ID | Condition | Action | Module | Code Reference | Priority |
 |---------|-----------|--------|--------|----------------|----------|
-| VR-001 | Entity name must be unique within system | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:450-460 | High |
-| VR-002 | Entity name length must not exceed 63 characters (PostgreSQL identifier limit) | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:465-470 | High |
-| VR-003 | Field name must be unique within entity | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:650-660 | High |
-| VR-004 | Required fields must have non-null values or defaults | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:200-210 | High |
+| VR-001 | Entity name must be unique within system | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:73-75 | High |
+| VR-002 | Entity name length must not exceed 63 characters (PostgreSQL identifier limit) | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:69-70 | High |
+| VR-003 | Field name must be unique within entity | Throw ValidationException | EntityManager | WebVella.Erp/Api/EntityManager.cs:152-155 | High |
+| VR-004 | Required fields must have non-null values or defaults | Apply default value via SetRecordRequiredFieldsDefaultData | RecordManager | WebVella.Erp/Api/RecordManager.cs:1068-1111 | High |
 | VR-005 | Email field must match email regex pattern | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:850-860 | Medium |
-| VR-006 | GUID fields must parse to valid GUID | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:780-790 | High |
+| VR-006 | GUID fields must parse to valid GUID | Add validation error to import results | ImportExportManager | WebVella.Erp/Api/ImportExportManager.cs:923-928 | High |
 | VR-007 | Date fields must be valid ISO 8601 dates | Throw ValidationException | RecordManager | WebVella.Erp/Api/RecordManager.cs:820-830 | High |
-| VR-008 | One unique identifier field required per entity | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:132 | High |
+| VR-008 | One unique identifier field required per entity | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:261-263 | High |
 | VR-009 | Only one primary field allowed per entity | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:135 | High |
-| VR-010 | AutoNumber DisplayFormat required when field is required | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:164-167 | Medium |
+| VR-010 | AutoNumber Default Value required when field is required | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:164-165 | Medium |
 | VR-011 | Date format required for DateField | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:201 | Medium |
 | VR-012 | DateTime format required for DateTimeField | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:217 | Medium |
 | VR-013 | GuidField with Unique=true must have GenerateNewId enabled | Add ErrorModel to response | EntityManager | WebVella.Erp/Api/EntityManager.cs:263 | High |
@@ -73,20 +73,20 @@ Validation rules enforce data quality and constraint compliance during entity cr
 **VR-001: Entity Name Uniqueness**
 - **Business Rationale**: Prevents naming conflicts in metadata storage and ensures unambiguous entity references throughout the system
 - **Enforcement Point**: Entity creation and update operations in EntityManager
-- **Error Message Pattern**: "Entity name '{name}' already exists in the system"
+- **Error Message Pattern**: "Entity with such Name exists already!"
 - **Remediation**: Choose a different entity name or update the existing entity
 
 **VR-002: Entity Name Length Constraint**
 - **Business Rationale**: PostgreSQL identifier length limit of 63 characters applies to table names generated from entity definitions (rec_{entity_name} pattern)
 - **Technical Constraint**: Database platform limitation
-- **Error Message Pattern**: "Entity name must not exceed 63 characters"
+- **Error Message Pattern**: "Entity name length exceeded. Should be up to 63 chars!"
 - **Remediation**: Shorten entity name to fit within constraint
 
-**VR-004: Required Field Validation**
-- **Business Rationale**: Ensures data completeness for fields marked as required in entity definition
-- **Enforcement Point**: Record creation and update operations before database persistence
-- **Error Message Pattern**: "Field '{field_name}' is required but no value provided"
-- **Remediation**: Supply value for required field or provide default value in entity definition
+**VR-004: Required Field Default Value Application**
+- **Business Rationale**: Ensures data completeness for fields marked as required in entity definition by automatically applying default values
+- **Enforcement Point**: Record creation and update operations via SetRecordRequiredFieldsDefaultData function (lines 1068-1111)
+- **Behavior**: System automatically applies field default values (or type-appropriate defaults) for required fields with null/missing values
+- **Implementation**: Two-layer default application - null value processing and missing field handling after processing
 
 **VR-005: Email Format Validation**
 - **Business Rationale**: Ensures email addresses conform to RFC 5322 standards for deliverability
