@@ -829,7 +829,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 - `name` (TEXT, unique)
 - `value` (TEXT) - JSON-encoded configuration
 
-**SQL Reference:** `DbSystemRepository.cs:28-42`
+**SQL Reference:** `DbSystemSettingsRepository.cs:28-42`
 
 #### 4. system_search Table
 **Purpose:** Full-text search index  
@@ -906,7 +906,7 @@ The `CheckCreateSystemTables()` method creates 17 core tables if they do not exi
 **Indexes:**
 - Index on `created_on` for time-based queries
 
-**SQL Reference:** `DbSystemRepository.cs:75-98`
+**SQL Reference:** `DbSystemSettingsRepository.cs:75-98`
 
 #### 9. plugin_data Table
 **Purpose:** Plugin persistent state  
@@ -1032,17 +1032,17 @@ After system tables, `InitializeSystemEntities()` creates core entities programm
 **rec_user Table:**
 - Fields: id (GUID primary key), email, password, first_name, last_name, enabled, verified
 - RecordPermissions: Administrator (full), Regular (read self), Guest (none)
-- Source: `DbSystemRepository.cs:100-300`
+- Source: `DbSystemSettingsRepository.cs:100-300`
 
 **rec_role Table:**
 - Fields: id, name, description
 - Default Roles: Administrator, Regular, Guest with predefined GUIDs
-- Source: `DbSystemRepository.cs:100-300`
+- Source: `DbSystemSettingsRepository.cs:100-300`
 
 **rec_user_role Table:**
 - Many-to-many relationship between user and role
 - Fields: user_id (FK), role_id (FK)
-- Source: `DbSystemRepository.cs:100-300`
+- Source: `DbSystemSettingsRepository.cs:100-300`
 
 **rec_user_file Table:**
 - File attachments for users
@@ -1054,7 +1054,7 @@ After system tables, `InitializeSystemEntities()` creates core entities programm
 - Administrator user (erp@webvella.com / erp)
 - Three default roles with predefined GUIDs
 
-**Code Reference:** `DbSystemRepository.cs:100-300`
+**Code Reference:** `DbSystemSettingsRepository.cs:100-300`
 
 ---
 

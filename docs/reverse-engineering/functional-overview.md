@@ -816,7 +816,7 @@ public class StartTasksOnStartDate : ErpJob
 }
 ```
 
-Source: `WebVella.Erp.Plugins.Project/StartTasksOnStartDate.cs`
+Source: `WebVella.Erp.Plugins.Project/Jobs/StartTasksOnStartDate.cs`
 
 **Schedule Configuration:**
 - Execution time: Daily at 00:00:02 UTC
@@ -834,7 +834,7 @@ Rich task detail page interactions:
 - Watcher management (add/remove watchers)
 - Attachment upload integration
 
-Source: `WebVella.Erp.Plugins.Project/wwwroot/js/task-details.js`
+Source: `WebVella.Erp.Plugins.Project/Files/task-details.js`
 
 **timetrack.js:**
 
@@ -1928,7 +1928,7 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
 
 **Actor:** ErpService  
 **Method:** `ErpService.InitializePlugins()`  
-**Source:** `WebVella.Erp/ErpService.cs`
+**Source:** `WebVella.Erp/IErpService.cs`
 
 ```csharp
 public void InitializePlugins(IServiceProvider serviceProvider)
@@ -1956,7 +1956,7 @@ public void InitializePlugins(IServiceProvider serviceProvider)
 
 **Actor:** ErpService  
 **Method:** `DiscoverPlugins()`  
-**Source:** `WebVella.Erp/ErpService.cs`
+**Source:** `WebVella.Erp/IErpService.cs`
 
 ```csharp
 private List<ErpPlugin> DiscoverPlugins(IServiceProvider serviceProvider)
@@ -2834,7 +2834,7 @@ public class CustomerProjectSummaryDataSource : CodeDataSource
 - `WebVella.Erp/Api/SecurityManager.cs` - Security and authentication
 - `WebVella.Erp/Api/SecurityContext.cs` - Security context propagation
 - `WebVella.Erp/Api/Definitions.cs` - System role GUIDs and constants
-- `WebVella.Erp/ErpService.cs` - Plugin initialization orchestration
+- `WebVella.Erp/IErpService.cs` - Plugin initialization orchestration
 - `WebVella.Erp/ErpPlugin.cs` - Plugin base class
 - `WebVella.Erp/Hooks/RecordHookManager.cs` - Hook invocation
 
@@ -2844,7 +2844,7 @@ public class CustomerProjectSummaryDataSource : CodeDataSource
 - `WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs` - Email queue processing
 - `WebVella.Erp.Plugins.Mail/SmtpServiceRecordHook.cs` - SMTP service validation
 - `WebVella.Erp.Plugins.Project/` - Project Plugin source code
-- `WebVella.Erp.Plugins.Project/StartTasksOnStartDate.cs` - Task automation
+- `WebVella.Erp.Plugins.Project/Jobs/StartTasksOnStartDate.cs` - Task automation
 - `WebVella.Erp.Plugins.Crm/` - CRM Plugin source code
 - `WebVella.Erp.Plugins.Next/` - Next Plugin source code
 - `WebVella.Erp.Plugins.MicrosoftCDM/` - Microsoft CDM Plugin source code

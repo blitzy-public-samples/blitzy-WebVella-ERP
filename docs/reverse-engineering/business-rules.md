@@ -363,12 +363,12 @@ These rules should be prioritized during:
 ### Source Code Files Analyzed
 
 **Core Library (`WebVella.Erp/`)**:
-- `Api/EntityManager.cs` - Entity and field validation, dynamic DDL generation
-- `Api/RecordManager.cs` - Record CRUD operations, validation, hook integration
-- `Api/SecurityManager.cs` - User, role, and permission management
-- `Api/SecurityContext.cs` - Thread-safe security context propagation
-- `Api/EntityRelationManager.cs` - Relationship creation and management
-- `Api/Definitions.cs` - System constants including role GUIDs
+- `WebVella.Erp/Api/EntityManager.cs` - Entity and field validation, dynamic DDL generation
+- `WebVella.Erp/Api/RecordManager.cs` - Record CRUD operations, validation, hook integration
+- `WebVella.Erp/Api/SecurityManager.cs` - User, role, and permission management
+- `WebVella.Erp/Api/SecurityContext.cs` - Thread-safe security context propagation
+- `WebVella.Erp/Api/EntityRelationManager.cs` - Relationship creation and management
+- `WebVella.Erp/Api/Definitions.cs` - System constants including role GUIDs
 
 **Database Layer (`WebVella.Erp/Database/`)**:
 - `DbContext.cs` - Database connection and transaction management
@@ -376,8 +376,8 @@ These rules should be prioritized during:
 - `DbFileRepository.cs` - File storage abstraction
 
 **Hooks and Jobs (`WebVella.Erp/`)**:
-- `Hooks/RecordHookManager.cs` - Hook discovery and invocation
-- `Jobs/JobManager.cs` - Background job scheduling and execution
+- `WebVella.Erp/Hooks/RecordHookManager.cs` - Hook discovery and invocation
+- `WebVella.Erp/Jobs/JobManager.cs` - Background job scheduling and execution
 - `ErpPlugin.cs` - Plugin base class with patch system
 
 **Plugins**:

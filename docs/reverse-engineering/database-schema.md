@@ -658,7 +658,7 @@ The core platform initialization creates system metadata tables during first sta
 10. **system_log** table: Logging infrastructure
 11. **job**, **job_execution** tables: Background processing infrastructure
 
-**Evidence**: ErpService.cs contains `InitializeSystemEntities` logic
+**Evidence**: IErpService.cs contains `InitializeSystemEntities` logic
 
 ### Plugin Migration System (ProcessPatches)
 

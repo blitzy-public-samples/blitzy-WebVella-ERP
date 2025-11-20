@@ -3,7 +3,7 @@
 **Generated**: 2024-11-19 00:00:00 UTC  
 **Repository**: https://github.com/WebVella/WebVella-ERP  
 **Analyzed Commit**: Current working tree (blitzy-f25da73d-d794-4a54-9e52-8f40c4d17175 branch)  
-**WebVella ERP Version**: 1.7.4 (from WebVella.Erp.csproj)  
+**WebVella ERP Version**: 1.7.4 (from WebVella.Erp/WebVella.Erp.csproj)  
 **Analysis Scope**: Complete repository scan including all source files, configuration, and documentation
 
 ---
@@ -71,7 +71,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 
 **Notable Files**:
 
-- `ErpService.cs`: System bootstrap and initialization
+- `IErpService.cs`: System bootstrap and initialization
 - `ErpPlugin.cs`: Plugin base class defining lifecycle
 - `ErpSettings.cs`: Configuration loader mapping Config.json
 - `IErpService.cs`: Service contract interface
@@ -118,7 +118,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 **Notable Components**:
 
 - `PageComponent.cs`: Base class for all page components (Design/Options/Display pattern)
-- `FieldBaseTagHelper.cs`: Base class for field tag helpers
+- `PcFieldBase.cs`: Base class for field tag helpers
 - `ErpMvcExtensions.cs`: ASP.NET Core middleware integration
 - `PageService.cs`: Page composition and rendering orchestration
 
@@ -149,7 +149,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 
 #### WebAssembly Client
 
-**Project File**: `WebVella.Erp.WebAssembly.Client/WebVella.Erp.WebAssembly.csproj`  
+**Project File**: `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj`  
 **SDK**: Microsoft.NET.Sdk.BlazorWebAssembly  
 **Files**: ~25 C# files, 10 Razor components  
 **LOC**: 5,000+ LOC
@@ -157,7 +157,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 **Key Files**:
 
 - `CustomAuthenticationProvider.cs`: JWT authentication with ClaimsPrincipal construction
-- `IApiService.cs`: Typed API client interface
+- `ApiService.cs`: Typed API client interface
 - `WasmConstants.cs`: Culture settings (bg-BG, en-US number culture)
 - `AppState.cs`: Application state management
 - `WvBaseComponent.cs`: Base component infrastructure
@@ -171,7 +171,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 
 #### WebAssembly Server
 
-**Project File**: `WebVella.Erp.WebAssembly.Server/WebVella.Erp.WebAssembly.Server.csproj`  
+**Project File**: `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj`  
 **Files**: ~15 C# files  
 **LOC**: 3,000+ LOC
 
@@ -187,7 +187,7 @@ The primary implementation language is **C# (699 files, 53% of codebase)**, supp
 
 #### WebAssembly Shared
 
-**Project File**: `WebVella.Erp.WebAssembly.Shared/WebVella.Erp.WebAssembly.Shared.csproj`  
+**Project File**: `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj`  
 **Files**: ~10 C# files  
 **LOC**: 2,000+ LOC
 
@@ -665,7 +665,7 @@ WebVella.Erp/
 │   └── DbFileRepository.cs
 ├── Jobs/                    # Background job system (10+ files)
 │   ├── JobManager.cs
-│   └── ScheduleManager.cs
+│   └── JobManager.cs
 ├── Hooks/                   # Hook system (8+ files)
 │   └── RecordHookManager.cs
 ├── Eql/                     # Entity Query Language (25+ files)
@@ -675,7 +675,7 @@ WebVella.Erp/
 ├── Notifications/           # PostgreSQL LISTEN/NOTIFY (5+ files)
 ├── Recurrence/              # Recurrence calculations (3+ files)
 ├── Fts/                     # Full-text search analyzer (3+ files)
-└── ErpService.cs            # System bootstrap
+└── IErpService.cs            # System bootstrap
 ```
 
 ### Web UI Structure
@@ -688,7 +688,7 @@ WebVella.Erp.Web/
 │   ├── PcForm/             # Form container component
 │   └── (50+ other components)
 ├── TagHelpers/              # Custom tag helpers (50+ files)
-│   ├── FieldBaseTagHelper.cs
+│   ├── PcFieldBase.cs
 │   └── wv-* tag helpers
 ├── Controllers/             # API controllers (15+ files)
 │   └── WebApiController.cs # Main API endpoint controller
