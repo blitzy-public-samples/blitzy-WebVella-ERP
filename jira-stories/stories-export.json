@@ -1,0 +1,468 @@
+{
+  "stories": [
+    {
+      "id": "STORY-001",
+      "title": "Approval Plugin Infrastructure",
+      "description": "Create the foundational WebVella ERP plugin infrastructure for the multi-level approval workflow system. This story establishes the ApprovalPlugin class inheriting from ErpPlugin, the project file configuration, plugin settings model, and migration orchestration scaffolding. The plugin follows the established pattern from existing plugins like WebVella.Erp.Plugins.Project, implementing Initialize(), ProcessPatches(), and SetSchedulePlans() methods. This infrastructure provides the foundation for all subsequent approval workflow components including entity migrations, services, hooks, and background jobs.",
+      "businessValue": "Establishes the modular, maintainable foundation for the approval workflow system following WebVella ERP's proven plugin architecture. Enables isolated deployment, testing, and versioning of approval functionality. Provides standardized extension points for entity migrations, schedule plans, and service registration.",
+      "acceptanceCriteria": [
+        "ApprovalPlugin class inherits from ErpPlugin and implements IPlugin interface with correct Initialize(IServiceProvider) method signature",
+        "Plugin assembly is discoverable by WebVella ERP plugin scanner through correct naming convention (WebVella.Erp.Plugins.Approval)",
+        "ProcessPatches() method orchestrates migration patches in correct date-based order",
+        "SetSchedulePlans() method stub is available for future background job scheduling",
+        "PluginSettings model class is created with IsInstalled property for tracking plugin state"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/ApprovalPlugin.cs",
+          "WebVella.Erp.Plugins.Approval/ApprovalPlugin._.cs",
+          "WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj",
+          "WebVella.Erp.Plugins.Approval/Model/PluginSettings.cs"
+        ],
+        "classes": [
+          "ApprovalPlugin : ErpPlugin - Main plugin class implementing Initialize(), ProcessPatches(), SetSchedulePlans()",
+          "PluginSettings - Configuration model with IsInstalled property and JSON serialization"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.ErpPlugin - Base class providing plugin lifecycle hooks",
+          "WebVella.Erp.IPlugin - Interface for plugin discovery",
+          "WebVella.Erp.Database.DbContext - Database transaction management for migrations",
+          "WebVella.Erp.Api.SecurityContext - System scope for plugin operations",
+          "WebVella.Erp.Jobs.ScheduleManager - Schedule plan registration"
+        ],
+        "technicalApproach": "Create a new .NET 9.0 class library project following the WebVella.Erp.Plugins.Project structure. The ApprovalPlugin.cs file contains the main class inheriting from ErpPlugin with Initialize() method for service registration and dependency injection setup. ApprovalPlugin._.cs contains the ProcessPatches() orchestration method calling date-stamped migration files. The PluginSettings model tracks installation state using JSON serialization for storage in the plugin_data system entity."
+      },
+      "dependencies": [],
+      "storyPoints": 3,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "infrastructure",
+        "plugin"
+      ]
+    },
+    {
+      "id": "STORY-002",
+      "title": "Approval Entity Schema and Data Model",
+      "description": "Define and implement the complete data model for the approval workflow system through five core entities: approval_workflow (workflow definitions), approval_step (approval hierarchy levels), approval_rule (routing conditions), approval_request (active approval instances), and approval_history (audit trail). This story creates the migration patch that uses EntityManager and EntityRelationManager APIs to create entities with appropriate fields, relations, and indexes. The entity schema supports multi-level approval chains, threshold-based routing, parallel and sequential approval patterns, and comprehensive audit logging.",
+      "businessValue": "Provides the persistent data foundation for all approval workflow operations. The entity design enables flexible workflow configuration supporting various business approval patterns. The approval_history entity ensures complete audit trail compliance for regulatory requirements. Proper indexing and relations enable efficient querying for approval dashboards and reports.",
+      "acceptanceCriteria": [
+        "approval_workflow entity is created with fields: id (GUID), name (text), target_entity (text), is_enabled (boolean), created_on (datetime), created_by (GUID FK to user)",
+        "approval_step entity is created with fields: id, workflow_id (FK), step_order (int), approver_type (text), approver_id (GUID), threshold_min (decimal), threshold_max (decimal), timeout_hours (int), auto_approve_conditions (text)",
+        "approval_rule entity is created with fields: id, workflow_id (FK), field_name (text), operator (text), threshold_value (decimal), next_step_id (FK)",
+        "approval_request entity is created with fields: id, source_record_id (GUID), source_entity (text), workflow_id (FK), current_step_id (FK), status (text enum), created_on, created_by, last_notification_sent, notification_count, is_archived, archived_on",
+        "approval_history entity is created with fields: id, request_id (FK), action_type (text), performed_by (GUID FK), performed_on (datetime), comments (text), previous_status, new_status",
+        "OneToMany relations are established: workflow->steps, workflow->rules, workflow->requests, request->history",
+        "Migration patch follows naming convention ApprovalPlugin.YYYYMMDD.cs and executes within DbContext.Current.Transaction scope"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/ApprovalPlugin.20260115.cs"
+        ],
+        "classes": [
+          "ApprovalPlugin partial class - Migration patch with Patch20260115() method",
+          "Entity definitions using InputEntity and InputField API models"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Api.EntityManager - CreateEntity(), ReadEntity() for entity operations",
+          "WebVella.Erp.Api.EntityRelationManager - Create() for establishing relations",
+          "WebVella.Erp.Api.Models.InputEntity - Entity definition model",
+          "WebVella.Erp.Api.Models.InputField - Field definition model",
+          "WebVella.Erp.Api.Models.EntityRelation - Relation definition model",
+          "WebVella.Erp.Database.DbContext - Transaction scope for atomic migrations"
+        ],
+        "technicalApproach": "Create a migration patch class as a partial of ApprovalPlugin with date-stamped method Patch20260115(). The method first checks if entities exist to support idempotent execution. Entity creation uses InputEntity with appropriate fields defined through InputGuidField, InputTextField, InputNumberField, InputDateTimeField, InputCheckboxField classes. Relations use EntityRelationManager.Create() with EntityRelationType.OneToMany. All operations execute within DbContext.Current.Transaction for atomicity. The patch is called from ProcessPatches() in priority order."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-001",
+          "description": "Plugin Infrastructure - Required for ApprovalPlugin class and ProcessPatches() orchestration"
+        }
+      ],
+      "storyPoints": 8,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "data-model",
+        "entities",
+        "migration"
+      ]
+    },
+    {
+      "id": "STORY-003",
+      "title": "Workflow Configuration Management Services",
+      "description": "Implement the configuration management layer for approval workflows through three specialized services: WorkflowConfigService (workflow CRUD operations), StepConfigService (approval step management), and RuleConfigService (routing rule configuration). These services provide the business logic for administrators to create, modify, and validate approval workflow definitions. The services implement validation rules ensuring step order integrity, threshold overlap detection, and circular reference prevention. All operations are exposed through the services for consumption by the REST API (STORY-007) and UI components (STORY-008).",
+      "businessValue": "Enables administrators to configure approval workflows without developer intervention or direct database manipulation. Built-in validation prevents misconfiguration that could cause approval routing failures. Service abstraction enables consistent configuration access from both API and background job contexts.",
+      "acceptanceCriteria": [
+        "WorkflowConfigService provides CreateWorkflow(), GetWorkflow(), GetWorkflowsForEntity(), UpdateWorkflow(), DeleteWorkflow() methods",
+        "StepConfigService provides AddStep(), UpdateStep(), DeleteStep(), ReorderSteps() methods with step_order integrity validation",
+        "RuleConfigService provides AddRule(), UpdateRule(), DeleteRule() methods with threshold validation",
+        "DeleteWorkflow() validates no pending approval_request records exist before deletion",
+        "All services use EQL queries with proper relation expansion for efficient data retrieval",
+        "Validation errors throw descriptive exceptions suitable for API error responses"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Services/WorkflowConfigService.cs",
+          "WebVella.Erp.Plugins.Approval/Services/StepConfigService.cs",
+          "WebVella.Erp.Plugins.Approval/Services/RuleConfigService.cs"
+        ],
+        "classes": [
+          "WorkflowConfigService - Workflow CRUD with validation and EQL queries",
+          "StepConfigService - Step management with ordering logic",
+          "RuleConfigService - Rule configuration with threshold validation"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Api.RecordManager - Record CRUD operations",
+          "WebVella.Erp.Eql.EqlCommand - Query execution with parameters",
+          "WebVella.Erp.Api.SecurityContext - Permission validation",
+          "WebVella.Erp.Api.Models.EntityRecord - Data container"
+        ],
+        "technicalApproach": "Create service classes following the BaseService pattern from WebVella.Erp.Plugins.Project. Each service encapsulates entity-specific operations with RecordManager for CRUD and EqlCommand for complex queries. WorkflowConfigService includes GetWorkflowsForEntity() using EQL WHERE clause filtering. StepConfigService maintains step_order integrity through ReorderSteps() method that renumbers all steps when one is moved. RuleConfigService validates threshold_min < threshold_max and prevents overlapping ranges. All services return EntityRecord objects for consistency with WebVella patterns."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-001",
+          "description": "Plugin Infrastructure - Required for service registration"
+        },
+        {
+          "storyId": "STORY-002",
+          "description": "Entity Schema - Required entities must exist before services can operate"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "configuration",
+        "admin",
+        "services"
+      ]
+    },
+    {
+      "id": "STORY-004",
+      "title": "Approval Service Layer and Business Logic",
+      "description": "Implement the core business logic layer for approval workflow operations through four essential services: ApprovalWorkflowService (workflow lifecycle management), ApprovalRouteService (routing and approver resolution), ApprovalRequestService (request lifecycle and actions), and ApprovalHistoryService (audit trail management). These services encapsulate all approval business rules including multi-step workflow progression, threshold-based routing logic, approver authorization validation, delegation handling, and comprehensive audit logging. The services follow the established WebVella ERP service patterns with RecordManager integration and SecurityContext awareness.",
+      "businessValue": "Centralizes all approval business logic in testable, reusable service classes. Ensures consistent approval behavior across all access points (API, UI, background jobs). Provides complete audit trail for compliance and troubleshooting. Enables complex routing scenarios including parallel approvals, escalation paths, and delegation chains.",
+      "acceptanceCriteria": [
+        "ApprovalWorkflowService provides GetAllWorkflows(), GetWorkflow(), CreateWorkflow(), UpdateWorkflow(), DeleteWorkflow() methods with admin permission validation",
+        "ApprovalRouteService provides EvaluateNextStep(), GetApproversForStep(), ResolveApproversByType() methods implementing threshold and role-based routing",
+        "ApprovalRequestService provides CreateRequest(), GetRequest(), GetPendingRequestsForUser(), ApproveRequest(), RejectRequest(), DelegateRequest() methods with authorization validation",
+        "ApprovalHistoryService provides LogApprovalAction(), GetRequestHistory() methods capturing all state transitions",
+        "ApproveRequest() advances workflow to next step or completes request based on ApprovalRouteService evaluation",
+        "RejectRequest() transitions request to Rejected status and logs rejection reason",
+        "DelegateRequest() reassigns current step approver and logs delegation action",
+        "All state changes create approval_history records with previous_status, new_status, performed_by, and comments"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Services/ApprovalWorkflowService.cs",
+          "WebVella.Erp.Plugins.Approval/Services/ApprovalRouteService.cs",
+          "WebVella.Erp.Plugins.Approval/Services/ApprovalRequestService.cs",
+          "WebVella.Erp.Plugins.Approval/Services/ApprovalHistoryService.cs"
+        ],
+        "classes": [
+          "ApprovalWorkflowService - Workflow CRUD with permission checks",
+          "ApprovalRouteService - Routing logic and approver resolution",
+          "ApprovalRequestService - Request lifecycle management",
+          "ApprovalHistoryService - Audit trail operations"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Api.RecordManager - Record CRUD operations",
+          "WebVella.Erp.Api.SecurityContext - CurrentUser for authorization",
+          "WebVella.Erp.Eql.EqlCommand - Complex queries with joins",
+          "WebVella.Erp.Api.Models.EntityRecord - Data container",
+          "WebVella.Erp.Database.DbContext - Transaction management"
+        ],
+        "technicalApproach": "Create service classes inheriting from BaseService pattern. ApprovalWorkflowService wraps WorkflowConfigService with additional permission validation using SecurityContext.CurrentUser role checks. ApprovalRouteService implements EvaluateNextStep() using EQL query against approval_rule entity matching field values, then returns next step or null if workflow complete. GetApproversForStep() resolves approver_type (user, role, department_head) to list of user IDs. ApprovalRequestService orchestrates the approval flow: ApproveRequest() calls RouteService.EvaluateNextStep(), updates request status/step, and calls HistoryService.LogApprovalAction(). All operations use RecordManager within DbContext transaction scope."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-001",
+          "description": "Plugin Infrastructure - Required for service registration"
+        },
+        {
+          "storyId": "STORY-002",
+          "description": "Entity Schema - Required entities for data operations"
+        },
+        {
+          "storyId": "STORY-003",
+          "description": "Configuration Services - Used by ApprovalWorkflowService for workflow CRUD"
+        }
+      ],
+      "storyPoints": 8,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "services",
+        "business-logic"
+      ]
+    },
+    {
+      "id": "STORY-005",
+      "title": "Approval Hooks Integration for Entity Events",
+      "description": "Implement pre and post record hooks that integrate approval workflow processing with entity CRUD operations. This story creates hook classes that automatically initiate approval workflows when target entities (purchase_order, expense_request) are created, and trigger notifications and state updates when approval_request records are modified. The hooks follow the WebVella ERP hook pattern with HookAttachmentAttribute for entity binding and implement IErpPreCreateRecordHook and IErpPostUpdateRecordHook interfaces.",
+      "businessValue": "Enables automatic workflow initiation without manual intervention or custom code in each entity's CRUD operations. Ensures approval requirements are enforced consistently across all entry points (UI, API, imports). Triggers real-time notifications to approvers when their action is required. Maintains data integrity by preventing unauthorized record modifications during pending approval.",
+      "acceptanceCriteria": [
+        "ApprovalRequestPreCreateHook implements IErpPreCreateRecordHook and initializes workflow routing by calling ApprovalRouteService.EvaluateNextStep()",
+        "ApprovalRequestPostUpdateHook implements IErpPostUpdateRecordHook and triggers notifications when status changes to pending at new step",
+        "PurchaseOrderApprovalHook implements IErpPreCreateRecordHook attached to purchase_order entity, creating approval_request when record is created",
+        "ExpenseRequestApprovalHook implements IErpPreCreateRecordHook attached to expense_request entity, creating approval_request when record is created",
+        "All hooks use HookAttachmentAttribute with correct entity_name for automatic binding",
+        "Target entity hooks check for active workflow configuration before creating approval_request",
+        "Hook execution uses DbContext.Current.Transaction to ensure atomicity with triggering operation"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Hooks/Api/ApprovalRequestPreCreateHook.cs",
+          "WebVella.Erp.Plugins.Approval/Hooks/Api/ApprovalRequestPostUpdateHook.cs",
+          "WebVella.Erp.Plugins.Approval/Hooks/Api/PurchaseOrderApprovalHook.cs",
+          "WebVella.Erp.Plugins.Approval/Hooks/Api/ExpenseRequestApprovalHook.cs"
+        ],
+        "classes": [
+          "ApprovalRequestPreCreateHook : IErpPreCreateRecordHook - Initialize routing on request creation",
+          "ApprovalRequestPostUpdateHook : IErpPostUpdateRecordHook - Trigger notifications on status change",
+          "PurchaseOrderApprovalHook : IErpPreCreateRecordHook - Initiate workflow for purchase orders",
+          "ExpenseRequestApprovalHook : IErpPreCreateRecordHook - Initiate workflow for expense requests"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Hooks.IErpPreCreateRecordHook - Pre-create hook interface",
+          "WebVella.Erp.Hooks.IErpPostUpdateRecordHook - Post-update hook interface",
+          "WebVella.Erp.Hooks.HookAttachmentAttribute - Entity binding attribute",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalRouteService - Routing evaluation",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalRequestService - Request creation",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalWorkflowService - Workflow lookup"
+        ],
+        "technicalApproach": "Create hook classes implementing appropriate interfaces with HookAttachmentAttribute specifying entity_name. ApprovalRequestPreCreateHook.OnPreCreateRecord() validates record data, calls RouteService.EvaluateNextStep() to set initial current_step_id, and sets status to 'Pending'. ApprovalRequestPostUpdateHook.OnPostUpdateRecord() compares old and new status values, triggering notification queue when status changes. PurchaseOrderApprovalHook first queries WorkflowService.GetWorkflowsForEntity('purchase_order'), then creates approval_request record via RequestService.CreateRequest(). All hooks access the execution context through HookArgument parameter providing record data and controller context."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-004",
+          "description": "Service Layer - Hooks depend on ApprovalRouteService, ApprovalRequestService, ApprovalWorkflowService for business logic"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "hooks",
+        "events"
+      ]
+    },
+    {
+      "id": "STORY-006",
+      "title": "Notification and Escalation Background Jobs",
+      "description": "Implement scheduled background jobs for approval workflow automation: ProcessApprovalNotificationsJob (sends pending approval notifications), ProcessApprovalEscalationsJob (escalates overdue approvals), and CleanupExpiredApprovalsJob (archives completed approvals). The jobs follow the WebVella ERP ErpJob pattern with JobAttribute for discovery and SchedulePlan registration for automated execution. Jobs integrate with the Mail plugin for email delivery and use SecurityContext.OpenSystemScope() for system-level operations.",
+      "businessValue": "Ensures approvers are promptly notified of pending requests without manual intervention. Automatic escalation prevents workflow bottlenecks when approvers are unavailable. Cleanup job maintains database performance by archiving historical records while preserving audit trail. SLA enforcement through timeout-based escalation improves approval cycle times.",
+      "acceptanceCriteria": [
+        "ProcessApprovalNotificationsJob executes every 5 minutes, querying pending approval_request records and sending email notifications to resolved approvers via Mail plugin",
+        "ProcessApprovalEscalationsJob executes every 30 minutes, identifying requests exceeding step timeout_hours and escalating to next step or marking as Escalated",
+        "CleanupExpiredApprovalsJob executes daily, archiving approval_request records older than retention period (365 days) by setting is_archived flag",
+        "All jobs inherit from ErpJob and are decorated with [Job] attribute specifying unique GUID, name, enabled status, and priority",
+        "SetSchedulePlans() in ApprovalPlugin registers SchedulePlan entries for each job with appropriate intervals/schedules",
+        "Jobs execute within SecurityContext.OpenSystemScope() for system-level permissions",
+        "Notification job tracks last_notification_sent to prevent duplicate sends",
+        "Escalation job logs all escalation actions to approval_history via ApprovalHistoryService"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Jobs/ProcessApprovalNotificationsJob.cs",
+          "WebVella.Erp.Plugins.Approval/Jobs/ProcessApprovalEscalationsJob.cs",
+          "WebVella.Erp.Plugins.Approval/Jobs/CleanupExpiredApprovalsJob.cs"
+        ],
+        "classes": [
+          "ProcessApprovalNotificationsJob : ErpJob - Notification dispatch every 5 minutes",
+          "ProcessApprovalEscalationsJob : ErpJob - Overdue request escalation every 30 minutes",
+          "CleanupExpiredApprovalsJob : ErpJob - Archive old records daily"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Jobs.ErpJob - Base class for background jobs",
+          "WebVella.Erp.Jobs.JobAttribute - Job metadata and discovery",
+          "WebVella.Erp.Jobs.ScheduleManager - Schedule plan management",
+          "WebVella.Erp.Plugins.Mail.Services.SmtpInternalService - Email queue integration",
+          "WebVella.Erp.Api.SecurityContext - OpenSystemScope() for job execution",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalRouteService - Approver resolution",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalHistoryService - Audit logging"
+        ],
+        "technicalApproach": "Create job classes inheriting from ErpJob with Execute(JobContext context) override. ProcessApprovalNotificationsJob queries approval_request WHERE status='Pending' AND (last_notification_sent IS NULL OR last_notification_sent < @threshold), resolves approvers via RouteService, creates email entity records for Mail plugin processing, then updates last_notification_sent. ProcessApprovalEscalationsJob queries requests with created_on older than step timeout, calls RouteService.EvaluateNextStep() for escalation target, updates request, and logs via HistoryService. CleanupExpiredApprovalsJob queries completed requests older than retention period and sets is_archived=true. SetSchedulePlans() creates SchedulePlan entries with appropriate Type (Interval or Daily) and interval/time configuration."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-004",
+          "description": "Service Layer - Jobs use ApprovalRouteService.GetApproversForStep() and ApprovalHistoryService.LogApprovalAction()"
+        },
+        {
+          "storyId": "STORY-005",
+          "description": "Hooks Integration - Post-update hooks complement notification job for real-time notifications"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "jobs",
+        "notifications",
+        "background-processing",
+        "email-integration",
+        "escalation",
+        "cleanup"
+      ]
+    },
+    {
+      "id": "STORY-007",
+      "title": "Approval REST API Endpoints",
+      "description": "Implement the REST API layer for the approval workflow system through ApprovalController, exposing HTTP endpoints for workflow management (CRUD), request actions (approve, reject, delegate), and queries (pending approvals, request details, history). The controller follows WebVella ERP patterns with [Authorize] attribute for authentication, ResponseModel envelope for responses, and service layer delegation for business logic. Includes DTO classes for request body validation.",
+      "businessValue": "Enables external system integration for approval workflow automation. Provides the data layer for UI components (STORY-008). Consistent ResponseModel envelope simplifies client-side error handling. Centralized authentication ensures security across all approval operations. Well-documented API contracts reduce integration development time.",
+      "acceptanceCriteria": [
+        "GET /api/v3.0/p/approval/workflow returns list of workflows with optional ?entityName filter",
+        "GET /api/v3.0/p/approval/workflow/{id} returns single workflow with optional ?includeStepsAndRules=true parameter",
+        "POST /api/v3.0/p/approval/workflow creates new workflow from {name, targetEntity} JSON body",
+        "PUT /api/v3.0/p/approval/workflow/{id} updates workflow fields from JSON body",
+        "DELETE /api/v3.0/p/approval/workflow/{id} deletes workflow after validating no pending requests",
+        "POST /api/v3.0/p/approval/request/{id}/approve processes approval with {comments} body",
+        "POST /api/v3.0/p/approval/request/{id}/reject processes rejection with {comments} body",
+        "POST /api/v3.0/p/approval/request/{id}/delegate delegates to {delegateToUserId, comments}",
+        "GET /api/v3.0/p/approval/pending returns current user's pending approvals with pagination",
+        "GET /api/v3.0/p/approval/request/{id} returns request details including history",
+        "All endpoints require authentication and return ResponseModel with success, message, object fields",
+        "Permission failures return HTTP 403 with descriptive error message"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs",
+          "WebVella.Erp.Plugins.Approval/Api/CreateWorkflowModel.cs",
+          "WebVella.Erp.Plugins.Approval/Api/UpdateWorkflowModel.cs",
+          "WebVella.Erp.Plugins.Approval/Api/ApproveRequestModel.cs",
+          "WebVella.Erp.Plugins.Approval/Api/DelegateRequestModel.cs"
+        ],
+        "classes": [
+          "ApprovalController : Controller - REST API controller with [Authorize] attribute",
+          "CreateWorkflowModel - DTO for workflow creation",
+          "UpdateWorkflowModel - DTO for workflow updates",
+          "ApproveRequestModel - DTO for approve/reject actions",
+          "DelegateRequestModel - DTO for delegation requests"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalWorkflowService - Workflow CRUD",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalRequestService - Request actions",
+          "WebVella.Erp.Plugins.Approval.Services.ApprovalHistoryService - History queries",
+          "WebVella.Erp.Api.SecurityContext - Current user authentication",
+          "WebVella.Erp.Api.Models.ResponseModel - Standard API response envelope",
+          "Microsoft.AspNetCore.Authorization.AuthorizeAttribute - Authentication enforcement"
+        ],
+        "technicalApproach": "Create ApprovalController class decorated with [Authorize] and injecting IErpService. Implement CurrentUserId property extracting user ID from ClaimTypes.NameIdentifier. Each endpoint method instantiates appropriate service class, calls service method, wraps result in ResponseModel. Error handling uses try-catch with UnauthorizedAccessException returning 403, InvalidOperationException for validation errors, generic Exception for unexpected errors. DTO classes use simple properties with validation in controller methods. Route pattern follows /api/v3.0/p/approval/{resource}/{action} convention matching existing WebVella API structure."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-004",
+          "description": "Service Layer - API endpoints delegate to ApprovalWorkflowService, ApprovalRequestService, ApprovalHistoryService"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "workflow",
+        "approval",
+        "backend",
+        "api",
+        "rest"
+      ]
+    },
+    {
+      "id": "STORY-008",
+      "title": "Approval UI Page Components",
+      "description": "Implement the user interface layer through four page components: PcApprovalWorkflowConfig (admin workflow configuration), PcApprovalRequestList (approval request dashboard), PcApprovalAction (approve/reject/delegate buttons), and PcApprovalHistory (audit timeline display). Components follow the WebVella ERP PageComponent pattern with Design, Display, Options, Help, Error views and client-side service.js for AJAX interactions. All components consume the ApprovalController REST API (STORY-007) for data operations.",
+      "businessValue": "Provides user-friendly interfaces for approval workflow configuration and processing. Visual workflow configuration enables business users to modify approval rules without developer involvement. Centralized request dashboard improves approver efficiency. History timeline supports audit requirements and troubleshooting. Component architecture enables flexible page layouts matching organizational needs.",
+      "acceptanceCriteria": [
+        "PcApprovalWorkflowConfig renders workflow configuration form with name, target entity dropdown, is_enabled toggle, and Save/Delete buttons",
+        "PcApprovalWorkflowConfig Options panel provides workflow_id, show_create_button, entity_filter configuration",
+        "PcApprovalRequestList renders paginated table with Request ID, Entity, Requested By, Date, Status, Actions columns",
+        "PcApprovalRequestList Options panel provides filter (pending/all/submitted), page_size, show_entity_column, enable_inline_actions configuration",
+        "PcApprovalAction renders Approve, Reject, Delegate buttons that trigger confirmation dialogs with comments input",
+        "PcApprovalAction Options panel provides request_id, show_approve, show_reject, show_delegate, button_size configuration",
+        "PcApprovalHistory renders timeline of approval actions with actor, timestamp, action type, and comments",
+        "PcApprovalHistory Options panel provides request_id, show_avatars, relative_time, max_items, sort_order configuration",
+        "All components register with PageComponentLibraryService under 'Approval Workflow' category",
+        "All components provide Help.cshtml with usage documentation",
+        "Client-side service.js handles AJAX calls to ApprovalController with toastr notifications for success/error"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/PcApprovalWorkflowConfig.cs",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/Design.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/Display.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/Options.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/Help.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/Error.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/service.js",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/PcApprovalRequestList.cs",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/Design.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/Display.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/Options.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/Help.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/Error.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/service.js",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/PcApprovalAction.cs",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/Design.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/Display.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/Options.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/Help.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/Error.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/service.js",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/PcApprovalHistory.cs",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/Design.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/Display.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/Options.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/Help.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/Error.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/service.js"
+        ],
+        "classes": [
+          "PcApprovalWorkflowConfig : PageComponent - Workflow configuration form",
+          "PcApprovalWorkflowConfigOptions - Options model for workflow config",
+          "PcApprovalRequestList : PageComponent - Request dashboard table",
+          "PcApprovalRequestListOptions - Options model for request list",
+          "PcApprovalAction : PageComponent - Action buttons component",
+          "PcApprovalActionOptions - Options model for action buttons",
+          "PcApprovalHistory : PageComponent - History timeline component",
+          "PcApprovalHistoryOptions - Options model for history display"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Plugins.Approval.Controllers.ApprovalController - REST API consumption",
+          "WebVella.Erp.Web.Models.PageComponent - Base class for components",
+          "WebVella.Erp.Web.Models.PageComponentAttribute - Component registration",
+          "WebVella.Erp.Web.Services.PageComponentLibraryService - Component discovery",
+          "WebVella.Erp.Web.Models.ErpRequestContext - Page context injection",
+          "WebVella.Erp.Api.SecurityContext - Current user for authorization display"
+        ],
+        "technicalApproach": "Create component classes inheriting from PageComponent with [PageComponent] attribute specifying Label, Library, Description, Version, IconClass, Category='Approval Workflow'. Each component defines nested Options class with [JsonProperty] decorated properties. InvokeAsync() deserializes options, populates ViewBag, and returns appropriate view based on ComponentMode (Display, Design, Options, Help, Error). Views use Razor with wv-* tag helpers for form fields. service.js uses jQuery AJAX to call ApprovalController endpoints, displaying toastr notifications for results. Design.cshtml shows preview with placeholder data, Display.cshtml loads real data via AJAX, Options.cshtml provides configuration form, Help.cshtml documents component usage."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-007",
+          "description": "REST API - Components consume ApprovalController endpoints for all data operations"
+        }
+      ],
+      "storyPoints": 8,
+      "labels": [
+        "workflow",
+        "approval",
+        "ui",
+        "frontend",
+        "components"
+      ]
+    }
+  ],
+  "metadata": {
+    "totalStories": 8,
+    "totalStoryPoints": 47,
+    "generatedOn": "2026-01-15T00:00:00Z",
+    "projectName": "WebVella ERP Approval Workflow System",
+    "version": "1.0.0"
+  }
+}
