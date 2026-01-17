@@ -456,11 +456,73 @@
         "frontend",
         "components"
       ]
+    },
+    {
+      "id": "STORY-009",
+      "title": "Manager Approval Dashboard with Real-Time Metrics",
+      "description": "Implement a real-time dashboard page component (PcApprovalDashboard) that displays team approval workflow metrics for managers, enabling data-driven decision-making and proactive workflow management. The dashboard provides key performance indicators including pending approvals count, average approval processing time, approval rate percentage, overdue requests count, and recent approval activity timeline. The component features auto-refresh capability with a configurable interval (default 60 seconds) and date range filtering for historical analysis. Following the WebVella ERP PageComponent pattern established in STORY-008, the dashboard includes Design, Display, Options, Help, and Error views with a client-side service.js for AJAX interactions. The component consumes the ApprovalController REST API (STORY-007) through a new metrics endpoint that aggregates data from approval_request and approval_history entities. Role-based access control ensures only users with Manager role can view the dashboard metrics, protecting sensitive team performance data.",
+      "businessValue": "Reduces manager time gathering performance data from multiple sources by providing a unified dashboard view. Enables proactive identification of workflow bottlenecks before escalation through real-time visibility into approval queue health. Provides visibility into team workload for resource planning decisions and capacity management. Supports compliance reporting with real-time SLA monitoring and overdue request tracking. Improves manager accountability through transparent metrics and audit-ready performance data.",
+      "acceptanceCriteria": [
+        "Given I am logged in as a user with Manager role, when I navigate to the Approvals Dashboard page, then I see a dashboard displaying my team's approval metrics including pending approvals count, average processing time, approval rate percentage, overdue requests count, and recent activity",
+        "Given the dashboard is displayed, when 60 seconds have elapsed (or the configured refresh interval), then the metrics automatically refresh without requiring a page reload and display updated values",
+        "Given I am viewing the dashboard, when I select a date range filter (7 days, 30 days, 90 days, or custom), then the metrics update to reflect only the approval activity within the selected time period",
+        "Given I have pending approval requests in my queue, when I view the Pending Approvals metric on the dashboard, then the count accurately reflects the number of requests currently awaiting my action",
+        "Given approval requests exist that exceed their configured step timeout (timeout_hours), when I view the Overdue Requests metric, then the count accurately identifies all requests that have passed their SLA threshold",
+        "Given I am a user without Manager role, when I attempt to access the Approvals Dashboard page, then I receive an access denied message and cannot view the dashboard metrics"
+      ],
+      "technicalDetails": {
+        "files": [
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Design.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Help.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Error.cshtml",
+          "WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js",
+          "WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs",
+          "WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs"
+        ],
+        "classes": [
+          "PcApprovalDashboard : PageComponent - Dashboard component with metrics display, auto-refresh timer, and date range filtering",
+          "PcApprovalDashboardOptions - Options model with refresh_interval, date_range_default, show_overdue_alert, metrics_to_display properties",
+          "DashboardMetricsService - Service for calculating dashboard metrics from approval_request and approval_history entities",
+          "DashboardMetricsModel - Response model containing pendingCount, averageProcessingTime, approvalRate, overdueCount, recentActivity properties"
+        ],
+        "integrationPoints": [
+          "WebVella.Erp.Plugins.Approval.Controllers.ApprovalController - New GET /api/v3.0/p/approval/dashboard/metrics endpoint",
+          "WebVella.Erp.Database.DbContext - EQL queries for metrics aggregation",
+          "approval_request entity - Source for pending count, overdue count, status metrics",
+          "approval_history entity - Source for processing time calculations and recent activity",
+          "WebVella.Erp.Api.SecurityContext - CurrentUser role validation for Manager access control",
+          "WebVella.Erp.Web.Models.PageComponent - Base class for component implementation",
+          "WebVella.Erp.Web.Services.PageComponentLibraryService - Component registration under 'Approval Workflow' category"
+        ],
+        "technicalApproach": "Create PcApprovalDashboard component following the established PageComponent pattern from STORY-008. The component class inherits from PageComponent with [PageComponent] attribute specifying Category='Approval Workflow'. InvokeAsync() method checks user role via SecurityContext.CurrentUser before rendering. Display.cshtml renders Bootstrap card layout with metric widgets and JavaScript timer for auto-refresh. Options.cshtml provides configuration for refresh_interval (number field, default 60), date_range_default (dropdown: 7d/30d/90d), show_overdue_alert (checkbox), and metrics_to_display (multi-select). service.js implements AJAX polling using setInterval() calling the metrics endpoint, with jQuery DOM updates for metric values. DashboardMetricsService uses EQL queries with aggregation: pending count via WHERE status='Pending' AND current_step approver matches current user, average processing time via AVG of timestamp differences in approval_history, approval rate via COUNT with status grouping, overdue count via timestamp comparison against approval_step.timeout_hours. ApprovalController extended with GET /api/v3.0/p/approval/dashboard/metrics endpoint accepting optional from/to date parameters, returning DashboardMetricsModel JSON response."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-007",
+          "description": "REST API - Dashboard component consumes ApprovalController endpoints for metrics data retrieval"
+        },
+        {
+          "storyId": "STORY-008",
+          "description": "UI Components - Dashboard follows the PageComponent pattern established by approval UI components"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "dashboard",
+        "metrics",
+        "ui",
+        "manager",
+        "approval",
+        "real-time"
+      ]
     }
   ],
   "metadata": {
-    "totalStories": 8,
-    "totalStoryPoints": 47,
+    "totalStories": 9,
+    "totalStoryPoints": 52,
     "generatedOn": "2026-01-15T00:00:00Z",
     "projectName": "WebVella ERP Approval Workflow System",
     "version": "1.0.0"
