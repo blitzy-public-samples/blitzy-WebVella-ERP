@@ -1,409 +1,325 @@
-# Technical Specification
+# Agent Action Plan
 
 # 0. Agent Action Plan
+## 0.1 Intent Clarification
 
-## 0.1 Core Documentation Objective
+### 0.1.1 Core Documentation Objective
 
-Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **generate actionable JIRA stories** that define the implementation plan for a multi-level approval workflow automation system within the WebVella ERP platform. This is a **documentation generation task** that produces structured technical deliverables rather than code.
+Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create a new JIRA user story** that enables managers to make faster decisions through real-time dashboard views of team performance metrics. This documentation task involves creating a structured user story document following the State Street "Writing a User Story" guide standards.
 
-#### Documentation Request Categorization
+**Request Categorization:** Create new documentation
 
-- **Category**: Create new documentation
-- **Documentation Type**: Technical specifications / JIRA stories / Implementation requirements
-- **Output Format**: Markdown files, CSV, and JSON exports
+**Documentation Type:** JIRA User Story / Requirements Documentation
 
-#### Core Requirements Clarification
+**Documentation Requirements with Enhanced Clarity:**
 
-The user's business objective translates to the following documentation requirements:
+| Requirement | Clarified Interpretation |
+| --- | --- |
+| Business Objective | Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics |
+| Story Format | Must use Who/What/Why format as per State Street guide |
+| Acceptance Criteria Format | Must use Given/When/Then (Gherkin) syntax |
+| Scope Constraint | Single vertical slice deliverable within one sprint |
+| Deliverable Outcome | Measurable progress toward real-time performance visibility for managerial decision-making |
 
-| Requirement | Clarified Intent |
-|-------------|------------------|
-| Multi-level approval workflow | Document stories for implementing hierarchical approval chains with configurable routing based on amount thresholds, department structures, and authorization levels |
-| Purchase orders and expense requests | Target document types requiring approval workflow integration - these are the business entities that will flow through the approval system |
-| Amount thresholds | Document configuration entities for monetary limits that trigger different approval levels (e.g., $1K requires manager, $10K requires director) |
-| Department structures | Document organizational hierarchy integration enabling department-based routing rules |
-| Authorization levels | Document role-based permission system for approvers at different levels |
-| Automated routing | Document workflow engine logic for automatic assignment and escalation |
-| Notifications | Document integration with WebVella Mail plugin for approval request notifications and reminders |
-| Audit trail | Document comprehensive logging requirements for compliance and traceability |
+**Implicit Documentation Needs Identified:**
 
-#### Documentation Deliverables
+- The user story requires clear definition of the "Manager" persona and their decision-making context
+- The story must define what constitutes "real-time" in the context of the WebVella ERP system (likely leveraging existing data refresh patterns)
+- Performance metrics must be specified at a level that enables independent, testable acceptance criteria
+- The vertical slice must be self-contained while integrating with existing approval workflow infrastructure
 
-The Blitzy platform will generate:
-- **5-8 individual JIRA story markdown files** in `/jira-stories/` folder
-- **Consolidated CSV export** (`stories-export.csv`) for spreadsheet import
-- **Consolidated JSON export** (`stories-export.json`) for programmatic consumption
+### 0.1.2 Special Instructions and Constraints
 
-#### Implicit Documentation Needs Discovered
+**CRITICAL User Directives:**
 
-Based on analysis of the WebVella ERP codebase architecture:
+- **Follow the State Street "Writing a User Story" guide** - All formatting, structure, and quality criteria must align with the attached PDF document
+- **INVEST Criteria Required** - The story must be Independent, Negotiable, Valuable, Estimable, Sized appropriately, and Testable
+- **Demo-able Requirement** - The work item must be demonstrable to Product Owner/Business owner
+- **Single Sprint Delivery** - The story must represent a vertical slice achievable within one sprint. The story should represent a minimal viable dashboard view (read-only display) without configuration complexity
+- **Per State Street Guide:** "A User Story should be 'Demo-able' - For acceptance by the Product Owner/Business owner the work item must be able to be demonstrated." This is a critical requirement for the user story.
 
-- **Plugin architecture documentation**: New approval workflow will be implemented as a WebVella plugin (following `WebVella.Erp.Plugins.Project` patterns)
-- **Entity schema documentation**: Stories must define new entities (approval_workflow, approval_rule, approval_step, approval_request, approval_history)
-- **Hook integration documentation**: Pre/post record hooks for approval state transitions
-- **Background job documentation**: Scheduled jobs for escalation and notification processing
-- **API endpoint documentation**: REST API specifications for approval operations
-- **UI component documentation**: Page components for approval configuration and user actions
+  |  |
 
-## 0.2 Special Instructions and Constraints
+**USER PROVIDED TEMPLATE (from State Street Guide):**
 
-#### User-Specified Directives
+```plaintext
+Summary - Maximum 255 Characters
+Example: <Component> will need to be <updated/created> to include <feature description>
 
-The following special instructions must be adhered to throughout JIRA story generation:
+Description:
+As a <named user or role>, (the WHO)
+I want <some goal>, (the WHAT)
+so that <some reason>. (the WHY)
 
-| Directive | Implementation Guidance |
-|-----------|------------------------|
-| Reference actual WebVella ERP architecture | All stories must cite specific files, modules, and patterns discovered in the codebase |
-| Consider pluggable architecture | Solutions must follow the `ErpPlugin` inheritance pattern established in existing plugins |
-| Stories should be independently deployable | Each story should produce a working increment where possible |
-| Balance quick wins with infrastructure work | Mix smaller configuration stories with larger architectural stories |
-| Proper dependency sequencing | Stories must explicitly declare dependencies by Story ID |
-| Include both backend and UI components | Each feature story should address full stack implementation |
-| Realistic and implementable | Stories sized for ASP.NET Core / WebVella-experienced developers |
-
-#### Story Format Requirements
-
-Each JIRA story must include:
-- **Title**: Clear, concise (max 80 characters)
-- **Story ID**: Sequential format `STORY-001`, `STORY-002`, etc.
-- **Description**: Detailed technical and business context
-- **Business Value**: Clear articulation of why this story matters
-- **Acceptance Criteria**: Minimum 3-5 testable criteria per story
-- **Technical Implementation Details**: Specific files, classes, integration points
-- **Dependencies**: References to prerequisite Story IDs
-- **Effort Estimate**: Story points (1, 2, 3, 5, 8, or 13 scale)
-- **Labels/Tags**: Relevant categorization tags
-
-#### Template Structure
-
-**USER PROVIDED TEMPLATE:**
-
-```
-# {STORY-ID}: {Title}
-
-#### Description
-{Detailed description}
-
-#### Business Value
-{Why this matters}
-
-#### Acceptance Criteria
-- [ ] {Criterion 1}
-- [ ] {Criterion 2}
-- [ ] {Criterion 3}
-
-#### Technical Implementation Details
-#### Files/Modules to Change
-- {file path} - {change description}
-
-#### Key Classes or Functions
-- {Class/Function name} - {purpose}
-
-#### Integration Points
-- {Integration detail}
-
-#### Technical Approach
-{Implementation overview}
-
-#### Dependencies
-- {STORY-XXX} - {dependency description}
-
-#### Effort Estimate
-{X} Story Points
-
-#### Labels
-`workflow`, `approval`, `backend`, `api`, `ui`
+Acceptance Criteria:
+Given <a scenario>
+When <a criteria is met>
+Then <the expected result>
 ```
 
-#### Output Directory Structure
+**Acceptance Criteria Effectiveness Standards (from State Street Guide):**
 
-```
-/jira-stories/
-├── STORY-001-{slug}.md
-├── STORY-002-{slug}.md
-├── STORY-003-{slug}.md
-├── STORY-004-{slug}.md
-├── STORY-005-{slug}.md
-├── STORY-006-{slug}.md
-├── STORY-007-{slug}.md
-├── STORY-008-{slug}.md
-├── stories-export.csv
-└── stories-export.json
-```
+| Criterion | Requirement |
+| --- | --- |
+| Clarity | Straightforward and easy to understand for all team members |
+| Conciseness | Communicate necessary information without unnecessary detail |
+| Testability | Each criteria must be independently verifiable with clear pass/fail |
+| Result-Oriented | Focus on delivering results that satisfy the customer |
 
-#### Style and Quality Preferences
+**Style Preferences Documented:**
 
-- **Tone**: Technical but accessible to developers with 2+ years experience
-- **Structure**: Consistent heading hierarchy across all stories
-- **Depth**: Sufficient technical detail for independent implementation
-- **Format**: Standard JIRA-compatible markdown
-- **Code examples**: Short snippets only where essential for clarity
+- Professional JIRA formatting compatible with State Street standards
+- Use Fibonacci sequence for story point estimation (1, 2, 3, 5, 8, 13, 20, 40...)
+- Include Labels for categorization (e.g., workflow, approval, dashboard, metrics)
+- Sub-tasks describe actions needed to achieve Acceptance Criteria
 
-## 0.3 Technical Interpretation
+### 0.1.3 Technical Interpretation
 
 These documentation requirements translate to the following technical documentation strategy:
 
-#### Requirement-to-Documentation Action Mapping
-
 | Requirement | Documentation Action |
-|-------------|---------------------|
-| Approval workflow configuration | Create JIRA story documenting new `approval_workflow` entity with fields: id, name, description, entity_target, enabled, created_on, created_by |
-| Multi-step approval hierarchies | Create JIRA story documenting `approval_step` entity with: step_order, approver_type (role/user/department_head), threshold_min, threshold_max, auto_approve_conditions |
-| Amount threshold routing | Create JIRA story documenting `approval_rule` entity with: field_name, operator, threshold_value, next_step_id, workflow_id |
-| Notification mechanisms | Create JIRA story documenting integration with `WebVella.Erp.Plugins.Mail` and scheduled job for notification dispatch |
-| Workflow state management | Create JIRA story documenting `approval_request` entity with: status enum (Pending, Approved, Rejected, Escalated), current_step_id, requested_by, requested_on |
-| Audit logging | Create JIRA story documenting `approval_history` entity with: action_type, performed_by, performed_on, comments, previous_status, new_status |
-| Delegation support | Create JIRA story documenting delegation rules and proxy approval configuration |
-| Role-based authorization | Create JIRA story documenting approver role assignments and permission checks |
+| --- | --- |
+| Real-time dashboard views | Create user story for a manager dashboard component displaying key team performance metrics with automatic data refresh |
+| Team performance metrics | Define specific, measurable metrics such as pending approvals count, approval response times, escalation rates |
+| Faster decisions | Articulate business value in terms of reduced time-to-action and increased visibility |
+| Single sprint delivery | Scope to a minimal viable dashboard view (read-only display) without configuration complexity |
 
-#### Architectural Pattern Alignment
+**Technical Mapping:**
 
-Based on codebase analysis, the JIRA stories must document implementations following these WebVella patterns:
+- To **document the manager dashboard feature**, we will **create** a new user story file at `jira-stories/STORY-009-manager-performance-dashboard.md`
+- To **track in backlog**, we will **update** `jira-stories/stories-export.csv` with the new story entry
+- To **support JSON exports**, we will **update** `jira-stories/stories-export.json` with the structured story data
 
-```mermaid
-graph TB
-    subgraph "Plugin Layer"
-        A[ApprovalPlugin.cs] --> B[ProcessPatches]
-        B --> C[Entity Creation Migrations]
-    end
-    
-    subgraph "Service Layer"
-        D[ApprovalWorkflowService] --> E[WorkflowRouteService]
-        E --> F[NotificationService Integration]
-    end
-    
-    subgraph "Hook Layer"
-        G[IErpPreCreateRecordHook] --> H[ApprovalRequestHook]
-        I[IErpPostUpdateRecordHook] --> J[ApprovalStateChangeHook]
-    end
-    
-    subgraph "Job Layer"
-        K[EscalationJob : ErpJob] --> L[NotificationJob : ErpJob]
-    end
-    
-    A --> D
-    D --> G
-    D --> K
+### 0.1.4 Inferred Documentation Needs
+
+**Based on Code Analysis:**
+
+- The WebVella ERP system already has Chart.js integrated for data visualization (per UI architecture documentation)
+- The PageComponent pattern (Design, Display, Options, Help, Error views) is well-established and should be referenced for UI component stories
+- The approval_request and approval_history entities contain metrics data suitable for dashboard display
+
+**Based on Structure:**
+
+- This feature spans multiple data entities (approval_request, approval_history, approval_workflow) requiring consolidated documentation
+- The story should reference the existing service layer (ApprovalRequestService, ApprovalHistoryService) as data providers
+
+**Based on Dependencies:**
+
+- The dashboard component depends on F-007 (REST API) and F-008 (UI Components) per the feature catalog
+- Integration with existing PcApprovalRequestList component provides UI pattern reference
+
+**Based on User Journey:**
+
+- Managers need: quick access to pending approvals → response time visibility → escalation awareness → action capability
+- The vertical slice focuses on the visibility aspect (metrics display) as a foundation for subsequent action-oriented stories
+
+## 0.2 Documentation Discovery and Analysis
+
+### 0.2.1 Existing Documentation Infrastructure Assessment
+
+**Repository Analysis Results:**
+
+The repository analysis reveals a **well-structured documentation ecosystem** with established patterns for JIRA user stories and technical specifications. The existing documentation infrastructure provides clear templates and conventions for the new user story creation.
+
+| Documentation Category | Location | Coverage Status |
+| --- | --- | --- |
+| JIRA User Stories | jira-stories/*.md | 8 stories (STORY-001 through STORY-008) |
+| Story Export Data | jira-stories/stories-export.csv | Complete backlog export |
+| Story JSON Data | jira-stories/stories-export.json | Structured story data |
+| Developer Documentation | docs/ | Comprehensive technical guides |
+| Project README | README.md | Primary landing documentation |
+
+**Documentation Framework Details:**
+
+| Attribute | Value |
+| --- | --- |
+| Current documentation format | Markdown (.md) files |
+| Story structure template | Established in State Street Guide |
+| Export formats | CSV and JSON for JIRA import/export |
+| Documentation generator | N/A (manual Markdown authoring) |
+| Diagram tools detected | Mermaid (embedded in Markdown) |
+
+**Documentation Generator Configuration:**
+
+- No automated documentation generator (mkdocs, docusaurus) detected
+- Manual Markdown creation following consistent internal templates
+- Mermaid diagrams embedded directly in Markdown files
+
+### 0.2.2 Repository Code Analysis for Documentation
+
+**Search Patterns Applied:**
+
+| Pattern | Target | Findings |
+| --- | --- | --- |
+| jira-stories/*.md | Existing user story format | 8 story files following consistent structure |
+| jira-stories/*.csv | Backlog export format | CSV with defined column schema |
+| jira-stories/*.json | Structured story data | JSON array of story objects |
+| docs/**/*.md | Technical documentation | Developer guides for hooks, jobs, components |
+
+**Key Directories Examined:**
+
+| Directory | Purpose | Relevance to Task |
+| --- | --- | --- |
+| jira-stories/ | JIRA story definitions | Primary target for new story creation |
+| docs/ | Developer documentation | Reference for technical accuracy |
+| WebVella.Erp.Web/Components/ | UI component patterns | Reference for dashboard component patterns |
+| WebVella.Erp.Plugins.Approval/ | Approval workflow plugin | Source of metrics data entities |
+
+**Related Documentation Found:**
+
+| Document | Location | Relevance |
+| --- | --- | --- |
+| STORY-008 UI Components | jira-stories/STORY-008-approval-ui-components.md | Direct template for UI component story format |
+| STORY-004 Service Layer | jira-stories/STORY-004-approval-service-layer.md | Service integration patterns |
+| STORY-007 REST API | jira-stories/STORY-007-approval-rest-api.md | API endpoint documentation patterns |
+| Feature Catalog | Tech Spec Section 2.1 | Feature dependency chain reference |
+
+### 0.2.3 State Street User Story Guide Analysis
+
+**Guide Structure Summary:**
+
+The attached "SST User Story Guide.pdf" (6 pages) provides comprehensive standards for user story creation at State Street, including:
+
+| Section | Key Content |
+| --- | --- |
+| Purpose | User stories cover vertical slices, enable team conversation, provide flexibility |
+| Ownership | Stories owned by Team, sub-tasks by individuals |
+| Anatomy of a Story | Summary (max 255 chars), Who/What/Why description, Acceptance Criteria |
+| INVEST Criteria | Independent, Negotiable, Valuable, Estimable, Sized appropriately, Testable |
+| Acceptance Criteria | Given/When/Then syntax with Clarity, Conciseness, Testability, Result-Oriented measures |
+| Story Estimation | Fibonacci sequence, relative sizing, effort/complexity/uncertainty factors |
+
+**Key Formatting Requirements Extracted:**
+
+```plaintext
+Summary Format:
+- Maximum 255 characters
+- Example: "ABC User Sign-in screen will need to be updated to include user contact information"
+
+Description Format:
+As a <named user or role>, (the WHO)
+I want <some goal>, (the WHAT)
+so that <some reason>. (the WHY)
+
+Acceptance Criteria Format:
+Given <a scenario>
+When <a criteria is met>
+Then <the expected result>
 ```
 
-#### Technical Interpretation Details
+### 0.2.4 Web Search Research Conducted
 
-- **To implement approval workflow configuration**, we will create `WebVella.Erp.Plugins.Approval/ApprovalPlugin.cs` following the `ErpPlugin` base class pattern with migration patches creating the `approval_workflow` entity using `EntityManager.CreateEntity()`
+**Best Practices Researched:**
 
-- **To implement approval step management**, we will create `approval_step` entity with foreign key relation to `approval_workflow` using `EntityRelationManager.Create()` for OneToMany relationship
+| Topic | Application |
+| --- | --- |
+| JIRA user story best practices | Verified alignment with State Street guide |
+| Given/When/Then acceptance criteria | Gherkin syntax for behavior-driven criteria |
+| Dashboard metrics for team performance | Common KPIs: response time, completion rate, escalation rate |
+| Agile vertical slice definition | End-to-end functionality delivering user value |
 
-- **To implement threshold-based routing**, we will create `ApprovalRouteService.cs` in Services folder implementing rule evaluation logic with EQL queries against `approval_rule` entity
+## 0.3 Documentation Scope Analysis
 
-- **To implement notifications**, we will integrate with existing `SmtpInternalService` from `WebVella.Erp.Plugins.Mail` and create `ProcessApprovalNotificationsJob.cs` following the `ErpJob` pattern with `JobAttribute` decoration
+### 0.3.1 Code-to-Documentation Mapping
 
-- **To implement state management**, we will create pre/post hooks implementing `IErpPreUpdateRecordHook` and `IErpPostUpdateRecordHook` interfaces with `HookAttachmentAttribute` for `approval_request` entity
+**User Story Documentation Requirements:**
 
-- **To implement audit trail**, we will create `ApprovalHistoryService.cs` that creates `approval_history` records on every state transition, capturing the full approval decision context
+This documentation task focuses on creating a **new JIRA user story** for a manager performance dashboard. The mapping identifies which system components inform the story content:
 
-#### Inferred Documentation Needs
+| Source Component | Documentation Purpose |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/ | Source of approval metrics entities and services |
+|  |  |
+| jira-stories/stories-export.csv | Format for backlog export entry |
+| State Street Guide (PDF) | Formatting and quality standards |
 
-Based on WebVella ERP patterns discovered:
+**Entities Providing Metrics Data:**
 
-| Inferred Need | Rationale |
-|---------------|-----------|
-| Plugin initialization documentation | All entities/jobs must be registered in `Initialize(IServiceProvider)` method |
-| Migration versioning documentation | Patches use date-based naming (e.g., `ApprovalPlugin.20260115.cs`) |
-| DbContext transaction handling | All entity operations require `DbContext.Current.Transaction` scope |
-| SecurityContext scoping | Background jobs must use `SecurityContext.OpenSystemScope()` |
-| EQL query patterns | Record retrieval uses EQL syntax with `$relation` expansion |
-| UI page registration | Admin pages need sitemap area/node registration via `AppService` |
+| Entity | Metrics Derivable | Dashboard Relevance |
+| --- | --- | --- |
+| approval_request | Pending count, status distribution, created_on timestamps | Core dashboard KPIs |
+| approval_history | Response times, action_type distribution, performed_on timestamps | Performance analytics |
+| approval_workflow | Active workflows, is_enabled status | Configuration overview |
+| approval_step | timeout_hours, step progression | SLA tracking |
 
-## 0.4 Documentation Discovery and Analysis
+**Feature Dependencies for Documentation:**
 
-#### Existing Documentation Infrastructure Assessment
+| Dependent Feature | Relationship to Dashboard Story |
+| --- | --- |
+| F-007: REST API | Provides data endpoints for dashboard consumption |
+| F-008: UI Components | Establishes PageComponent pattern for dashboard implementation |
+| F-004: Service Layer | Provides ApprovalRequestService and ApprovalHistoryService for metrics retrieval |
 
-Repository analysis reveals the following documentation structure and coverage status:
+### 0.3.2 Documentation Gap Analysis
 
-| Documentation Area | Location | Status |
-|--------------------|----------|--------|
-| Developer Documentation | `docs/developer/` | Comprehensive - 14 topic folders with folder.json manifests |
-| Plugin Development Guide | `docs/developer/plugins/` | Exists - overview.md and create-your-own.md |
-| Background Jobs Guide | `docs/developer/background-jobs/` | Complete - overview, schedule plans, job types |
-| Hooks Documentation | `docs/developer/hooks/` | Complete - API hooks, page hooks, render hooks |
-| Entity Documentation | `docs/developer/entities/` | Complete - fields, relations, create patterns |
-| Existing JIRA Stories | `/jira-stories/` | Does not exist - must be created |
+**Current Documentation Status:**
 
-#### Documentation Framework Configuration
+| Documentation Element | Current State | Gap Identified |
+| --- | --- | --- |
+| Manager dashboard user story | Missing | No story exists for manager-focused metrics view |
+| Team performance metrics definition | Missing | No documented metrics catalog |
+| Dashboard component specification | Missing | No PcApprovalDashboard or similar component story |
+| Real-time refresh requirements | Missing | No documented refresh interval specifications |
 
-- **Documentation Format**: Markdown with JSON front-matter in HTML comments
-- **Front-matter Schema**: `{"sort_order": N, "name": "slug", "label": "Display Label"}`
-- **Static Site Generator**: Custom build system consuming folder.json manifests
-- **Screenshot Location**: `docs/developer/*/doc-images/`
-
-#### Repository Code Analysis for Documentation
-
-**Search patterns used for workflow-related code:**
-
-| Pattern | Directories Examined | Findings |
-|---------|---------------------|----------|
-| Workflow/Approval patterns | `WebVella.Erp/`, All Plugins | No existing approval workflow implementation |
-| State machine patterns | `WebVella.Erp/Api/`, `WebVella.Erp/Jobs/` | Job state management (Pending/Running/Finished) provides pattern |
-| Notification patterns | `WebVella.Erp/Notifications/`, `WebVella.Erp.Plugins.Mail/` | Postgres LISTEN/NOTIFY + SMTP email infrastructure exists |
-| Hook patterns | `WebVella.Erp/Hooks/`, Plugin Hooks folders | Pre/Post CRUD hooks well-documented |
-| Service patterns | `WebVella.Erp.Plugins.Project/Services/` | BaseService pattern with manager injection |
-
-**Key Existing Components for Reference:**
-
-| Component | Location | Documentation Value |
-|-----------|----------|-------------------|
-| TaskService | `WebVella.Erp.Plugins.Project/Services/TaskService.cs` | State management, hook integration pattern |
-| ProcessSmtpQueueJob | `WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs` | Background job + email pattern |
-| SmtpInternalService | `WebVella.Erp.Plugins.Mail/Services/SmtpInternalService.cs` | Email send/queue APIs |
-| RecordHookManager | `WebVella.Erp/Hooks/RecordHookManager.cs` | Hook discovery and invocation |
-| JobManager | `WebVella.Erp/Jobs/JobManager.cs` | Job scheduling and execution |
-
-#### Plugin Pattern Analysis
-
-Analysis of existing plugins reveals consistent implementation patterns:
-
-```
-WebVella.Erp.Plugins.{Name}/
-├── {Name}Plugin.cs                    # ErpPlugin inheritor with Initialize()
-├── {Name}Plugin._.cs                  # ProcessPatches() orchestrator
-├── {Name}Plugin.{YYYYMMDD}.cs        # Dated migration patches
-├── WebVella.Erp.Plugins.{Name}.csproj # net9.0, Razor SDK project
-├── Api/                               # DTOs and models
-├── Components/                        # Page components
-├── Controllers/                       # REST API controllers
-├── DataSource/                        # CodeDataSource implementations
-├── Hooks/                             # Api/ and Page/ hook adapters
-├── Jobs/                              # ErpJob implementations
-├── Model/                             # Plugin-specific models
-├── Services/                          # Business logic services
-└── wwwroot/                           # Static assets
-```
-
-#### Related Documentation Found
-
-| Existing Doc | Path | Relevance |
-|--------------|------|-----------|
-| Background Jobs Overview | `docs/developer/background-jobs/overview.md` | Pattern for scheduled notification jobs |
-| Hook Implementation | `docs/developer/hooks/overview.md` | Pattern for approval state hooks |
-| Plugin Structure | `docs/developer/plugins/create-your-own.md` | Template for ApprovalPlugin |
-| Entity Creation | `docs/developer/entities/create-entity.md` | Pattern for approval entities |
-| Server API | `docs/developer/server-api/overview.md` | Manager class usage patterns |
-
-#### Web Search Research Not Required
-
-The codebase provides sufficient patterns and examples for JIRA story generation. External research was not necessary as:
-- WebVella ERP documentation is self-contained
-- Plugin patterns are well-established in existing plugins
-- Approval workflow patterns can be derived from existing state management code
-
-## 0.5 Documentation Scope Analysis
-
-#### Code-to-Documentation Mapping
-
-#### Modules Requiring Documentation (JIRA Stories)
-
-**1. Approval Plugin Core Infrastructure**
-- **Source Pattern**: `WebVella.Erp.Plugins.Project/ProjectPlugin.cs`
-- **Documentation Needed**: JIRA story for plugin scaffold creation
-- **New Files to Document**:
-  - `WebVella.Erp.Plugins.Approval/ApprovalPlugin.cs`
-  - `WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj`
-  - `WebVella.Erp.Plugins.Approval/Model/PluginSettings.cs`
-
-**2. Approval Entity Schema**
-- **Source Pattern**: `WebVella.Erp/Api/Models/Entity.cs`, `WebVella.Erp.Plugins.SDK/SdkPlugin.20181215.cs`
-- **Documentation Needed**: JIRA stories for entity creation migrations
-- **Entities to Document**:
-
-| Entity Name | Purpose | Key Fields |
-|-------------|---------|------------|
-| approval_workflow | Workflow definition | id, name, target_entity, is_enabled, created_on |
-| approval_step | Step in workflow | id, workflow_id, step_order, approver_type, threshold_config |
-| approval_rule | Routing rule | id, workflow_id, field_name, operator, value, next_step_id |
-| approval_request | Active request | id, record_id, entity_name, workflow_id, status, current_step_id |
-| approval_history | Audit log | id, request_id, action, performed_by, timestamp, comments |
-
-**3. Approval Services**
-- **Source Pattern**: `WebVella.Erp.Plugins.Project/Services/TaskService.cs`
-- **Documentation Needed**: JIRA story for service layer
-- **Services to Document**:
-
-| Service | Responsibility | Key Methods |
-|---------|---------------|-------------|
-| ApprovalWorkflowService | Workflow CRUD and configuration | CreateWorkflow(), GetWorkflow(), UpdateWorkflow() |
-| ApprovalRouteService | Route evaluation and step progression | EvaluateNextStep(), GetApproversForStep() |
-| ApprovalRequestService | Request lifecycle management | CreateRequest(), ApproveRequest(), RejectRequest() |
-| ApprovalHistoryService | Audit trail management | LogApprovalAction(), GetRequestHistory() |
-
-**4. Approval Hooks**
-- **Source Pattern**: `WebVella.Erp.Plugins.Project/Hooks/Api/Task.cs`
-- **Documentation Needed**: JIRA story for hook implementations
-- **Hooks to Document**:
-
-| Hook Class | Interface | Entity | Purpose |
-|------------|-----------|--------|---------|
-| ApprovalRequestCreateHook | IErpPreCreateRecordHook | approval_request | Initialize workflow routing |
-| ApprovalRequestUpdateHook | IErpPostUpdateRecordHook | approval_request | Trigger notifications on state change |
-| TargetEntityHook | IErpPreCreateRecordHook | purchase_order, expense_request | Initiate approval on record creation |
-
-**5. Background Jobs**
-- **Source Pattern**: `WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs`
-- **Documentation Needed**: JIRA story for scheduled jobs
-- **Jobs to Document**:
-
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| ProcessApprovalNotificationsJob | Every 5 minutes | Send pending approval notifications |
-| ProcessApprovalEscalationsJob | Every 30 minutes | Escalate overdue approvals |
-| CleanupExpiredApprovalsJob | Daily | Archive old approval requests |
-
-**6. API Endpoints**
-- **Source Pattern**: `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs`
-- **Documentation Needed**: JIRA story for REST API
-- **Endpoints to Document**:
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| /api/v3.0/p/approval/workflow | GET/POST | Workflow CRUD |
-| /api/v3.0/p/approval/request/{id}/approve | POST | Approve request |
-| /api/v3.0/p/approval/request/{id}/reject | POST | Reject request |
-| /api/v3.0/p/approval/request/{id}/delegate | POST | Delegate approval |
-| /api/v3.0/p/approval/pending | GET | Get user's pending approvals |
-
-#### Documentation Gap Analysis
+**Undocumented User Needs:**
 
 Given the requirements and repository analysis, documentation gaps include:
 
-| Gap Category | Current State | Required Documentation |
-|--------------|---------------|----------------------|
-| Approval Workflow Entities | Does not exist | 5 new entities fully specified |
-| Approval Services | Does not exist | 4 service classes with method signatures |
-| Approval Hooks | Does not exist | 3 hook classes with implementation details |
-| Approval Jobs | Does not exist | 3 background jobs with schedules |
-| Approval API | Does not exist | 5+ REST endpoints with contracts |
-| Approval UI Components | Does not exist | Configuration and action components |
-| Integration Documentation | Does not exist | Mail plugin integration, entity hooks |
+- **Manager persona definition** - No existing story explicitly addresses the "Manager" role's dashboard needs
+- **Aggregate metrics display** - Existing PcApprovalRequestList focuses on individual requests, not aggregate KPIs
+- **Team-level visibility** - Current components show user-specific pending approvals, not team-wide performance
+- **Decision-support visualization** - Chart.js capability exists but no story specifies dashboard charts
 
-#### JIRA Story Coverage Matrix
+### 0.3.3 Vertical Slice Definition
 
-| Feature Area | STORY-001 | STORY-002 | STORY-003 | STORY-004 | STORY-005 | STORY-006 | STORY-007 | STORY-008 |
-|--------------|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|:---------:|
-| Plugin Infrastructure | ● | | | | | | | |
-| Entity Schema | | ● | | | | | | |
-| Workflow Configuration | | | ● | | | | | |
-| Service Layer | | | | ● | | | | |
-| Hook Integration | | | | | ● | | | |
-| Notification Jobs | | | | | | ● | | |
-| API Endpoints | | | | | | | ● | |
-| UI Components | | | | | | | | ● |
+**Single Sprint Deliverable Scope:**
 
-## 0.6 Documentation Implementation Design
+To ensure the user story represents one vertical slice of functionality deliverable within a single sprint, the scope is defined as:
 
-#### Documentation Structure Planning
+| Included in Vertical Slice | Excluded (Future Stories) |
+| --- | --- |
+| Manager dashboard page component | Dashboard configuration options |
+| Real-time pending approvals count by team | Custom metric selection |
+| Average response time metric display | Drill-down to individual requests |
+| Escalation count indicator | Historical trend analysis |
+| Auto-refresh data mechanism | Export/report generation |
+| Basic responsive layout | Role-based metric filtering |
 
-The JIRA stories will be organized in the following hierarchy:
+**Metrics for MVP Dashboard:**
 
-```
-/jira-stories/
+| Metric | Description | Data Source |
+| --- | --- | --- |
+| Frontend successfully renders and is workable without bugs | All buttons work, all views render |  |
+|  |  |  |
+|  |  |  |
+|  |  |  |
+
+### 0.3.4 User Story Content Mapping
+
+**Story Elements Mapped to Source:**
+
+| Story Element | Content Source | Specific Reference |
+| --- | --- | --- |
+| Summary | Business objective + State Street format | User requirements + PDF Page 1-2 |
+| Who (Persona) | Implied from objective | "Manager" role |
+| What (Goal) | Business objective | "real-time dashboard views of team performance metrics" |
+| Why (Reason) | Business objective | "make faster decisions" |
+| Acceptance Criteria | State Street guide | Given/When/Then format |
+| Technical Details | Existing component patterns | STORY-008 template + PageComponent pattern |
+| Dependencies | Feature catalog | F-007, F-008 |
+| Story Points | State Street estimation guidance | Fibonacci scale (recommend 5 points) |
+| Labels | Existing label patterns | workflow, approval, dashboard, metrics, ui |
+
+## 0.4 Documentation Implementation Design
+
+### 0.4.1 Documentation Structure Planning
+
+**User Story Document Structure:**
+
+The new user story document will follow the established repository pattern enhanced with State Street guide requirements:
+
+```plaintext
+jira-stories/
 ├── STORY-001-approval-plugin-infrastructure.md
 ├── STORY-002-approval-entity-schema.md
 ├── STORY-003-workflow-configuration-management.md
@@ -412,995 +328,721 @@ The JIRA stories will be organized in the following hierarchy:
 ├── STORY-006-notification-escalation-jobs.md
 ├── STORY-007-approval-rest-api.md
 ├── STORY-008-approval-ui-components.md
-├── stories-export.csv
-└── stories-export.json
+├── STORY-009-manager-performance-dashboard.md  ← NEW
+├── stories-export.csv                          ← UPDATE
+└── stories-export.json                         ← UPDATE
 ```
 
-#### Content Generation Strategy
+### 
 
-#### Information Extraction Approach
+**Template Application:**
 
-| Information Source | Extraction Method | Target Story |
-|-------------------|-------------------|--------------|
-| Plugin structure from `WebVella.Erp.Plugins.Project/` | Pattern replication | STORY-001 |
-| Entity definitions from `WebVella.Erp/Api/Models/Entity.cs` | Field type mapping | STORY-002 |
-| Migration patches from `*Plugin.*.cs` files | Code generation pattern | STORY-002 |
-| Service layer from `*/Services/*.cs` | Method signature templates | STORY-004 |
-| Hook interfaces from `WebVella.Erp/Hooks/I*.cs` | Interface contracts | STORY-005 |
-| Job implementations from `*/Jobs/*.cs` | ErpJob pattern | STORY-006 |
-| Controller patterns from `*/Controllers/*.cs` | REST API structure | STORY-007 |
-| Component structure from `*/Components/*` | UI component templates | STORY-008 |
+The user story will apply State Street's template structure:
 
-#### Technical Architecture Diagram
+```plaintext
+# STORY-009: Manager Team Performance Dashboard
 
-```mermaid
-graph TB
-    subgraph "STORY-001: Plugin Infrastructure"
-        P1[ApprovalPlugin.cs]
-        P2[WebVella.Erp.Plugins.Approval.csproj]
-        P3[Model/PluginSettings.cs]
-    end
-    
-    subgraph "STORY-002: Entity Schema"
-        E1[approval_workflow]
-        E2[approval_step]
-        E3[approval_rule]
-        E4[approval_request]
-        E5[approval_history]
-        E1 --> E2
-        E1 --> E3
-        E4 --> E5
-    end
-    
-    subgraph "STORY-003: Workflow Config"
-        W1[WorkflowConfigService]
-        W2[StepConfigService]
-        W3[RuleConfigService]
-    end
-    
-    subgraph "STORY-004: Services"
-        S1[ApprovalWorkflowService]
-        S2[ApprovalRouteService]
-        S3[ApprovalRequestService]
-        S4[ApprovalHistoryService]
-    end
-    
-    subgraph "STORY-005: Hooks"
-        H1[ApprovalRequestCreateHook]
-        H2[ApprovalRequestUpdateHook]
-        H3[TargetEntityApprovalHook]
-    end
-    
-    subgraph "STORY-006: Jobs"
-        J1[ProcessNotificationsJob]
-        J2[ProcessEscalationsJob]
-        J3[CleanupExpiredJob]
-    end
-    
-    subgraph "STORY-007: API"
-        A1[ApprovalController]
-    end
-    
-    subgraph "STORY-008: UI"
-        U1[PcApprovalWorkflowConfig]
-        U2[PcApprovalRequestList]
-        U3[PcApprovalAction]
-    end
-    
-    P1 --> E1
-    E1 --> S1
-    S1 --> H1
-    H1 --> J1
-    A1 --> S1
-    U1 --> A1
+#### Summary
+Manager dashboard page component provides real-time team performance metrics display
+
+#### Description
+As a **Manager**,
+I want **a dashboard view showing real-time team performance metrics**,
+so that **I can make faster, data-driven decisions regarding approval workflows**.
+
+#### Business Value
+[Bullet points aligned with INVEST criteria]
+
+#### Acceptance Criteria
+- [ ] **AC1**: Given I am logged in as a Manager...
+- [ ] **AC2**: Given the dashboard page is displayed...
+[Using Given/When/Then syntax per State Street guide]
+
+#### Technical Implementation Details
+[Files, classes, integration points]
+
+#### Dependencies
+[Prerequisite stories]
+
+#### Effort Estimate
+[Story points with justification]
+
+#### Labels
+[Categorization tags]
 ```
 
-#### Story Dependency Graph
+### 0.4.3 Documentation Standards
 
-```mermaid
-graph LR
-    S1[STORY-001<br/>Plugin Infrastructure]
-    S2[STORY-002<br/>Entity Schema]
-    S3[STORY-003<br/>Workflow Config]
-    S4[STORY-004<br/>Service Layer]
-    S5[STORY-005<br/>Hooks Integration]
-    S6[STORY-006<br/>Jobs]
-    S7[STORY-007<br/>REST API]
-    S8[STORY-008<br/>UI Components]
-    
-    S1 --> S2
-    S2 --> S3
-    S2 --> S4
-    S3 --> S4
-    S4 --> S5
-    S4 --> S6
-    S4 --> S7
-    S5 --> S6
-    S7 --> S8
-```
+**Markdown Formatting Requirements:**
 
-#### Documentation Standards
+| Element | Format | Example |
+| --- | --- | --- |
+| Story title | H1 heading | # STORY-009: Manager Team Performance Dashboard |
+| Major sections | H2 headings | ## Description |
+| Sub-sections | H3 headings | ### Files/Modules to Create |
+| Acceptance criteria | Checkbox list with bold ID | - [ ] **AC1**: ... |
+| Tables | Markdown tables | ` |
+| Code examples | Fenced code blocks | ```csharp ... ``` |
 
-| Standard | Specification |
-|----------|--------------|
-| Markdown Formatting | GitHub-flavored Markdown with proper headers |
-| Code Blocks | Triple backtick with language identifier |
-| Diagrams | Mermaid syntax for architecture diagrams |
-| Source Citations | Inline references: `Source: /path/to/file.cs:LineNumber` |
-| Tables | Used for parameter descriptions and mappings |
-| Terminology | Consistent with WebVella ERP naming conventions |
+**Citation Requirements:**
 
-#### Entity Relationship Diagram for Stories
+| Citation Type | Format | Application |
+| --- | --- | --- |
+| Source code reference | Source: /path/to/file.ext | Technical implementation details |
+| Pattern reference | **Source Pattern**: path/to/reference | Key classes and functions |
+| Guide reference | Per State Street Guide, Section X | Formatting decisions |
 
-```mermaid
-erDiagram
-    approval_workflow ||--o{ approval_step : contains
-    approval_workflow ||--o{ approval_rule : has
-    approval_workflow ||--o{ approval_request : processes
-    approval_step ||--o{ approval_request : current_step
-    approval_request ||--o{ approval_history : generates
-    user ||--o{ approval_request : created_by
-    user ||--o{ approval_history : performed_by
-    
-    approval_workflow {
-        guid id PK
-        string name
-        string target_entity
-        boolean is_enabled
-        datetime created_on
-        guid created_by FK
-    }
-    
-    approval_step {
-        guid id PK
-        guid workflow_id FK
-        int step_order
-        string approver_type
-        json threshold_config
-        int timeout_hours
-    }
-    
-    approval_rule {
-        guid id PK
-        guid workflow_id FK
-        string field_name
-        string operator
-        decimal threshold_value
-        guid next_step_id FK
-    }
-    
-    approval_request {
-        guid id PK
-        guid source_record_id
-        string source_entity
-        guid workflow_id FK
-        guid current_step_id FK
-        string status
-        datetime created_on
-        guid created_by FK
-    }
-    
-    approval_history {
-        guid id PK
-        guid request_id FK
-        string action_type
-        guid performed_by FK
-        datetime performed_on
-        string comments
-        string previous_status
-        string new_status
-    }
-```
+### 0.4.4 Diagram and Visual Strategy
 
-## 0.7 Documentation File Transformation Mapping
+**Mermaid Diagrams to Include:**
 
-#### File-by-File Documentation Plan
+| Diagram Type | Purpose | Content |
+| --- | --- | --- |
+| Component relationship | Show dashboard data flow | Dashboard ↔ API ↔ Services ↔ Entities |
+| User flow | Illustrate manager interaction | Login → Dashboard → View Metrics → Take Action |
 
-#### Documentation Transformation Overview
+## 0.5 Documentation File Transformation Mapping
+
+### 0.5.1 File-by-File Documentation Plan
+
+**CRITICAL:** The following table maps EVERY documentation file to be created, updated, or deleted for this user story documentation task:
 
 | Target Documentation File | Transformation | Source Code/Docs | Content/Changes |
-|---------------------------|----------------|------------------|-----------------|
-| /jira-stories/STORY-001-approval-plugin-infrastructure.md | CREATE | WebVella.Erp.Plugins.Project/ProjectPlugin.cs | Plugin scaffold, project file, namespace setup |
-| /jira-stories/STORY-002-approval-entity-schema.md | CREATE | WebVella.Erp/Api/Models/Entity.cs, SdkPlugin.20181215.cs | Entity definitions and migration patches |
-| /jira-stories/STORY-003-workflow-configuration-management.md | CREATE | docs/developer/entities/create-entity.md | Workflow CRUD operations and validation |
-| /jira-stories/STORY-004-approval-service-layer.md | CREATE | WebVella.Erp.Plugins.Project/Services/*.cs | Service classes and business logic |
-| /jira-stories/STORY-005-approval-hooks-integration.md | CREATE | WebVella.Erp/Hooks/*.cs, Plugins/Project/Hooks/ | Pre/Post hooks for approval events |
-| /jira-stories/STORY-006-notification-escalation-jobs.md | CREATE | WebVella.Erp.Plugins.Mail/Jobs/*.cs | Background jobs for notifications |
-| /jira-stories/STORY-007-approval-rest-api.md | CREATE | WebVella.Erp.Plugins.Project/Controllers/*.cs | REST API endpoint specifications |
-| /jira-stories/STORY-008-approval-ui-components.md | CREATE | WebVella.Erp.Plugins.Project/Components/ | Page components for approval UI |
-| /jira-stories/stories-export.csv | CREATE | All STORY-*.md files | Consolidated CSV export |
-| /jira-stories/stories-export.json | CREATE | All STORY-*.md files | Consolidated JSON export |
+| --- | --- | --- | --- |
+| jira-stories/STORY-009-manager-performance-dashboard.md | CREATE | State Street Guide + STORY-008 pattern | Complete user story with Who/What/Why format, Given/When/Then acceptance criteria, technical implementation details, dependencies, and story points |
+| jira-stories/stories-export.csv | UPDATE | New STORY-009 content | Add new row with Story ID, Title, Description, Business Value, Acceptance Criteria, Technical Details, Dependencies, Story Points, Labels |
+| jira-stories/stories-export.json | UPDATE | New STORY-009 content | Add new JSON object to array with all story fields structured for JIRA import |
 
-#### New Documentation Files Detail
+### 0.5.2 New Documentation Files Detail
 
-#### STORY-001: Approval Plugin Infrastructure
+**File: jira-stories/STORY-009-manager-performance-dashboard.md**
 
-```
-File: /jira-stories/STORY-001-approval-plugin-infrastructure.md
-Type: JIRA Story - Infrastructure
-Source Pattern: WebVella.Erp.Plugins.Project/ProjectPlugin.cs
-Sections:
-    - Description (plugin purpose and architecture)
-    - Business Value (extensibility, modularity)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Files: ApprovalPlugin.cs, csproj, Model/PluginSettings.cs
-        * Classes: ApprovalPlugin : ErpPlugin
-        * Methods: Initialize(), ProcessPatches(), SetSchedulePlans()
-    - Dependencies: None (first story)
-    - Effort: 3 Story Points
-Key Citations:
-    - WebVella.Erp.Plugins.Project/ProjectPlugin.cs
-    - WebVella.Erp/ErpPlugin.cs
-    - WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj
-```
+| Attribute | Value |
+| --- | --- |
+| Type | JIRA User Story |
+| Format | Markdown |
+| Template Source | State Street Guide |
 
-#### STORY-002: Approval Entity Schema
+**Document Sections:**
 
-```
-File: /jira-stories/STORY-002-approval-entity-schema.md
-Type: JIRA Story - Data Model
-Source Pattern: WebVella.Erp.Plugins.SDK/SdkPlugin.20181215.cs
-Sections:
-    - Description (5 entities for approval workflow)
-    - Business Value (data persistence, audit trail)
-    - Acceptance Criteria (5 criteria per entity)
-    - Technical Implementation Details
-        * Entities: approval_workflow, approval_step, approval_rule, 
-                   approval_request, approval_history
-        * Relations: OneToMany (workflow->steps, workflow->rules)
-        * Migration: ApprovalPlugin.20260115.cs
-    - Dependencies: STORY-001
-    - Effort: 8 Story Points
-Key Citations:
-    - WebVella.Erp/Api/EntityManager.cs
-    - WebVella.Erp/Api/EntityRelationManager.cs
-    - WebVella.Erp/Api/Models/Entity.cs
-```
+| Section | Content Source | Expected Content |
+| --- | --- | --- |
+| Title | User requirements | "Manager Team Performance Dashboard" |
+| Summary | Business objective (≤255 chars) | "Dashboard component displays real-time team performance metrics for manager decision-making" |
+| Description | State Street Who/What/Why format | As a Manager, I want real-time dashboard views, so that I can make faster decisions |
+| Business Value | INVEST analysis | Bullet points on value delivery |
+| Acceptance Criteria | Given/When/Then per State Street | 4-6 testable criteria with clear pass/fail |
+| Technical Implementation | PageComponent pattern | Files, classes, methods, integration points |
+| Dependencies | Feature catalog | F-007 (REST API), F-008 (UI Components) |
+| Effort Estimate | Fibonacci comparison | 5 story points with justification |
+| Labels | Standard categorization | workflow, approval, dashboard, metrics, ui, frontend |
+| Additional Notes | Reference patterns | Source code references from existing plugins |
 
-#### STORY-003: Workflow Configuration Management
+**Key Citations to Include:**
 
-```
-File: /jira-stories/STORY-003-workflow-configuration-management.md
-Type: JIRA Story - Configuration
-Source Pattern: docs/developer/entities/create-entity.md
-Sections:
-    - Description (workflow CRUD and step configuration)
-    - Business Value (admin configuration flexibility)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Services: WorkflowConfigService, StepConfigService, RuleConfigService
-        * Validation: Threshold ordering, approver role validation
-        * EQL Queries: Workflow retrieval with step expansion
-    - Dependencies: STORY-001, STORY-002
-    - Effort: 5 Story Points
-Key Citations:
-    - WebVella.Erp/Eql/EqlBuilder.cs
-    - WebVella.Erp/Api/RecordManager.cs
-```
+| Citation | Purpose |
+| --- | --- |
+| WebVella.Erp.Web/Components/ | PageComponent pattern reference |
+| jira-stories/STORY-008-approval-ui-components.md | Structure template |
+| State Street Guide, Pages 2-3 | Acceptance Criteria format |
+|  |  |
 
-#### STORY-004: Approval Service Layer
+### 0.5.3 Documentation Files to Update Detail
 
-```
-File: /jira-stories/STORY-004-approval-service-layer.md
-Type: JIRA Story - Business Logic
-Source Pattern: WebVella.Erp.Plugins.Project/Services/TaskService.cs
-Sections:
-    - Description (core approval business logic)
-    - Business Value (encapsulated business rules)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Services: ApprovalWorkflowService, ApprovalRouteService,
-                   ApprovalRequestService, ApprovalHistoryService
-        * Patterns: BaseService inheritance, manager injection
-        * Integration: SecurityContext for permission checks
-    - Dependencies: STORY-001, STORY-002, STORY-003
-    - Effort: 8 Story Points
-Key Citations:
-    - WebVella.Erp.Plugins.Project/Services/BaseService.cs
-    - WebVella.Erp.Plugins.Project/Services/TaskService.cs
-    - WebVella.Erp/Api/SecurityContext.cs
-```
+**File: jira-stories/stories-export.csv**
 
-#### STORY-005: Approval Hooks Integration
+| Field | New Value |
+| --- | --- |
+| Story ID | STORY-009 |
+| Title | Manager Team Performance Dashboard |
+| Description | Implement dashboard page component for managers displaying real-time team performance metrics including pending approvals count, average response time, escalation indicators, and approval rate. Dashboard follows PageComponent pattern with auto-refresh capability. Enables faster managerial decision-making through consolidated visibility. |
+| Business Value | Real-time visibility for faster decisions; Consolidated team metrics in single view; Proactive escalation awareness; Compliance support through performance tracking |
+| Acceptance Criteria | [ ] Dashboard displays pending approval count; [ ] Average response time metric shown; [ ] Escalation count visible; [ ] Auto-refresh updates data; [ ] Responsive layout renders correctly |
+| Technical Details | Files: Components/PcApprovalDashboard/; Integration: ApprovalController metrics endpoint, Chart.js visualization |
+| Dependencies | STORY-007, STORY-008 |
+| Story Points | 5 |
+| Labels | workflow, approval, dashboard, metrics, ui, frontend |
 
-```
-File: /jira-stories/STORY-005-approval-hooks-integration.md
-Type: JIRA Story - Event Processing
-Source Pattern: WebVella.Erp.Plugins.Project/Hooks/Api/Task.cs
-Sections:
-    - Description (pre/post record hooks for approval events)
-    - Business Value (automated workflow triggering)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Hooks: ApprovalRequestCreateHook, ApprovalRequestUpdateHook,
-                TargetEntityApprovalHook
-        * Interfaces: IErpPreCreateRecordHook, IErpPostUpdateRecordHook
-        * Attributes: HookAttachmentAttribute with entity key
-    - Dependencies: STORY-004
-    - Effort: 5 Story Points
-Key Citations:
-    - WebVella.Erp/Hooks/IErpPreCreateRecordHook.cs
-    - WebVella.Erp/Hooks/IErpPostUpdateRecordHook.cs
-    - WebVella.Erp/Hooks/HookAttachmentAttribute.cs
-    - WebVella.Erp/Hooks/RecordHookManager.cs
-```
+**File: jira-stories/stories-export.json**
 
-#### STORY-006: Notification and Escalation Jobs
+Add new JSON object to existing array:
 
-```
-File: /jira-stories/STORY-006-notification-escalation-jobs.md
-Type: JIRA Story - Background Processing
-Source Pattern: WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs
-Sections:
-    - Description (scheduled jobs for notifications and escalations)
-    - Business Value (automated reminders, SLA enforcement)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Jobs: ProcessApprovalNotificationsJob, ProcessApprovalEscalationsJob,
-               CleanupExpiredApprovalsJob
-        * Scheduling: SchedulePlan with interval configuration
-        * Integration: SmtpInternalService for email dispatch
-    - Dependencies: STORY-004, STORY-005
-    - Effort: 5 Story Points
-Key Citations:
-    - WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs
-    - WebVella.Erp/Jobs/ErpJob.cs
-    - WebVella.Erp/Jobs/JobAttribute.cs
-    - WebVella.Erp/Jobs/SheduleManager.cs
-```
-
-#### STORY-007: Approval REST API
-
-```
-File: /jira-stories/STORY-007-approval-rest-api.md
-Type: JIRA Story - API Layer
-Source Pattern: WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs
-Sections:
-    - Description (REST API endpoints for approval operations)
-    - Business Value (external integration, UI consumption)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Controller: ApprovalController
-        * Endpoints: workflow CRUD, request actions, pending list
-        * Security: [Authorize] attribute, role validation
-        * Response: ResponseModel envelope pattern
-    - Dependencies: STORY-004
-    - Effort: 5 Story Points
-Key Citations:
-    - WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs
-    - WebVella.Erp/Api/Models/BaseModels.cs (ResponseModel)
-```
-
-#### STORY-008: Approval UI Components
-
-```
-File: /jira-stories/STORY-008-approval-ui-components.md
-Type: JIRA Story - User Interface
-Source Pattern: WebVella.Erp.Plugins.Project/Components/
-Sections:
-    - Description (page components for approval management UI)
-    - Business Value (user-friendly approval interface)
-    - Acceptance Criteria (5 criteria)
-    - Technical Implementation Details
-        * Components: PcApprovalWorkflowConfig, PcApprovalRequestList,
-                     PcApprovalAction, PcApprovalHistory
-        * Views: Design.cshtml, Display.cshtml, Options.cshtml
-        * JavaScript: service.js for client interactions
-    - Dependencies: STORY-007
-    - Effort: 8 Story Points
-Key Citations:
-    - WebVella.Erp.Plugins.Project/Components/
-    - docs/developer/components/create-your-own.md
-```
-
-#### Export Files Detail
-
-## stories-export.csv
-
-```
-File: /jira-stories/stories-export.csv
-Type: CSV Export
-Format: Comma-separated with quoted fields
-Columns: Story ID, Title, Description, Business Value, Acceptance Criteria, 
-         Technical Details, Dependencies, Story Points, Labels
-Rows: 8 (one per JIRA story)
-```
-
-## stories-export.json
-
-```
-File: /jira-stories/stories-export.json
-Type: JSON Export
-Format: Array of story objects
-Schema:
+```json
 {
-  "stories": [
-    {
-      "id": "STORY-001",
-      "title": "...",
-      "description": "...",
-      "businessValue": "...",
-      "acceptanceCriteria": ["...", "..."],
-      "technicalDetails": {
-        "files": ["..."],
-        "classes": ["..."],
-        "integrationPoints": ["..."],
-        "technicalApproach": "..."
-      },
-      "dependencies": [],
-      "storyPoints": 3,
-      "labels": ["workflow", "approval", "backend"]
-    }
-  ]
+  "storyId": "STORY-009",
+  "title": "Manager Team Performance Dashboard",
+  "description": "Implement dashboard page component...",
+  "businessValue": "Real-time visibility...",
+  "acceptanceCriteria": [...],
+  "technicalDetails": {...},
+  "dependencies": ["STORY-007", "STORY-008"],
+  "storyPoints": 5,
+  "labels": ["workflow", "approval", "dashboard", "metrics", "ui", "frontend"]
 }
 ```
 
-## 0.8 Dependency Inventory
+### 0.5.4 Documentation Configuration Updates
 
-#### Documentation Dependencies
+| Configuration File | Update Required | Change Description |
+| --- | --- | --- |
+| N/A | No changes | No documentation generator configuration exists |
 
-The JIRA stories reference the following existing WebVella ERP dependencies and their versions:
+### 0.5.5 Cross-Documentation Dependencies
+
+**Navigation and Linking:**
+
+| From Document | To Document | Link Purpose |
+| --- | --- | --- |
+| STORY-009 | STORY-007 | API dependency reference |
+| STORY-009 | STORY-008 | UI component pattern reference |
+| stories-export.csv | STORY-009.md | Story detail link |
+| Feature Catalog (if updated) | STORY-009 | Feature F-009 reference |
+
+**Backlog Index Updates:**
+
+- The `stories-export.csv` serves as the master backlog index
+- The `stories-export.json` provides structured data for JIRA import
+- Both files must remain synchronized with the new story
+
+### 0.5.6 Complete Documentation File Inventory
+
+| File Path | Status | Priority |
+| --- | --- | --- |
+| jira-stories/STORY-009-manager-performance-dashboard.md | TO CREATE | Primary deliverable |
+| jira-stories/stories-export.csv | TO UPDATE | Backlog tracking |
+| jira-stories/stories-export.json | TO UPDATE | JIRA integration |
+
+**All documentation files are explicitly listed - no files pending discovery.**
+
+## 0.6 Dependency Inventory
+
+### 0.6.1 Documentation Dependencies
+
+**Documentation Tools and Packages:**
 
 | Registry | Package Name | Version | Purpose |
-|----------|--------------|---------|---------|
-| NuGet | Microsoft.AspNetCore.App | 9.0.x (Framework) | ASP.NET Core runtime framework |
-| NuGet | Newtonsoft.Json | 13.0.4 | JSON serialization for entity records and API responses |
-| NuGet | Npgsql | 9.0.4 | PostgreSQL database connectivity |
-| NuGet | AutoMapper | 14.0.0 | Entity-to-DTO mapping |
-| NuGet | Microsoft.Extensions.Caching.Memory | 9.0.10 | In-memory caching for workflow configurations |
-| NuGet | Microsoft.Extensions.Hosting.Abstractions | 9.0.10 | Background service hosting for jobs |
-| NuGet | MailKit | 4.14.1 | Email sending (referenced via Mail plugin) |
-| NuGet | MimeKit | 4.14.1 | Email message construction |
-| NuGet | Irony.NetCore | 1.1.11 | EQL query parsing |
-| NuGet | CsvHelper | 33.1.0 | CSV import/export functionality |
-
-#### WebVella Core Framework Dependencies
-
-The approval workflow implementation depends on these core WebVella components:
-
-| Component | Namespace | Dependency Type |
-|-----------|-----------|-----------------|
-| ErpPlugin | WebVella.Erp | Base class for plugin |
-| EntityManager | WebVella.Erp.Api | Entity CRUD operations |
-| EntityRelationManager | WebVella.Erp.Api | Relation management |
-| RecordManager | WebVella.Erp.Api | Record CRUD operations |
-| SecurityManager | WebVella.Erp.Api | User/role management |
-| SecurityContext | WebVella.Erp.Api | Auth context scope |
-| DbContext | WebVella.Erp.Database | Database transactions |
-| HookManager | WebVella.Erp.Hooks | Hook registration |
-| RecordHookManager | WebVella.Erp.Hooks | Hook invocation |
-| JobManager | WebVella.Erp.Jobs | Job scheduling |
-| ScheduleManager | WebVella.Erp.Jobs | Schedule plan management |
-| EqlBuilder | WebVella.Erp.Eql | Query building |
-| EqlCommand | WebVella.Erp.Eql | Query execution |
-
-#### Plugin Dependencies
-
-The approval plugin will depend on these existing plugins:
-
-| Plugin | Purpose | Integration Point |
-|--------|---------|-------------------|
-| WebVella.Erp.Plugins.Mail | Email notifications | SmtpInternalService.QueueEmail() |
-| WebVella.Erp.Plugins.SDK | Admin UI pages | Sitemap registration |
-| WebVella.Erp.Web | Razor UI framework | PageComponent base classes |
-
-#### External Service Dependencies
-
-| Service | Purpose | Configuration |
-|---------|---------|---------------|
-| PostgreSQL 16+ | Data persistence | Connection string in Config.json |
-| SMTP Server | Email delivery | Configured via smtp_service entity |
-
-#### Documentation Reference Updates
-
-If this were updating existing documentation, the following would need link updates:
-
-| Documentation File | Change Required |
-|-------------------|-----------------|
-| README.md | Add reference to Approval plugin in features list |
-| docs/developer/plugins/overview.md | Add Approval plugin to plugin examples |
-| docs/developer/hooks/overview.md | Reference approval hooks as use case |
-| docs/developer/background-jobs/overview.md | Reference approval jobs as use case |
-
-#### Version Compatibility Matrix
-
-| Component | Minimum Version | Tested Version | Maximum Version |
-|-----------|-----------------|----------------|-----------------|
-| .NET Runtime | 9.0.0 | 9.0.0 | 9.x |
-| PostgreSQL | 14.0 | 16.0 | 16.x |
-| WebVella.Erp | 1.7.4 | 1.7.4 | 1.x |
-| WebVella.Erp.Web | 1.7.4 | 1.7.4 | 1.x |
-| WebVella.Erp.Plugins.Mail | 1.7.4 | 1.7.4 | 1.x |
-
-## 0.9 Coverage and Quality Targets
-
-#### Documentation Coverage Metrics
-
-#### JIRA Story Coverage Analysis
-
-| Coverage Area | Stories | Percentage |
-|---------------|---------|------------|
-| Plugin Infrastructure | STORY-001 | 100% |
-| Entity Schema | STORY-002 | 100% |
-| Configuration Management | STORY-003 | 100% |
-| Service Layer | STORY-004 | 100% |
-| Hook Integration | STORY-005 | 100% |
-| Background Jobs | STORY-006 | 100% |
-| REST API | STORY-007 | 100% |
-| UI Components | STORY-008 | 100% |
-
-#### Feature Coverage Matrix
-
-| Feature | Documented | Story Reference |
-|---------|------------|-----------------|
-| Approval workflow definition | ✓ | STORY-002, STORY-003 |
-| Multi-step approval chains | ✓ | STORY-002, STORY-004 |
-| Amount threshold routing | ✓ | STORY-002, STORY-004 |
-| Department-based routing | ✓ | STORY-004 |
-| Role-based authorization | ✓ | STORY-004, STORY-005 |
-| Automated notifications | ✓ | STORY-006 |
-| Escalation handling | ✓ | STORY-006 |
-| Audit trail logging | ✓ | STORY-002, STORY-004 |
-| Delegation support | ✓ | STORY-004, STORY-007 |
-| Admin configuration UI | ✓ | STORY-008 |
-| User approval actions UI | ✓ | STORY-008 |
-
-#### Documentation Quality Criteria
-
-#### Completeness Requirements
-
-| Requirement | Validation Method |
-|-------------|-------------------|
-| All 8 JIRA stories have descriptions | File existence check |
-| All stories have 3-5 acceptance criteria | Content validation |
-| All stories reference specific files | Path validation |
-| All stories include technical approach | Section check |
-| All stories have story point estimates | Field validation |
-| All stories have proper dependencies | Dependency graph validation |
-
-#### Accuracy Validation
-
-| Validation Area | Method |
-|-----------------|--------|
-| File paths exist in codebase | Repository search validation |
-| Interface names match codebase | Code reference check |
-| Method signatures are accurate | Source file comparison |
-| Dependency versions are correct | Package manifest verification |
-
-#### Clarity Standards
-
-| Standard | Implementation |
-|----------|---------------|
-| Technical accuracy | All code references verified against source |
-| Accessible language | Avoids jargon without definition |
-| Progressive disclosure | Stories build from infrastructure to UI |
-| Consistent terminology | Uses WebVella naming conventions |
-
-#### Maintainability
-
-| Aspect | Approach |
-|--------|----------|
-| Source citations | Every technical detail cites source file |
-| Clear ownership | Story IDs provide unique references |
-| Traceability | Dependency chain enables impact analysis |
-| Update path | Versioned file naming supports updates |
-
-#### Story Point Distribution
-
-| Story Points | Stories | Description |
-|--------------|---------|-------------|
-| 3 points | STORY-001 | Small - plugin scaffold |
-| 5 points | STORY-003, STORY-005, STORY-006, STORY-007 | Medium - focused features |
-| 8 points | STORY-002, STORY-004, STORY-008 | Large - complex implementations |
-
-**Total Estimated Effort**: 47 Story Points
-
-#### Example and Diagram Requirements
-
-| Story | Code Examples Required | Diagrams Required |
-|-------|----------------------|-------------------|
-| STORY-001 | Plugin class structure | None |
-| STORY-002 | Entity field definitions | ER diagram |
-| STORY-003 | EQL query examples | None |
-| STORY-004 | Service method signatures | Service interaction diagram |
-| STORY-005 | Hook interface implementation | Hook flow diagram |
-| STORY-006 | Job attribute usage | Job scheduling diagram |
-| STORY-007 | API endpoint contracts | None |
-| STORY-008 | Component structure | Component hierarchy |
-
-#### Quality Checklist Per Story
-
-Each JIRA story must pass the following quality gates:
-
-- [ ] Title is clear and under 80 characters
-- [ ] Description explains the "what" and "why"
-- [ ] Business value is explicitly stated
-- [ ] At least 3 acceptance criteria are testable
-- [ ] Technical details reference actual codebase paths
-- [ ] Dependencies are correctly sequenced
-- [ ] Story points align with complexity
-- [ ] Labels are relevant and consistent
-- [ ] Code examples compile conceptually
-- [ ] Diagrams use correct Mermaid syntax
-
-## 0.10 Scope Boundaries
-
-#### Exhaustively In Scope
-
-#### Documentation Files to Create
-
-| Category | Files | Pattern |
-|----------|-------|---------|
-| JIRA Stories | 8 markdown files | /jira-stories/STORY-*.md |
-| CSV Export | 1 file | /jira-stories/stories-export.csv |
-| JSON Export | 1 file | /jira-stories/stories-export.json |
-
-#### Story Content Coverage
-
-- **Plugin Infrastructure** (STORY-001)
-  - ApprovalPlugin.cs class structure
-  - Project file configuration
-  - Plugin initialization pattern
-  - Schedule plan registration
-
-- **Entity Schema** (STORY-002)
-  - approval_workflow entity definition
-  - approval_step entity definition
-  - approval_rule entity definition
-  - approval_request entity definition
-  - approval_history entity definition
-  - Entity relations (OneToMany, ManyToMany)
-  - Migration patch structure
-
-- **Workflow Configuration** (STORY-003)
-  - Workflow CRUD operations
-  - Step configuration management
-  - Rule definition and validation
-  - Threshold configuration
-
-- **Service Layer** (STORY-004)
-  - ApprovalWorkflowService
-  - ApprovalRouteService
-  - ApprovalRequestService
-  - ApprovalHistoryService
-  - BaseService pattern inheritance
-
-- **Hook Integration** (STORY-005)
-  - IErpPreCreateRecordHook implementation
-  - IErpPostUpdateRecordHook implementation
-  - HookAttachmentAttribute usage
-  - Target entity integration hooks
-
-- **Background Jobs** (STORY-006)
-  - ProcessApprovalNotificationsJob
-  - ProcessApprovalEscalationsJob
-  - CleanupExpiredApprovalsJob
-  - SchedulePlan configuration
-
-- **REST API** (STORY-007)
-  - ApprovalController endpoints
-  - Workflow CRUD API
-  - Request action API (approve/reject/delegate)
-  - Pending approvals query API
-
-- **UI Components** (STORY-008)
-  - PcApprovalWorkflowConfig component
-  - PcApprovalRequestList component
-  - PcApprovalAction component
-  - PcApprovalHistory component
-
-#### Explicitly Out of Scope
-
-#### Not Included in Documentation
-
-| Category | Exclusion | Rationale |
-|----------|-----------|-----------|
-| Source Code Implementation | Actual C# code files | Stories document requirements, not code |
-| Database Migrations | DDL scripts | Part of implementation, not specification |
-| Unit Tests | Test files | Testing is implementation detail |
-| Integration Tests | Test files | Testing is implementation detail |
-| Deployment Scripts | CI/CD configuration | Outside approval workflow scope |
-| Performance Optimization | Performance tuning | Future enhancement |
-| Mobile UI | Mobile-specific components | Not specified in requirements |
-| External System Integration | Third-party workflow tools | Not specified in requirements |
-| Historical Data Migration | Legacy data import | Not specified in requirements |
-
-#### Boundary Clarifications
-
-| Topic | In Scope | Out of Scope |
-|-------|----------|--------------|
-| Purchase Orders | Reference as target entity | PO entity creation |
-| Expense Requests | Reference as target entity | Expense entity creation |
-| User Management | Integration with existing | New user management features |
-| Role Management | Integration with existing | New role creation features |
-| Email Templates | Reference patterns | Template design |
-| Reporting | Audit history queries | BI/analytics dashboards |
-
-#### Documentation Assumptions
-
-| Assumption | Impact |
-|------------|--------|
-| WebVella ERP 1.7.4 is target version | All patterns based on current codebase |
-| .NET 9.0 is runtime target | Framework references are 9.x |
-| PostgreSQL 16 is database | DB-specific features available |
-| Mail plugin is deployed | Email notification capability exists |
-| SDK plugin is deployed | Admin UI infrastructure exists |
-| Users exist with appropriate roles | Role-based approval is feasible |
-
-#### Out of Scope - User Exclusions
-
-The user did not explicitly exclude any items. All documentation generated addresses the stated business objective of multi-level approval workflow automation.
-
-## 0.11 Execution Parameters
-
-#### Documentation-Specific Instructions
-
-#### File Generation Commands
-
-| Task | Command | Output |
-|------|---------|--------|
-| Create output directory | `mkdir -p /jira-stories` | Directory created |
-| Generate story files | Write markdown content | 8 .md files |
-| Generate CSV export | Write CSV content | stories-export.csv |
-| Generate JSON export | Write JSON content | stories-export.json |
-
-#### Validation Commands
-
-| Task | Command | Expected Result |
-|------|---------|-----------------|
-| Verify file count | `ls -la /jira-stories/*.md \| wc -l` | 8 |
-| Verify CSV exists | `test -f /jira-stories/stories-export.csv && echo "OK"` | OK |
-| Verify JSON valid | `cat /jira-stories/stories-export.json \| python -m json.tool` | Valid JSON |
-| Check markdown links | Manual review | All paths exist |
-
-#### Default Format Specifications
+| --- | --- | --- | --- |
+| N/A | Markdown | N/A | Native documentation format |
+| N/A | Mermaid | Embedded | Diagram generation in Markdown |
+| N/A | Git | System | Version control for documentation |
+
+**Note:** This project uses manual Markdown authoring without automated documentation generators. No additional tooling dependencies are required for this documentation task.
+
+**Feature Catalog Dependencies:**
+
+| Feature ID | Feature Name | Relationship |
+| --- | --- | --- |
+| F-007 | Approval REST API Endpoints | Required - API consumption |
+| F-008 | Approval UI Page Components | Required - Component patterns |
+| F-004 | Approval Service Layer | Required - Data providers |
+| F-002 | Approval Entity Schema | Implicit - Data model |
+
+### 0.6.3 System Dependencies Referenced
+
+**WebVella ERP Components:**
+
+| Component | Purpose in Dashboard Story |
+| --- | --- |
+| WebVella.Erp.Web | PageComponent base class and infrastructure |
+| WebVella.Erp.Web.Components | Component registration and discovery |
+| WebVella.Erp.Plugins.Approval | Approval-specific services and entities |
+| Chart.js | Client-side chart rendering (existing library) |
+| Bootstrap 4 | Responsive layout and styling |
+| jQuery | AJAX calls in service.js |
+| Toastr | User notification feedback |
+
+**Entity Dependencies:**
+
+| Entity | Fields Used for Metrics |
+| --- | --- |
+| approval_request | id, status, created_on, current_step_id |
+| approval_history | action_type, performed_on, request_id |
+| approval_workflow | id, name, is_enabled |
+
+### 0.6.4 Documentation Reference Updates
+
+**Cross-References to Maintain:**
+
+| Document | Update Type | Content |
+| --- | --- | --- |
+| jira-stories/STORY-008-approval-ui-components.md | REFERENCE ONLY | Use as template - no modifications |
+| jira-stories/STORY-007-approval-rest-api.md | REFERENCE ONLY | API endpoint patterns - no modifications |
+| Feature Catalog (Tech Spec Section 2.1) | REFERENCE ONLY | Feature dependency chain - no modifications |
+
+### 0.6.5 External Documentation References
+
+**State Street Guide Dependencies:**
+
+| Guide Section | Page | Application |
+| --- | --- | --- |
+| Purpose | 1 | User story definition and scope |
+| Anatomy of a Story | 1-2 | Summary, Who/What/Why, Acceptance Criteria format |
+| How to measure effectiveness | 2 | INVEST criteria validation |
+| Acceptance Criteria Effectiveness | 3 | Clarity, Conciseness, Testability, Result-Oriented |
+| Story Estimation | 4-6 | Fibonacci-based story point assignment |
+
+### 0.6.6 Link Transformation Rules
+
+**Internal Documentation Links:**
+
+| Link Type | Format | Example |
+| --- | --- | --- |
+| Story cross-reference | [STORY-XXX](./STORY-XXX-name.md) | [STORY-007](./STORY-007-approval-rest-api.md) |
+| Feature reference | F-XXX | F-007, F-008 |
+| Entity reference | approval_* | approval_request, approval_history |
+
+**No link transformations required** - this is a new documentation file creation that follows existing conventions.
+
+## 0.7 Coverage and Quality Targets
+
+### 0.7.1 Documentation Coverage Metrics
+
+**Current Coverage Analysis:**
+
+| Documentation Category | Current | Target | Gap |
+| --- | --- | --- | --- |
+| JIRA User Stories in backlog | 8 stories | 9 stories | 1 story (STORY-009) |
+| Manager-focused features documented | 0% | 100% | 1 story required |
+| Dashboard/metrics features documented | 0% | 100% | 1 story required |
+| CSV backlog entries | 8 entries | 9 entries | 1 entry |
+| JSON export entries | 8 entries | 9 entries | 1 entry |
+
+**Target Coverage:** 100% of requested functionality documented through:
+
+- Complete user story with all State Street guide sections
+- Synchronized CSV export entry
+- Synchronized JSON export entry
+
+### 0.7.2 Documentation Quality Criteria
+
+### **State Street INVEST Criteria Compliance:**
+
+| Criterion | Validation Method | Target |
+| --- | --- | --- |
+| Independent | No inherent dependency on unspecified stories | ✓ Dependencies on STORY-007, STORY-008 documented |
+| Negotiable | Story allows flexibility in implementation | ✓ Technical approach section provides guidance, not prescription |
+| Valuable | Delivers value to end user/customer | ✓ Business Value section with 4+ points |
+| Estimable | Size can be estimated | ✓ Technical details enable estimation |
+| Sized appropriately | Can be planned and prioritized | ✓ Single sprint scope, 5 story points |
+| Testable | Information enables test development | ✓ Given/When/Then acceptance criteria |
+
+**Acceptance Criteria Quality (per State Street Guide):**
+
+| Quality Measure | Standard | Validation |
+| --- | --- | --- |
+| Clarity | Straightforward, avoids confusion | No ambiguous terms, specific metrics named |
+| Conciseness | Necessary information only | Each criterion ≤2 sentences |
+| Testability | Clear pass/fail determination | Each "Then" clause has measurable outcome |
+| Result-Oriented | Emphasizes end benefit | Focus on manager's visibility and decision capability |
+
+### 0.7.3 Example and Diagram Requirements
+
+**Required Story Examples:**
+
+| Example Type | Minimum Count | Purpose |
+| --- | --- | --- |
+| Acceptance Criteria examples | 4-6 | Testable scenarios |
+| Technical code snippets | 2-3 | Implementation guidance |
+| Integration patterns | 1-2 | API/service usage |
+
+**Required Diagrams:**
+
+| Diagram Type | Count | Purpose |
+| --- | --- | --- |
+| Component relationship diagram | 1 | Show dashboard data flow |
+| Dashboard wireframe/mockup | 1 | Visual representation of deliverable |
+
+### 0.7.4 Story Point Estimation Standards
+
+**Fibonacci Scale Application (per State Street Guide):**
+
+| Points | Relative Effort | Comparison Baseline |
+| --- | --- | --- |
+| 1 | Trivial | Minor documentation update |
+| 3 | Small | Single component modification |
+| 5 | Medium | New component with moderate complexity |
+| 8 | Large | Multiple components with integrations |
+| 13 | Very Large | Complex feature spanning multiple areas |
+| 20+ | Epic-level | Should be split into smaller stories |
+
+**STORY-009 Estimation Rationale:**
+
+| Factor | Assessment | Impact |
+| --- | --- | --- |
+| Effort | New PageComponent with 5 views + service.js | Medium |
+| Complexity | REST API consumption + Chart.js integration | Medium |
+| Uncertainty | Well-established patterns exist in STORY-008 | Low |
+
+### 0.7.5 Demo-ability Requirement
+
+**Per State Street Guide:** "A User Story should be 'Demo-able' - For acceptance by the Product Owner/Business owner the work item must be able to be demonstrated." This is a critical requirement for the user story.
+
+**Demo Criteria for STORY-009:**
+
+| Demo Aspect | Demonstration |
+| --- | --- |
+| Visual Output | Dashboard page with 4 metric cards visible |
+| Data Display | Real metrics from approval_request and approval_history |
+| Interactivity | Auto-refresh mechanism functioning |
+| Responsiveness | Layout adapts to different screen sizes |
+| Integration | Data flows from API through to UI display |
+
+## 0.8 Scope Boundaries
+
+### 0.8.1 Exhaustively In Scope
+
+**New Documentation Files:**
+
+| File Pattern | Description |
+| --- | --- |
+| jira-stories/STORY-009-manager-performance-dashboard.md | Complete JIRA user story document |
+
+**Documentation File Updates:**
+
+| File | Update Description |
+| --- | --- |
+| jira-stories/stories-export.csv | Add STORY-009 row entry |
+| jira-stories/stories-export.json | Add STORY-009 JSON object |
+
+**Document Content Elements:**
+
+| Element | Scope Detail |
+| --- | --- |
+| Story Summary | ≤255 characters describing dashboard component |
+| Who/What/Why Description | Manager persona, dashboard goal, decision benefit |
+| Business Value | 4+ bullet points on value delivery |
+| Acceptance Criteria | 4-6 Given/When/Then testable conditions |
+| Technical Implementation Details | Files, classes, methods, integration points |
+| Dependencies | Prerequisite story references |
+| Effort Estimate | Story points with justification |
+| Labels | Categorization tags |
+| Additional Notes | Source code references, testing considerations |
+
+**Documentation Format Requirements:**
+
+### 0.8.2 Explicitly Out of Scope
+
+**Source Code Modifications:**
+
+**Test File Modifications:**
+
+**Feature Additions or Refactoring:**
+
+**Other Exclusions:**
+
+| Exclusion | Reason |
+| --- | --- |
+| Deployment configuration | Infrastructure concerns separate from story |
+| CI/CD pipeline updates | DevOps responsibility |
+| User training materials | Separate documentation effort |
+| Marketing/release notes | Different documentation type |
+| Existing story modifications | New story only, no retroactive changes |
+| Feature catalog updates | Optional future enhancement |
+
+### 0.8.3 Scope Validation Checklist
+
+**Documentation Task Boundaries:**
+
+| Validation Point | Status |
+| --- | --- |
+| Creating new STORY-009 document | ✓ In Scope |
+| Following State Street guide format | ✓ In Scope |
+| Using existing repository patterns | ✓ In Scope |
+| Updating CSV/JSON exports | ✓ In Scope |
+| Modifying existing stories | ✗ Out of Scope |
+| Writing implementation code | ✗ Out of Scope |
+| Creating tests | ✗ Out of Scope |
+| Updating tech spec sections | ✗ Out of Scope |
+
+### 0.8.4 Boundary Decision Rationale
+
+**Why Documentation Only:**
+
+The user request specifically asks to "Create a JIRA user story" - this is a documentation artifact creation task, not a software implementation task. The deliverable is:
+
+1. **A Markdown document** defining the user story
+2. **CSV/JSON updates** for backlog tracking
+3. **No source code** changes
+
+**Why Single Story:**
+
+Per State Street Guide: "Stories are written in a way that covers vertical slices of a system and can be delivered within a sprint."
+
+The scope is intentionally limited to one user story representing one vertical slice of dashboard functionality, enabling:
+
+- Sprint-level delivery
+- Independent testing and acceptance
+- Clear demo-ability
+
+## 0.9 Execution Parameters
+
+### 0.9.1 Documentation-Specific Instructions
+
+**Documentation Creation Commands:**
+
+| Operation | Command | Notes |
+| --- | --- | --- |
+| Create story file | Manual Markdown creation | No generator required |
+| Validate Markdown | lint jira-stories/STORY-009-*.md` | Optional linting |
+| Preview Mermaid | Use VS Code Mermaid extension | Verify diagrams render |
+| Git commit | git add jira-stories/ && git commit -m "Add STORY-009" | Version control |
+
+**File Naming Convention:**
+
+```plaintext
+STORY-{NNN}-{kebab-case-title}.md
+
+Example: STORY-009-manager-performance-dashboard.md
+```
+
+### 0.9.2 Default Format Specifications
 
 | Specification | Value |
-|---------------|-------|
-| File encoding | UTF-8 |
-| Line endings | LF (Unix) |
-| Markdown flavor | GitHub Flavored Markdown |
-| Diagram format | Mermaid |
-| CSV delimiter | Comma |
-| CSV quote char | Double quote |
-| JSON format | Pretty printed, 2-space indent |
+| --- | --- |
+| Primary Format | Markdown (.md) |
+| Diagram Format | Mermaid (embedded in Markdown) |
+| Encoding | UTF-8 |
+| Line Endings | LF (Unix-style) |
+| Table Format | GitHub Flavored Markdown |
 
-#### Citation Requirements
+### 0.9.3 Citation Requirements
 
-Every technical detail in JIRA stories must cite source files:
+**Every technical section must reference source files:**
 
-| Citation Format | Example |
-|-----------------|---------|
-| Inline source | `Source: WebVella.Erp/Hooks/HookManager.cs` |
-| Line reference | `Source: WebVella.Erp/Api/EntityManager.cs:125` |
-| Pattern reference | `Pattern: WebVella.Erp.Plugins.Project/ProjectPlugin.cs` |
+| Section | Citation Format |
+| --- | --- |
+| Technical Implementation | **Source Pattern**: path/to/reference.file |
+| Key Classes | Source: WebVella.Erp.Web/Components/... |
+| Integration Points | Reference to relevant service/controller files |
 
-#### Style Guide Compliance
+### 0.9.4 Style Guide Compliance
 
-The JIRA stories follow WebVella ERP conventions:
+**Repository-Specific Standards:**
 
-| Convention | Application |
-|------------|-------------|
-| Entity naming | Snake_case (e.g., `approval_workflow`) |
-| Class naming | PascalCase (e.g., `ApprovalWorkflowService`) |
-| Method naming | PascalCase (e.g., `CreateWorkflow()`) |
-| Field naming | Snake_case (e.g., `created_on`) |
-| Plugin naming | `WebVella.Erp.Plugins.{Name}` |
-| Namespace | Matches assembly name |
+| Standard | Requirement |
+| --- | --- |
+| Heading style | ATX-style with # characters |
+| List markers | Hyphens (-) for unordered, numbers for ordered |
+| Code blocks | Triple backticks with language identifier |
+| Table alignment | Pipes aligned for readability |
+| Empty lines | One blank line between sections |
 
-#### Documentation Build Verification
+**State Street Guide Standards:**
 
-While this task generates JIRA stories (not runnable documentation), the generated content can be verified:
+| Standard | Requirement |
+| --- | --- |
+| Summary length | Maximum 255 characters |
+| Description format | As a/I want/so that structure |
+| Acceptance criteria format | Given/When/Then syntax |
+| Estimation scale | Fibonacci sequence |
 
-| Check | Method |
-|-------|--------|
-| Markdown syntax | Visual rendering in GitHub/IDE |
-| Mermaid diagrams | Mermaid live editor validation |
-| JSON schema | JSON schema validator |
-| CSV format | Spreadsheet import test |
-| Cross-references | Manual dependency verification |
+### 0.9.5 Documentation Validation
 
-#### Story Sequencing Rules
+**Pre-Commit Checklist:**
 
-| Rule | Implementation |
-|------|---------------|
-| Infrastructure first | STORY-001 has no dependencies |
-| Data model second | STORY-002 depends on STORY-001 |
-| Services after entities | STORY-003, STORY-004 depend on STORY-002 |
-| Hooks after services | STORY-005 depends on STORY-004 |
-| Jobs after hooks | STORY-006 depends on STORY-004, STORY-005 |
-| API after services | STORY-007 depends on STORY-004 |
-| UI last | STORY-008 depends on STORY-007 |
+| Validation | Method |
+| --- | --- |
+| Markdown syntax | Render preview in editor |
+| Mermaid diagrams | Verify diagram renders |
+| Table formatting | Check alignment and completeness |
+| Link validity | Verify cross-references |
+| Character count | Summary ≤255 characters |
+| State Street compliance | Verify Who/What/Why and Given/When/Then |
 
-## 0.12 Rules for Documentation
+**Quality Gate Criteria:**
 
-#### User-Specified Documentation Rules
+| Criterion | Pass Condition |
+| --- | --- |
+| INVEST compliance | All 6 criteria addressed |
+| Acceptance criteria quality | Clarity, Conciseness, Testability, Result-Oriented |
+| Technical completeness | Files, classes, integration points documented |
+| Dependencies explicit | All prerequisite stories listed |
+| Estimation justified | Comparison-based story points |
 
-The following rules were explicitly or implicitly specified by the user:
+### 0.9.6 Delivery Artifacts
 
-| Rule | Source | Implementation |
-|------|--------|----------------|
-| Generate 5-8 JIRA stories | User requirement | 8 stories planned |
-| Reference actual WebVella ERP architecture | User directive | All stories cite actual files |
-| Consider pluggable architecture | User directive | Stories follow ErpPlugin patterns |
-| Stories should be independently deployable | User directive | Each story has defined boundaries |
-| Balance quick wins with infrastructure work | User directive | Mix of 3, 5, and 8 point stories |
-| Proper dependency sequencing | User directive | Stories have explicit dependencies |
-| Include both backend and UI | User directive | Stories cover full stack |
-| Realistic and implementable | User directive | Based on actual codebase patterns |
-| Individual markdown files per story | User requirement | /jira-stories/STORY-XXX-slug.md |
-| Consolidated CSV export | User requirement | /jira-stories/stories-export.csv |
-| Consolidated JSON export | User requirement | /jira-stories/stories-export.json |
-| Use specified story format | User template | All required fields included |
+**Primary Deliverables:**
 
-#### Inferred Documentation Rules
+| Artifact | Location | Format |
+| --- | --- | --- |
+| User Story Document | jira-stories/STORY-009-manager-performance-dashboard.md | Markdown |
+| CSV Export Update | jira-stories/stories-export.csv | CSV |
+| JSON Export Update | jira-stories/stories-export.json | JSON |
 
-Based on WebVella ERP conventions and best practices:
+**Verification Checklist:**
 
-| Rule | Rationale |
-|------|-----------|
-| Use WebVella naming conventions | Consistency with existing codebase |
-| Follow existing plugin patterns | Maintainability and familiarity |
-| Cite source files for all technical details | Traceability and accuracy |
-| Include Mermaid diagrams where appropriate | Visual clarity |
-| Specify exact versions for dependencies | Reproducibility |
-| Define acceptance criteria that are testable | Quality assurance |
-| Estimate story points on Fibonacci scale | Industry standard |
+- [ ] Story document created with all required sections
 
-#### Mandatory Compliance Rules
+- [ ] CSV export updated with new story entry
+
+- [ ] JSON export updated with new story object
+
+- [ ] All files committed to version control
+
+- [ ] Mermaid diagrams render correctly
+
+- [ ] Cross-references valid
+
+## 0.10 Rules for Documentation
+
+### 0.10.1 User-Specified Rules
+
+**Critical Rules from User Requirements:**
+
+| Rule | Source | Application |
+| --- | --- | --- |
+| Follow State Street "Writing a User Story" guide | User instruction | All formatting, structure, and content must align with attached PDF |
+| Use Who/What/Why format | User instruction + Guide | Description section must use "As a/I want/so that" structure |
+| Use Given/When/Then syntax | User instruction + Guide | All acceptance criteria must use Gherkin format |
+| Single sprint delivery | User instruction | Story must represent one vertical slice achievable in one sprint |
+| Measurable progress | User instruction | Story must deliver measurable progress toward business objective |
+
+### 0.10.2 State Street Guide Rules
+
+**From Attached PDF Document:**
+
+| Rule Category | Specific Requirement |
+| --- | --- |
+| Summary | Maximum 255 characters |
+| Description | Must follow Who/What/Why format exactly |
+| Acceptance Criteria | Must use Given/When/Then syntax |
+| Demo-ability | Work item must be demonstrable to Product Owner |
+| INVEST Criteria | Story must be Independent, Negotiable, Valuable, Estimable, Sized appropriately, Testable |
+
+**Acceptance Criteria Effectiveness Rules:**
+
+| Rule | Requirement |
+| --- | --- |
+| Clarity | Straightforward and easy to understand for all team members |
+| Conciseness | Communicate necessary information without unnecessary detail |
+| Testability | Each criteria must be independently verifiable (clear pass/fail) |
+| Result-Oriented | Focus on delivering results that satisfy the customer |
+
+### 0.10.3 Repository Convention Rules
+
+**Existing Pattern Rules (derived from STORY-001 through STORY-008):**
+
+| Convention | Rule |
+| --- | --- |
+| File naming | STORY-{NNN}-{kebab-case-title}.md |
+| Section ordering | Description → Business Value → Acceptance Criteria → Technical Details → Dependencies → Estimate → Labels |
+| Acceptance criteria format | Checkbox with bold identifier: - [ ] **AC1**: ... |
+| Code blocks | Use fenced code blocks with language identifier |
+| Tables | Use for structured data (files, classes, integration points) |
+| Labels | Comma-separated tags relevant to story content |
+
+### 0.10.4 Quality Assurance Rules
+
+**Documentation Quality Rules:**
 
 | Rule | Enforcement |
-|------|-------------|
-| Each story must have unique ID | Sequential STORY-XXX format |
-| Dependencies must reference valid story IDs | Cross-reference validation |
-| All file paths must exist in codebase | Pattern verification |
-| Story points must be valid (1,2,3,5,8,13) | Value validation |
-| Labels must be lowercase with hyphens | Format standardization |
+| --- | --- |
+| No placeholder content | All sections must be complete with real content |
+| No TBD/TODO markers | Everything specified explicitly |
+| Technical accuracy | References must match actual codebase structure |
+| Consistent terminology | Use terms from existing stories and tech spec |
+| Complete cross-references | All dependencies explicitly linked |
 
-#### Content Quality Rules
+### 0.10.5 Scope Constraint Rules
+
+**Single Sprint Scoping Rules:**
 
 | Rule | Application |
-|------|-------------|
-| Descriptions must explain what AND why | Business context required |
-| Technical details must be actionable | Implementation guidance |
-| Acceptance criteria must be verifiable | Testable outcomes |
-| Dependencies must enable parallel work where possible | Optimal sequencing |
+| --- | --- |
+| Vertical slice only | One end-to-end feature, not horizontal layer |
+| No feature creep | Dashboard display only, no configuration |
+| Dependencies must exist | Cannot depend on unwritten stories |
+| Estimable size | 5-8 story points maximum for single sprint |
+| Demo-able outcome | Must produce visible, testable result |
 
-#### Documentation Completeness Rules
+### 0.10.6 Documentation-Specific Directives
 
-| Rule | Verification |
-|------|--------------|
-| No placeholder content allowed | All sections fully populated |
-| No "TBD" or "To be determined" | Complete specifications |
-| No "See above" references | Self-contained stories |
-| All stories have all required fields | Template compliance |
+**Explicit User-Specified Documentation Rules:**
 
-## 0.13 References
+- ✅ **Follow existing documentation style and structure** - Use STORY-008 as template
+- ✅ **Include Mermaid diagrams** - Component relationship diagram required
+- ✅ **Provide code examples** - Technical implementation section with snippets
+- ✅ **Use consistent terminology** - Match existing story language
+- ✅ **Add source code citations** - Reference actual paths in repository
+- ✅ **Maintain State Street format compliance** - Who/What/Why and Given/When/Then mandatory
 
-#### Codebase Files and Folders Searched
+## 0.11 References
 
-The following files and folders were analyzed to derive conclusions for the Agent Action Plan:
+### 0.11.1 Files and Folders Searched
 
-#### Core Library Analysis
-
-| Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp/ | Folder | Core ERP library analysis |
-| WebVella.Erp/ERPService.cs | File | Bootstrap and initialization patterns |
-| WebVella.Erp/ErpPlugin.cs | File | Plugin base class contract |
-| WebVella.Erp/ErpSettings.cs | File | Configuration patterns |
-| WebVella.Erp/IErpService.cs | File | Service interface |
-| WebVella.Erp/WebVella.Erp.csproj | File | Dependency versions |
-
-#### API Layer Analysis
+**Repository Structure Analysis:**
 
 | Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp/Api/ | Folder | Manager classes and models |
-| WebVella.Erp/Api/EntityManager.cs | File | Entity CRUD operations |
-| WebVella.Erp/Api/RecordManager.cs | File | Record operations |
-| WebVella.Erp/Api/SecurityContext.cs | File | Security patterns |
-| WebVella.Erp/Api/Models/ | Folder | DTO definitions |
-| WebVella.Erp/Api/Models/Entity.cs | File | Entity model structure |
+| --- | --- | --- |
+| / (root) | Folder | Repository root structure analysis |
+| jira-stories/ | Folder | JIRA story documentation location |
+| jira-stories/STORY-001-approval-plugin-infrastructure.md | File | Story template reference |
+| jira-stories/stories-export.csv | File | CSV export format analysis |
+| docs/ | Folder | Developer documentation reference |
+| WebVella.Erp.Web/Components/ | Folder | PageComponent pattern reference |
+| WebVella.Erp.Plugins.Approval/ | Folder | Approval plugin structure reference |
 
-#### Hook System Analysis
+**Tech Spec Sections Retrieved:**
 
-| Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp/Hooks/ | Folder | Hook interfaces and manager |
-| WebVella.Erp/Hooks/HookManager.cs | File | Hook registration |
-| WebVella.Erp/Hooks/RecordHookManager.cs | File | Hook invocation |
-| WebVella.Erp/Hooks/HookAttachmentAttribute.cs | File | Hook attribute |
-| WebVella.Erp/Hooks/IErpPreCreateRecordHook.cs | File | Pre-create interface |
+| Section | Purpose |
+| --- | --- |
+| 2.1 FEATURE CATALOG | Feature dependency chain and F-001 through F-008 definitions |
+| 7.1 OVERVIEW | UI architecture and Chart.js availability |
 
-#### Job System Analysis
+### 0.11.2 Attachments Provided
 
-| Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp/Jobs/ | Folder | Background job infrastructure |
-| WebVella.Erp/Jobs/JobManager.cs | File | Job scheduling |
-| WebVella.Erp/Jobs/SheduleManager.cs | File | Schedule plan management |
-| WebVella.Erp/Jobs/ErpJob.cs | File | Job base class |
-| WebVella.Erp/Jobs/JobAttribute.cs | File | Job metadata attribute |
+**Document Attachments:**
 
-#### Notification System Analysis
+| Attachment Name | File Type | Size | Summary |
+| --- | --- | --- | --- |
+| SST User Story Guide.pdf | PDF | 429,127 bytes | State Street's official guide for writing JIRA user stories. Contains 6 pages covering: Purpose (user stories as vertical slices), Ownership (Team owns stories, individuals own sub-tasks), Relationships (Stories are children of Epics, parents of sub-tasks), Anatomy of a Story (Summary ≤255 chars, Who/What/Why format, Given/When/Then acceptance criteria), INVEST criteria (Independent, Negotiable, Valuable, Estimable, Sized appropriately, Testable), Acceptance Criteria effectiveness measures (Clarity, Conciseness, Testability, Result-Oriented), Recommendations to Scrum Masters, and Story Estimation using Fibonacci sequence with relative sizing based on effort, complexity, and uncertainty. |
 
-| Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp/Notifications/ | Folder | Notification infrastructure |
-| WebVella.Erp/Notifications/NotificationContext.cs | File | Postgres LISTEN/NOTIFY |
+### 0.11.3 External URLs Referenced
 
-#### Plugin Pattern Analysis
+**No Figma URLs provided.**
 
-| Path | Type | Purpose |
-|------|------|---------|
-| WebVella.Erp.Plugins.Project/ | Folder | Reference plugin implementation |
-| WebVella.Erp.Plugins.Project/ProjectPlugin.cs | File | Plugin initialization pattern |
-| WebVella.Erp.Plugins.Project/ProjectPlugin._.cs | File | Migration orchestration |
-| WebVella.Erp.Plugins.Project/Services/ | Folder | Service layer patterns |
-| WebVella.Erp.Plugins.Project/Hooks/Api/Task.cs | File | Hook adapter pattern |
-| WebVella.Erp.Plugins.Mail/ | Folder | Mail plugin patterns |
-| WebVella.Erp.Plugins.Mail/Jobs/ProcessSmtpQueueJob.cs | File | Email job pattern |
-| WebVella.Erp.Plugins.Mail/Services/SmtpInternalService.cs | File | Email service pattern |
-| WebVella.Erp.Plugins.SDK/ | Folder | SDK plugin patterns |
+**No external URLs referenced in user requirements.**
 
-#### Documentation Analysis
+### 0.11.4 Source Code References
 
-| Path | Type | Purpose |
-|------|------|---------|
-| docs/developer/ | Folder | Developer documentation |
-| docs/developer/background-jobs/overview.md | File | Job documentation patterns |
-| docs/developer/plugins/overview.md | File | Plugin documentation |
-| docs/developer/plugins/create-your-own.md | File | Plugin creation guide |
-| docs/developer/hooks/overview.md | File | Hook documentation |
-| docs/developer/entities/create-entity.md | File | Entity creation patterns |
-| README.md | File | Project overview |
+**Files Referenced for Pattern Analysis:**
 
-#### User-Provided Attachments
+| File Path | Reference Purpose |
+| --- | --- |
+| jira-stories/stories-export.csv | CSV export column schema |
+| jira-stories/stories-export.json | JSON export structure |
 
-**No attachments were provided by the user.**
+### 0.11.5 Technical Specification References
 
-#### Figma Screens
+**Tech Spec Sections Consulted:**
 
-**No Figma URLs were provided by the user.**
+| Section | Content Used |
+| --- | --- |
+| 2.1 FEATURE CATALOG | Feature IDs (F-001 through F-008), story points, dependencies, entity definitions |
+| 7.1 OVERVIEW | UI architecture (Chart.js, Bootstrap 4, jQuery, PageComponent pattern) |
 
-#### External References
+### 0.11.6 State Street Guide Reference Summary
 
-| Reference | URL | Purpose |
-|-----------|-----|---------|
-| WebVella ERP Homepage | https://webvella.com | Project information |
-| WebVella ERP GitHub | https://github.com/WebVella/WebVella-ERP | Source repository |
-| WebVella NuGet | https://www.nuget.org/packages/WebVella.ERP | Package distribution |
+**Key Sections from SST User Story Guide.pdf:**
 
-#### Technology References
+| Page | Section | Key Content |
+| --- | --- | --- |
+| 1 | Purpose | User stories cover vertical slices, enable team conversation, define acceptance criteria |
+| 1 | Ownership | Team owns stories, sub-tasks owned by individuals |
+| 1-2 | Anatomy of a Story | Summary (≤255 chars), Who/What/Why description format |
+| 2 | INVEST Criteria | Independent, Negotiable, Valuable, Estimable, Sized, Testable |
+| 2-3 | Acceptance Criteria | Given/When/Then format with effectiveness measures |
+| 3 | Effectiveness Measures | Clarity, Conciseness, Testability, Result-Oriented |
+| 4 | Recommendations | Templates, lifecycle understanding, Jira standardization |
+| 4-6 | Story Estimation | Fibonacci sequence, relative sizing, effort/complexity/uncertainty factors |
 
-| Technology | Version | Documentation |
-|------------|---------|---------------|
-| .NET 9.0 | 9.0.x | https://learn.microsoft.com/en-us/dotnet/ |
-| ASP.NET Core | 9.0.x | https://learn.microsoft.com/en-us/aspnet/core/ |
-| PostgreSQL | 16.x | https://www.postgresql.org/docs/16/ |
-| Npgsql | 9.0.4 | https://www.npgsql.org/doc/ |
-| Newtonsoft.Json | 13.0.4 | https://www.newtonsoft.com/json |
-| MailKit | 4.14.1 | https://github.com/jstedfast/MailKit |
+### 0.11.7 Documentation Generation Context
 
-#### Search Tracking Summary
-
-| Search Type | Count | Key Findings |
-|-------------|-------|--------------|
-| Folder exploration | 15 | Complete plugin structure mapped |
-| File reads | 12 | Core patterns documented |
-| Semantic searches | 1 | No existing workflow found |
-
-#### Analysis Completeness
-
-| Area | Status | Notes |
-|------|--------|-------|
-| Plugin architecture | Complete | Full pattern documented |
-| Entity management | Complete | CRUD operations mapped |
-| Hook system | Complete | Interfaces documented |
-| Job system | Complete | Scheduling patterns mapped |
-| Mail integration | Complete | SMTP patterns documented |
-| UI components | Complete | Component structure mapped |
-| Security model | Complete | Context patterns documented |
-
+| Context Item | Value |
+| --- | --- |
+| Documentation Task Type | Create new JIRA user story |
+| Business Objective | Enable managers to make faster decisions with real-time dashboard metrics |
+| Primary Deliverable | jira-stories/STORY-009-manager-performance-dashboard.md |
+| Secondary Deliverables | CSV and JSON export updates |
+| Format Standard | State Street "Writing a User Story" guide |
+| Quality Standard | INVEST criteria + Acceptance Criteria effectiveness measures |
