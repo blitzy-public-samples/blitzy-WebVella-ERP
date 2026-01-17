@@ -1,1404 +1,1186 @@
-# Technical Specification
-
 # 0. Agent Action Plan
 
 ## 0.1 Intent Clarification
 
-### 0.1.1 Core Documentation Objective
+### 0.1.1 Core Feature Objective
 
-Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create a JIRA user story** that enables the delivery of a real-time manager dashboard for team performance metrics. This user story will follow the State Street "Writing a User Story" guide standards and serve as a vertical slice of functionality deliverable within a single sprint.
+Based on the prompt, the Blitzy platform understands that the new feature requirement is to implement a **Manager Approval Dashboard with Real-Time Metrics** (STORY-009) as a page component within the WebVella ERP Approval Workflow plugin. The core requirements include:
 
-**Documentation Type Classification:**
-- **Category:** Create new documentation
-- **Documentation Type:** JIRA User Story (Agile requirement artifact)
-- **Format:** Who/What/Why user story with Given/When/Then acceptance criteria
-- **Target Audience:** Product Owner, Scrum Master, Development Team, Business Stakeholders
+- **Dashboard Page Component Creation**: Implement `PcApprovalDashboard` as a new PageComponent following the established WebVella ERP page component architecture pattern, similar to existing components like `PcPageHeader`, `PcChart`, and the approval workflow components defined in STORY-008.
 
-**Explicit Documentation Requirements:**
+- **Five Key Performance Indicators (KPIs)**: The dashboard must display real-time metrics including:
 
-| Requirement | Source | Interpretation |
-|-------------|--------|----------------|
-| User story in Who/What/Why format | User instructions | Follow State Street guide: "As a <role>, I want <goal>, so that <reason>" |
-| Acceptance criteria using Given/When/Then | User instructions | Apply BDD-style scenarios per State Street guide |
-| Single sprint delivery scope | User instructions | Size story appropriately (vertical slice) |
-| Follow State Street guide best practices | User instructions + Attachment | Apply INVEST criteria and all formatting standards |
-| Real-time dashboard views | Business objective | Dashboard must refresh without manual intervention |
-| Team performance metrics | Business objective | Display quantitative measures of team activity/output |
-| Enable faster manager decisions | Business objective | Provide actionable insights at a glance |
+  - Pending Approvals Count - requests awaiting the current user's action
+  - Average Approval Time - mean time from request creation to final decision
+  - Approval Rate Percentage - approved vs. total processed requests
+  - Overdue Requests Count - pending requests exceeding configured SLA timeout
+  - Recent Activity Feed - last 5 approval actions with action type, performer, and timestamp
 
-**Implicit Documentation Requirements:**
+- **Auto-Refresh Capability**: Metrics must automatically refresh at a configurable interval (default 60 seconds) without requiring page reload, implemented via client-side JavaScript using AJAX calls.
 
-- Summary field must not exceed 255 characters (State Street guide constraint)
-- Story must be demo-able for Product Owner acceptance
-- Story must be independent, negotiable, valuable, estimable, sized appropriately, and testable (INVEST)
-- Story should reference potential sub-tasks for team execution
-- Story should include clear business value articulation
+- **Date Range Filtering**: Support for filtering metrics by selectable date ranges (7 days, 30 days, 90 days, or custom range).
+
+- **Role-Based Access Control**: Dashboard access must be restricted to users with Manager role, with appropriate access denied messaging for unauthorized users.
+
+- **Test Coverage**: Comprehensive unit tests for metrics calculation methods and integration tests for API endpoint validation.
+
+**Implicit Requirements Detected:**
+
+- The component must register with `PageComponentLibraryService` under the "Approval Workflow" category
+- JSON serialization must use `Newtonsoft.Json` with explicit `JsonProperty` attributes
+- Error handling must use `ValidationException` pattern consistent with WebVella components
+- The dashboard API endpoint must follow the `/api/v3.0/p/approval/` route pattern established in STORY-007
 
 ### 0.1.2 Special Instructions and Constraints
 
-**CRITICAL Directives from User:**
-- Follow ALL best practices, formatting, and standards from the State Street "Writing a User Story" guide
-- Represent ONE vertical slice of functionality (not the entire dashboard epic)
-- Deliver measurable progress toward the business objective
-- Appropriate level of detail for single sprint delivery
+**Critical Directives:**
 
-**Template Requirements:**
+- Integrate with existing ApprovalController established in STORY-007 for the dashboard metrics endpoint
+- Follow the PageComponent pattern established by `PcApprovalWorkflowConfig` and other STORY-008 components
+- Maintain consistency with WebVella ERP component conventions including render modes: Display, Design, Options, Help, Error
+- Service layer must follow `ApprovalWorkflowService` patterns from STORY-004 for entity queries
 
-**USER PROVIDED TEMPLATE (from State Street Guide):**
+**Architectural Requirements:**
 
+- Component must inherit from `PageComponent` base class and use `[PageComponent]` attribute
+- Options panel must be configurable through the page builder visual design interface
+- Client-side `service.js` must handle AJAX-based auto-refresh using setInterval pattern
+- Use `RecordManager` and `EntityQuery` for database access following existing service patterns
+
+**User-Provided Examples:**
+
+- User Example: API Response Format
+
+```json
+{
+  "success": true,
+  "message": "Dashboard metrics retrieved successfully",
+  "object": {
+    "pending_approvals_count": 12,
+    "average_approval_time_hours": 4.5,
+    "approval_rate_percent": 87.5,
+    "overdue_requests_count": 2,
+    "recent_activity": [...]
+  }
+}
 ```
-Summary: [Maximum 255 Characters]
 
-Description:
-As a <named user or role>, or the WHO
-I want <some goal>, or the WHAT
-so that <some reason>, or the WHY
+- User Example: Component Options
+  - `refresh_interval`: Number (default 60 seconds)
+  - `date_range_default`: Text (default "30d")
+  - `show_overdue_alert`: Boolean (default true)
+  - `metrics_to_display`: Text (comma-separated list)
 
-Acceptance Criteria:
-- Given <a scenario>
-  When <a criteria is met>
-  Then <the expected result>
-```
+**Validation Requirements:**
 
-**Style Preferences:**
-- Use State Street naming conventions
-- Maintain consistency with existing STORY-001 through STORY-008 format in the repository
-- Include Business Value section per established repository pattern
-- Include Technical Implementation Details where applicable
-- Use checkbox format for acceptance criteria ([ ])
-
-**Quality Standards (from State Street Guide):**
-
-| Criterion | Requirement |
-|-----------|-------------|
-| Independent | Self-contained, no inherent dependency on another user story |
-| Negotiable | Can be changed or rewritten until committed to iteration |
-| Valuable | Delivers value to end user and/or customer |
-| Estimable | Team can estimate the size |
-| Sized appropriately | Not too big for planning/prioritization |
-| Testable | Provides information for test development |
-| Demo-able | Work can be demonstrated for acceptance |
-
-**Acceptance Criteria Quality (from State Street Guide):**
-- Clarity: Straightforward and easy to understand
-- Conciseness: Necessary information without unnecessary detail
-- Testability: Independently verifiable (clear pass/fail)
-- Result-Oriented: Focus on delivering customer satisfaction
+- Frontend screenshots must be captured in `validation/frontend-validation/`
+- Test validation screenshots must be captured in `validation/test-validation/`
+- Unit test coverage must exceed 80% for `DashboardMetricsService`
 
 ### 0.1.3 Technical Interpretation
 
-These documentation requirements translate to the following technical documentation strategy:
-
-| User Requirement | Documentation Action |
-|------------------|---------------------|
-| Create user story for manager dashboard | Create markdown file `STORY-009-manager-dashboard-metrics.md` following repository pattern |
-| Follow State Street guide format | Structure with Description, Business Value, Acceptance Criteria, Technical Implementation sections |
-| Single sprint delivery | Scope to one dashboard view with 3-5 key metrics (vertical slice) |
-| Real-time dashboard views | Specify automatic refresh mechanism (e.g., 30-60 second intervals or SignalR) |
-| Team performance metrics | Define specific metrics: approval cycle time, pending requests, completion rates |
-| Given/When/Then acceptance criteria | Write 4-6 BDD scenarios covering view, refresh, filter, and permission behaviors |
-
-**Documentation Actions:**
-- To document the manager dashboard feature, we will create `jira-stories/STORY-009-manager-dashboard-metrics.md` with complete user story format
-- To update the backlog exports, we will update `jira-stories/stories-export.csv` and `jira-stories/stories-export.json` with the new story entry
-- To ensure consistency, we will follow the exact structure established in existing stories (STORY-001 through STORY-008)
-
-### 0.1.4 Inferred Documentation Needs
-
-**Based on Code Analysis:**
-- The existing WebVella ERP system has UI component patterns (`docs/developer/components`) that the dashboard story should reference
-- The approval workflow entities (`approval_request`, `approval_history`) provide natural metrics sources
-- Background job patterns from STORY-006 inform real-time update mechanisms
-
-**Based on Structure:**
-- The jira-stories folder uses consistent markdown structure with technical implementation details
-- Stories include dependency chains (the new dashboard story depends on F-008 UI Components)
-- CSV/JSON exports maintain parallel data for reporting/import
-
-**Based on User Journey:**
-- Manager needs to: access dashboard → view metrics → identify trends → make decisions
-- Dashboard should integrate with existing WebVella page component system
-- Metrics should align with approval workflow domain (existing entity data)
-
-**Based on Business Objective:**
-- "Faster decisions" implies at-a-glance metrics visualization (not complex drill-downs in this slice)
-- "Real-time" means automatic refresh or push updates
-- "Team performance" suggests aggregate metrics per team/manager scope
-
-**Contextual Alignment with Existing System:**
-The new user story aligns with the existing approval workflow system by providing managerial visibility into:
-- Approval request volumes and processing times
-- Step-level bottleneck identification
-- Team member approval response metrics
-- SLA compliance tracking
-
-## 0.2 Documentation Discovery and Analysis
-
-### 0.2.1 Existing Documentation Infrastructure Assessment
-
-**Repository Analysis Summary:**
-The repository analysis reveals a well-structured JIRA story documentation system within the `jira-stories/` folder, with established patterns for user story creation and backlog management.
-
-**Documentation Structure:**
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Story Markdown Files | `jira-stories/STORY-*.md` | Detailed user story specifications |
-| CSV Export | `jira-stories/stories-export.csv` | Tabular backlog for import/reporting |
-| JSON Export | `jira-stories/stories-export.json` | Structured data for programmatic access |
-| Developer Docs | `docs/developer/` | Technical reference documentation |
-
-**Documentation Framework Assessment:**
-- **Documentation Generator:** None (plain markdown)
-- **Documentation Configuration:** Standalone files with no build system
-- **Story Format Version:** Custom markdown with structured sections
-- **Export Formats:** CSV (JIRA-compatible), JSON (API/tool-compatible)
-
-**Existing Story Files Discovered:**
-
-| File | Story ID | Title | Points |
-|------|----------|-------|--------|
-| `STORY-001-approval-plugin-infrastructure.md` | STORY-001 | Approval Plugin Infrastructure | 3 |
-| `STORY-002-approval-entity-schema.md` | STORY-002 | Approval Entity Schema | 8 |
-| `STORY-003-workflow-configuration-management.md` | STORY-003 | Workflow Configuration Management | 5 |
-| `STORY-004-approval-service-layer.md` | STORY-004 | Approval Service Layer | 8 |
-| `STORY-005-approval-hooks-integration.md` | STORY-005 | Approval Hooks Integration | 5 |
-| `STORY-006-notification-escalation-jobs.md` | STORY-006 | Notification and Escalation Jobs | 5 |
-| `STORY-007-approval-rest-api.md` | STORY-007 | Approval REST API Endpoints | 5 |
-| `STORY-008-approval-ui-components.md` | STORY-008 | Approval UI Page Components | 8 |
-
-**Story Template Structure (from repository analysis):**
-
-```
-# STORY-XXX: [Title]
-
-#### Description
-[Detailed description paragraph]
-
-#### Business Value
-- [Bullet point 1]
-- [Bullet point 2]
-- [etc.]
-
-#### Acceptance Criteria
-- [ ] **AC1**: [Criterion]
-- [ ] **AC2**: [Criterion]
-- [etc.]
-
-#### Technical Implementation Details
-
-#### Files/Modules to Create
-| File Path | Description |
-|-----------|-------------|
-| [path] | [description] |
+These feature requirements translate to the following technical implementation strategy:
 
-#### Key Classes and Functions
-[Code snippets and patterns]
+- **To implement the dashboard component**, we will **create** `PcApprovalDashboard.cs` with ViewComponent pattern inheriting from `PageComponent`, implementing `InvokeAsync` method with mode-based view selection, and registering via `[PageComponent]` attribute.
 
-#### Dependencies
-| Dependency Type | Details |
-|-----------------|---------|
-| [type] | [details] |
-```
-
-### 0.2.2 Repository Code Analysis for Documentation
+- **To display metrics in Display mode**, we will **create** `Display.cshtml` Razor view using Bootstrap card layout for metric cards, with JavaScript initialization for the auto-refresh timer.
 
-**Search Patterns Employed:**
-
-| Pattern | Purpose | Results |
-|---------|---------|---------|
-| `jira-stories/*.md` | User story files | 8 files found |
-| `jira-stories/*.csv` | Export files | 1 file found |
-| `jira-stories/*.json` | Export files | 1 file found |
-| `docs/developer/**` | Reference documentation | Full documentation hub |
-
-**Key Directories Examined:**
-
-| Directory | Contents | Relevance |
-|-----------|----------|-----------|
-| `jira-stories/` | All JIRA user story artifacts | Primary target for new story |
-| `docs/developer/components/` | PageComponent documentation | Reference for UI implementation |
-| `docs/developer/pages/` | Page routing documentation | Reference for dashboard page |
-| `docs/developer/entities/` | Entity documentation | Reference for metrics data sources |
-| `WebVella.Erp.Plugins.Approval/` | Plugin implementation | Technical context |
+- **To support page builder preview**, we will **create** `Design.cshtml` showing placeholder/sample metrics data for design-time visualization.
 
-**Related Documentation Found:**
+- **To enable configuration**, we will **create** `Options.cshtml` with form fields for configuring refresh interval, date range defaults, overdue alerts, and metrics selection.
 
-| Document | Relevance to New Story |
-|----------|------------------------|
-| `docs/developer/components/` | Dashboard will use PageComponent pattern |
-| `STORY-008-approval-ui-components.md` | UI component patterns to follow |
-| `STORY-007-approval-rest-api.md` | API patterns for data retrieval |
-| Feature Catalog (Tech Spec 2.1) | Feature dependency context |
+- **To provide documentation**, we will **create** `Help.cshtml` explaining dashboard features and configuration options.
 
-### 0.2.3 State Street Guide Analysis
-
-**Guide Structure (from attachment):**
-
-The State Street "Writing a User Story" guide (6 pages) establishes the following standards:
-
-**1. Purpose Statement:**
-A user story covers vertical slices of a system, contains a short description of what the user wants, and serves as a conversation starter with the team. Must include Acceptance Criteria defining conditions for "done."
-
-**2. Ownership Model:**
-- Stories owned by Team; sub-tasks owned by individuals
-- Only Product Owner can transition to Done (Scrum/Kanban)
-- Sub-tasks describe actions to achieve Acceptance Criteria
-
-**3. Relationships:**
-- Children: Sub-tasks
-- Parent: Epics
-
-**4. Anatomy of a Story:**
-
-| Element | Format | Constraint |
-|---------|--------|------------|
-| Summary | Brief title | Max 255 characters |
-| Description | Who/What/Why | As a/I want/so that |
-| Acceptance Criteria | Given/When/Then | Must be testable |
-
-**5. INVEST Criteria:**
-- **I**ndependent: Self-contained
-- **N**egotiable: Can change until committed
-- **V**aluable: Delivers user/customer value
-- **E**stimable: Can be sized
-- **S**ized appropriately: Fits in sprint
-- **T**estable: Clear pass/fail verification
-
-**6. Story Estimation:**
-- Uses Fibonacci sequence (1, 2, 3, 5, 8, 13, 20, 40...)
-- Based on effort, complexity, and uncertainty
-- Relative sizing compared to baseline stories
-
-### 0.2.4 Web Search Research Conducted
-
-**Best Practices Research Topics:**
-
-| Topic | Finding |
-|-------|---------|
-| Real-time dashboard user stories | Focus on specific metrics, refresh intervals, and user permissions |
-| Performance metrics for team management | Common metrics: throughput, cycle time, lead time, response time |
-| JIRA user story best practices | Vertical slicing, story mapping, definition of ready |
-| BDD acceptance criteria patterns | Scenario-based with clear preconditions and postconditions |
-
-**Applicable Standards:**
-- User stories should represent 1-3 days of work for appropriate sizing
-- Dashboard stories typically focus on one view/perspective per story
-- Real-time features should specify update frequency and mechanism
-- Manager-specific stories should include role-based access requirements
-
-## 0.3 Documentation Scope Analysis
-
-### 0.3.1 Code-to-Documentation Mapping
-
-**Documentation Artifacts Requiring Creation:**
-
-| Artifact | Type | Source Context | Documentation Needed |
-|----------|------|----------------|----------------------|
-| `STORY-009-manager-dashboard-metrics.md` | User Story | Business objective | Complete story following State Street format |
-| `stories-export.csv` | Backlog Export | Existing export | New row for STORY-009 |
-| `stories-export.json` | Backlog Export | Existing export | New story object for STORY-009 |
-
-**User Story Content Mapping:**
-
-| Story Section | Content Source | Documentation Approach |
-|---------------|----------------|------------------------|
-| Summary | Business objective | Distill to ≤255 chars |
-| Description (Who/What/Why) | User requirements | Manager role, dashboard goal, decision-making benefit |
-| Business Value | Inferred from objective | Faster decisions, visibility, efficiency |
-| Acceptance Criteria | Derived from requirements | 5-6 Given/When/Then scenarios |
-| Technical Details | Repository analysis | Files, classes, integration points |
-| Dependencies | Feature catalog analysis | STORY-008 (UI Components), STORY-007 (API) |
-| Story Points | Sizing analysis | 5 points (moderate complexity) |
-| Labels | Categorization | dashboard, metrics, ui, manager, approval |
-
-### 0.3.2 User Story Vertical Slice Definition
-
-**Business Objective Decomposition:**
-
-The full business objective "Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics" could span multiple user stories. For a single-sprint vertical slice:
-
-**Vertical Slice: Real-Time Approval Metrics Dashboard**
-
-| Aspect | Full Scope | This Vertical Slice |
-|--------|------------|---------------------|
-| Users | All managers | Managers with approval responsibility |
-| Metrics | All team performance | Approval workflow metrics (4-5 key indicators) |
-| Views | Multiple dashboards | Single summary dashboard view |
-| Interactivity | Drill-downs, exports, filters | View-only with date range filter |
-| Real-time | Multiple update mechanisms | Auto-refresh at configurable interval |
-
-**Specific Metrics for Vertical Slice:**
-
-| Metric | Description | Data Source |
-|--------|-------------|-------------|
-| Pending Approvals Count | Number awaiting manager action | `approval_request` where `status='pending'` |
-| Average Approval Time | Mean time from request to decision | `approval_history` timestamps |
-| Approval Rate | Percentage approved vs total processed | `approval_history` action counts |
-| Overdue Requests | Count exceeding SLA timeout | `approval_request` vs `approval_step.timeout_hours` |
-| Recent Activity | Last 5 approval actions | `approval_history` ordered by `performed_on` |
-
-### 0.3.3 Documentation Gap Analysis
-
-**Current Documentation Status:**
-
-| Documentation Area | Current State | Gap Identified |
-|--------------------|---------------|----------------|
-| Manager dashboard user story | Missing | CREATE: STORY-009 |
-| Dashboard metrics specification | Missing | INCLUDE in STORY-009 |
-| Real-time update requirements | Missing | INCLUDE in STORY-009 |
-| Backlog export for STORY-009 | Missing | UPDATE: CSV and JSON exports |
-
-**Undocumented Requirements (to be addressed in STORY-009):**
-
-- Dashboard permission requirements (who can view which metrics)
-- Refresh interval configuration options
-- Mobile/responsive display considerations
-- Dashboard page component integration with existing PageComponent system
-- API endpoints for metrics data retrieval
-
-### 0.3.4 Proposed User Story Content
-
-**STORY-009: Manager Approval Dashboard with Real-Time Metrics**
-
-**Summary (193 characters):**
-```
-Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability.
+- **To handle errors gracefully**, we will **create** `Error.cshtml` for displaying access denied and data retrieval failure messages.
+
+- **To implement client-side auto-refresh**, we will **create** `service.js` with AJAX functions calling the dashboard metrics endpoint and setInterval timer management.
+
+- **To calculate metrics**, we will **create** `DashboardMetricsService.cs` with methods querying `approval_request` and `approval_history` entities using `RecordManager` and `EntityQuery`.
+
+- **To define the API response structure**, we will **create** `DashboardMetricsModel.cs` as a DTO with JSON-serializable properties for all metrics.
+
+- **To expose the metrics API**, we will **modify** `ApprovalController.cs` to add the `GetDashboardMetrics` endpoint at `/api/v3.0/p/approval/dashboard/metrics`.
+
+- **To validate business logic**, we will **create** `DashboardMetricsServiceTests.cs` with xUnit tests for all metric calculation methods.
+
+- **To validate API behavior**, we will **create** `DashboardApiIntegrationTests.cs` with integration tests for endpoint authentication, authorization, and response format.
+
+## 0.2 Repository Scope Discovery
+
+### 0.2.1 Comprehensive File Analysis
+
+**Existing Modules to Modify:**
+
+| File Path | Purpose | Modification Type |
+| --- | --- | --- |
+| WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | Add dashboard metrics endpoint | MODIFY |
+| WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj | Add embedded resources for service.js | MODIFY |
+
+**Integration Point Discovery:**
+
+| Integration Point | Description | Files Affected |
+| --- | --- | --- |
+| API Endpoints | Dashboard metrics endpoint following STORY-007 patterns | ApprovalController.cs |
+| Entity Queries | Queries to approval_request and approval_history entities | DashboardMetricsService.cs |
+| Security Context | Manager role validation | PcApprovalDashboard.cs, ApprovalController.cs |
+| Page Component Library | Registration with page builder | PcApprovalDashboard.cs |
+| ErpRequestContext | Request-scoped context injection | PcApprovalDashboard.cs |
+
+**Configuration Files:**
+
+| File Pattern | Purpose |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/*.csproj | Project configuration and embedded resources |
+| WebVella.Erp.Plugins.Approval.Tests/*.csproj | Test project configuration |
+
+**Build/Deployment Files:**
+
+| File Pattern | Purpose |
+| --- | --- |
+| WebVella.ERP3.sln | Solution file (may need test project reference) |
+
+### 0.2.2 New File Requirements
+
+**New Source Files to Create:**
+
+| File Path | Purpose |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs | Dashboard page component class with ViewComponent implementation, options model, and role validation |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Design.cshtml | Page builder preview view showing dashboard layout with sample/placeholder metrics |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml | Runtime display view rendering live metrics with Bootstrap card layout and auto-refresh initialization |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml | Configuration panel with form fields for refresh interval, date range, alert settings |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Help.cshtml | Component documentation view explaining features and configuration |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Error.cshtml | Error display view for access denied and data retrieval failures |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js | Client-side JavaScript for AJAX metrics retrieval and auto-refresh timer |
+| WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs | Service class with metric calculation methods querying approval entities |
+| WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs | Response DTO with JSON-serializable properties for all metrics |
+
+**New Test Files to Create:**
+
+| File Path | Purpose |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval.Tests/WebVella.Erp.Plugins.Approval.Tests.csproj | Test project configuration targeting net9.0 |
+| WebVella.Erp.Plugins.Approval.Tests/DashboardMetricsServiceTests.cs | xUnit unit tests for all metric calculation methods |
+| WebVella.Erp.Plugins.Approval.Tests/DashboardApiIntegrationTests.cs | xUnit integration tests for API endpoint validation |
+
+**New Validation Structure to Create:**
+
+| Directory Path | Purpose |
+| --- | --- |
+| validation/frontend-validation/ | UI screenshots demonstrating dashboard functionality |
+| validation/test-validation/ | Terminal screenshots of passing tests |
+
+### 0.2.3 Folder Structure to Create
+
+```plaintext
+WebVella.Erp.Plugins.Approval/
+├── Components/
+│   └── PcApprovalDashboard/
+│       ├── PcApprovalDashboard.cs
+│       ├── Design.cshtml
+│       ├── Display.cshtml
+│       ├── Options.cshtml
+│       ├── Help.cshtml
+│       ├── Error.cshtml
+│       └── service.js
+├── Services/
+│   └── DashboardMetricsService.cs
+├── Api/
+│   └── DashboardMetricsModel.cs
+└── Controllers/
+    └── ApprovalController.cs (existing - add endpoint)
+
+WebVella.Erp.Plugins.Approval.Tests/
+├── WebVella.Erp.Plugins.Approval.Tests.csproj
+├── DashboardMetricsServiceTests.cs
+└── DashboardApiIntegrationTests.cs
+
+validation/
+├── frontend-validation/
+│   ├── dashboard-display-manager-role.png
+│   ├── dashboard-metrics-cards.png
+│   ├── dashboard-date-range-filter.png
+│   ├── dashboard-recent-activity-feed.png
+│   ├── dashboard-auto-refresh-indicator.png
+│   ├── dashboard-access-denied-non-manager.png
+│   ├── dashboard-design-mode.png
+│   ├── dashboard-options-panel.png
+│   └── dashboard-responsive-mobile.png
+└── test-validation/
+    ├── unit-tests-all-passing.png
+    ├── unit-tests-coverage-summary.png
+    ├── integration-tests-all-passing.png
+    ├── integration-tests-api-validation.png
+    └── full-test-suite-summary.png
 ```
 
-**Description (Who/What/Why Format):**
+### 0.2.4 Referenced Pattern Files
+
+The following existing files serve as reference implementations:
+
+| Reference File | Pattern Provided |
+| --- | --- |
+| WebVella.Erp.Web/Components/PcPageHeader/PcPageHeader.cs | PageComponent structure, InvokeAsync pattern, mode selection |
+| WebVella.Erp.Web/Components/PcChart/PcChart.cs | Data visualization component pattern |
+| WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs | REST API controller pattern |
+| WebVella.Erp.Web/Models/PageComponent.cs | Base class for all page components |
+| WebVella.Erp.Web/Models/PageComponentAttribute.cs | Component registration attribute |
+| jira-stories/STORY-007-approval-rest-api.md | ApprovalController pattern and ResponseModel envelope |
+| jira-stories/STORY-008-approval-ui-components.md | Approval component folder structure and view patterns |
+
+## 0.3 Dependency Inventory
+
+### 0.3.1 Private and Public Packages
+
+**Framework and Runtime Dependencies:**
+
+| Registry | Package Name | Version | Purpose |
+| --- | --- | --- | --- |
+| NuGet | Microsoft.NET.Sdk.Razor | 9.0 (SDK) | Razor Class Library SDK for component views |
+| NuGet | Microsoft.AspNetCore.App | 9.0 (Framework) | ASP.NET Core shared framework reference |
+| NuGet | Newtonsoft.Json | 13.0.4 | JSON serialization for Options and API responses |
+| NuGet | Microsoft.AspNetCore.Mvc.NewtonsoftJson | 9.0.10 | MVC integration for Newtonsoft.Json |
+
+**Project Dependencies (Internal):**
+
+| Project Reference | Version | Purpose |
+| --- | --- | --- |
+| WebVella.Erp | 1.7.4 | Core ERP runtime with RecordManager, EntityQuery, SecurityContext |
+| WebVella.Erp.Web | 1.7.5 | Web layer with PageComponent base, ErpRequestContext, ErpAppContext |
+
+**Test Project Dependencies:**
+
+| Registry | Package Name | Version | Purpose |
+| --- | --- | --- | --- |
+| NuGet | xunit | 2.9.x | Unit testing framework |
+| NuGet | xunit.runner.visualstudio | 2.8.x | Test runner integration |
+| NuGet | Microsoft.NET.Test.Sdk | 17.x | Test SDK |
+| NuGet | coverlet.collector | 6.x | Code coverage collection |
+| NuGet | Microsoft.AspNetCore.Mvc.Testing | 9.0.x | Integration testing for ASP.NET Core |
+| NuGet | Moq | 4.20.x | Mocking framework for unit tests |
+
+### 0.3.2 Dependency Updates
+
+**Import Updates for New Files:**
+
+Files requiring namespace imports follow the established patterns:
+
+- `PcApprovalDashboard.cs` requires:
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using WebVella.Erp.Api;
+using WebVella.Erp.Api.Models;
+using WebVella.Erp.Exceptions;
+using WebVella.Erp.Web.Models;
+using WebVella.Erp.Web.Services;
+using WebVella.Erp.Plugins.Approval.Services;
 ```
-As a Manager with approval responsibilities,
-I want to view a real-time dashboard displaying my team's approval workflow metrics,
-so that I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.
+
+- `DashboardMetricsService.cs` requires:
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using WebVella.Erp.Api;
+using WebVella.Erp.Api.Models;
+using WebVella.Erp.Plugins.Approval.Api;
 ```
 
-**Proposed Acceptance Criteria (Given/When/Then):**
+- `DashboardMetricsModel.cs` requires:
 
-| ID | Given | When | Then |
-|----|-------|------|------|
-| AC1 | I am logged in as a user with Manager role | I navigate to the Approvals Dashboard page | I see a dashboard displaying my team's approval metrics |
-| AC2 | The dashboard is displayed | 60 seconds have elapsed | The metrics automatically refresh without requiring page reload |
-| AC3 | I am viewing the dashboard | I select a date range filter | The metrics update to reflect only the selected time period |
-| AC4 | I have pending approval requests in queue | I view the Pending Approvals metric | The count accurately reflects requests awaiting my action |
-| AC5 | Approval requests exceed their configured timeout | I view the Overdue Requests metric | The count accurately identifies requests past their SLA |
-| AC6 | I am a user without Manager role | I attempt to access the dashboard | I receive an access denied message |
-
-**Business Value Points:**
-- Reduces time managers spend gathering performance data from multiple sources
-- Enables proactive identification of workflow bottlenecks before escalation
-- Provides visibility into team workload for resource planning decisions
-- Supports compliance reporting with real-time SLA monitoring
-- Improves manager accountability through transparent metrics
-
-## 0.4 Documentation Implementation Design
-
-### 0.4.1 Documentation Structure Planning
-
-**Documentation Hierarchy:**
-
-```
-jira-stories/
-├── STORY-001-approval-plugin-infrastructure.md      (existing)
-├── STORY-002-approval-entity-schema.md              (existing)
-├── STORY-003-workflow-configuration-management.md   (existing)
-├── STORY-004-approval-service-layer.md              (existing)
-├── STORY-005-approval-hooks-integration.md          (existing)
-├── STORY-006-notification-escalation-jobs.md        (existing)
-├── STORY-007-approval-rest-api.md                   (existing)
-├── STORY-008-approval-ui-components.md              (existing)
-├── STORY-009-manager-dashboard-metrics.md           (CREATE)
-├── stories-export.csv                               (UPDATE)
-└── stories-export.json                              (UPDATE)
+```csharp
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 ```
 
-**File Structure for STORY-009:**
+**csproj Embedded Resource Updates:**
 
-The new story file will follow the established markdown structure with sections for Description (Who/What/Why format per State Street guide), Business Value (bullet points), Acceptance Criteria (checkbox format with Given/When/Then), and Technical Implementation Details including tables for files/modules, tree diagrams for folder structure, code snippets for key classes, and dependency tables.
+Add to `WebVella.Erp.Plugins.Approval.csproj`:
 
-### 0.4.2 Content Generation Strategy
+```xml
+<ItemGroup>
+  <EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
+</ItemGroup>
+```
 
-**Information Extraction Approach:**
+### 0.3.3 Target Framework Configuration
 
-| Content Section | Extraction Method | Source |
-|-----------------|-------------------|--------|
-| Description | Interpret business objective | User requirements |
-| Business Value | Derive from objective keywords | "faster decisions", "real-time", "performance" |
-| Acceptance Criteria | Transform requirements to testable scenarios | User requirements + State Street guide |
-| Technical Details | Analyze repository patterns | Existing stories + codebase structure |
-| Dependencies | Trace feature relationships | Feature Catalog (Section 2.1) |
-| Story Points | Relative sizing | Compare to STORY-008 (8 pts for full UI) |
+**Plugin Project (WebVella.Erp.Plugins.Approval.csproj):**
 
-**Template Application:**
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WebVella.Erp.Web\WebVella.Erp.Web.csproj" />
+    <ProjectReference Include="..\WebVella.Erp\WebVella.Erp.csproj" />
+  </ItemGroup>
+</Project>
+```
 
-The user story will apply the State Street template EXACTLY as specified in the guide:
-- Description uses "As a / I want / so that" format
-- Acceptance Criteria uses "Given / When / Then" syntax
-- Summary is limited to maximum 255 characters
+**Test Project (WebVella.Erp.Plugins.Approval.Tests.csproj):**
 
-**Documentation Standards:**
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WebVella.Erp.Plugins.Approval\WebVella.Erp.Plugins.Approval.csproj" />
+  </ItemGroup>
+</Project>
+```
 
-| Standard | Application |
-|----------|-------------|
-| Markdown formatting | Proper headers using # ## ### |
-| Code examples | Fenced code blocks with syntax highlighting |
-| Tables | Pipe-delimited markdown tables |
-| Lists | Checkbox format for acceptance criteria |
-| Source citations | Reference existing stories and codebase paths |
+### 0.3.4 Client-Side Dependencies
 
-### 0.4.3 Diagram and Visual Strategy
+**JavaScript Dependencies (via WebVella ERP infrastructure):**
 
-**Mermaid Diagrams to Include in STORY-009:**
+| Dependency | Version | Purpose | Loaded By |
+| --- | --- | --- | --- |
+| jQuery | 3.x | DOM manipulation and AJAX | Base layout |
+| Bootstrap | 5.x | UI styling and components | Base layout |
+| FontAwesome | 6.x | Icons for metrics cards | Base layout |
+| toastr | 2.x | Toast notifications | Base layout |
 
-**Dashboard Component Architecture:**
+These dependencies are already loaded by the WebVella ERP base layout (`_AppMaster.cshtml`) and do not require additional installation.
+
+## 0.4 Integration Analysis
+
+### 0.4.1 Existing Code Touchpoints
+
+**Direct Modifications Required:**
+
+| File | Modification | Location |
+| --- | --- | --- |
+| WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | Add GetDashboardMetrics endpoint method | After existing endpoint methods |
+| WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | Add IsManagerRole private helper method | Private methods region |
+| WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj | Add embedded resource for service.js | ItemGroup section |
+
+**Service Layer Integration:**
+
+| Integration Point | Source | Target | Purpose |
+| --- | --- | --- | --- |
+| DashboardMetricsService | RecordManager | approval_request entity | Query pending approvals |
+| DashboardMetricsService | RecordManager | approval_history entity | Calculate approval times and rates |
+| ApprovalController | DashboardMetricsService | API endpoint | Retrieve metrics for response |
+| PcApprovalDashboard | SecurityContext.CurrentUser | Component | Validate manager role access |
+
+**Entity Queries:**
+
+| Entity | Query Purpose | Method |
+| --- | --- | --- |
+| approval_request | Count pending requests for current approver | GetPendingApprovalsCount |
+| approval_request | Identify overdue requests exceeding timeout | GetOverdueRequestsCount |
+| approval_history | Calculate average approval time | GetAverageApprovalTime |
+| approval_history | Calculate approval rate percentage | GetApprovalRate |
+| approval_history | Retrieve recent activity feed | GetRecentActivity |
+
+### 0.4.2 Component Registration Integration
+
+**PageComponentLibraryService Registration:**
+
+The `PcApprovalDashboard` component automatically registers with the page builder through the `[PageComponent]` attribute:
+
+```csharp
+[PageComponent(
+    Label = "Approval Dashboard",
+    Library = "WebVella",
+    Description = "Real-time dashboard displaying team approval workflow metrics",
+    Version = "0.0.1",
+    IconClass = "fas fa-chart-line",
+    Category = "Approval Workflow")]
+```
+
+This registration enables:
+
+- Discovery in page builder component palette under "Approval Workflow" category
+- Component metadata retrieval via `PageComponentLibraryService.GetComponentMeta()`
+- Design-time preview rendering in page builder
+
+### 0.4.3 Security Integration
+
+**Role-Based Access Control Flow:**
 
 ```mermaid
-graph TD
-    subgraph Dashboard_Page
-        A[PcApprovalDashboard Component]
-        B[Metrics Display Panel]
-        C[Date Range Filter]
-        D[Auto-Refresh Timer]
-    end
+sequenceDiagram
+    participant U as User
+    participant PC as PcApprovalDashboard
+    participant SC as SecurityContext
+    participant API as ApprovalController
+    participant SVC as DashboardMetricsService
     
-    subgraph Data_Layer
-        E[ApprovalController]
-        F[DashboardMetricsService]
-        G[approval_request Entity]
-        H[approval_history Entity]
+    U->>PC: Navigate to Dashboard Page
+    PC->>SC: Get CurrentUser
+    SC-->>PC: ErpUser with Roles
+    PC->>PC: IsManagerRole(user)
+    alt User has Manager role
+        PC-->>U: Return Display.cshtml
+        U->>API: GET /dashboard/metrics
+        API->>SC: Validate CurrentUser
+        API->>API: IsManagerRole(user)
+        API->>SVC: GetDashboardMetrics()
+        SVC-->>API: DashboardMetricsModel
+        API-->>U: JSON Response
+    else User lacks Manager role
+        PC-->>U: Return Error.cshtml (Access Denied)
     end
-    
-    A --> B
-    A --> C
-    A --> D
-    B --> E
-    E --> F
-    F --> G
-    F --> H
 ```
 
-**User Workflow Diagram:**
+**Security Checkpoints:**
+
+| Checkpoint | Location | Validation |
+| --- | --- | --- |
+| Component Access | PcApprovalDashboard.InvokeAsync() | Check Manager/Administrator role before Display mode |
+| API Access | ApprovalController.GetDashboardMetrics() | Validate [Authorize] and Manager role |
+| User Authentication | ApprovalController.CurrentUserId | Extract from HttpContext claims |
+
+### 0.4.4 Data Flow Integration
+
+**Metrics Calculation Flow:**
+
+```mermaid
+graph TB
+    subgraph "Data Layer"
+        AR[approval_request Entity]
+        AH[approval_history Entity]
+    end
+    
+    subgraph "Service Layer"
+        DMS[DashboardMetricsService]
+        PC[GetPendingApprovalsCount]
+        AT[GetAverageApprovalTime]
+        AP[GetApprovalRate]
+        OR[GetOverdueRequestsCount]
+        RA[GetRecentActivity]
+    end
+    
+    subgraph "API Layer"
+        AC[ApprovalController]
+        DMM[DashboardMetricsModel]
+    end
+    
+    subgraph "UI Layer"
+        PCD[PcApprovalDashboard]
+        JS[service.js]
+        DC[Display.cshtml]
+    end
+    
+    AR --> PC
+    AR --> OR
+    AH --> AT
+    AH --> AP
+    AH --> RA
+    
+    PC --> DMS
+    AT --> DMS
+    AP --> DMS
+    OR --> DMS
+    RA --> DMS
+    
+    DMS --> DMM
+    DMM --> AC
+    
+    AC --> JS
+    JS --> DC
+    DC --> PCD
+```
+
+### 0.4.5 Auto-Refresh Integration
+
+**Timer-Based Refresh Mechanism:**
+
+The client-side auto-refresh integrates with the WebVella ERP JavaScript infrastructure:
+
+| Integration | Description |
+| --- | --- |
+| AJAX Endpoint | GET /api/v3.0/p/approval/dashboard/metrics |
+| Timer Mechanism | JavaScript setInterval() at configured refresh rate |
+| DOM Update | jQuery-based selective DOM updates for metric values |
+| Error Handling | Toast notifications via toastr on AJAX failures |
+| Credential Handling | Automatic cookie-based authentication via browser |
+
+**Date Range Integration:**
+
+| Parameter | Format | Example |
+| --- | --- | --- |
+| from | ISO 8601 Date | 2025-12-18T00:00:00Z |
+| to | ISO 8601 Date | 2026-01-17T23:59:59Z |
+
+These parameters are passed as query strings and processed by the API endpoint to filter metrics calculation.
+
+## 0.5 Technical Implementation
+
+### 0.5.1 File-by-File Execution Plan
+
+**Group 1 - Core Component Files:**
+
+| Action | File Path | Purpose |
+| --- | --- | --- |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs | Implement dashboard PageComponent with options model, InvokeAsync, and role validation |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml | Runtime view with Bootstrap metric cards, date range selector, recent activity feed |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Design.cshtml | Page builder preview with sample/placeholder metric values |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml | Configuration form for refresh interval, date range, alerts, metrics selection |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Help.cshtml | Documentation explaining dashboard features and configuration |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Error.cshtml | Error display for access denied and retrieval failures |
+| CREATE | WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js | Client-side AJAX and setInterval auto-refresh logic |
+
+**Group 2 - Service Layer Files:**
+
+| Action | File Path | Purpose |
+| --- | --- | --- |
+| CREATE | WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs | Service class with GetDashboardMetrics, GetPendingApprovalsCount, GetAverageApprovalTime, GetApprovalRate, GetOverdueRequestsCount, GetRecentActivity methods |
+| CREATE | WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs | DTO with PendingApprovalsCount, AverageApprovalTimeHours, ApprovalRatePercent, OverdueRequestsCount, RecentActivity, MetricsAsOf, DateRangeStart, DateRangeEnd properties |
+
+**Group 3 - API Integration:**
+
+| Action | File Path | Purpose |
+| --- | --- | --- |
+| MODIFY | WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | Add GetDashboardMetrics endpoint at /api/v3.0/p/approval/dashboard/metrics with date range parameters |
+| MODIFY | WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj | Add EmbeddedResource for service.js |
+
+**Group 4 - Test Files:**
+
+| Action | File Path | Purpose |
+| --- | --- | --- |
+| CREATE | WebVella.Erp.Plugins.Approval.Tests/WebVella.Erp.Plugins.Approval.Tests.csproj | Test project configuration with xunit, coverlet, Moq |
+| CREATE | WebVella.Erp.Plugins.Approval.Tests/DashboardMetricsServiceTests.cs | Unit tests for all metric calculation methods |
+| CREATE | WebVella.Erp.Plugins.Approval.Tests/DashboardApiIntegrationTests.cs | Integration tests for API authentication, authorization, parameters |
+
+**Group 5 - Validation Artifacts:**
+
+| Action | File Path | Purpose |
+| --- | --- | --- |
+| CREATE | validation/frontend-validation/ | Directory for UI screenshots |
+| CREATE | validation/test-validation/ | Directory for test result screenshots |
+
+### 0.5.2 Implementation Approach per File
+
+**PcApprovalDashboard.cs - Component Class:**
+
+- Establish component with `[PageComponent]` attribute for category "Approval Workflow"
+- Implement nested `PcApprovalDashboardOptions` class with JSON-mapped properties
+- InvokeAsync method validates context.Node and Page property presence
+- Check manager role before Display mode rendering
+- Populate ViewBag with Options, Node, ComponentMeta, RequestContext, AppContext
+- Return appropriate view based on ComponentMode (Display, Design, Options, Help, Error)
+
+**Display.cshtml - Runtime View:**
+
+- Bootstrap card grid layout for 5 metric KPIs (2x3 grid)
+- Date range dropdown selector with 7d/30d/90d/custom options
+- Recent activity timeline with action icons and timestamps
+- Auto-refresh indicator showing last update time
+- JavaScript initialization block calling service.js functions
+
+**service.js - Client-Side Logic:**
+
+```javascript
+// Initialize dashboard with refresh interval
+function initDashboard(nodeId, options) {
+  loadMetrics(nodeId, options);
+  setInterval(() => loadMetrics(nodeId, options), options.refreshInterval * 1000);
+}
+// AJAX call to metrics endpoint
+function loadMetrics(nodeId, options) {
+  $.ajax({ url: '/api/v3.0/p/approval/dashboard/metrics', ... });
+}
+```
+
+**DashboardMetricsService.cs - Service Class:**
+
+- Constructor initializes RecordManager instance
+- GetDashboardMetrics orchestrates all metric calculations
+- Each metric method uses EntityQuery with appropriate filters
+- Date range parameters filter approval_history queries
+- Pending and overdue counts query approval_request with status='pending'
+
+**ApprovalController.cs - API Endpoint Addition:**
+
+- Add `[Route("api/v3.0/p/approval/dashboard/metrics")]` method
+- Validate authentication via CurrentUserId
+- Check manager role with IsManagerRole helper
+- Default date range: last 30 days if parameters not provided
+- Return ResponseModel envelope with DashboardMetricsModel
+
+### 0.5.3 Component Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "Page Builder"
+        PB[Page Builder UI]
+        PC[PcApprovalDashboard Component]
+    end
+    
+    subgraph "Component Views"
+        DV[Display.cshtml]
+        DSV[Design.cshtml]
+        OV[Options.cshtml]
+        HV[Help.cshtml]
+        EV[Error.cshtml]
+    end
+    
+    subgraph "Client Side"
+        JS[service.js]
+        AJAX[AJAX Requests]
+    end
+    
+    subgraph "Server Side"
+        AC[ApprovalController]
+        DMS[DashboardMetricsService]
+        DMM[DashboardMetricsModel]
+    end
+    
+    subgraph "Data Layer"
+        AR[approval_request Entity]
+        AH[approval_history Entity]
+    end
+    
+    PB --> PC
+    PC --> DV
+    PC --> DSV
+    PC --> OV
+    PC --> HV
+    PC --> EV
+    
+    DV --> JS
+    JS --> AJAX
+    AJAX --> AC
+    AC --> DMS
+    DMS --> DMM
+    DMS --> AR
+    DMS --> AH
+```
+
+### 0.5.4 User Workflow Sequence
 
 ```mermaid
 sequenceDiagram
     participant M as Manager
-    participant D as Dashboard Page
+    participant UI as Dashboard UI
+    participant JS as service.js
     participant API as ApprovalController
-    participant S as DashboardMetricsService
+    participant SVC as DashboardMetricsService
+    participant DB as Approval Entities
     
-    M->>D: Navigate to Dashboard
-    D->>API: GET /metrics
-    API->>S: GetDashboardMetrics
-    S-->>API: MetricsResponse
-    API-->>D: JSON Response
-    D-->>M: Display Metrics
+    M->>UI: Navigate to Dashboard
+    UI->>API: GET /dashboard/metrics
+    API->>API: Validate Manager Role
+    API->>SVC: GetDashboardMetrics()
+    SVC->>DB: Query approval_request
+    SVC->>DB: Query approval_history
+    DB-->>SVC: Return records
+    SVC-->>API: DashboardMetricsModel
+    API-->>UI: JSON Response
+    UI->>UI: Render Metrics Cards
     
     loop Every 60 seconds
-        D->>API: GET /metrics
-        API-->>D: Updated Metrics
-        D-->>M: Update Display
+        JS->>API: GET /dashboard/metrics
+        API->>SVC: GetDashboardMetrics()
+        SVC->>DB: Query entities
+        DB-->>SVC: Return records
+        SVC-->>API: Updated metrics
+        API-->>JS: JSON Response
+        JS->>UI: Update DOM
     end
-```
-
-### 0.4.4 Technical Implementation Outline
-
-**Files/Modules to Reference in Documentation:**
-
-| File Path | Purpose |
-|-----------|---------|
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/` | Dashboard page component |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs` | Component class |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml` | Display view |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml` | Configuration options |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js` | AJAX refresh logic |
-| `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs` | Metrics calculation service |
-| `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs` | API endpoint additions |
-| `WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs` | Response model |
-
-**Component Options to Document:**
-
-| Option | Type | Description |
-|--------|------|-------------|
-| refresh_interval | Number | Seconds between auto-refresh (default: 60) |
-| date_range_default | Text | Default date range (7d/30d/90d) |
-| show_overdue_alert | Boolean | Highlight overdue requests |
-| metrics_to_display | Text | Comma-separated metric IDs |
-
-**API Endpoints to Document:**
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v3.0/p/approval/dashboard/metrics` | Returns dashboard metrics for current user |
-| GET | `/api/v3.0/p/approval/dashboard/metrics?from={date}&to={date}` | Filtered by date range |
-
-### 0.4.5 INVEST Criteria Validation
-
-| Criterion | Validation | Status |
-|-----------|------------|--------|
-| **Independent** | No blocking dependency on undelivered features; builds on F-007/F-008 | ✓ Pass |
-| **Negotiable** | Metrics selection and refresh interval are negotiable | ✓ Pass |
-| **Valuable** | Directly addresses manager decision-making objective | ✓ Pass |
-| **Estimable** | Similar scope to STORY-008 UI component; 5 points | ✓ Pass |
-| **Sized** | Single dashboard view, single refresh mechanism | ✓ Pass |
-| **Testable** | All acceptance criteria have clear pass/fail | ✓ Pass |
-| **Demo-able** | Dashboard can be demonstrated to Product Owner | ✓ Pass |
-
-## 0.5 Documentation File Transformation Mapping
-
-### 0.5.1 File-by-File Documentation Plan
-
-**CRITICAL: Complete mapping of ALL documentation files to be created, updated, or deleted.**
-
-**Documentation Transformation Modes:**
-- **CREATE** - Create a new documentation file
-- **UPDATE** - Update an existing documentation file
-- **DELETE** - Remove an obsolete documentation file
-- **REFERENCE** - Use as an example for documentation style and structure
-
-| Target Documentation File | Transformation | Source Code/Docs | Content/Changes |
-|---------------------------|----------------|------------------|-----------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | Business objective, State Street guide, existing stories | Complete user story with Description, Business Value, Acceptance Criteria, Technical Details |
-| `jira-stories/stories-export.csv` | UPDATE | `jira-stories/stories-export.csv` | Add new row with STORY-009 data matching existing column structure |
-| `jira-stories/stories-export.json` | UPDATE | `jira-stories/stories-export.json` | Add new story object to stories array with all required fields |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | - | Use as template for component documentation structure |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | - | Use as template for API endpoint documentation |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | - | Use as template for overall story structure and formatting |
-
-### 0.5.2 New Documentation Files Detail
-
-**File: jira-stories/STORY-009-manager-dashboard-metrics.md**
-
-| Attribute | Value |
-|-----------|-------|
-| **Type** | JIRA User Story (Markdown) |
-| **Source Context** | User requirements, State Street guide |
-| **Story ID** | STORY-009 |
-| **Story Points** | 5 |
-| **Labels** | dashboard, metrics, ui, manager, approval, real-time |
-
-**Sections to Include:**
-
-| Section | Content Description |
-|---------|---------------------|
-| Title Header | `# STORY-009: Manager Approval Dashboard with Real-Time Metrics` |
-| Description | Who/What/Why format for manager viewing dashboard metrics |
-| Business Value | 5 bullet points articulating decision-making improvements |
-| Acceptance Criteria | 6 testable scenarios in Given/When/Then format |
-| Technical Implementation Details | Files/modules table, folder structure, key classes |
-| Dependencies | STORY-007, STORY-008 (UI Components and REST API) |
-
-**Acceptance Criteria Detail:**
-
-| AC ID | Scenario |
-|-------|----------|
-| AC1 | Manager navigates to dashboard and sees metrics |
-| AC2 | Dashboard auto-refreshes every 60 seconds |
-| AC3 | Date range filter updates displayed metrics |
-| AC4 | Pending approvals count reflects actual queue |
-| AC5 | Overdue requests identifies SLA violations |
-| AC6 | Non-manager users receive access denied |
-
-**Key Technical Elements to Document:**
-
-| Element | Documentation Content |
-|---------|----------------------|
-| PcApprovalDashboard Component | Component class, views, options, service.js |
-| DashboardMetricsService | Service methods for metric calculations |
-| API Endpoint | GET /api/v3.0/p/approval/dashboard/metrics |
-| Response Model | DashboardMetricsModel with metric properties |
-
-### 0.5.3 Documentation Files to Update Detail
-
-**File: jira-stories/stories-export.csv**
-
-| Change Type | Details |
-|-------------|---------|
-| Operation | Append new row |
-| Row Position | After STORY-008 row |
-| Column Structure | Match existing: Story ID, Title, Description, Business Value, Acceptance Criteria, Technical Details, Dependencies, Story Points, Labels |
-
-**New Row Content:**
-
-| Column | Value |
-|--------|-------|
-| Story ID | STORY-009 |
-| Title | Manager Approval Dashboard with Real-Time Metrics |
-| Description | Implement a real-time dashboard page component displaying team approval workflow metrics... |
-| Business Value | Reduces manager time gathering performance data; Enables proactive bottleneck identification... |
-| Acceptance Criteria | [ ] Manager sees dashboard metrics on navigation; [ ] Dashboard auto-refreshes at configurable interval... |
-| Technical Details | Files: Components/PcApprovalDashboard/, Services/DashboardMetricsService.cs... |
-| Dependencies | STORY-007, STORY-008 |
-| Story Points | 5 |
-| Labels | dashboard, metrics, ui, manager, approval, real-time |
-
-**File: jira-stories/stories-export.json**
-
-| Change Type | Details |
-|-------------|---------|
-| Operation | Add story object to stories array |
-| Position | After STORY-008 object |
-| Structure | Match existing story object schema |
-
-**New Story Object Fields:**
-
-| Field | Type | Value |
-|-------|------|-------|
-| id | string | "STORY-009" |
-| title | string | "Manager Approval Dashboard with Real-Time Metrics" |
-| description | string | Full description paragraph |
-| businessValue | string | Concatenated value statements |
-| acceptanceCriteria | array | Array of criterion strings |
-| technicalDetails | object | { files: [], classes: [], integrationPoints: [], technicalApproach: "" } |
-| dependencies | array | ["STORY-007", "STORY-008"] |
-| storyPoints | number | 5 |
-| labels | array | ["dashboard", "metrics", "ui", "manager", "approval", "real-time"] |
-
-### 0.5.4 Cross-Documentation Dependencies
-
-**Shared Content References:**
-
-| Reference Type | Source | Target |
-|----------------|--------|--------|
-| Story naming convention | STORY-001 through STORY-008 | STORY-009 |
-| Technical detail structure | STORY-008 (UI components) | STORY-009 technical section |
-| API documentation pattern | STORY-007 (REST API) | STORY-009 API endpoints |
-| Entity references | STORY-002 (Entity schema) | STORY-009 data sources |
-
-**Navigation and Index Updates:**
-
-| Update | Location | Change |
-|--------|----------|--------|
-| CSV row order | stories-export.csv | Sequential after STORY-008 |
-| JSON array order | stories-export.json | Append to stories array |
-| Dependency tracking | STORY-009 | References STORY-007, STORY-008 |
-
-### 0.5.5 Complete File Inventory
-
-**All Documentation Files Affected:**
-
-| File Path | Action | Status |
-|-----------|--------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | New file |
-| `jira-stories/stories-export.csv` | UPDATE | Add row |
-| `jira-stories/stories-export.json` | UPDATE | Add object |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | Template |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | API pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | Component pattern |
-
-**No files marked as "pending" or "to be discovered" - all documentation artifacts explicitly listed.**
-
-## 0.6 Dependency Inventory
-
-### 0.6.1 Documentation Dependencies
-
-**Documentation Tools and Packages:**
-
-This documentation task (creating JIRA user story artifacts) does not require specific documentation generation tools. The deliverables are plain markdown files and structured data exports (CSV/JSON).
-
-| Registry | Package Name | Version | Purpose |
-|----------|--------------|---------|---------|
-| N/A | Markdown | - | Native format for story files |
-| N/A | CSV | - | Tabular export format |
-| N/A | JSON | - | Structured data export |
-
-**Story Documentation Dependencies:**
-
-The STORY-009 user story has dependencies on prior stories that provide the technical foundation:
-
-| Dependency Story | Type | Relationship | Rationale |
-|------------------|------|--------------|-----------|
-| STORY-007 | Prerequisite | API Layer | Dashboard consumes REST API endpoints |
-| STORY-008 | Prerequisite | UI Components | Dashboard uses PageComponent pattern |
-| STORY-004 | Indirect | Service Layer | Metrics service follows service patterns |
-| STORY-002 | Indirect | Entity Schema | Metrics query approval entities |
-
-### 0.6.2 Technical Documentation References
-
-**WebVella ERP Documentation Dependencies:**
-
-| Documentation Area | Location | Relevance to STORY-009 |
-|--------------------|----------|------------------------|
-| Page Components | `docs/developer/components/` | Component creation pattern |
-| REST API | `docs/developer/web-api/` | API endpoint conventions |
-| Entities | `docs/developer/entities/` | Entity query patterns |
-| Background Jobs | `docs/developer/background-jobs/` | Auto-refresh considerations |
-
-**State Street Guide Dependencies:**
-
-| Guide Section | Application to STORY-009 |
-|---------------|--------------------------|
-| Purpose | User story definition and scope |
-| Anatomy of a Story | Summary, Description, Acceptance Criteria structure |
-| INVEST Criteria | Story quality validation |
-| Acceptance Criteria Effectiveness | Given/When/Then validation |
-| Story Estimation | Story point assignment (5 points) |
-
-### 0.6.3 Feature Dependency Chain
-
-**Dependency Graph for STORY-009:**
-
-```mermaid
-graph TD
-    S001[STORY-001: Plugin Infrastructure]
-    S002[STORY-002: Entity Schema]
-    S003[STORY-003: Config Services]
-    S004[STORY-004: Service Layer]
-    S005[STORY-005: Hooks Integration]
-    S006[STORY-006: Background Jobs]
-    S007[STORY-007: REST API]
-    S008[STORY-008: UI Components]
-    S009[STORY-009: Manager Dashboard]
     
-    S001 --> S002
-    S002 --> S003
-    S003 --> S004
-    S004 --> S005
-    S004 --> S007
-    S005 --> S006
-    S007 --> S008
-    S008 --> S009
-    S007 --> S009
+    M->>UI: Select Date Range
+    UI->>API: GET /dashboard/metrics?from=&to=
+    API->>SVC: GetDashboardMetrics(from, to)
+    SVC-->>API: Filtered metrics
+    API-->>UI: JSON Response
+    UI->>UI: Re-render with filtered data
 ```
 
-**Dependency Summary:**
+### 0.5.5 API Endpoint Specification
+
+| Method | Endpoint | Parameters | Response |
+| --- | --- | --- | --- |
+| GET | /api/v3.0/p/approval/dashboard/metrics | None (defaults to 30d) | DashboardMetricsModel |
+| GET | /api/v3.0/p/approval/dashboard/metrics?from={date}&to={date} | from, to (ISO dates) | DashboardMetricsModel |
+
+**Response Format:**
+
+```json
+{
+  "success": true,
+  "message": "Dashboard metrics retrieved successfully",
+  "object": {
+    "pending_approvals_count": 12,
+    "average_approval_time_hours": 4.5,
+    "approval_rate_percent": 87.5,
+    "overdue_requests_count": 2,
+    "recent_activity": [...],
+    "metrics_as_of": "2026-01-17T14:35:00Z",
+    "date_range_start": "2025-12-18T00:00:00Z",
+    "date_range_end": "2026-01-17T23:59:59Z"
+  },
+  "errors": []
+}
+```
+
+## 0.6 Scope Boundaries
 
-| Story | Direct Dependencies | Indirect Dependencies |
-|-------|--------------------|-----------------------|
-| STORY-009 | STORY-007, STORY-008 | STORY-001 through STORY-006 |
+### 0.6.1 Exhaustively In Scope
 
-### 0.6.4 Documentation Reference Updates
+**Dashboard Component Files:**
 
-**Documentation Files Requiring Link Updates:**
+| Pattern | Description |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/**/* | All dashboard component files (cs, cshtml, js) |
+| WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs | Metrics calculation service |
+| WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs | Response DTO model |
 
-Since this is a new story being created, no existing documentation links need updating. However, the new story will establish references to:
+**Controller Integration:**
 
-| Reference Source | Reference Target | Link Type |
-|------------------|------------------|-----------|
-| STORY-009 | STORY-007 | Dependency reference |
-| STORY-009 | STORY-008 | Dependency reference |
-| STORY-009 | approval_request entity | Technical reference |
-| STORY-009 | approval_history entity | Technical reference |
-| STORY-009 | ApprovalController | Implementation reference |
+| Pattern | Description |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | Add GetDashboardMetrics endpoint and IsManagerRole helper |
 
-### 0.6.5 Runtime Dependencies for Documented Feature
+**Project Configuration:**
 
-**Technologies Referenced in STORY-009 Documentation:**
+| Pattern | Description |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj | Add EmbeddedResource for service.js |
+
+**Test Files:**
+
+| Pattern | Description |
+| --- | --- |
+| WebVella.Erp.Plugins.Approval.Tests/**/* | All test project files |
+| WebVella.Erp.Plugins.Approval.Tests/DashboardMetricsServiceTests.cs | Unit tests for metrics service |
+| WebVella.Erp.Plugins.Approval.Tests/DashboardApiIntegrationTests.cs | Integration tests for API endpoint |
+
+**Validation Artifacts:**
 
-| Category | Technology | Version | Purpose in Story |
-|----------|------------|---------|------------------|
-| Framework | ASP.NET Core | 9.0 | Web application framework |
-| Runtime | .NET | 9.0 | Application runtime |
-| Frontend | Bootstrap | 4.x | UI styling (per existing patterns) |
-| Frontend | jQuery | 3.x | AJAX calls in service.js |
-| Database | PostgreSQL | 16.x | Data storage for metrics |
-| JSON Library | Newtonsoft.Json | 13.x | API response serialization |
+| Pattern | Description |
+| --- | --- |
+| validation/frontend-validation/*.png | UI screenshots per acceptance criteria |
+| validation/test-validation/*.png | Test result screenshots per acceptance criteria |
+
+**Entity Queries (Read-Only):**
+
+| Entity | Query Operations |
+| --- | --- |
+| approval_request | SELECT for pending count, SELECT for overdue count |
+| approval_history | SELECT for average time, SELECT for approval rate, SELECT for recent activity |
 
-**Note:** These are not documentation tool dependencies but technologies that the documented feature (STORY-009) will utilize. The user story documentation must accurately reference these technologies when describing technical implementation details.
+### 0.6.2 Explicitly Out of Scope
+
+**Unrelated Features or Modules:**
 
-## 0.7 Coverage and Quality Targets
+| Item | Reason |
+| --- | --- |
+| Entity schema modifications | Entities defined in STORY-002, no changes required |
+| Workflow configuration changes | Covered by STORY-003, separate concern |
+| Approval service layer changes | Covered by STORY-004, no modifications needed |
+| Hook implementations | Covered by STORY-005, separate concern |
+| Job and notification changes | Covered by STORY-006, separate concern |
+| Other ApprovalController endpoints | Covered by STORY-007, only adding new endpoint |
+| Other UI components (PcApprovalWorkflowConfig, etc.) | Covered by STORY-008, separate components |
 
-### 0.7.1 Documentation Coverage Metrics
+**Performance Optimizations Beyond Requirements:**
 
-**Current Coverage Analysis:**
+| Item | Reason |
+| --- | --- |
+| Caching layer for metrics | Not specified in requirements |
+| Database query optimization | Out of scope unless causing issues |
+| Real-time push notifications (SignalR) | Explicitly listed as future enhancement |
 
-| Documentation Area | Current State | After STORY-009 |
-|--------------------|---------------|-----------------|
-| User stories in jira-stories/ | 8 stories (STORY-001 to STORY-008) | 9 stories (adds STORY-009) |
-| Backlog CSV export | 8 rows | 9 rows |
-| Backlog JSON export | 8 story objects | 9 story objects |
-| Manager/Dashboard stories | 0 | 1 |
-| Total story points documented | 47 | 52 |
-
-**Coverage Gap Addressed:**
-
-| Gap | Resolution |
-|-----|------------|
-| No manager-focused dashboard story | STORY-009 addresses managerial decision-making |
-| No real-time metrics story | STORY-009 specifies auto-refresh capability |
-| No team performance visibility story | STORY-009 provides team metrics dashboard |
-
-**Target Coverage:**
-- 100% of business objective addressed in single vertical slice
-- All story sections complete per State Street guide
-- All acceptance criteria testable with Given/When/Then
-
-### 0.7.2 Documentation Quality Criteria
-
-**Completeness Requirements:**
-
-| Criterion | Requirement | Validation Method |
-|-----------|-------------|-------------------|
-| Summary | ≤255 characters, descriptive | Character count check |
-| Description | Who/What/Why format complete | Format verification |
-| Business Value | Minimum 4 value statements | Count and relevance check |
-| Acceptance Criteria | Minimum 5 scenarios | Count and testability check |
-| Technical Details | Files, classes, dependencies listed | Completeness review |
-
-**State Street Guide Compliance:**
+**Refactoring of Existing Code:**
 
-| Guide Requirement | Compliance Check |
-|-------------------|------------------|
-| Story format (Who/What/Why) | ✓ As a Manager / I want dashboard / so that faster decisions |
-| Acceptance Criteria (Given/When/Then) | ✓ 6 scenarios with complete syntax |
-| INVEST criteria | ✓ All 6+1 criteria validated |
-| Summary length | ✓ 193 characters (under 255 limit) |
-| Demo-able | ✓ Dashboard can be demonstrated |
+| Item | Reason |
+| --- | --- |
+| Existing ApprovalController structure | Only adding new endpoint, preserving existing |
+| Existing service patterns | Following patterns, not modifying them |
+| WebVella core components | Using as reference only |
 
-**Accuracy Validation:**
-
-| Validation Area | Method |
-|-----------------|--------|
-| Technical file paths | Cross-reference with repository structure |
-| Entity references | Verify against STORY-002 schema |
-| API endpoint patterns | Align with STORY-007 conventions |
-| Component patterns | Match STORY-008 structure |
-| Story point sizing | Relative comparison to similar stories |
-
-### 0.7.3 Clarity and Consistency Standards
-
-**Clarity Standards:**
-
-| Standard | Application |
-|----------|-------------|
-| Technical accuracy | All file paths and class names verified |
-| Accessible language | Business value in non-technical terms |
-| Progressive disclosure | Summary → Description → Details |
-| Consistent terminology | Use existing entity/service names |
-
-**Consistency with Existing Stories:**
-
-| Element | Consistency Check |
-|---------|-------------------|
-| Markdown structure | Matches STORY-001 through STORY-008 |
-| Section ordering | Description → Business Value → Acceptance Criteria → Technical Details |
-| Table formatting | Pipe-delimited, header row, alignment |
-| Code block style | Fenced with language identifier |
-| Checkbox format | `- [ ] **ACx**: Description` |
-
-### 0.7.4 Example and Diagram Requirements
-
-**Minimum Content Requirements:**
-
-| Content Type | Minimum Count | Purpose |
-|--------------|---------------|---------|
-| Acceptance Criteria | 6 scenarios | Comprehensive testable requirements |
-| Business Value points | 5 bullets | Stakeholder justification |
-| Technical files | 8 paths | Implementation scope |
-| Diagrams | 2 Mermaid | Visual architecture and workflow |
-
-**Diagram Types Required:**
-
-| Diagram | Purpose | Location |
-|---------|---------|----------|
-| Component architecture | Show dashboard component structure | Technical Details section |
-| User workflow sequence | Show manager interaction flow | Technical Details section |
-
-### 0.7.5 Quality Validation Checklist
-
-**Pre-Delivery Checklist:**
-
-| Check | Status |
-|-------|--------|
-| Summary under 255 characters | ✓ Verified (193 chars) |
-| Who/What/Why format complete | ✓ All three elements present |
-| Minimum 5 acceptance criteria | ✓ 6 criteria defined |
-| Given/When/Then syntax | ✓ All 6 use correct format |
-| INVEST criteria passed | ✓ All 7 criteria validated |
-| Technical details complete | ✓ Files, classes, endpoints listed |
-| Dependencies documented | ✓ STORY-007, STORY-008 referenced |
-| Story points assigned | ✓ 5 points (consistent with scope) |
-| Labels defined | ✓ 6 labels assigned |
-| CSV export row ready | ✓ All columns mapped |
-| JSON export object ready | ✓ All fields defined |
-
-**Acceptance Criteria Clarity Validation:**
-
-| AC ID | Clarity | Conciseness | Testability | Result-Oriented |
-|-------|---------|-------------|-------------|-----------------|
-| AC1 | ✓ | ✓ | ✓ | ✓ |
-| AC2 | ✓ | ✓ | ✓ | ✓ |
-| AC3 | ✓ | ✓ | ✓ | ✓ |
-| AC4 | ✓ | ✓ | ✓ | ✓ |
-| AC5 | ✓ | ✓ | ✓ | ✓ |
-| AC6 | ✓ | ✓ | ✓ | ✓ |
-
-## 0.8 Scope Boundaries
-
-### 0.8.1 Exhaustively In Scope
-
-**New Documentation Files:**
-
-| File Pattern | Description |
-|--------------|-------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | Complete user story for manager dashboard |
-
-**Documentation File Updates:**
-
-| File Pattern | Description |
-|--------------|-------------|
-| `jira-stories/stories-export.csv` | Add STORY-009 row to backlog export |
-| `jira-stories/stories-export.json` | Add STORY-009 object to stories array |
-
-**Documentation Content Scope:**
-
-| Content Element | In Scope |
-|-----------------|----------|
-| User story summary | ✓ Maximum 255 characters |
-| Description (Who/What/Why) | ✓ Manager role, dashboard goal, decision benefit |
-| Business Value statements | ✓ 5 value articulations |
-| Acceptance Criteria | ✓ 6 Given/When/Then scenarios |
-| Technical Implementation Details | ✓ Files, classes, endpoints, dependencies |
-| Mermaid diagrams | ✓ Architecture and workflow diagrams |
-| Story metadata | ✓ Story points (5), labels, dependencies |
-
-**User Story Content Boundaries:**
-
-| Boundary | Definition |
-|----------|------------|
-| User role | Manager with approval responsibilities |
-| Feature scope | Single dashboard view with 5 key metrics |
-| Real-time scope | Auto-refresh at configurable interval (default 60 seconds) |
-| Filter scope | Date range filter only |
-| Metrics scope | Pending count, average time, approval rate, overdue count, recent activity |
-
-**Reference Files (Read-Only):**
-
-| File | Purpose |
-|------|---------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Structure template |
-| `jira-stories/STORY-007-approval-rest-api.md` | API documentation pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | Component documentation pattern |
-| State Street "Writing a User Story" guide (PDF) | Formatting requirements |
-
-### 0.8.2 Explicitly Out of Scope
-
-**Source Code Modifications:**
-
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Creating PcApprovalDashboard component code | This is documentation only, not implementation |
-| Implementing DashboardMetricsService | Story documents requirements, not implementation |
-| Adding API endpoints to ApprovalController | Implementation follows from story acceptance |
-| Modifying existing plugin files | No code changes, only documentation |
-
-**Other Stories/Documentation:**
-
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Modifying STORY-001 through STORY-008 content | Existing stories are reference only |
-| Creating additional dashboard stories | Single vertical slice per request |
-| Epic-level documentation | User requested single sprint story |
-| Test case documentation | Not part of user story artifact |
-| Release notes | Separate documentation artifact |
-
-**Feature Scope Exclusions:**
-
-| Exclusion | Rationale |
-|-----------|-----------|
-| Multiple dashboard views | Vertical slice = one view |
-| Complex filtering (team, user, status) | Future story candidates |
-| Export functionality | Future story candidate |
-| Drill-down to individual records | Future story candidate |
-| Historical trend charts | Future story candidate |
-| Mobile-specific responsive design | Can be addressed in implementation |
-| Push notifications (SignalR) | Auto-refresh provides real-time, push is enhancement |
-
-**Explicitly Excluded per User Instructions:**
-
-| Exclusion | Source |
-|-----------|--------|
-| Items not specified by user | Only manager dashboard metrics story requested |
-| Full epic documentation | Single story requested |
-| Sprint planning artifacts | Only user story artifact requested |
-
-### 0.8.3 Boundary Clarifications
-
-**Vertical Slice Definition:**
-
-This user story represents ONE vertical slice of the larger business objective. The full objective could include:
-
-| Potential Future Stories | Not In This Scope |
-|--------------------------|-------------------|
-| STORY-010: Department-level metrics dashboard | Future backlog item |
-| STORY-011: Approval trend analysis charts | Future backlog item |
-| STORY-012: Manager notification preferences | Future backlog item |
-| STORY-013: Dashboard export to PDF/Excel | Future backlog item |
-| STORY-014: Mobile dashboard optimization | Future backlog item |
-
-**This Vertical Slice Delivers:**
-- One dashboard page component
-- Five key approval metrics
-- Auto-refresh capability
-- Date range filtering
-- Role-based access control
-
-**Sprint Delivery Boundary:**
-- Story sized at 5 points (moderate complexity)
-- Comparable to STORY-007 (API endpoints) or STORY-003 (configuration services)
-- Single sprint delivery achievable based on relative sizing
-
-## 0.9 Execution Parameters
-
-### 0.9.1 Documentation-Specific Instructions
-
-**Documentation Creation Commands:**
-
-| Operation | Command/Action |
-|-----------|----------------|
-| Create story file | Create `jira-stories/STORY-009-manager-dashboard-metrics.md` |
-| Update CSV export | Append row to `jira-stories/stories-export.csv` |
-| Update JSON export | Add object to `jira-stories/stories-export.json` |
-
-**Documentation Validation Commands:**
-
-| Validation | Method |
-|------------|--------|
-| Markdown syntax | Validate headers, tables, code blocks render correctly |
-| CSV format | Verify column alignment with existing rows |
-| JSON format | Validate JSON syntax with parser |
-| Link integrity | Verify internal references resolve |
-
-**Default Documentation Format:**
-- Primary format: Markdown with Mermaid diagrams
-- Export formats: CSV (JIRA-compatible), JSON (API/tool-compatible)
-- Character encoding: UTF-8
-- Line endings: LF (Unix-style)
-
-### 0.9.2 Style Guide Compliance
-
-**Repository-Specific Conventions:**
-
-| Convention | Standard |
-|------------|----------|
-| Story ID format | `STORY-XXX` (sequential numbering) |
-| File naming | `STORY-XXX-kebab-case-title.md` |
-| Header format | `# STORY-XXX: Title Case Title` |
-| Section headers | `## Section Name` (no numbering) |
-| Acceptance criteria | `- [ ] **ACx**: Description` |
-| Tables | Pipe-delimited with header separator |
-
-**State Street Guide Compliance:**
-
-| Requirement | Implementation |
-|-------------|----------------|
-| Summary ≤255 chars | "Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability." (193 chars) |
-| Who/What/Why format | "As a Manager... I want... so that..." |
-| Given/When/Then syntax | All 6 acceptance criteria use full syntax |
-| INVEST validation | All criteria verified and documented |
-
-### 0.9.3 Citation Requirements
-
-**Source Citation Format:**
-
-Every technical detail must reference source files using the format:
-- `Source: /path/to/file.ext:LineNumber` (for specific lines)
-- `Pattern: /path/to/reference/file.ext` (for structural patterns)
-
-**Key Citations for STORY-009:**
-
-| Claim | Citation |
-|-------|----------|
-| Component structure pattern | Pattern: `STORY-008-approval-ui-components.md` |
-| API endpoint conventions | Pattern: `STORY-007-approval-rest-api.md` |
-| Entity schema references | Pattern: `STORY-002-approval-entity-schema.md` |
-| Plugin infrastructure | Pattern: `STORY-001-approval-plugin-infrastructure.md` |
-| State Street format | Source: SST User Story Guide.pdf (Pages 1-3) |
-
-### 0.9.4 Export File Specifications
-
-**CSV Export Format:**
-
-| Column | Data Type | Example Value |
-|--------|-----------|---------------|
-| Story ID | String | STORY-009 |
-| Title | String | Manager Approval Dashboard with Real-Time Metrics |
-| Description | String | Implement a real-time dashboard... |
-| Business Value | String | Reduces manager time gathering...; Enables proactive... |
-| Acceptance Criteria | String | [ ] Manager sees dashboard...; [ ] Dashboard auto-refreshes... |
-| Technical Details | String | Files: Components/PcApprovalDashboard/...; Classes: ... |
-| Dependencies | String | STORY-007, STORY-008 |
-| Story Points | Number | 5 |
-| Labels | String | dashboard, metrics, ui, manager, approval, real-time |
-
-**JSON Export Schema:**
-
-| Field | Type | Required |
-|-------|------|----------|
-| id | string | Yes |
-| title | string | Yes |
-| description | string | Yes |
-| businessValue | string | Yes |
-| acceptanceCriteria | array[string] | Yes |
-| technicalDetails | object | Yes |
-| technicalDetails.files | array[string] | Yes |
-| technicalDetails.classes | array[string] | Yes |
-| technicalDetails.integrationPoints | array[string] | Yes |
-| technicalDetails.technicalApproach | string | Yes |
-| dependencies | array[string] | Yes |
-| storyPoints | number | Yes |
-| labels | array[string] | Yes |
-
-### 0.9.5 Quality Assurance Parameters
-
-**Pre-Commit Checks:**
-
-| Check | Criteria |
-|-------|----------|
-| File encoding | UTF-8 without BOM |
-| Line endings | LF only |
-| Trailing whitespace | None |
-| Markdown headers | Proper hierarchy (no skipped levels) |
-| Table alignment | Consistent column widths |
-| JSON validity | Passes JSON.parse() |
-| CSV validity | Correct column count per row |
-
-**Content Validation:**
-
-| Validation | Pass Criteria |
-|------------|---------------|
-| Summary length | ≤255 characters |
-| AC count | ≥5 acceptance criteria |
-| Dependencies listed | All prerequisite stories referenced |
-| Story points | Reasonable relative to similar stories (3-8 range) |
-| Labels present | Minimum 3 labels |
-
-## 0.10 Rules for Documentation
-
-### 0.10.1 User-Specified Rules
-
-**Rules Explicitly Stated by User:**
-
-| Rule | Source | Application |
-|------|--------|-------------|
-| Follow State Street "Writing a User Story" guide | User instructions | Apply all formatting, structure, and quality standards from guide |
-| Use Who/What/Why format for description | User instructions | "As a... I want... so that..." structure |
-| Use Given/When/Then syntax for acceptance criteria | User instructions | BDD-style scenario format |
-| Appropriate level of detail for single sprint | User instructions | Size story as vertical slice (~5 story points) |
-| Represent one vertical slice of functionality | User instructions | Dashboard with core metrics, not full reporting suite |
-| Deliver measurable progress toward objective | User instructions | Specific metrics that enable faster decisions |
-
-### 0.10.2 State Street Guide Rules
-
-**Mandatory Requirements from Guide:**
-
-| Rule | Guide Section | Implementation |
-|------|---------------|----------------|
-| Summary maximum 255 characters | Anatomy of a Story | 193 characters used |
-| Story must be demo-able | Purpose | Dashboard can be demonstrated |
-| Sub-tasks describe actions for acceptance criteria | Ownership | Technical details map to acceptance criteria |
-| Only Product Owner transitions to Done | Ownership | Story written for PO acceptance |
-
-**INVEST Criteria Rules:**
-
-| Criterion | Rule | Compliance |
-|-----------|------|------------|
-| Independent | Self-contained with no inherent dependency on undelivered stories | ✓ Builds on completed F-007/F-008 |
-| Negotiable | Can be changed until committed to iteration | ✓ Metrics selection is negotiable |
-| Valuable | Must deliver value to end user/customer | ✓ Enables faster manager decisions |
-| Estimable | Must be able to estimate size | ✓ 5 story points assigned |
-| Sized appropriately | Not too big for planning/prioritization | ✓ Single dashboard view |
-| Testable | Provides information for test development | ✓ All AC have pass/fail criteria |
-
-**Acceptance Criteria Quality Rules:**
-
-| Quality Dimension | Rule | Implementation |
-|-------------------|------|----------------|
-| Clarity | Straightforward and easy to understand | Plain language, specific outcomes |
-| Conciseness | Necessary information without unnecessary detail | Each AC is one scenario |
-| Testability | Independently verifiable (clear pass/fail) | Given/When/Then enables test cases |
-| Result-Oriented | Focus on delivering customer satisfaction | Outcomes aligned with business objective |
-
-### 0.10.3 Repository Convention Rules
-
-**File Naming Rules:**
-
-| Rule | Pattern | Example |
-|------|---------|---------|
-| Story file naming | `STORY-XXX-kebab-case-title.md` | `STORY-009-manager-dashboard-metrics.md` |
-| Story ID format | Sequential `STORY-XXX` | `STORY-009` |
-| Export file naming | Preserve existing names | `stories-export.csv`, `stories-export.json` |
-
-**Content Structure Rules:**
-
-| Rule | Standard |
-|------|----------|
-| Markdown header levels | # for title, ## for sections, ### for subsections |
-| Table format | Pipe-delimited with header row separator |
-| Checkbox format | `- [ ] **ACx**: Text` |
-| Code fence format | Triple backticks with language identifier |
-| Diagram format | Mermaid in fenced code block |
-
-**Export Format Rules:**
-
-| Export | Rule |
-|--------|------|
-| CSV | Maintain column order matching existing file |
-| CSV | Double-quote values containing commas |
-| JSON | Maintain field order matching existing objects |
-| JSON | Use consistent data types per field |
-
-### 0.10.4 Documentation Integrity Rules
-
-**Consistency Rules:**
-
-| Rule | Enforcement |
-|------|-------------|
-| Terminology consistency | Use entity names from STORY-002 schema |
-| Pattern consistency | Follow component patterns from STORY-008 |
-| API consistency | Follow endpoint patterns from STORY-007 |
-| Reference consistency | Cite source stories for patterns used |
-
-**Completeness Rules:**
-
-| Rule | Requirement |
-|------|-------------|
-| No pending items | All documentation artifacts explicitly listed |
-| No TBD sections | All content fully specified |
-| All dependencies documented | Prerequisite stories referenced |
-| All files mapped | Complete file transformation table |
-
-### 0.10.5 Quality Gate Rules
-
-**Story Quality Gates:**
-
-| Gate | Criteria | Required |
-|------|----------|----------|
-| Format compliance | Follows State Street template | Yes |
-| INVEST compliance | All 6+1 criteria pass | Yes |
-| AC quality | Clarity, conciseness, testability, result-oriented | Yes |
-| Technical accuracy | File paths and patterns verified | Yes |
-| Export readiness | CSV and JSON data complete | Yes |
-
-**Documentation Delivery Rules:**
-
-| Rule | Standard |
-|------|----------|
-| Single story per request | One STORY-009 file |
-| Vertical slice scope | Core dashboard, not full reporting |
-| Sprint-sized | 5 points (single sprint deliverable) |
-| Demo-able outcome | Dashboard can be shown to Product Owner |
-
-## 0.11 References
-
-### 0.11.1 Repository Files Searched
-
-**Files Retrieved and Analyzed:**
-
-| File Path | Purpose | Key Findings |
-|-----------|---------|--------------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Story structure template | Markdown format, section ordering, checkbox AC format |
-| `jira-stories/stories-export.csv` | CSV export format | Column structure, data formatting conventions |
-| `jira-stories/stories-export.json` | JSON export format | Object schema, array structure, field types |
-
-**Folders Explored:**
-
-| Folder Path | Purpose | Key Findings |
-|-------------|---------|--------------|
-| `/` (root) | Repository structure | `jira-stories/`, `docs/`, plugin folders |
-| `jira-stories/` | User story artifacts | 8 stories (STORY-001 to STORY-008), CSV and JSON exports |
-| `docs/developer/` | Technical documentation | Components, entities, API documentation patterns |
-
-**Search Patterns Employed:**
-
-| Pattern | Results |
-|---------|---------|
-| `jira-stories/*.md` | 8 story files |
-| `jira-stories/*.csv` | 1 export file |
-| `jira-stories/*.json` | 1 export file |
-| Root folder contents | 9 folders, 8 files |
-
-### 0.11.2 Technical Specification Sections Referenced
-
-| Section | Relevance to STORY-009 |
-|---------|------------------------|
-| 2.1 FEATURE CATALOG | Feature dependency chain, story point comparisons |
-| 7.3 PAGE COMPONENT SYSTEM | Component pattern for dashboard implementation |
-| 6.1 Core Services Architecture | Service layer patterns for metrics service |
-
-### 0.11.3 External Attachments
-
-**Attachment 1: SST User Story Guide.pdf**
-
-| Attribute | Value |
-|-----------|-------|
-| File Name | SST User Story Guide.pdf |
-| MIME Type | application/pdf |
-| File Size | 429,127 bytes |
-| Pages | 6 |
-
-**Content Summary:**
-
-The State Street "Writing a User Story" guide provides comprehensive standards for user story creation within Agile/Scrum environments. Key sections include:
-
-| Section | Key Content |
-|---------|-------------|
-| Purpose (Page 1) | User stories cover vertical slices, include acceptance criteria, allow flexibility |
-| Ownership (Page 1) | Stories owned by team, sub-tasks by individuals, PO transitions to Done |
-| Relationships (Page 1) | Children are sub-tasks, parent is Epic |
-| Anatomy of a Story (Pages 1-2) | Summary (255 chars max), Who/What/Why format, example |
-| INVEST Criteria (Page 2) | Independent, Negotiable, Valuable, Estimable, Sized, Testable, Demo-able |
-| Acceptance Criteria (Pages 2-3) | Given/When/Then syntax, clarity, conciseness, testability, result-oriented |
-| Scrum Master Recommendations (Pages 3-4) | Story writing techniques, engagement, lifecycle, templates |
-| Story Estimation (Pages 4-6) | Fibonacci sequence, relative sizing, fruit salad analogy, effort/complexity/uncertainty |
-
-**Key Templates Extracted:**
-
-User Story Description:
-- As a [named user or role], (WHO)
-- I want [some goal], (WHAT)
-- so that [some reason] (WHY)
-
-Acceptance Criteria:
-- Given [a scenario]
-- When [a criteria is met]
-- Then [the expected result]
-
-### 0.11.4 Figma Attachments
-
-No Figma attachments were provided for this documentation task.
-
-### 0.11.5 Web Search Research
-
-**Topics Researched:**
-
-| Topic | Purpose |
-|-------|---------|
-| User story best practices for dashboards | Validate vertical slice approach |
-| Real-time dashboard user story examples | Confirm acceptance criteria patterns |
-| INVEST criteria validation | Ensure story quality compliance |
-| Given/When/Then acceptance criteria | Verify BDD format usage |
-
-### 0.11.6 Cross-Reference Summary
-
-**Story Dependencies Documented:**
-
-| Story | Reference Purpose |
-|-------|-------------------|
-| STORY-001 | Plugin infrastructure pattern |
-| STORY-002 | Entity schema (data sources) |
-| STORY-003 | Configuration service pattern |
-| STORY-004 | Service layer pattern |
-| STORY-005 | Hooks integration pattern |
-| STORY-006 | Background job pattern (for auto-refresh alternative) |
-| STORY-007 | REST API endpoint pattern |
-| STORY-008 | UI page component pattern |
-
-**Documentation Artifacts Created:**
-
-| Artifact | Type | Status |
-|----------|------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | User Story | To be created |
-| `jira-stories/stories-export.csv` (row addition) | CSV Export | To be updated |
-| `jira-stories/stories-export.json` (object addition) | JSON Export | To be updated |
-
-### 0.11.7 Comprehensive Source List
-
-| Source Category | Items |
-|-----------------|-------|
-| User-Provided Documents | SST User Story Guide.pdf |
-| Repository Story Files | STORY-001 through STORY-008 markdown files |
-| Repository Export Files | stories-export.csv, stories-export.json |
-| Tech Spec Sections | 2.1 Feature Catalog |
-| Documentation Folders | docs/developer/ hierarchy |
-| Business Objective | User-provided requirement text |
+**Additional Features Not Specified:**
 
+| Item | Reason |
+| --- | --- |
+| Filtering by team member | Explicitly listed as out of scope |
+| Filtering by department or workflow type | Explicitly listed as out of scope |
+| Export functionality (PDF/Excel) | Explicitly listed as out of scope |
+| Historical trend charts | Explicitly listed as out of scope |
+| Drill-down to individual request details | Explicitly listed as out of scope |
+| Customizable dashboard layouts | Explicitly listed as out of scope |
+
+### 0.6.3 Boundary Conditions
+
+**Manager Role Definition:**
+
+- Users with role name "manager" (case-insensitive) have dashboard access
+- Users with role name "administrator" (case-insensitive) have dashboard access
+- All other roles receive access denied response
+
+**Date Range Boundaries:**
+
+- Default: Last 30 days from current UTC time
+- Minimum: No minimum enforced (can query historical data)
+- Maximum: Current date (future dates clamped to now)
+
+**Auto-Refresh Boundaries:**
+
+- Default interval: 60 seconds
+- Configurable range: Component options allow custom intervals
+- No upper limit enforced (administrator responsibility)
+
+**Metrics Calculation Boundaries:**
+
+- Pending count: Only requests with status='pending' where user is authorized approver
+- Average time: Calculated from requests with final status (approved/rejected)
+- Approval rate: Approved count / (Approved + Rejected count), returns 0 if no data
+- Overdue count: Pending requests where (created_on + timeout_hours) &lt; now
+- Recent activity: Last 5 entries, ordered by performed_on descending
+
+### 0.6.4 Acceptance Criteria Mapping
+
+| AC | Scope Item | Validation |
+| --- | --- | --- |
+| AC1 | Display.cshtml renders 5 metrics | Screenshot: dashboard-display-manager-role.png |
+| AC2 | service.js implements auto-refresh | Screenshot: dashboard-auto-refresh-indicator.png |
+| AC3 | Display.cshtml includes date range selector | Screenshot: dashboard-date-range-filter.png |
+| AC4 | GetPendingApprovalsCount filters by authorized approver | Unit test: GetPendingApprovalsCount_* |
+| AC5 | GetOverdueRequestsCount checks timeout_hours | Unit test: GetOverdueRequestsCount_* |
+| AC6 | PcApprovalDashboard checks manager role | Screenshot: dashboard-access-denied-non-manager.png |
+| AC7 | DashboardMetricsServiceTests validate all methods | Screenshot: unit-tests-all-passing.png |
+| AC8 | DashboardApiIntegrationTests validate endpoint | Screenshot: integration-tests-all-passing.png |
+| AC9 | All validation screenshots captured | validation/ folder structure complete |
+
+## 0.7 Rules for Feature Addition
+
+### 0.7.1 WebVella ERP Component Conventions
+
+**PageComponent Implementation Pattern:**
+
+- All page components MUST inherit from `PageComponent` base class
+- All page components MUST use `[PageComponent]` attribute with Label, Library, Description, Version, IconClass, and Category
+- All page components MUST implement `InvokeAsync(PageComponentContext context)` method
+- All components MUST support five render modes: Display, Design, Options, Help, Error
+- All components MUST validate `context.Node` and `context.DataModel.GetProperty("Page")` presence
+
+**Options Model Pattern:**
+
+- Options class MUST be nested within the component class
+- All properties MUST use `[JsonProperty(PropertyName = "snake_case")]` attribute
+- All properties MUST have default values initialized
+- Options MUST be deserialized using `JsonConvert.DeserializeObject<T>(context.Options.ToString())`
+
+**ViewBag Contract:**
+
+- ViewBag MUST include: Options, Node, ComponentMeta, RequestContext, AppContext, ComponentContext
+- ViewBag.Error MUST contain ValidationException for error display
+- ViewBag.IsVisible MUST be set for visibility-controlled rendering
+
+### 0.7.2 API Endpoint Conventions
+
+**Route Pattern:**
+
+- All approval API endpoints MUST use route prefix `/api/v3.0/p/approval/`
+- Resource-based routes: `/api/v3.0/p/approval/{resource}/{action}`
+- Dashboard metrics route: `/api/v3.0/p/approval/dashboard/metrics`
+
+**Response Model:**
+
+- All endpoints MUST return `ResponseModel` envelope structure
+- ResponseModel MUST include: success (bool), message (string), object (any), errors (array)
+- HTTP status codes: 200 (success), 401 (unauthenticated), 403 (forbidden)
+
+**Authentication/Authorization:**
+
+- All endpoints MUST use `[Authorize]` attribute
+- User ID extraction MUST use `HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)`
+- Role validation MUST check `SecurityContext.CurrentUser.Roles` collection
+
+### 0.7.3 Service Layer Conventions
+
+**RecordManager Usage:**
+
+- Service classes MUST instantiate RecordManager in constructor: `recMan = new RecordManager();`
+- Entity queries MUST use `EntityQuery` with appropriate Query expressions
+- Query operations: `EntityQuery.QueryEQ`, `EntityQuery.QueryAND`, `EntityQuery.QueryOR`, `EntityQuery.QueryGTE`, `EntityQuery.QueryLTE`
+- Results MUST check `result.Success` and `result.Object?.Data` before processing
+
+**Date Handling:**
+
+- All dates MUST use `DateTime` with UTC normalization
+- Date comparisons MUST account for timezone using `DateTime.UtcNow`
+- Date range parameters MUST default to sensible values (e.g., last 30 days)
+
+### 0.7.4 Testing Conventions
+
+**Unit Test Pattern:**
+
+- Test classes MUST follow naming: `{ServiceName}Tests`
+- Test methods MUST follow naming: `{MethodName}_{Scenario}_{ExpectedResult}`
+- All public methods MUST have at least one test case
+- Boundary conditions and null handling MUST be tested
+- Test assertions MUST use xUnit Assert methods
+
+**Integration Test Pattern:**
+
+- Test classes MUST use `IClassFixture<WebApplicationFactory<Startup>>`
+- HTTP client MUST be created via factory: `_client = factory.CreateClient()`
+- Authentication scenarios MUST include: unauthenticated, non-manager role, manager role
+- Response validation MUST check status code, success flag, and object structure
+
+### 0.7.5 Client-Side JavaScript Conventions
+
+**service.js Structure:**
+
+- MUST be wrapped in IIFE or strict mode
+- MUST use jQuery for AJAX and DOM manipulation
+- MUST handle WvPbManager lifecycle events for page builder integration
+- MUST include error handling with toastr notifications
+
+**Auto-Refresh Pattern:**
+
+```javascript
+// Timer initialization
+let refreshTimer = null;
+function startRefresh(interval) {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refreshMetrics, interval * 1000);
+}
+```
+
+**AJAX Pattern:**
+
+```javascript
+$.ajax({
+  url: '/api/v3.0/p/approval/dashboard/metrics',
+  method: 'GET',
+  data: { from: fromDate, to: toDate },
+  success: function(response) {
+    if (response.success) updateUI(response.object);
+    else toastr.error(response.message);
+  },
+  error: function() { toastr.error('Failed to load metrics'); }
+});
+```
+
+### 0.7.6 Razor View Conventions
+
+**View Header:**
+
+```cshtml
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+```
+
+**ViewBag Casting:**
+
+```cshtml
+@{
+  var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+  var node = (PageBodyNode)ViewBag.Node;
+  var componentMeta = (PageComponentMeta)ViewBag.ComponentMeta;
+}
+```
+
+**Error View Pattern:**
+
+```cshtml
+@{
+  var validation = (ValidationException)ViewBag.Error;
+}
+<wv-validation errors="@validation.ToErrorList()" message="@validation.Message"></wv-validation>
+```
+
+### 0.7.7 Security Requirements
+
+**Role Validation:**
+
+- Dashboard access MUST be restricted to Manager and Administrator roles
+- Role check MUST be case-insensitive
+- Access denied MUST display user-friendly error message
+- API endpoints MUST return HTTP 403 for non-manager users
+
+**Data Scoping:**
+
+- Metrics MUST be scoped to requests where user is authorized approver
+- No cross-team data leakage allowed
+- Recent activity MUST only show team-relevant actions
+
+### 0.7.8 Validation Screenshot Requirements
+
+**Frontend Screenshots (validation/frontend-validation/):**
+
+- dashboard-display-manager-role.png - Full dashboard with all 5 metrics
+- dashboard-metrics-cards.png - Close-up of metric cards
+- dashboard-date-range-filter.png - Date range selector interaction
+- dashboard-recent-activity-feed.png - Activity section populated
+- dashboard-auto-refresh-indicator.png - Refresh indicator visible
+- dashboard-access-denied-non-manager.png - Error for non-manager
+- dashboard-design-mode.png - Page builder preview
+- dashboard-options-panel.png - Configuration panel
+- dashboard-responsive-mobile.png - Mobile viewport (375px)
+
+**Test Screenshots (validation/test-validation/):**
+
+- unit-tests-all-passing.png - Green test results
+- unit-tests-coverage-summary.png - &gt;80% coverage
+- integration-tests-all-passing.png - Green test results
+- integration-tests-api-validation.png - API test details
+- full-test-suite-summary.png - Complete summary
+
+## 0.8 References
+
+### 0.8.1 Repository Files and Folders Searched
+
+**Root Level Analysis:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| `` (root) | Folder | Repository root containing solution and projects |
+| WebVella.ERP3.sln | File | Visual Studio solution file |
+| global.json | File | SDK version configuration |
+| README.md | File | Project overview and documentation |
+
+**Core Project Analysis:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| WebVella.Erp/ | Folder | Core ERP library with API, database, hooks, jobs |
+| WebVella.Erp/WebVella.Erp.csproj | File | Project configuration, target net9.0 |
+| WebVella.Erp/Api/ | Folder | API models and managers |
+| WebVella.Erp/Hooks/ | Folder | Hook interfaces and implementations |
+
+**Web Project Analysis:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| WebVella.Erp.Web/ | Folder | Web layer with components, controllers, models |
+| WebVella.Erp.Web/WebVella.Erp.Web.csproj | File | Razor class library configuration |
+| WebVella.Erp.Web/Components/ | Folder | PageComponent implementations |
+| WebVella.Erp.Web/Components/PcPageHeader/ | Folder | Reference PageComponent implementation |
+| WebVella.Erp.Web/Components/PcChart/ | Folder | Reference visualization component |
+| WebVella.Erp.Web/Models/ | Folder | Core models including PageComponent, PageComponentAttribute |
+| WebVella.Erp.Web/Controllers/ | Folder | API controllers including WebApiController |
+
+**Plugin Project Analysis:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| WebVella.Erp.Plugins.SDK/ | Folder | SDK plugin with component and controller patterns |
+| WebVella.Erp.Plugins.SDK/WebVella.Erp.Plugins.SDK.csproj | File | Plugin project configuration template |
+| WebVella.Erp.Plugins.SDK/Components/ | Folder | Plugin component examples |
+| WebVella.Erp.Plugins.SDK/Controllers/ | Folder | Plugin controller examples |
+
+**Story Documentation Analysis:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| jira-stories/ | Folder | Story specifications and exports |
+| jira-stories/STORY-007-approval-rest-api.md | File | ApprovalController pattern reference |
+| jira-stories/STORY-008-approval-ui-components.md | File | Approval component pattern reference |
+| jira-stories/STORY-009-manager-dashboard-metrics.md | File | Dashboard requirements source |
+| jira-stories/stories-export.json | File | Story metadata export |
+
+**Planning Documentation:**
+
+| Path | Type | Purpose |
+| --- | --- | --- |
+| blitzy/ | Folder | Planning and documentation artifacts |
+| blitzy/documentation/ | Folder | Project guide and technical specs |
+
+### 0.8.2 External Reference Documentation
+
+**WebVella ERP Patterns:**
+
+| Pattern | Reference Location |
+| --- | --- |
+| PageComponent Base | WebVella.Erp.Web/Models/PageComponent.cs |
+| PageComponentAttribute | WebVella.Erp.Web/Models/PageComponentAttribute.cs |
+| PageComponentContext | WebVella.Erp.Web/Models/PageComponentContext.cs |
+| ErpRequestContext | WebVella.Erp.Web/ErpRequestContext.cs |
+| ValidationException | WebVella.Erp/Exceptions/ValidationException.cs |
+| RecordManager | WebVella.Erp/Api/RecordManager.cs |
+| EntityQuery | WebVella.Erp/Api/EntityQuery.cs |
+
+[**ASP.NET**](http://ASP.NET) **Core References:**
+
+| Technology | Version | Documentation |
+| --- | --- | --- |
+| .NET SDK | 9.0 | Microsoft .NET documentation |
+| ASP.NET Core | 9.0 | Microsoft ASP.NET Core documentation |
+| Razor Pages | 9.0 | ASP.NET Core Razor documentation |
+| xUnit | 2.9.x | xUnit.net documentation |
+
+### 0.8.3 Attachment Summary
+
+**User Story Document:**
+
+| Attachment | Summary |
+| --- | --- |
+| STORY-009 User Story | Complete requirements for Manager Approval Dashboard including description, business value, 9 acceptance criteria, technical implementation details with code samples, validation folder structure, component options, API endpoints, mermaid diagrams, and testing considerations |
+
+**Key Technical Artifacts from Story:**
+
+| Section | Content Summary |
+| --- | --- |
+| Files/Modules to Create | 11 files including component, service, model, and test files |
+| Validation Folder Structure | 9 frontend screenshots, 5 test screenshots |
+| Key Classes and Functions | PcApprovalDashboard, DashboardMetricsService, DashboardMetricsModel, controller endpoint |
+| Component Options | 4 configurable options (refresh_interval, date_range_default, show_overdue_alert, metrics_to_display) |
+| API Endpoints | GET /api/v3.0/p/approval/dashboard/metrics with optional date parameters |
+| Mermaid Diagrams | Component architecture and user workflow sequence diagrams |
+
+### 0.8.4 Figma References
+
+No Figma screens were provided for this story. The dashboard UI follows WebVella ERP component conventions and Bootstrap styling patterns established in existing components.
+
+### 0.8.5 Dependency Story References
+
+| Story ID | Title | Dependency Type |
+| --- | --- | --- |
+| STORY-007 | Approval REST API Endpoints | Required - ApprovalController pattern, endpoint conventions, ResponseModel structure |
+| STORY-008 | Approval UI Page Components | Required - PageComponent pattern, component folder structure, render mode handling |
+
+### 0.8.6 Search History Summary
+
+| Search # | Tool | Target | Purpose |
+| --- | --- | --- | --- |
+| 1 | bash | .blitzyignore files | Check for ignored patterns |
+| 2 | get_source_folder_contents | Root (``) | Repository structure overview |
+| 3 | get_source_folder_contents | WebVella.Erp.Plugins.SDK | Plugin pattern reference |
+| 4 | get_source_folder_contents | WebVella.Erp.Web | Web layer structure |
+| 5 | get_source_folder_contents | WebVella.Erp.Web/Components | Component library structure |
+| 6 | get_source_folder_contents | WebVella.Erp.Web/Components/PcPageHeader | Component implementation pattern |
+| 7 | get_source_folder_contents | blitzy | Planning documentation |
+| 8 | get_source_folder_contents | jira-stories | Story specifications |
+| 9 | read_file | global.json | SDK version configuration |
+| 10 | read_file | WebVella.Erp.Web/WebVella.Erp.Web.csproj | Web project dependencies |
+| 11 | read_file | WebVella.Erp.Plugins.SDK/WebVella.Erp.Plugins.SDK.csproj | Plugin project template |
+| 12 | read_file | jira-stories/STORY-007-approval-rest-api.md | API patterns |
+| 13 | read_file | jira-stories/STORY-008-approval-ui-components.md | Component patterns |
+| 14 | bash | Approval-related files search | Verify no existing implementation |
+| 15 | read_file | WebVella.ERP3.sln | Solution structure |
+| 16 | read_file | WebVella.Erp/WebVella.Erp.csproj | Core project dependencies |
+| 17 | search_files | PageComponent patterns | Component implementation patterns |
+| 18 | read_file | WebVella.Erp.Web/Components/PcChart/PcChart.cs | Chart component reference |
+| 19 | bash | Test file patterns | Existing test conventions |
