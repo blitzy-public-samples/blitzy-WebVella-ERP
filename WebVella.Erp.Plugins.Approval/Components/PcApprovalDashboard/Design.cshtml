@@ -1,0 +1,153 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Api
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var metrics = (DashboardMetricsModel)ViewBag.Metrics;
+    var nodeId = node.Id.ToString();
+
+    var metricsToShow = options.MetricsToDisplay?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? new[] { "pending", "avg_time", "approval_rate", "overdue", "recent" };
+    var showPending = metricsToShow.Contains("pending");
+    var showAvgTime = metricsToShow.Contains("avg_time");
+    var showApprovalRate = metricsToShow.Contains("approval_rate");
+    var showOverdue = metricsToShow.Contains("overdue");
+    var showRecent = metricsToShow.Contains("recent");
+}
+
+<div class="p-1 approval-dashboard-design">
+    <!-- Design Mode Header -->
+    <div class="row mb-2">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                Approval Dashboard
+                <small class="text-muted">(Preview)</small>
+            </h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-secondary me-2">
+                    <i class="fas fa-sync-alt me-1"></i>
+                    @(options.RefreshInterval)s refresh
+                </span>
+                <span class="badge bg-info">
+                    @options.DateRangeDefault range
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards Preview -->
+    <div class="row">
+        @if (showPending)
+        {
+            <div class="col-md-6 col-lg-3 mb-2">
+                <div class="card h-100 border-primary">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Pending</small>
+                                <h4 class="mb-0 text-primary">@metrics.PendingApprovalsCount</h4>
+                            </div>
+                            <i class="fas fa-clock fa-lg text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showAvgTime)
+        {
+            <div class="col-md-6 col-lg-3 mb-2">
+                <div class="card h-100 border-info">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Avg. Time</small>
+                                <h4 class="mb-0 text-info">@metrics.AverageApprovalTimeHours.ToString("F1")h</h4>
+                            </div>
+                            <i class="fas fa-hourglass-half fa-lg text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showApprovalRate)
+        {
+            <div class="col-md-6 col-lg-3 mb-2">
+                <div class="card h-100 border-success">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Approval Rate</small>
+                                <h4 class="mb-0 text-success">@metrics.ApprovalRatePercent.ToString("F1")%</h4>
+                            </div>
+                            <i class="fas fa-check-circle fa-lg text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showOverdue)
+        {
+            <div class="col-md-6 col-lg-3 mb-2">
+                <div class="card h-100 @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "border-danger" : "border-warning")">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">Overdue</small>
+                                <h4 class="mb-0 @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "text-danger" : "text-warning")">
+                                    @metrics.OverdueRequestsCount
+                                </h4>
+                            </div>
+                            <i class="fas fa-exclamation-circle fa-lg @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "text-danger" : "text-warning")"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (showRecent)
+    {
+        <!-- Recent Activity Preview -->
+        <div class="row mt-2">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light py-2">
+                        <small class="mb-0">
+                            <i class="fas fa-history me-1"></i>
+                            Recent Activity (Sample Data)
+                        </small>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                @foreach (var activity in metrics.RecentActivity.Take(3))
+                                {
+                                    var actionClass = activity.Action.ToLower() switch
+                                    {
+                                        "approved" => "text-success",
+                                        "rejected" => "text-danger",
+                                        "delegated" => "text-info",
+                                        _ => "text-secondary"
+                                    };
+                                    <tr>
+                                        <td class="@actionClass" style="width: 100px;">@activity.Action</td>
+                                        <td>@activity.PerformedBy</td>
+                                        <td class="text-truncate" style="max-width: 150px;">@activity.RequestSubject</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
