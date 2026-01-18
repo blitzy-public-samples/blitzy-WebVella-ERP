@@ -1,0 +1,272 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Api
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var componentMeta = (PageComponentMeta)ViewBag.ComponentMeta;
+    var metrics = (DashboardMetricsModel)ViewBag.Metrics;
+    var isVisible = ViewBag.IsVisible != null ? (bool)ViewBag.IsVisible : true;
+    var fromDate = (DateTime)ViewBag.FromDate;
+    var toDate = (DateTime)ViewBag.ToDate;
+
+    var metricsToShow = options.MetricsToDisplay?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? new[] { "pending", "avg_time", "approval_rate", "overdue", "recent" };
+    var showPending = metricsToShow.Contains("pending");
+    var showAvgTime = metricsToShow.Contains("avg_time");
+    var showApprovalRate = metricsToShow.Contains("approval_rate");
+    var showOverdue = metricsToShow.Contains("overdue");
+    var showRecent = metricsToShow.Contains("recent");
+
+    var nodeId = node.Id.ToString();
+    var refreshInterval = options.RefreshInterval > 0 ? options.RefreshInterval : 60;
+}
+
+@if (isVisible)
+{
+    <div id="approval-dashboard-@nodeId" class="approval-dashboard-container" data-node-id="@nodeId" data-refresh-interval="@refreshInterval">
+        <!-- Dashboard Header -->
+        <div class="row mb-3">
+            <div class="col-12 d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Approval Dashboard
+                </h4>
+                <div class="d-flex align-items-center">
+                    <!-- Date Range Selector -->
+                    <div class="me-3">
+                        <select id="date-range-@nodeId" class="form-select form-select-sm" onchange="ApprovalDashboard.changeDateRange('@nodeId', this.value)">
+                            @if (options.DateRangeDefault == "7d")
+                            {
+                                <option value="7d" selected>Last 7 Days</option>
+                            }
+                            else
+                            {
+                                <option value="7d">Last 7 Days</option>
+                            }
+                            @if (options.DateRangeDefault == "30d")
+                            {
+                                <option value="30d" selected>Last 30 Days</option>
+                            }
+                            else
+                            {
+                                <option value="30d">Last 30 Days</option>
+                            }
+                            @if (options.DateRangeDefault == "90d")
+                            {
+                                <option value="90d" selected>Last 90 Days</option>
+                            }
+                            else
+                            {
+                                <option value="90d">Last 90 Days</option>
+                            }
+                        </select>
+                    </div>
+                    <!-- Auto-refresh Indicator -->
+                    <small class="text-muted">
+                        <i class="fas fa-sync-alt me-1" id="refresh-icon-@nodeId"></i>
+                        <span id="last-updated-@nodeId">Updated @metrics.MetricsAsOf.ToString("HH:mm:ss")</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Cards Row -->
+        <div class="row" id="metrics-cards-@nodeId">
+            @if (showPending)
+            {
+                <!-- Pending Approvals Card -->
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 border-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Pending Approvals</h6>
+                                    <h2 class="card-title mb-0 text-primary" id="pending-count-@nodeId">@metrics.PendingApprovalsCount</h2>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 rounded p-2">
+                                    <i class="fas fa-clock fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Awaiting your action</small>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (showAvgTime)
+            {
+                <!-- Average Approval Time Card -->
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 border-info">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Avg. Approval Time</h6>
+                                    <h2 class="card-title mb-0 text-info" id="avg-time-@nodeId">@metrics.AverageApprovalTimeHours.ToString("F1")h</h2>
+                                </div>
+                                <div class="bg-info bg-opacity-10 rounded p-2">
+                                    <i class="fas fa-hourglass-half fa-2x text-info"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Hours to decision</small>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (showApprovalRate)
+            {
+                <!-- Approval Rate Card -->
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 border-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Approval Rate</h6>
+                                    <h2 class="card-title mb-0 text-success" id="approval-rate-@nodeId">@metrics.ApprovalRatePercent.ToString("F1")%</h2>
+                                </div>
+                                <div class="bg-success bg-opacity-10 rounded p-2">
+                                    <i class="fas fa-check-circle fa-2x text-success"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Approved vs. processed</small>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (showOverdue)
+            {
+                <!-- Overdue Requests Card -->
+                <div class="col-md-6 col-lg-3 mb-3">
+                    <div class="card h-100 @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "border-danger" : "border-warning")">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-subtitle mb-2 text-muted">Overdue Requests</h6>
+                                    <h2 class="card-title mb-0 @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "text-danger" : "text-warning")" id="overdue-count-@nodeId">
+                                        @metrics.OverdueRequestsCount
+                                        @if (metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert)
+                                        {
+                                            <i class="fas fa-exclamation-triangle ms-2 fa-sm"></i>
+                                        }
+                                    </h2>
+                                </div>
+                                <div class="@(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "bg-danger" : "bg-warning") bg-opacity-10 rounded p-2">
+                                    <i class="fas fa-exclamation-circle fa-2x @(metrics.OverdueRequestsCount > 0 && options.ShowOverdueAlert ? "text-danger" : "text-warning")"></i>
+                                </div>
+                            </div>
+                            <small class="text-muted">Exceeding SLA timeout</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (showRecent)
+        {
+            <!-- Recent Activity Section -->
+            <div class="row mt-2">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                Recent Activity
+                            </h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0" id="recent-activity-@nodeId">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Action</th>
+                                            <th>Performed By</th>
+                                            <th>Request</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var activity in metrics.RecentActivity)
+                                        {
+                                            var actionClass = activity.Action.ToLower() switch
+                                            {
+                                                "approved" => "text-success",
+                                                "rejected" => "text-danger",
+                                                "delegated" => "text-info",
+                                                _ => "text-secondary"
+                                            };
+                                            var actionIcon = activity.Action.ToLower() switch
+                                            {
+                                                "approved" => "fa-check",
+                                                "rejected" => "fa-times",
+                                                "delegated" => "fa-share",
+                                                _ => "fa-circle"
+                                            };
+                                            <tr>
+                                                <td>
+                                                    <span class="@actionClass">
+                                                        <i class="fas @actionIcon me-1"></i>
+                                                        @activity.Action
+                                                    </span>
+                                                </td>
+                                                <td>@activity.PerformedBy</td>
+                                                <td>@activity.RequestSubject</td>
+                                                <td>
+                                                    <small class="text-muted">@FormatTimeAgo(activity.PerformedOn)</small>
+                                                </td>
+                                            </tr>
+                                        }
+                                        @if (!metrics.RecentActivity.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-3">
+                                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                                    <br/>
+                                                    No recent activity
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <script>
+        // Initialize dashboard with auto-refresh
+        document.addEventListener('DOMContentLoaded', function() {
+            ApprovalDashboard.init('@nodeId', {
+                refreshInterval: @refreshInterval,
+                dateRange: '@options.DateRangeDefault',
+                showOverdueAlert: @(options.ShowOverdueAlert ? "true" : "false")
+            });
+        });
+    </script>
+}
+
+@functions {
+    string FormatTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime;
+        
+        if (timeSpan.TotalMinutes < 1)
+            return "just now";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes}m ago";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d ago";
+        
+        return dateTime.ToString("MMM dd");
+    }
+}

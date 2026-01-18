@@ -1,0 +1,82 @@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web
+@using WebVella.Erp.Web.Models
+@using WebVella.TagHelpers.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+
+    var dateRangeOptions = new List<WvSelectOption>
+    {
+        new WvSelectOption { Value = "7d", Label = "Last 7 Days" },
+        new WvSelectOption { Value = "30d", Label = "Last 30 Days" },
+        new WvSelectOption { Value = "90d", Label = "Last 90 Days" }
+    };
+}
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-datasource 
+            name="is_visible" 
+            label-text="Is Rendered" 
+            value="@options.IsVisible" 
+            page-id="erpRequest.Page.Id" 
+            placeholder="true"
+            description="Set to false to hide this component"></wv-field-datasource>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+<h6 class="text-muted mb-3"><i class="fas fa-sync-alt me-2"></i>Auto-Refresh Settings</h6>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-number 
+            name="refresh_interval" 
+            value="@options.RefreshInterval" 
+            label-text="Refresh Interval (seconds)"
+            min="0"
+            description="Auto-refresh interval in seconds. Set to 0 to disable auto-refresh."></wv-field-number>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-select 
+            name="date_range_default" 
+            value="@options.DateRangeDefault" 
+            label-text="Default Date Range" 
+            options="dateRangeOptions"
+            description="Default date range for metrics calculation"></wv-field-select>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+<h6 class="text-muted mb-3"><i class="fas fa-chart-bar me-2"></i>Display Settings</h6>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox 
+            name="show_overdue_alert" 
+            value="@options.ShowOverdueAlert" 
+            label-text="Show Overdue Alert"
+            description="Highlight overdue count with warning style when count > 0"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-text 
+            name="metrics_to_display" 
+            value="@options.MetricsToDisplay" 
+            label-text="Metrics to Display"
+            description="Comma-separated: pending, avg_time, approval_rate, overdue, recent"></wv-field-text>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Note:</strong> This dashboard requires Manager or Administrator role to view.
+    Non-authorized users will see an access denied message.
+</div>

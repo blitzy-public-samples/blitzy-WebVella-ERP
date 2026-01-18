@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <Version>1.0.0</Version>
+        <PackageId>WebVella.Erp.Plugins.Approval</PackageId>
+        <Authors>WebVella</Authors>
+        <Product>WebVella ERP Approval Workflow Plugin</Product>
+        <PackageProjectUrl>https://webvella.com</PackageProjectUrl>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <Description>Approval Workflow Plugin for WebVella ERP providing manager dashboard with real-time metrics, approval request processing, and workflow management.</Description>
+        <Company>WebVella</Company>
+        <Copyright>Copyright 2024</Copyright>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+        <RepositoryUrl>https://github.com/WebVella/WebVella-ERP.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\WebVella.Erp.Web\WebVella.Erp.Web.csproj" />
+        <ProjectReference Include="..\WebVella.Erp\WebVella.Erp.csproj" />
+    </ItemGroup>
+
+</Project>
