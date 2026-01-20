@@ -1,0 +1,132 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@{
+    Layout = null;
+}
+
+<div class="pc-approval-dashboard-help">
+    <h4><i class="fas fa-chart-line mr-2"></i>Approval Dashboard Component</h4>
+    <p class="lead">
+        Real-time dashboard displaying team approval workflow metrics for managers.
+    </p>
+    
+    <hr>
+    
+    <h5><i class="fas fa-info-circle mr-2"></i>Overview</h5>
+    <p>
+        The Approval Dashboard component provides managers with a consolidated view of their team's 
+        approval workflow performance. It displays key metrics including pending approvals, average 
+        processing time, approval rate, overdue requests, and recent activity.
+    </p>
+    
+    <h5 class="mt-4"><i class="fas fa-tachometer-alt mr-2"></i>Dashboard Metrics</h5>
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th>Metric</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Pending Approvals</strong></td>
+                <td>Count of approval requests currently awaiting action from authorized approvers.</td>
+            </tr>
+            <tr>
+                <td><strong>Avg. Approval Time</strong></td>
+                <td>Average time (in hours) from request creation to completion for processed requests within the selected date range.</td>
+            </tr>
+            <tr>
+                <td><strong>Approval Rate</strong></td>
+                <td>Percentage of requests that were approved versus total processed requests within the selected date range.</td>
+            </tr>
+            <tr>
+                <td><strong>Overdue Requests</strong></td>
+                <td>Count of pending requests that have exceeded their configured timeout threshold.</td>
+            </tr>
+            <tr>
+                <td><strong>Recent Activity</strong></td>
+                <td>List of the 5 most recent approval actions taken (approved, rejected, escalated).</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h5 class="mt-4"><i class="fas fa-cog mr-2"></i>Configuration Options</h5>
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th>Option</th>
+                <th>Default</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>dashboard_title</code></td>
+                <td>"Approval Dashboard"</td>
+                <td>Custom title displayed at the top of the dashboard.</td>
+            </tr>
+            <tr>
+                <td><code>refresh_interval</code></td>
+                <td>60</td>
+                <td>Interval in seconds between automatic metric refreshes. Minimum value is 30 seconds.</td>
+            </tr>
+            <tr>
+                <td><code>date_range_default</code></td>
+                <td>"30d"</td>
+                <td>Default date range for metrics. Options: "7d", "30d", "90d"</td>
+            </tr>
+            <tr>
+                <td><code>show_overdue_alert</code></td>
+                <td>true</td>
+                <td>Whether to highlight overdue requests with a visual alert indicator.</td>
+            </tr>
+            <tr>
+                <td><code>metrics_to_display</code></td>
+                <td>"pending,avg_time,approval_rate,overdue,recent"</td>
+                <td>Comma-separated list of metrics to display.</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h5 class="mt-4"><i class="fas fa-lock mr-2"></i>Access Control</h5>
+    <p>
+        The dashboard is restricted to users with the following roles:
+    </p>
+    <ul>
+        <li><strong>Manager</strong> - Primary role for approval workflow managers</li>
+        <li><strong>Administrator</strong> - System administrators</li>
+    </ul>
+    <p>
+        Users without an authorized role will see an "Access denied" message when attempting 
+        to view the dashboard.
+    </p>
+    
+    <h5 class="mt-4"><i class="fas fa-sync-alt mr-2"></i>Auto-Refresh</h5>
+    <p>
+        The dashboard automatically refreshes metrics at the configured interval (default: 60 seconds) 
+        without requiring a page reload. This ensures managers always have access to the most current data.
+    </p>
+    
+    <h5 class="mt-4"><i class="fas fa-filter mr-2"></i>Date Range Filtering</h5>
+    <p>
+        Users can select different date ranges to view historical metrics:
+    </p>
+    <ul>
+        <li><strong>Last 7 Days</strong> - Metrics from the past week</li>
+        <li><strong>Last 30 Days</strong> - Metrics from the past month (default)</li>
+        <li><strong>Last 90 Days</strong> - Metrics from the past quarter</li>
+    </ul>
+    
+    <h5 class="mt-4"><i class="fas fa-code mr-2"></i>API Endpoint</h5>
+    <p>
+        The dashboard retrieves metrics from the following API endpoint:
+    </p>
+    <pre class="bg-light p-2 rounded"><code>GET /api/v3.0/p/approval/dashboard/metrics?from={date}&to={date}</code></pre>
+    
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-lightbulb mr-2"></i>
+        <strong>Tip:</strong> Place this component on a page that managers frequently visit 
+        to provide quick access to team performance insights.
+    </div>
+</div>

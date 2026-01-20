@@ -1,0 +1,35 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Exceptions
+@{
+    var validation = (ValidationException)ViewBag.Error;
+    var isAccessDenied = validation?.Message?.Contains("Access denied") ?? false;
+}
+
+<div class="pc-approval-dashboard-error">
+    @if (isAccessDenied)
+    {
+        <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="fas fa-lock fa-2x mr-3"></i>
+            <div>
+                <h5 class="alert-heading mb-1">Access Restricted</h5>
+                <p class="mb-0">@validation?.Message</p>
+                <hr class="my-2">
+                <small class="text-muted">
+                    Please contact your system administrator if you believe you should have access to this dashboard.
+                </small>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+            <i class="fas fa-exclamation-triangle fa-2x mr-3"></i>
+            <div>
+                <h5 class="alert-heading mb-1">Dashboard Error</h5>
+                <wv-validation errors="@validation?.ToErrorList()" message="@validation?.Message"></wv-validation>
+            </div>
+        </div>
+    }
+</div>
