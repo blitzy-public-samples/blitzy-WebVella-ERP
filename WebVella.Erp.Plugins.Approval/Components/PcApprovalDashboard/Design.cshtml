@@ -1,0 +1,130 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@using WebVella.TagHelpers.Models;
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+}
+
+<div class="approval-dashboard-design p-2" style="background-color: #f8f9fa; border-radius: 8px;">
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">
+            <i class="fas fa-tachometer-alt mr-2 text-primary"></i>Manager Approval Dashboard
+        </h6>
+        <div class="d-flex align-items-center">
+            <span class="badge badge-info mr-2">@options.DefaultDateRange days</span>
+            @if (options.RefreshInterval > 0)
+            {
+                <span class="badge badge-secondary">
+                    <i class="fas fa-sync-alt mr-1"></i>@options.RefreshInterval s
+                </span>
+            }
+        </div>
+    </div>
+
+    <!-- Metrics Cards Preview -->
+    <div class="row">
+        @if (options.ShowPending)
+        {
+            <div class="col-md-3 col-sm-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body text-center py-2">
+                        <i class="fas fa-clock text-muted"></i>
+                        <h5 class="mb-0 mt-1">12</h5>
+                        <small class="text-muted">Pending</small>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (options.ShowAvgTime)
+        {
+            <div class="col-md-3 col-sm-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body text-center py-2">
+                        <i class="fas fa-hourglass-half text-muted"></i>
+                        <h5 class="mb-0 mt-1">4.5 hrs</h5>
+                        <small class="text-muted">Avg Time</small>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (options.ShowApprovalRate)
+        {
+            <div class="col-md-3 col-sm-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body text-center py-2">
+                        <i class="fas fa-check-circle text-muted"></i>
+                        <h5 class="mb-0 mt-1 text-success">87.3%</h5>
+                        <small class="text-muted">Approval Rate</small>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (options.ShowOverdue)
+        {
+            <div class="col-md-3 col-sm-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body text-center py-2">
+                        <i class="fas fa-exclamation-triangle text-muted"></i>
+                        <h5 class="mb-0 mt-1 text-danger">3</h5>
+                        <small class="text-muted">Overdue</small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Recent Activity Preview -->
+    @if (options.ShowActivity)
+    {
+        <div class="card mt-2">
+            <div class="card-header py-2">
+                <small><i class="fas fa-history mr-1"></i>Recent Activity (@options.ActivityCount items)</small>
+            </div>
+            <div class="card-body p-2">
+                <ul class="list-unstyled mb-0 small">
+                    <li class="mb-1">
+                        <i class="fas fa-check text-success mr-1"></i>
+                        Approved by <strong>John Smith</strong>
+                        <span class="text-muted">- 2 hours ago</span>
+                    </li>
+                    <li class="mb-1">
+                        <i class="fas fa-times text-danger mr-1"></i>
+                        Rejected by <strong>Jane Doe</strong>
+                        <span class="text-muted">- 5 hours ago</span>
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-share text-info mr-1"></i>
+                        Delegated by <strong>Mike Wilson</strong>
+                        <span class="text-muted">- 1 day ago</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    }
+
+    <div class="text-right mt-2">
+        <small class="text-muted">
+            <i class="fas fa-info-circle mr-1"></i>Design preview - metrics are sample data
+        </small>
+    </div>
+</div>
+
+<style>
+    .approval-dashboard-design .card {
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .approval-dashboard-design h5 {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+</style>

@@ -1,0 +1,127 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.TagHelpers.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+
+    var dateRangeOptions = new List<WvSelectOption>
+    {
+        new WvSelectOption { Value = "7", Label = "7 days" },
+        new WvSelectOption { Value = "30", Label = "30 days" },
+        new WvSelectOption { Value = "90", Label = "90 days" },
+        new WvSelectOption { Value = "180", Label = "180 days" },
+        new WvSelectOption { Value = "365", Label = "365 days" }
+    };
+}
+
+<h6 class="mb-3 mt-2">
+    <i class="fas fa-cog mr-1"></i>Dashboard Configuration
+</h6>
+
+<!-- Visibility -->
+<wv-row>
+    <wv-column span="12">
+        <wv-field-datasource name="is_visible" 
+                             label-text="Visibility" 
+                             value="@options.IsVisible" 
+                             page-id="erpRequest.Page.Id" 
+                             placeholder="true"
+                             description="Control dashboard visibility via data source (boolean)"></wv-field-datasource>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+
+<!-- Refresh Settings -->
+<h6 class="mb-3">
+    <i class="fas fa-sync-alt mr-1"></i>Auto-Refresh Settings
+</h6>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-number name="refresh_interval" 
+                         value="@options.RefreshInterval" 
+                         label-text="Refresh Interval (seconds)"
+                         min="0"
+                         max="3600"
+                         description="Set to 0 to disable auto-refresh. Minimum 30 seconds when enabled."></wv-field-number>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-select name="default_date_range" 
+                         value="@options.DefaultDateRange.ToString()" 
+                         label-text="Default Date Range" 
+                         options="dateRangeOptions"
+                         description="Date range for time-based metrics calculation"></wv-field-select>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+
+<!-- Metric Visibility -->
+<h6 class="mb-3">
+    <i class="fas fa-chart-bar mr-1"></i>Metric Cards
+</h6>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox name="show_pending" 
+                           value="@options.ShowPending" 
+                           label-text="Show Pending Approvals"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-checkbox name="show_avg_time" 
+                           value="@options.ShowAvgTime" 
+                           label-text="Show Avg. Approval Time"></wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox name="show_approval_rate" 
+                           value="@options.ShowApprovalRate" 
+                           label-text="Show Approval Rate"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-checkbox name="show_overdue" 
+                           value="@options.ShowOverdue" 
+                           label-text="Show Overdue Requests"></wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+
+<!-- Activity Feed Settings -->
+<h6 class="mb-3">
+    <i class="fas fa-history mr-1"></i>Activity Feed
+</h6>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox name="show_activity" 
+                           value="@options.ShowActivity" 
+                           label-text="Show Recent Activity"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-number name="activity_count" 
+                         value="@options.ActivityCount" 
+                         label-text="Activity Items Count"
+                         min="1"
+                         max="20"
+                         description="Number of recent activities to display (1-20)"></wv-field-number>
+    </wv-column>
+</wv-row>
+
+<hr class="my-3" />
+
+<div class="alert alert-info small">
+    <i class="fas fa-info-circle mr-2"></i>
+    <strong>Note:</strong> This dashboard requires users to have Manager or Administrator role. 
+    Users without these roles will see an access denied message.
+</div>
