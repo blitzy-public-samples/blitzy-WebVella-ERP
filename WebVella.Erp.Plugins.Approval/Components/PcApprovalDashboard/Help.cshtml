@@ -1,0 +1,128 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@{
+
+}
+
+<div class="component-help p-3">
+    <h5><i class="fas fa-tachometer-alt mr-2 text-primary"></i>Approval Dashboard Component</h5>
+    
+    <p class="lead">
+        Real-time metrics dashboard for managers to monitor approval workflow performance.
+    </p>
+
+    <hr />
+
+    <h6><i class="fas fa-chart-bar mr-2"></i>Metrics Displayed</h6>
+    <ul>
+        <li>
+            <strong>Pending Approvals:</strong> Count of approval requests currently awaiting action, 
+            filtered to requests where the current user is an authorized approver.
+        </li>
+        <li>
+            <strong>Average Approval Time:</strong> Mean time from request creation to final approval 
+            decision, calculated from approval history timestamp differences over the selected date range.
+        </li>
+        <li>
+            <strong>Approval Rate:</strong> Percentage of requests approved versus total processed 
+            (approved + rejected), providing insight into team approval patterns.
+        </li>
+        <li>
+            <strong>Overdue Requests:</strong> Count of pending requests that have exceeded their 
+            configured timeout threshold, indicating SLA violations.
+        </li>
+        <li>
+            <strong>Recent Activity:</strong> Feed showing the last N approval actions performed, 
+            displaying action type, performer, and timestamp.
+        </li>
+    </ul>
+
+    <hr />
+
+    <h6><i class="fas fa-cog mr-2"></i>Configuration Options</h6>
+    <table class="table table-sm table-bordered">
+        <thead class="thead-light">
+            <tr>
+                <th>Option</th>
+                <th>Default</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>refresh_interval</code></td>
+                <td>60</td>
+                <td>Auto-refresh interval in seconds. Set to 0 to disable. Minimum 30 seconds when enabled.</td>
+            </tr>
+            <tr>
+                <td><code>default_date_range</code></td>
+                <td>30</td>
+                <td>Number of days to include in time-based calculations (7, 30, 90, 180, 365).</td>
+            </tr>
+            <tr>
+                <td><code>show_pending</code></td>
+                <td>true</td>
+                <td>Display the Pending Approvals metric card.</td>
+            </tr>
+            <tr>
+                <td><code>show_avg_time</code></td>
+                <td>true</td>
+                <td>Display the Average Approval Time metric card.</td>
+            </tr>
+            <tr>
+                <td><code>show_approval_rate</code></td>
+                <td>true</td>
+                <td>Display the Approval Rate metric card.</td>
+            </tr>
+            <tr>
+                <td><code>show_overdue</code></td>
+                <td>true</td>
+                <td>Display the Overdue Requests metric card.</td>
+            </tr>
+            <tr>
+                <td><code>show_activity</code></td>
+                <td>true</td>
+                <td>Display the Recent Activity feed section.</td>
+            </tr>
+            <tr>
+                <td><code>activity_count</code></td>
+                <td>5</td>
+                <td>Number of recent activities to display (1-20).</td>
+            </tr>
+            <tr>
+                <td><code>is_visible</code></td>
+                <td>true</td>
+                <td>Data source for conditional visibility. Can be boolean or string "true"/"false".</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr />
+
+    <h6><i class="fas fa-shield-alt mr-2"></i>Access Control</h6>
+    <p>
+        This dashboard requires <strong>Manager</strong> or <strong>Administrator</strong> role 
+        to view. Users without these roles will see an access denied message. Role validation 
+        is enforced at both the component level and API endpoints.
+    </p>
+
+    <hr />
+
+    <h6><i class="fas fa-code mr-2"></i>API Endpoints</h6>
+    <p>The dashboard consumes the following REST API endpoints:</p>
+    <ul>
+        <li><code>GET /api/v3.0/p/approval/dashboard/metrics</code> - Retrieves all dashboard metrics</li>
+        <li><code>GET /api/v3.0/p/approval/dashboard/activity</code> - Retrieves recent activity feed</li>
+        <li><code>GET /api/v3.0/p/approval/dashboard/overdue</code> - Retrieves overdue count</li>
+    </ul>
+
+    <hr />
+
+    <h6><i class="fas fa-lightbulb mr-2"></i>Usage Tips</h6>
+    <ul>
+        <li>Place the dashboard on a manager-specific page for easy access.</li>
+        <li>Adjust the refresh interval based on approval volume - higher volume may benefit from shorter intervals.</li>
+        <li>Use the date range filter to focus on specific time periods for trend analysis.</li>
+        <li>Monitor the Overdue Requests metric to quickly identify SLA violations.</li>
+    </ul>
+</div>
