@@ -518,11 +518,50 @@
         "approval",
         "real-time"
       ]
+    },
+    {
+      "id": "STORY-010",
+      "title": "Manager Performance Dashboard (SST Format)",
+      "description": "As a Manager with approval responsibilities, I want to view a real-time dashboard displaying my team's approval workflow metrics, so that I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.",
+      "businessValue": "Reduces manager time gathering performance data from multiple sources by providing a unified dashboard view. Enables proactive bottleneck identification through real-time visibility. Supports compliance with SLA monitoring.",
+      "acceptanceCriteria": [
+        "Given I am logged in as a user with Manager role, When I navigate to the Approvals Dashboard page, Then I see a dashboard displaying my team's approval metrics including Pending Approvals Count, Average Approval Time, Approval Rate, Overdue Requests, and Recent Activity",
+        "Given the dashboard is displayed, When 60 seconds have elapsed, Then the metrics automatically refresh without requiring page reload and the display updates to reflect current data",
+        "Given I am viewing the dashboard, When I select a date range filter (7 days, 30 days, 90 days, or custom range), Then the metrics update to reflect only the selected time period",
+        "Given I have pending approval requests in queue where I am an authorized approver, When I view the Pending Approvals metric, Then the count accurately reflects requests awaiting my action",
+        "Given approval requests exceed their configured timeout from the associated approval step, When I view the Overdue Requests metric, Then the count accurately identifies requests past their SLA",
+        "Given I am a user without Manager role, When I attempt to access the dashboard, Then I receive an access denied message and am not shown the dashboard metrics"
+      ],
+      "technicalDetails": {
+        "files": [
+          "jira-stories/STORY-010-manager-performance-dashboard-sst.md"
+        ],
+        "classes": [],
+        "integrationPoints": [
+          "SST User Story format documentation"
+        ],
+        "technicalApproach": "SST-formatted User Story documenting STORY-009 feature following the State Street User Story Template with WHO/WHAT/WHY description structure and Given/When/Then acceptance criteria syntax."
+      },
+      "dependencies": [
+        {
+          "storyId": "STORY-009",
+          "description": "Technical implementation reference"
+        }
+      ],
+      "storyPoints": 5,
+      "labels": [
+        "dashboard",
+        "metrics",
+        "ui",
+        "manager",
+        "documentation",
+        "sst-format"
+      ]
     }
   ],
   "metadata": {
-    "totalStories": 9,
-    "totalStoryPoints": 52,
+    "totalStories": 10,
+    "totalStoryPoints": 57,
     "generatedOn": "2026-01-15T00:00:00Z",
     "projectName": "WebVella ERP Approval Workflow System",
     "version": "1.0.0"
