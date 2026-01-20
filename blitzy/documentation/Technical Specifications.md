@@ -6,686 +6,611 @@
 
 ### 0.1.1 Core Documentation Objective
 
-Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create a JIRA user story** that enables the delivery of a real-time manager dashboard for team performance metrics. This user story will follow the State Street "Writing a User Story" guide standards and serve as a vertical slice of functionality deliverable within a single sprint.
+Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create a new User Story** following the SST (State Street) User Story Template format that captures the business requirement: *"Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics."*
 
-**Documentation Type Classification:**
-- **Category:** Create new documentation
-- **Documentation Type:** JIRA User Story (Agile requirement artifact)
-- **Format:** Who/What/Why user story with Given/When/Then acceptance criteria
-- **Target Audience:** Product Owner, Scrum Master, Development Team, Business Stakeholders
+| Attribute | Value |
+|-----------|-------|
+| Documentation Category | Create new documentation |
+| Documentation Type | User Story (Requirements Specification) |
+| Target Audience | Product Owners, Scrum Masters, Development Team, Business Stakeholders |
+| Format Standard | SST User Story Guide Template |
+| Business Objective | Manager decision-making acceleration through real-time performance dashboards |
 
 **Explicit Documentation Requirements:**
+- Create a User Story following the "Who, What, Why" format (As a / I want / So that)
+- Include Acceptance Criteria using "Given / When / Then" syntax
+- Adhere to INVEST criteria (Independent, Negotiable, Valuable, Estimable, Sized appropriately, Testable)
+- Ensure the story is "Demo-able" for Product Owner acceptance
+- Maximum 255 characters for the Summary field
 
-| Requirement | Source | Interpretation |
-|-------------|--------|----------------|
-| User story in Who/What/Why format | User instructions | Follow State Street guide: "As a <role>, I want <goal>, so that <reason>" |
-| Acceptance criteria using Given/When/Then | User instructions | Apply BDD-style scenarios per State Street guide |
-| Single sprint delivery scope | User instructions | Size story appropriately (vertical slice) |
-| Follow State Street guide best practices | User instructions + Attachment | Apply INVEST criteria and all formatting standards |
-| Real-time dashboard views | Business objective | Dashboard must refresh without manual intervention |
-| Team performance metrics | Business objective | Display quantitative measures of team activity/output |
-| Enable faster manager decisions | Business objective | Provide actionable insights at a glance |
-
-**Implicit Documentation Requirements:**
-
-- Summary field must not exceed 255 characters (State Street guide constraint)
-- Story must be demo-able for Product Owner acceptance
-- Story must be independent, negotiable, valuable, estimable, sized appropriately, and testable (INVEST)
-- Story should reference potential sub-tasks for team execution
-- Story should include clear business value articulation
+**Implicit Documentation Needs Identified:**
+- The User Story must align with existing WebVella ERP Approval Workflow System architecture
+- Story should reference existing F-009 feature from the technical specification
+- Must integrate with the established jira-stories documentation pattern in the repository
+- Should be exportable to JSON/CSV formats for Jira import compatibility
 
 ### 0.1.2 Special Instructions and Constraints
 
-**CRITICAL Directives from User:**
-- Follow ALL best practices, formatting, and standards from the State Street "Writing a User Story" guide
-- Represent ONE vertical slice of functionality (not the entire dashboard epic)
-- Deliver measurable progress toward the business objective
-- Appropriate level of detail for single sprint delivery
-
-**Template Requirements:**
-
-**USER PROVIDED TEMPLATE (from State Street Guide):**
+**USER PROVIDED TEMPLATE (from SST User Story Guide.pdf):**
 
 ```
 Summary: [Maximum 255 Characters]
 
 Description:
-As a <named user or role>, or the WHO
-I want <some goal>, or the WHAT
-so that <some reason>, or the WHY
+As a < named user or role >, (WHO)
+I want < some goal >, (WHAT)
+so that < some reason >, (WHY)
 
 Acceptance Criteria:
-- Given <a scenario>
-  When <a criteria is met>
-  Then <the expected result>
+- Given < a scenario >
+  When < a criteria is met >
+  Then < the expected result >
 ```
 
-**Style Preferences:**
-- Use State Street naming conventions
-- Maintain consistency with existing STORY-001 through STORY-008 format in the repository
-- Include Business Value section per established repository pattern
-- Include Technical Implementation Details where applicable
-- Use checkbox format for acceptance criteria ([ ])
+**Template Quality Criteria (from SST Guide):**
 
-**Quality Standards (from State Street Guide):**
-
-| Criterion | Requirement |
+| Criterion | Description |
 |-----------|-------------|
-| Independent | Self-contained, no inherent dependency on another user story |
-| Negotiable | Can be changed or rewritten until committed to iteration |
-| Valuable | Delivers value to end user and/or customer |
-| Estimable | Team can estimate the size |
-| Sized appropriately | Not too big for planning/prioritization |
-| Testable | Provides information for test development |
-| Demo-able | Work can be demonstrated for acceptance |
+| Independent | Story should be self-contained with no inherent dependency on another user story |
+| Negotiable | Can always be changed or rewritten until part of an iteration |
+| Valuable | Must deliver value to the end user and/or customer |
+| Estimable | Team must be able to estimate the size |
+| Sized appropriately | Not so big that planning becomes impossible |
+| Testable | Provides necessary information for test development |
+| Demo-able | Work item must be able to be demonstrated |
 
-**Acceptance Criteria Quality (from State Street Guide):**
-- Clarity: Straightforward and easy to understand
-- Conciseness: Necessary information without unnecessary detail
-- Testability: Independently verifiable (clear pass/fail)
-- Result-Oriented: Focus on delivering customer satisfaction
+**Acceptance Criteria Effectiveness Standards (from SST Guide):**
+
+| Standard | Requirement |
+|----------|-------------|
+| Clarity | Straightforward and easy to understand for all team members |
+| Conciseness | Communicates necessary information without unnecessary detail |
+| Testability | Each criterion must be independently verifiable (clear pass/fail) |
+| Result-Oriented | Focus on delivering results that satisfy the customer |
+
+**Style Preferences:**
+- Use consistent "Given/When/Then" syntax for all acceptance criteria
+- Include measurable outcomes where possible
+- Reference specific metrics (pending count, processing time, approval rate, overdue count)
+- Maintain alignment with existing STORY-009 technical implementation details
 
 ### 0.1.3 Technical Interpretation
 
 These documentation requirements translate to the following technical documentation strategy:
 
-| User Requirement | Documentation Action |
-|------------------|---------------------|
-| Create user story for manager dashboard | Create markdown file `STORY-009-manager-dashboard-metrics.md` following repository pattern |
-| Follow State Street guide format | Structure with Description, Business Value, Acceptance Criteria, Technical Implementation sections |
-| Single sprint delivery | Scope to one dashboard view with 3-5 key metrics (vertical slice) |
-| Real-time dashboard views | Specify automatic refresh mechanism (e.g., 30-60 second intervals or SignalR) |
-| Team performance metrics | Define specific metrics: approval cycle time, pending requests, completion rates |
-| Given/When/Then acceptance criteria | Write 4-6 BDD scenarios covering view, refresh, filter, and permission behaviors |
+| Requirement | Documentation Action |
+|-------------|---------------------|
+| Manager decision-making acceleration | Document user role as "Manager with approval responsibilities" |
+| Real-time dashboard views | Specify auto-refresh capability with configurable interval (default 60 seconds) |
+| Team performance metrics | Detail five KPIs: pending approvals, average processing time, approval rate, overdue requests, recent activity |
+| Faster decisions | Include date range filtering for historical analysis capability |
 
-**Documentation Actions:**
-- To document the manager dashboard feature, we will create `jira-stories/STORY-009-manager-dashboard-metrics.md` with complete user story format
-- To update the backlog exports, we will update `jira-stories/stories-export.csv` and `jira-stories/stories-export.json` with the new story entry
-- To ensure consistency, we will follow the exact structure established in existing stories (STORY-001 through STORY-008)
+To document this feature, we will **create** a User Story file at `jira-stories/STORY-010-manager-performance-dashboard.md` following the established pattern from existing stories in the repository.
 
 ### 0.1.4 Inferred Documentation Needs
 
-**Based on Code Analysis:**
-- The existing WebVella ERP system has UI component patterns (`docs/developer/components`) that the dashboard story should reference
-- The approval workflow entities (`approval_request`, `approval_history`) provide natural metrics sources
-- Background job patterns from STORY-006 inform real-time update mechanisms
+Based on repository analysis and the business objective:
 
-**Based on Structure:**
-- The jira-stories folder uses consistent markdown structure with technical implementation details
-- Stories include dependency chains (the new dashboard story depends on F-008 UI Components)
-- CSV/JSON exports maintain parallel data for reporting/import
+| Analysis Source | Inferred Documentation Need |
+|-----------------|----------------------------|
+| Existing STORY-009 | User Story must reference or align with existing dashboard metrics implementation |
+| jira-stories/stories-export.json | Story should be formatted for inclusion in JSON export structure |
+| SST User Story Guide | Must include Story Estimation section using Fibonacci story points |
+| WebVella ERP architecture | Should reference PageComponent pattern and SecurityContext role validation |
+| Approval Workflow System initiative | Story contributes to total initiative scope (currently 52 story points) |
 
-**Based on User Journey:**
-- Manager needs to: access dashboard → view metrics → identify trends → make decisions
-- Dashboard should integrate with existing WebVella page component system
-- Metrics should align with approval workflow domain (existing entity data)
-
-**Based on Business Objective:**
-- "Faster decisions" implies at-a-glance metrics visualization (not complex drill-downs in this slice)
-- "Real-time" means automatic refresh or push updates
-- "Team performance" suggests aggregate metrics per team/manager scope
-
-**Contextual Alignment with Existing System:**
-The new user story aligns with the existing approval workflow system by providing managerial visibility into:
-- Approval request volumes and processing times
-- Step-level bottleneck identification
-- Team member approval response metrics
-- SLA compliance tracking
+**User Story Structural Requirements Derived:**
+- Summary limited to 255 characters
+- Description follows strict "As a/I want/So that" format
+- Acceptance criteria use "Given/When/Then" format with checkbox markers `- [ ]`
+- Story points using Fibonacci sequence (1, 2, 3, 5, 8, 13, etc.)
+- Labels for categorization (dashboard, metrics, ui, manager)
+- Dependencies section linking to prerequisite stories
 
 ## 0.2 Documentation Discovery and Analysis
 
 ### 0.2.1 Existing Documentation Infrastructure Assessment
 
-**Repository Analysis Summary:**
-The repository analysis reveals a well-structured JIRA story documentation system within the `jira-stories/` folder, with established patterns for user story creation and backlog management.
+Repository analysis reveals a **well-structured documentation ecosystem** with established patterns for User Story documentation and technical specifications.
 
-**Documentation Structure:**
+**Documentation Structure Discovered:**
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Story Markdown Files | `jira-stories/STORY-*.md` | Detailed user story specifications |
-| CSV Export | `jira-stories/stories-export.csv` | Tabular backlog for import/reporting |
-| JSON Export | `jira-stories/stories-export.json` | Structured data for programmatic access |
-| Developer Docs | `docs/developer/` | Technical reference documentation |
+| Location | Type | Purpose |
+|----------|------|---------|
+| `jira-stories/` | Markdown + JSON/CSV | User Story specifications with export formats |
+| `docs/` | Markdown | Developer-facing technical documentation |
+| `README.md` | Markdown | Repository landing page and overview |
+| `LIBRARIES.md` | Markdown | Third-party library attribution (placeholder) |
+| `LICENSE.txt` | Text | Apache 2.0 license documentation |
 
-**Documentation Framework Assessment:**
-- **Documentation Generator:** None (plain markdown)
-- **Documentation Configuration:** Standalone files with no build system
-- **Story Format Version:** Custom markdown with structured sections
-- **Export Formats:** CSV (JIRA-compatible), JSON (API/tool-compatible)
+**User Story Documentation Pattern Analysis:**
 
-**Existing Story Files Discovered:**
+| Component | Standard Format |
+|-----------|----------------|
+| File naming | `STORY-{NNN}-{kebab-case-title}.md` |
+| Exports | `stories-export.csv` and `stories-export.json` |
+| Structure | Description → Business Value → Acceptance Criteria → Technical Implementation Details |
+| Metadata | Story ID, Title, Dependencies, Story Points, Labels |
 
-| File | Story ID | Title | Points |
-|------|----------|-------|--------|
-| `STORY-001-approval-plugin-infrastructure.md` | STORY-001 | Approval Plugin Infrastructure | 3 |
-| `STORY-002-approval-entity-schema.md` | STORY-002 | Approval Entity Schema | 8 |
-| `STORY-003-workflow-configuration-management.md` | STORY-003 | Workflow Configuration Management | 5 |
-| `STORY-004-approval-service-layer.md` | STORY-004 | Approval Service Layer | 8 |
-| `STORY-005-approval-hooks-integration.md` | STORY-005 | Approval Hooks Integration | 5 |
-| `STORY-006-notification-escalation-jobs.md` | STORY-006 | Notification and Escalation Jobs | 5 |
-| `STORY-007-approval-rest-api.md` | STORY-007 | Approval REST API Endpoints | 5 |
-| `STORY-008-approval-ui-components.md` | STORY-008 | Approval UI Page Components | 8 |
+**Current Documentation Framework:**
 
-**Story Template Structure (from repository analysis):**
-
-```
-# STORY-XXX: [Title]
-
-#### Description
-[Detailed description paragraph]
-
-#### Business Value
-- [Bullet point 1]
-- [Bullet point 2]
-- [etc.]
-
-#### Acceptance Criteria
-- [ ] **AC1**: [Criterion]
-- [ ] **AC2**: [Criterion]
-- [etc.]
-
-#### Technical Implementation Details
-
-#### Files/Modules to Create
-| File Path | Description |
-|-----------|-------------|
-| [path] | [description] |
-
-#### Key Classes and Functions
-[Code snippets and patterns]
-
-#### Dependencies
-| Dependency Type | Details |
-|-----------------|---------|
-| [type] | [details] |
-```
+| Tool/Pattern | Version/Status | Location |
+|--------------|----------------|----------|
+| Markdown documentation | Active | `jira-stories/*.md`, `docs/**/*.md` |
+| JSON export format | v1.0.0 | `jira-stories/stories-export.json` |
+| CSV export format | Active | `jira-stories/stories-export.csv` |
+| No formal doc generator | N/A | Documentation is static Markdown |
 
 ### 0.2.2 Repository Code Analysis for Documentation
 
 **Search Patterns Employed:**
 
-| Pattern | Purpose | Results |
-|---------|---------|---------|
-| `jira-stories/*.md` | User story files | 8 files found |
-| `jira-stories/*.csv` | Export files | 1 file found |
-| `jira-stories/*.json` | Export files | 1 file found |
-| `docs/developer/**` | Reference documentation | Full documentation hub |
+| Pattern | Files Found | Relevance |
+|---------|-------------|-----------|
+| `jira-stories/STORY-*.md` | 9 files (STORY-001 through STORY-009) | High - Story template reference |
+| `jira-stories/stories-export.*` | 2 files (JSON, CSV) | High - Export format reference |
+| `docs/**/*.md` | Multiple files | Medium - Technical documentation style |
+| `README.md` | 1 file | Low - Project overview only |
 
-**Key Directories Examined:**
+**Existing Related Documentation Examined:**
 
-| Directory | Contents | Relevance |
-|-----------|----------|-----------|
-| `jira-stories/` | All JIRA user story artifacts | Primary target for new story |
-| `docs/developer/components/` | PageComponent documentation | Reference for UI implementation |
-| `docs/developer/pages/` | Page routing documentation | Reference for dashboard page |
-| `docs/developer/entities/` | Entity documentation | Reference for metrics data sources |
-| `WebVella.Erp.Plugins.Approval/` | Plugin implementation | Technical context |
+| File | Summary | Relevance to Task |
+|------|---------|-------------------|
+| `jira-stories/STORY-009-manager-dashboard-metrics.md` | Complete User Story for Manager Approval Dashboard with Real-Time Metrics | **Critical** - Directly addresses the business objective; may serve as reference or indicate documentation already exists |
+| `jira-stories/stories-export.json` | Machine-readable story database with metadata structure | High - Defines JSON schema for story export |
+| `jira-stories/STORY-008-approval-ui-components.md` | UI Page Components User Story | Medium - Related UI component documentation pattern |
+| `jira-stories/STORY-007-approval-rest-api.md` | REST API Endpoints User Story | Medium - API documentation pattern |
 
-**Related Documentation Found:**
+**Key Finding:** The business objective *"Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics"* is **already documented** as STORY-009 in the existing repository. The SST-formatted User Story will be a reformatted version of this existing content following the SST template structure.
 
-| Document | Relevance to New Story |
-|----------|------------------------|
-| `docs/developer/components/` | Dashboard will use PageComponent pattern |
-| `STORY-008-approval-ui-components.md` | UI component patterns to follow |
-| `STORY-007-approval-rest-api.md` | API patterns for data retrieval |
-| Feature Catalog (Tech Spec 2.1) | Feature dependency context |
+### 0.2.3 Web Search Research Conducted
 
-### 0.2.3 State Street Guide Analysis
+**Best Practices for User Story Writing:**
+- User stories should follow the INVEST criteria for effectiveness
+- Given/When/Then format (Behavior-Driven Development) is industry standard for acceptance criteria
+- Story sizing using Fibonacci sequence enables relative estimation
+- Stories should be decomposable into sub-tasks owned by individual team members
 
-**Guide Structure (from attachment):**
+**Documentation Structure Conventions:**
+- Hierarchical structure with Epics containing Stories containing Sub-tasks
+- Stories are owned by Team, sub-tasks by individuals
+- Product Owner (Role) transitions stories to Done in SCRUM/KANBAN
 
-The State Street "Writing a User Story" guide (6 pages) establishes the following standards:
+**Key Terminology Standards (from SST Guide):**
+- **Summary**: Maximum 255 characters describing the story
+- **Description**: "Who, What, Why" format using As a/I want/So that
+- **Acceptance Criteria**: Conditions using Given/When/Then syntax
+- **Story Points**: Fibonacci sequence (1, 2, 3, 5, 8, 13, 20, 40) for relative sizing
 
-**1. Purpose Statement:**
-A user story covers vertical slices of a system, contains a short description of what the user wants, and serves as a conversation starter with the team. Must include Acceptance Criteria defining conditions for "done."
+### 0.2.4 Documentation Gap Analysis
 
-**2. Ownership Model:**
-- Stories owned by Team; sub-tasks owned by individuals
-- Only Product Owner can transition to Done (Scrum/Kanban)
-- Sub-tasks describe actions to achieve Acceptance Criteria
+| Documentation Aspect | Current Status | Gap Identified |
+|---------------------|----------------|----------------|
+| Technical User Story (STORY-009) | Complete | None - exists in jira-stories/ |
+| SST-Formatted User Story | Missing | **Primary gap** - needs SST template format |
+| JSON Export Entry | Complete | None - exists in stories-export.json |
+| CSV Export Entry | Complete | None - exists in stories-export.csv |
+| Technical Specification | Complete | None - F-009 documented in tech spec |
 
-**3. Relationships:**
-- Children: Sub-tasks
-- Parent: Epics
-
-**4. Anatomy of a Story:**
-
-| Element | Format | Constraint |
-|---------|--------|------------|
-| Summary | Brief title | Max 255 characters |
-| Description | Who/What/Why | As a/I want/so that |
-| Acceptance Criteria | Given/When/Then | Must be testable |
-
-**5. INVEST Criteria:**
-- **I**ndependent: Self-contained
-- **N**egotiable: Can change until committed
-- **V**aluable: Delivers user/customer value
-- **E**stimable: Can be sized
-- **S**ized appropriately: Fits in sprint
-- **T**estable: Clear pass/fail verification
-
-**6. Story Estimation:**
-- Uses Fibonacci sequence (1, 2, 3, 5, 8, 13, 20, 40...)
-- Based on effort, complexity, and uncertainty
-- Relative sizing compared to baseline stories
-
-### 0.2.4 Web Search Research Conducted
-
-**Best Practices Research Topics:**
-
-| Topic | Finding |
-|-------|---------|
-| Real-time dashboard user stories | Focus on specific metrics, refresh intervals, and user permissions |
-| Performance metrics for team management | Common metrics: throughput, cycle time, lead time, response time |
-| JIRA user story best practices | Vertical slicing, story mapping, definition of ready |
-| BDD acceptance criteria patterns | Scenario-based with clear preconditions and postconditions |
-
-**Applicable Standards:**
-- User stories should represent 1-3 days of work for appropriate sizing
-- Dashboard stories typically focus on one view/perspective per story
-- Real-time features should specify update frequency and mechanism
-- Manager-specific stories should include role-based access requirements
+**Primary Documentation Gap:** While comprehensive technical documentation exists for this feature (STORY-009), the user's requirement is to **generate a User Story in SST format** that may be used for Jira import or stakeholder communication. This requires reformatting the existing content to match the SST User Story Template structure.
 
 ## 0.3 Documentation Scope Analysis
 
 ### 0.3.1 Code-to-Documentation Mapping
 
-**Documentation Artifacts Requiring Creation:**
+**Modules Informing Documentation:**
 
-| Artifact | Type | Source Context | Documentation Needed |
-|----------|------|----------------|----------------------|
-| `STORY-009-manager-dashboard-metrics.md` | User Story | Business objective | Complete story following State Street format |
-| `stories-export.csv` | Backlog Export | Existing export | New row for STORY-009 |
-| `stories-export.json` | Backlog Export | Existing export | New story object for STORY-009 |
+| Module | Source Location | Documentation Purpose |
+|--------|-----------------|----------------------|
+| PcApprovalDashboard Component | `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/` | UI component delivering dashboard views |
+| DashboardMetricsService | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs` | Service calculating performance metrics |
+| DashboardMetricsModel | `WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs` | DTO for metrics response structure |
+| ApprovalController | `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs` | REST endpoint for dashboard metrics |
 
-**User Story Content Mapping:**
+**Feature Mapping to User Story Elements:**
 
-| Story Section | Content Source | Documentation Approach |
-|---------------|----------------|------------------------|
-| Summary | Business objective | Distill to ≤255 chars |
-| Description (Who/What/Why) | User requirements | Manager role, dashboard goal, decision-making benefit |
-| Business Value | Inferred from objective | Faster decisions, visibility, efficiency |
-| Acceptance Criteria | Derived from requirements | 5-6 Given/When/Then scenarios |
-| Technical Details | Repository analysis | Files, classes, integration points |
-| Dependencies | Feature catalog analysis | STORY-008 (UI Components), STORY-007 (API) |
-| Story Points | Sizing analysis | 5 points (moderate complexity) |
-| Labels | Categorization | dashboard, metrics, ui, manager, approval |
+| Technical Feature | User Story "What" Translation |
+|-------------------|------------------------------|
+| PcApprovalDashboard PageComponent | View a real-time dashboard |
+| Auto-refresh (60-second default) | Real-time metrics updates without page reload |
+| Date range filtering (7d/30d/90d) | Historical analysis capability |
+| Manager role validation | Role-based access control |
+| Five KPI metrics | Pending approvals, avg time, approval rate, overdue count, recent activity |
 
-### 0.3.2 User Story Vertical Slice Definition
+### 0.3.2 User Story Content Mapping
 
-**Business Objective Decomposition:**
+**WHO (User Role):**
 
-The full business objective "Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics" could span multiple user stories. For a single-sprint vertical slice:
+| Role Identifier | Description | Source |
+|-----------------|-------------|--------|
+| Manager | User with Manager role in WebVella ERP | STORY-009, SecurityContext role validation |
+| Approval Responsibilities | Manager authorized to approve requests in workflow | PcApprovalDashboard.IsManagerRole() method |
 
-**Vertical Slice: Real-Time Approval Metrics Dashboard**
+**WHAT (Goal/Capability):**
 
-| Aspect | Full Scope | This Vertical Slice |
-|--------|------------|---------------------|
-| Users | All managers | Managers with approval responsibility |
-| Metrics | All team performance | Approval workflow metrics (4-5 key indicators) |
-| Views | Multiple dashboards | Single summary dashboard view |
-| Interactivity | Drill-downs, exports, filters | View-only with date range filter |
-| Real-time | Multiple update mechanisms | Auto-refresh at configurable interval |
+| Capability | Description | Technical Implementation |
+|------------|-------------|-------------------------|
+| Real-time dashboard | View current approval metrics | PcApprovalDashboard Display.cshtml |
+| Team performance metrics | Five KPIs calculated from approval entities | DashboardMetricsService |
+| Auto-refresh | Configurable refresh interval (default 60s) | service.js with setInterval() |
+| Date range filtering | Historical analysis (7d/30d/90d/custom) | API query parameters from/to |
 
-**Specific Metrics for Vertical Slice:**
+**WHY (Business Value):**
 
-| Metric | Description | Data Source |
-|--------|-------------|-------------|
-| Pending Approvals Count | Number awaiting manager action | `approval_request` where `status='pending'` |
-| Average Approval Time | Mean time from request to decision | `approval_history` timestamps |
-| Approval Rate | Percentage approved vs total processed | `approval_history` action counts |
-| Overdue Requests | Count exceeding SLA timeout | `approval_request` vs `approval_step.timeout_hours` |
-| Recent Activity | Last 5 approval actions | `approval_history` ordered by `performed_on` |
+| Business Value | Benefit |
+|----------------|---------|
+| Faster decisions | Consolidated metrics eliminate multi-source data gathering |
+| Proactive bottleneck identification | Real-time visibility into overdue requests and processing times |
+| Resource planning | Pending approval counts inform workload distribution |
+| SLA compliance | Overdue request tracking maintains approval policy adherence |
 
-### 0.3.3 Documentation Gap Analysis
+### 0.3.3 Acceptance Criteria Derivation
 
-**Current Documentation Status:**
+**AC1: Dashboard Access and Display**
 
-| Documentation Area | Current State | Gap Identified |
-|--------------------|---------------|----------------|
-| Manager dashboard user story | Missing | CREATE: STORY-009 |
-| Dashboard metrics specification | Missing | INCLUDE in STORY-009 |
-| Real-time update requirements | Missing | INCLUDE in STORY-009 |
-| Backlog export for STORY-009 | Missing | UPDATE: CSV and JSON exports |
+| Element | Value |
+|---------|-------|
+| Given | I am logged in as a user with Manager role |
+| When | I navigate to the Approvals Dashboard page |
+| Then | I see a dashboard displaying my team's approval metrics (5 KPIs) |
 
-**Undocumented Requirements (to be addressed in STORY-009):**
+**AC2: Auto-Refresh Functionality**
 
-- Dashboard permission requirements (who can view which metrics)
-- Refresh interval configuration options
-- Mobile/responsive display considerations
-- Dashboard page component integration with existing PageComponent system
-- API endpoints for metrics data retrieval
+| Element | Value |
+|---------|-------|
+| Given | The dashboard is displayed |
+| When | 60 seconds have elapsed (configurable interval) |
+| Then | Metrics automatically refresh without page reload |
 
-### 0.3.4 Proposed User Story Content
+**AC3: Date Range Filtering**
 
-**STORY-009: Manager Approval Dashboard with Real-Time Metrics**
+| Element | Value |
+|---------|-------|
+| Given | I am viewing the dashboard |
+| When | I select a date range filter (7 days, 30 days, 90 days, or custom) |
+| Then | Metrics update to reflect only the selected time period |
 
-**Summary (193 characters):**
+**AC4: Pending Approvals Accuracy**
+
+| Element | Value |
+|---------|-------|
+| Given | I have pending approval requests where I am an authorized approver |
+| When | I view the Pending Approvals metric |
+| Then | The count accurately reflects requests awaiting my action |
+
+**AC5: Overdue Requests Identification**
+
+| Element | Value |
+|---------|-------|
+| Given | Approval requests exceed their configured timeout (timeout_hours) |
+| When | I view the Overdue Requests metric |
+| Then | The count accurately identifies requests past their SLA |
+
+**AC6: Access Control Enforcement**
+
+| Element | Value |
+|---------|-------|
+| Given | I am a user without Manager role |
+| When | I attempt to access the dashboard |
+| Then | I receive an access denied message and am not shown metrics |
+
+### 0.3.4 Story Estimation Analysis
+
+**Effort Factors:**
+
+| Factor | Assessment |
+|--------|------------|
+| Complexity | Medium - Established component patterns exist |
+| Uncertainty | Low - Clear requirements and technical approach |
+| Effort | Medium - 9 files to create, service layer, API endpoint |
+
+**Comparable Stories for Relative Sizing:**
+
+| Story | Points | Complexity Comparison |
+|-------|--------|----------------------|
+| STORY-007 (REST API) | 5 | Similar scope - API endpoints |
+| STORY-008 (UI Components) | 8 | Higher - 4 components vs 1 |
+| STORY-003 (Config Services) | 5 | Similar - Service layer work |
+
+**Recommended Story Points: 5**
+
+Rationale: Single dashboard component following established patterns, one service class, one DTO, one API endpoint addition. Testing includes role validation and date filtering.
+
+## 0.4 Documentation Implementation Design
+
+### 0.4.1 Documentation Structure Planning
+
+**Target User Story Document Structure:**
+
 ```
-Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability.
+jira-stories/
+├── STORY-010-manager-performance-dashboard-sst.md  (NEW - SST Format)
+├── STORY-009-manager-dashboard-metrics.md           (REFERENCE - Existing)
+├── stories-export.json                              (UPDATE - Add STORY-010)
+├── stories-export.csv                               (UPDATE - Add STORY-010)
+└── [existing STORY-001 through STORY-008]
 ```
 
-**Description (Who/What/Why Format):**
+**SST User Story Document Structure:**
+
+```
+# STORY-010: Manager Performance Dashboard (SST Format)
+
+#### Summary
+
+[Maximum 255 characters]
+
+#### User Story Description
+
+As a [WHO]
+I want [WHAT]
+so that [WHY]
+
+#### Acceptance Criteria
+
+- [ ] AC1: Given... When... Then...
+- [ ] AC2: Given... When... Then...
+[...]
+
+#### Story Estimation
+
+[Story Points with rationale]
+
+#### Labels
+
+[Categorization tags]
+
+#### Additional Notes
+
+[References, INVEST validation, testing considerations]
+```
+
+### 0.4.2 Content Generation Strategy
+
+**Information Extraction Approach:**
+
+| Source | Information to Extract | Target Section |
+|--------|----------------------|----------------|
+| Business objective input | Core requirement statement | Summary, Description |
+| SST User Story Guide.pdf | Template structure, quality criteria | Document format |
+| STORY-009 file | Technical details, acceptance criteria | AC, Technical Notes |
+| stories-export.json | Metadata format (id, title, labels, points) | JSON export update |
+
+**Template Application:**
+
+| SST Template Section | Content Source | Transformation |
+|---------------------|----------------|----------------|
+| Summary | Business objective | Condense to ≤255 characters |
+| WHO | STORY-009 description | Extract "Manager with approval responsibilities" |
+| WHAT | STORY-009 description | Extract dashboard capability statement |
+| WHY | STORY-009 business value | Extract decision-making benefit |
+| Acceptance Criteria | STORY-009 acceptance criteria | Convert to Given/When/Then checkboxes |
+| Story Points | STORY-009 effort estimate | Preserve 5-point estimate |
+
+**Documentation Standards Applied:**
+
+| Standard | Implementation |
+|----------|---------------|
+| Markdown formatting | Headers with `#`, `##`, `###` |
+| Checkbox acceptance criteria | `- [ ] **AC1**:` format |
+| Given/When/Then syntax | `Given X, When Y, Then Z` |
+| INVEST criteria validation | Include validation table |
+| Demo-ability statement | "Dashboard with live metrics can be demonstrated" |
+
+### 0.4.3 User Story Content Specification
+
+**Summary (≤255 characters):**
+```
+Manager Performance Dashboard: Real-time approval workflow metrics enabling data-driven decisions through consolidated KPI views with auto-refresh and date filtering.
+```
+(Character count: 168)
+
+**User Story Description (WHO/WHAT/WHY):**
+
 ```
 As a Manager with approval responsibilities,
 I want to view a real-time dashboard displaying my team's approval workflow metrics,
 so that I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.
 ```
 
-**Proposed Acceptance Criteria (Given/When/Then):**
-
-| ID | Given | When | Then |
-|----|-------|------|------|
-| AC1 | I am logged in as a user with Manager role | I navigate to the Approvals Dashboard page | I see a dashboard displaying my team's approval metrics |
-| AC2 | The dashboard is displayed | 60 seconds have elapsed | The metrics automatically refresh without requiring page reload |
-| AC3 | I am viewing the dashboard | I select a date range filter | The metrics update to reflect only the selected time period |
-| AC4 | I have pending approval requests in queue | I view the Pending Approvals metric | The count accurately reflects requests awaiting my action |
-| AC5 | Approval requests exceed their configured timeout | I view the Overdue Requests metric | The count accurately identifies requests past their SLA |
-| AC6 | I am a user without Manager role | I attempt to access the dashboard | I receive an access denied message |
-
-**Business Value Points:**
-- Reduces time managers spend gathering performance data from multiple sources
-- Enables proactive identification of workflow bottlenecks before escalation
-- Provides visibility into team workload for resource planning decisions
-- Supports compliance reporting with real-time SLA monitoring
-- Improves manager accountability through transparent metrics
-
-## 0.4 Documentation Implementation Design
-
-### 0.4.1 Documentation Structure Planning
-
-**Documentation Hierarchy:**
+**Acceptance Criteria (Given/When/Then):**
 
 ```
-jira-stories/
-├── STORY-001-approval-plugin-infrastructure.md      (existing)
-├── STORY-002-approval-entity-schema.md              (existing)
-├── STORY-003-workflow-configuration-management.md   (existing)
-├── STORY-004-approval-service-layer.md              (existing)
-├── STORY-005-approval-hooks-integration.md          (existing)
-├── STORY-006-notification-escalation-jobs.md        (existing)
-├── STORY-007-approval-rest-api.md                   (existing)
-├── STORY-008-approval-ui-components.md              (existing)
-├── STORY-009-manager-dashboard-metrics.md           (CREATE)
-├── stories-export.csv                               (UPDATE)
-└── stories-export.json                              (UPDATE)
+- [ ] **AC1**: Given I am logged in as a user with Manager role, When I navigate to the Approvals Dashboard page, Then I see a dashboard displaying my team's approval metrics including Pending Approvals Count, Average Approval Time, Approval Rate, Overdue Requests, and Recent Activity
+
+- [ ] **AC2**: Given the dashboard is displayed, When 60 seconds have elapsed, Then the metrics automatically refresh without requiring page reload and the display updates to reflect current data
+
+- [ ] **AC3**: Given I am viewing the dashboard, When I select a date range filter (7 days, 30 days, 90 days, or custom range), Then the metrics update to reflect only the selected time period
+
+- [ ] **AC4**: Given I have pending approval requests in queue where I am an authorized approver, When I view the Pending Approvals metric, Then the count accurately reflects requests awaiting my action
+
+- [ ] **AC5**: Given approval requests exceed their configured timeout from the associated approval step, When I view the Overdue Requests metric, Then the count accurately identifies requests past their SLA
+
+- [ ] **AC6**: Given I am a user without Manager role, When I attempt to access the dashboard, Then I receive an access denied message and am not shown the dashboard metrics
 ```
 
-**File Structure for STORY-009:**
+### 0.4.4 Diagram and Visual Strategy
 
-The new story file will follow the established markdown structure with sections for Description (Who/What/Why format per State Street guide), Business Value (bullet points), Acceptance Criteria (checkbox format with Given/When/Then), and Technical Implementation Details including tables for files/modules, tree diagrams for folder structure, code snippets for key classes, and dependency tables.
-
-### 0.4.2 Content Generation Strategy
-
-**Information Extraction Approach:**
-
-| Content Section | Extraction Method | Source |
-|-----------------|-------------------|--------|
-| Description | Interpret business objective | User requirements |
-| Business Value | Derive from objective keywords | "faster decisions", "real-time", "performance" |
-| Acceptance Criteria | Transform requirements to testable scenarios | User requirements + State Street guide |
-| Technical Details | Analyze repository patterns | Existing stories + codebase structure |
-| Dependencies | Trace feature relationships | Feature Catalog (Section 2.1) |
-| Story Points | Relative sizing | Compare to STORY-008 (8 pts for full UI) |
-
-**Template Application:**
-
-The user story will apply the State Street template EXACTLY as specified in the guide:
-- Description uses "As a / I want / so that" format
-- Acceptance Criteria uses "Given / When / Then" syntax
-- Summary is limited to maximum 255 characters
-
-**Documentation Standards:**
-
-| Standard | Application |
-|----------|-------------|
-| Markdown formatting | Proper headers using # ## ### |
-| Code examples | Fenced code blocks with syntax highlighting |
-| Tables | Pipe-delimited markdown tables |
-| Lists | Checkbox format for acceptance criteria |
-| Source citations | Reference existing stories and codebase paths |
-
-### 0.4.3 Diagram and Visual Strategy
-
-**Mermaid Diagrams to Include in STORY-009:**
-
-**Dashboard Component Architecture:**
+**User Story Flow Diagram:**
 
 ```mermaid
-graph TD
-    subgraph Dashboard_Page
-        A[PcApprovalDashboard Component]
-        B[Metrics Display Panel]
-        C[Date Range Filter]
-        D[Auto-Refresh Timer]
+flowchart TB
+    subgraph UserStory["User Story: Manager Performance Dashboard"]
+        WHO[("WHO<br/>Manager with<br/>approval responsibilities")]
+        WHAT["WHAT<br/>View real-time dashboard<br/>with team metrics"]
+        WHY["WHY<br/>Faster, data-driven<br/>decisions"]
     end
     
-    subgraph Data_Layer
-        E[ApprovalController]
-        F[DashboardMetricsService]
-        G[approval_request Entity]
-        H[approval_history Entity]
+    WHO --> WHAT
+    WHAT --> WHY
+    
+    subgraph AcceptanceCriteria["Acceptance Criteria (Given/When/Then)"]
+        AC1["AC1: Dashboard access<br/>and metrics display"]
+        AC2["AC2: Auto-refresh<br/>functionality"]
+        AC3["AC3: Date range<br/>filtering"]
+        AC4["AC4: Pending approvals<br/>accuracy"]
+        AC5["AC5: Overdue requests<br/>identification"]
+        AC6["AC6: Access control<br/>enforcement"]
     end
     
-    A --> B
-    A --> C
-    A --> D
-    B --> E
-    E --> F
-    F --> G
-    F --> H
+    WHAT --> AC1
+    WHAT --> AC2
+    WHAT --> AC3
+    WHAT --> AC4
+    WHAT --> AC5
+    WHAT --> AC6
 ```
 
-**User Workflow Diagram:**
+**INVEST Criteria Validation Diagram:**
 
 ```mermaid
-sequenceDiagram
-    participant M as Manager
-    participant D as Dashboard Page
-    participant API as ApprovalController
-    participant S as DashboardMetricsService
-    
-    M->>D: Navigate to Dashboard
-    D->>API: GET /metrics
-    API->>S: GetDashboardMetrics
-    S-->>API: MetricsResponse
-    API-->>D: JSON Response
-    D-->>M: Display Metrics
-    
-    loop Every 60 seconds
-        D->>API: GET /metrics
-        API-->>D: Updated Metrics
-        D-->>M: Update Display
+graph LR
+    subgraph INVEST["INVEST Criteria Validation"]
+        I["Independent<br/>✓ Self-contained"]
+        N["Negotiable<br/>✓ Configurable options"]
+        V["Valuable<br/>✓ Manager decision value"]
+        E["Estimable<br/>✓ 5 Story Points"]
+        S["Sized<br/>✓ Sprint-deliverable"]
+        T["Testable<br/>✓ 6 clear ACs"]
     end
+    
+    I --> PASS1((PASS))
+    N --> PASS2((PASS))
+    V --> PASS3((PASS))
+    E --> PASS4((PASS))
+    S --> PASS5((PASS))
+    T --> PASS6((PASS))
 ```
-
-### 0.4.4 Technical Implementation Outline
-
-**Files/Modules to Reference in Documentation:**
-
-| File Path | Purpose |
-|-----------|---------|
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/` | Dashboard page component |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs` | Component class |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml` | Display view |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml` | Configuration options |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js` | AJAX refresh logic |
-| `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs` | Metrics calculation service |
-| `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs` | API endpoint additions |
-| `WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs` | Response model |
-
-**Component Options to Document:**
-
-| Option | Type | Description |
-|--------|------|-------------|
-| refresh_interval | Number | Seconds between auto-refresh (default: 60) |
-| date_range_default | Text | Default date range (7d/30d/90d) |
-| show_overdue_alert | Boolean | Highlight overdue requests |
-| metrics_to_display | Text | Comma-separated metric IDs |
-
-**API Endpoints to Document:**
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v3.0/p/approval/dashboard/metrics` | Returns dashboard metrics for current user |
-| GET | `/api/v3.0/p/approval/dashboard/metrics?from={date}&to={date}` | Filtered by date range |
-
-### 0.4.5 INVEST Criteria Validation
-
-| Criterion | Validation | Status |
-|-----------|------------|--------|
-| **Independent** | No blocking dependency on undelivered features; builds on F-007/F-008 | ✓ Pass |
-| **Negotiable** | Metrics selection and refresh interval are negotiable | ✓ Pass |
-| **Valuable** | Directly addresses manager decision-making objective | ✓ Pass |
-| **Estimable** | Similar scope to STORY-008 UI component; 5 points | ✓ Pass |
-| **Sized** | Single dashboard view, single refresh mechanism | ✓ Pass |
-| **Testable** | All acceptance criteria have clear pass/fail | ✓ Pass |
-| **Demo-able** | Dashboard can be demonstrated to Product Owner | ✓ Pass |
 
 ## 0.5 Documentation File Transformation Mapping
 
 ### 0.5.1 File-by-File Documentation Plan
 
-**CRITICAL: Complete mapping of ALL documentation files to be created, updated, or deleted.**
-
-**Documentation Transformation Modes:**
-- **CREATE** - Create a new documentation file
-- **UPDATE** - Update an existing documentation file
-- **DELETE** - Remove an obsolete documentation file
-- **REFERENCE** - Use as an example for documentation style and structure
-
 | Target Documentation File | Transformation | Source Code/Docs | Content/Changes |
 |---------------------------|----------------|------------------|-----------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | Business objective, State Street guide, existing stories | Complete user story with Description, Business Value, Acceptance Criteria, Technical Details |
-| `jira-stories/stories-export.csv` | UPDATE | `jira-stories/stories-export.csv` | Add new row with STORY-009 data matching existing column structure |
-| `jira-stories/stories-export.json` | UPDATE | `jira-stories/stories-export.json` | Add new story object to stories array with all required fields |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | - | Use as template for component documentation structure |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | - | Use as template for API endpoint documentation |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | - | Use as template for overall story structure and formatting |
+| `jira-stories/STORY-010-manager-performance-dashboard-sst.md` | CREATE | SST User Story Guide.pdf, STORY-009 | Complete User Story in SST format with Summary, WHO/WHAT/WHY description, Given/When/Then acceptance criteria, story points, and INVEST validation |
+| `jira-stories/stories-export.json` | UPDATE | stories-export.json | Add STORY-010 entry to stories array with id, title, description, businessValue, acceptanceCriteria, technicalDetails, dependencies, storyPoints, labels |
+| `jira-stories/stories-export.csv` | UPDATE | stories-export.csv | Add STORY-010 row with all columns matching existing format |
+| `jira-stories/STORY-009-manager-dashboard-metrics.md` | REFERENCE | N/A | Use as source for technical details, acceptance criteria, and business value content |
+| `docs/developer/` | NO CHANGE | N/A | Developer documentation not affected by User Story creation |
 
-### 0.5.2 New Documentation Files Detail
+### 0.5.2 New Documentation File Detail
 
-**File: jira-stories/STORY-009-manager-dashboard-metrics.md**
+**File: `jira-stories/STORY-010-manager-performance-dashboard-sst.md`**
 
 | Attribute | Value |
 |-----------|-------|
-| **Type** | JIRA User Story (Markdown) |
-| **Source Context** | User requirements, State Street guide |
-| **Story ID** | STORY-009 |
-| **Story Points** | 5 |
-| **Labels** | dashboard, metrics, ui, manager, approval, real-time |
+| Type | User Story (SST Format) |
+| Source | SST User Story Guide.pdf template, STORY-009 content |
+| Format | Markdown with checkboxes |
 
 **Sections to Include:**
 
 | Section | Content Description |
 |---------|---------------------|
-| Title Header | `# STORY-009: Manager Approval Dashboard with Real-Time Metrics` |
-| Description | Who/What/Why format for manager viewing dashboard metrics |
-| Business Value | 5 bullet points articulating decision-making improvements |
-| Acceptance Criteria | 6 testable scenarios in Given/When/Then format |
-| Technical Implementation Details | Files/modules table, folder structure, key classes |
-| Dependencies | STORY-007, STORY-008 (UI Components and REST API) |
+| Summary | ≤255 character summary of dashboard feature |
+| User Story Description | WHO: Manager with approval responsibilities |
+| | WHAT: View real-time dashboard with team metrics |
+| | WHY: Faster, data-driven decisions |
+| Acceptance Criteria | 6 criteria using Given/When/Then format with `- [ ]` checkboxes |
+| Story Estimation | 5 Story Points with rationale (effort, complexity, uncertainty) |
+| Labels | `dashboard`, `metrics`, `ui`, `manager`, `approval`, `real-time` |
+| INVEST Validation | Table showing pass/fail for each criterion |
+| Testing Considerations | List of verification points |
+| Dependencies | Reference to STORY-007 (REST API), STORY-008 (UI Components) |
 
-**Acceptance Criteria Detail:**
-
-| AC ID | Scenario |
-|-------|----------|
-| AC1 | Manager navigates to dashboard and sees metrics |
-| AC2 | Dashboard auto-refreshes every 60 seconds |
-| AC3 | Date range filter updates displayed metrics |
-| AC4 | Pending approvals count reflects actual queue |
-| AC5 | Overdue requests identifies SLA violations |
-| AC6 | Non-manager users receive access denied |
-
-**Key Technical Elements to Document:**
-
-| Element | Documentation Content |
-|---------|----------------------|
-| PcApprovalDashboard Component | Component class, views, options, service.js |
-| DashboardMetricsService | Service methods for metric calculations |
-| API Endpoint | GET /api/v3.0/p/approval/dashboard/metrics |
-| Response Model | DashboardMetricsModel with metric properties |
+**Key Citations:**
+- `jira-stories/STORY-009-manager-dashboard-metrics.md` - Source content
+- SST User Story Guide.pdf - Template structure
+- `jira-stories/stories-export.json` - Metadata format
 
 ### 0.5.3 Documentation Files to Update Detail
 
-**File: jira-stories/stories-export.csv**
+**File: `jira-stories/stories-export.json`**
 
-| Change Type | Details |
-|-------------|---------|
-| Operation | Append new row |
-| Row Position | After STORY-008 row |
-| Column Structure | Match existing: Story ID, Title, Description, Business Value, Acceptance Criteria, Technical Details, Dependencies, Story Points, Labels |
+| Update Type | Description |
+|-------------|-------------|
+| Array Addition | Add STORY-010 object to `stories` array |
+| Metadata Update | Update `metadata.totalStories` from 9 to 10 |
+| Metadata Update | Update `metadata.totalStoryPoints` from 52 to 57 |
 
-**New Row Content:**
+**New JSON Entry Structure:**
 
-| Column | Value |
-|--------|-------|
-| Story ID | STORY-009 |
-| Title | Manager Approval Dashboard with Real-Time Metrics |
-| Description | Implement a real-time dashboard page component displaying team approval workflow metrics... |
-| Business Value | Reduces manager time gathering performance data; Enables proactive bottleneck identification... |
-| Acceptance Criteria | [ ] Manager sees dashboard metrics on navigation; [ ] Dashboard auto-refreshes at configurable interval... |
-| Technical Details | Files: Components/PcApprovalDashboard/, Services/DashboardMetricsService.cs... |
-| Dependencies | STORY-007, STORY-008 |
-| Story Points | 5 |
-| Labels | dashboard, metrics, ui, manager, approval, real-time |
+```json
+{
+  "id": "STORY-010",
+  "title": "Manager Performance Dashboard (SST Format)",
+  "description": "As a Manager with approval responsibilities, I want to view a real-time dashboard...",
+  "businessValue": "Enables faster decision-making through consolidated metrics view...",
+  "acceptanceCriteria": [
+    "Given I am logged in as Manager, When I navigate to dashboard, Then I see 5 KPIs",
+    "Given dashboard displayed, When 60 seconds elapsed, Then metrics auto-refresh",
+    "Given viewing dashboard, When I select date range, Then metrics update",
+    "Given pending requests exist, When I view Pending count, Then count is accurate",
+    "Given requests exceed timeout, When I view Overdue count, Then count is accurate",
+    "Given no Manager role, When I access dashboard, Then access denied"
+  ],
+  "technicalDetails": {
+    "files": ["jira-stories/STORY-010-manager-performance-dashboard-sst.md"],
+    "classes": [],
+    "integrationPoints": ["STORY-009 implementation"],
+    "technicalApproach": "SST-formatted documentation of STORY-009 feature"
+  },
+  "dependencies": [
+    {"storyId": "STORY-009", "description": "Technical implementation reference"}
+  ],
+  "storyPoints": 5,
+  "labels": ["dashboard", "metrics", "ui", "manager", "approval", "documentation", "sst-format"]
+}
+```
 
-**File: jira-stories/stories-export.json**
+**File: `jira-stories/stories-export.csv`**
 
-| Change Type | Details |
-|-------------|---------|
-| Operation | Add story object to stories array |
-| Position | After STORY-008 object |
-| Structure | Match existing story object schema |
+| Column | STORY-010 Value |
+|--------|-----------------|
+| id | STORY-010 |
+| title | Manager Performance Dashboard (SST Format) |
+| description | As a Manager with approval responsibilities... |
+| businessValue | Enables faster decision-making... |
+| acceptanceCriteria | [6 criteria] |
+| storyPoints | 5 |
+| labels | dashboard,metrics,ui,manager,approval,documentation |
 
-**New Story Object Fields:**
+### 0.5.4 Documentation Configuration Updates
 
-| Field | Type | Value |
-|-------|------|-------|
-| id | string | "STORY-009" |
-| title | string | "Manager Approval Dashboard with Real-Time Metrics" |
-| description | string | Full description paragraph |
-| businessValue | string | Concatenated value statements |
-| acceptanceCriteria | array | Array of criterion strings |
-| technicalDetails | object | { files: [], classes: [], integrationPoints: [], technicalApproach: "" } |
-| dependencies | array | ["STORY-007", "STORY-008"] |
-| storyPoints | number | 5 |
-| labels | array | ["dashboard", "metrics", "ui", "manager", "approval", "real-time"] |
+| Configuration File | Update Required | Change Description |
+|-------------------|-----------------|-------------------|
+| N/A | No config files | Documentation is static Markdown; no build configuration needed |
 
-### 0.5.4 Cross-Documentation Dependencies
+### 0.5.5 Cross-Documentation Dependencies
 
-**Shared Content References:**
+**Navigation Links:**
 
-| Reference Type | Source | Target |
-|----------------|--------|--------|
-| Story naming convention | STORY-001 through STORY-008 | STORY-009 |
-| Technical detail structure | STORY-008 (UI components) | STORY-009 technical section |
-| API documentation pattern | STORY-007 (REST API) | STORY-009 API endpoints |
-| Entity references | STORY-002 (Entity schema) | STORY-009 data sources |
+| From Document | To Document | Link Type |
+|---------------|-------------|-----------|
+| STORY-010 | STORY-009 | Reference - Technical implementation details |
+| STORY-010 | STORY-007 | Dependency - REST API endpoints |
+| STORY-010 | STORY-008 | Dependency - UI component patterns |
+| stories-export.json | STORY-010 | Metadata entry |
+| stories-export.csv | STORY-010 | Export row |
 
-**Navigation and Index Updates:**
+**Shared Content:**
 
-| Update | Location | Change |
-|--------|----------|--------|
-| CSV row order | stories-export.csv | Sequential after STORY-008 |
-| JSON array order | stories-export.json | Append to stories array |
-| Dependency tracking | STORY-009 | References STORY-007, STORY-008 |
+| Content Element | Source | Consumers |
+|-----------------|--------|-----------|
+| Acceptance Criteria text | STORY-010 | stories-export.json, stories-export.csv |
+| Story Points estimate | STORY-010 | stories-export.json (totalStoryPoints calculation) |
+| Business Value statement | STORY-010 | stories-export.json businessValue field |
 
-### 0.5.5 Complete File Inventory
+### 0.5.6 Complete File Inventory
 
-**All Documentation Files Affected:**
+| File Path | Action | Priority |
+|-----------|--------|----------|
+| `jira-stories/STORY-010-manager-performance-dashboard-sst.md` | CREATE | High |
+| `jira-stories/stories-export.json` | UPDATE | Medium |
+| `jira-stories/stories-export.csv` | UPDATE | Medium |
 
-| File Path | Action | Status |
-|-----------|--------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | New file |
-| `jira-stories/stories-export.csv` | UPDATE | Add row |
-| `jira-stories/stories-export.json` | UPDATE | Add object |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | Template |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | API pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | Component pattern |
-
-**No files marked as "pending" or "to be discovered" - all documentation artifacts explicitly listed.**
+**No additional documentation files pending discovery.** All documentation deliverables are explicitly enumerated above.
 
 ## 0.6 Dependency Inventory
 
@@ -693,107 +618,87 @@ sequenceDiagram
 
 **Documentation Tools and Packages:**
 
-This documentation task (creating JIRA user story artifacts) does not require specific documentation generation tools. The deliverables are plain markdown files and structured data exports (CSV/JSON).
-
 | Registry | Package Name | Version | Purpose |
 |----------|--------------|---------|---------|
-| N/A | Markdown | - | Native format for story files |
-| N/A | CSV | - | Tabular export format |
-| N/A | JSON | - | Structured data export |
+| N/A | Markdown | Native | User Story document format |
+| N/A | JSON | Native | Export format for Jira import |
+| N/A | CSV | Native | Export format for spreadsheet compatibility |
+| N/A | Mermaid | Native | Diagram generation in Markdown |
 
-**Story Documentation Dependencies:**
+**Note:** This documentation task does not require external documentation generators. All documentation is written as static Markdown files following the repository's established patterns. No build tools (mkdocs, Sphinx, Docusaurus) are configured or required.
 
-The STORY-009 user story has dependencies on prior stories that provide the technical foundation:
+### 0.6.2 Document Source Dependencies
 
-| Dependency Story | Type | Relationship | Rationale |
-|------------------|------|--------------|-----------|
-| STORY-007 | Prerequisite | API Layer | Dashboard consumes REST API endpoints |
-| STORY-008 | Prerequisite | UI Components | Dashboard uses PageComponent pattern |
-| STORY-004 | Indirect | Service Layer | Metrics service follows service patterns |
-| STORY-002 | Indirect | Entity Schema | Metrics query approval entities |
+**Source Documents Required:**
 
-### 0.6.2 Technical Documentation References
+| Document | Type | Purpose | Location |
+|----------|------|---------|----------|
+| SST User Story Guide.pdf | PDF (Attachment) | Template structure and quality criteria | `/tmp/environments_files/` |
+| STORY-009-manager-dashboard-metrics.md | Markdown | Technical content source | `jira-stories/` |
+| stories-export.json | JSON | Metadata schema reference | `jira-stories/` |
+| stories-export.csv | CSV | Export format reference | `jira-stories/` |
 
-**WebVella ERP Documentation Dependencies:**
+### 0.6.3 Story Dependencies
 
-| Documentation Area | Location | Relevance to STORY-009 |
-|--------------------|----------|------------------------|
-| Page Components | `docs/developer/components/` | Component creation pattern |
-| REST API | `docs/developer/web-api/` | API endpoint conventions |
-| Entities | `docs/developer/entities/` | Entity query patterns |
-| Background Jobs | `docs/developer/background-jobs/` | Auto-refresh considerations |
+**STORY-010 Dependencies:**
 
-**State Street Guide Dependencies:**
+| Story ID | Dependency Type | Description |
+|----------|-----------------|-------------|
+| STORY-009 | Content Reference | Technical implementation details, acceptance criteria, business value |
+| STORY-007 | Architectural Dependency | REST API endpoints consumed by dashboard (inherited from STORY-009) |
+| STORY-008 | Architectural Dependency | UI PageComponent patterns (inherited from STORY-009) |
 
-| Guide Section | Application to STORY-009 |
-|---------------|--------------------------|
-| Purpose | User story definition and scope |
-| Anatomy of a Story | Summary, Description, Acceptance Criteria structure |
-| INVEST Criteria | Story quality validation |
-| Acceptance Criteria Effectiveness | Given/When/Then validation |
-| Story Estimation | Story point assignment (5 points) |
-
-### 0.6.3 Feature Dependency Chain
-
-**Dependency Graph for STORY-009:**
+**Dependency Chain Visualization:**
 
 ```mermaid
 graph TD
-    S001[STORY-001: Plugin Infrastructure]
-    S002[STORY-002: Entity Schema]
-    S003[STORY-003: Config Services]
-    S004[STORY-004: Service Layer]
-    S005[STORY-005: Hooks Integration]
-    S006[STORY-006: Background Jobs]
-    S007[STORY-007: REST API]
-    S008[STORY-008: UI Components]
-    S009[STORY-009: Manager Dashboard]
+    STORY010["STORY-010<br/>SST User Story<br/>(Documentation)"]
+    STORY009["STORY-009<br/>Dashboard Implementation<br/>(Technical)"]
+    STORY008["STORY-008<br/>UI Components<br/>(Pattern)"]
+    STORY007["STORY-007<br/>REST API<br/>(Data Layer)"]
     
-    S001 --> S002
-    S002 --> S003
-    S003 --> S004
-    S004 --> S005
-    S004 --> S007
-    S005 --> S006
-    S007 --> S008
-    S008 --> S009
-    S007 --> S009
+    STORY010 -->|"content source"| STORY009
+    STORY009 -->|"depends on"| STORY008
+    STORY009 -->|"depends on"| STORY007
+    STORY008 -->|"depends on"| STORY007
 ```
-
-**Dependency Summary:**
-
-| Story | Direct Dependencies | Indirect Dependencies |
-|-------|--------------------|-----------------------|
-| STORY-009 | STORY-007, STORY-008 | STORY-001 through STORY-006 |
 
 ### 0.6.4 Documentation Reference Updates
 
-**Documentation Files Requiring Link Updates:**
+**Link Updates Required:**
 
-Since this is a new story being created, no existing documentation links need updating. However, the new story will establish references to:
+| Transformation | Old Reference | New Reference | Apply To |
+|----------------|---------------|---------------|----------|
+| JSON metadata update | `totalStories: 9` | `totalStories: 10` | stories-export.json |
+| JSON metadata update | `totalStoryPoints: 52` | `totalStoryPoints: 57` | stories-export.json |
+| Array addition | N/A | STORY-010 object | stories-export.json stories[] |
+| Row addition | N/A | STORY-010 row | stories-export.csv |
 
-| Reference Source | Reference Target | Link Type |
-|------------------|------------------|-----------|
-| STORY-009 | STORY-007 | Dependency reference |
-| STORY-009 | STORY-008 | Dependency reference |
-| STORY-009 | approval_request entity | Technical reference |
-| STORY-009 | approval_history entity | Technical reference |
-| STORY-009 | ApprovalController | Implementation reference |
+### 0.6.5 Template Dependencies
 
-### 0.6.5 Runtime Dependencies for Documented Feature
+**SST User Story Template Elements (from PDF):**
 
-**Technologies Referenced in STORY-009 Documentation:**
+| Template Element | Required | Source |
+|------------------|----------|--------|
+| Summary (≤255 chars) | Yes | SST Guide p.1 |
+| WHO (As a...) | Yes | SST Guide p.2 |
+| WHAT (I want...) | Yes | SST Guide p.2 |
+| WHY (so that...) | Yes | SST Guide p.2 |
+| Given/When/Then ACs | Yes | SST Guide p.2-3 |
+| INVEST validation | Recommended | SST Guide p.2 |
+| Story estimation | Recommended | SST Guide p.4-5 |
 
-| Category | Technology | Version | Purpose in Story |
-|----------|------------|---------|------------------|
-| Framework | ASP.NET Core | 9.0 | Web application framework |
-| Runtime | .NET | 9.0 | Application runtime |
-| Frontend | Bootstrap | 4.x | UI styling (per existing patterns) |
-| Frontend | jQuery | 3.x | AJAX calls in service.js |
-| Database | PostgreSQL | 16.x | Data storage for metrics |
-| JSON Library | Newtonsoft.Json | 13.x | API response serialization |
+**Template Quality Criteria Dependencies:**
 
-**Note:** These are not documentation tool dependencies but technologies that the documented feature (STORY-009) will utilize. The user story documentation must accurately reference these technologies when describing technical implementation details.
+| Criterion | Validation Requirement | Source |
+|-----------|----------------------|--------|
+| Independent | Self-contained, no inherent dependency | SST Guide p.2 |
+| Negotiable | Can be changed until in iteration | SST Guide p.2 |
+| Valuable | Delivers value to end user | SST Guide p.2 |
+| Estimable | Size can be estimated | SST Guide p.2 |
+| Sized appropriately | Plannable with certainty | SST Guide p.2 |
+| Testable | Information for test development | SST Guide p.2 |
+| Demo-able | Can be demonstrated to Product Owner | SST Guide p.2 |
 
 ## 0.7 Coverage and Quality Targets
 
@@ -801,126 +706,107 @@ Since this is a new story being created, no existing documentation links need up
 
 **Current Coverage Analysis:**
 
-| Documentation Area | Current State | After STORY-009 |
-|--------------------|---------------|-----------------|
-| User stories in jira-stories/ | 8 stories (STORY-001 to STORY-008) | 9 stories (adds STORY-009) |
-| Backlog CSV export | 8 rows | 9 rows |
-| Backlog JSON export | 8 story objects | 9 story objects |
-| Manager/Dashboard stories | 0 | 1 |
-| Total story points documented | 47 | 52 |
+| Documentation Aspect | Current Status | Target | Gap |
+|---------------------|----------------|--------|-----|
+| Technical User Stories (jira-stories/) | 9/9 (100%) | 10/10 | 1 story (STORY-010 SST format) |
+| SST-Formatted User Stories | 0/1 (0%) | 1/1 | 1 story to create |
+| JSON Export Entries | 9/9 (100%) | 10/10 | 1 entry to add |
+| CSV Export Entries | 9/9 (100%) | 10/10 | 1 entry to add |
 
-**Coverage Gap Addressed:**
+**Target Coverage: 100%**
 
-| Gap | Resolution |
-|-----|------------|
-| No manager-focused dashboard story | STORY-009 addresses managerial decision-making |
-| No real-time metrics story | STORY-009 specifies auto-refresh capability |
-| No team performance visibility story | STORY-009 provides team metrics dashboard |
-
-**Target Coverage:**
-- 100% of business objective addressed in single vertical slice
-- All story sections complete per State Street guide
-- All acceptance criteria testable with Given/When/Then
+All documentation deliverables must be created to achieve complete coverage of the manager performance dashboard user story in SST format.
 
 ### 0.7.2 Documentation Quality Criteria
 
 **Completeness Requirements:**
 
-| Criterion | Requirement | Validation Method |
-|-----------|-------------|-------------------|
-| Summary | ≤255 characters, descriptive | Character count check |
-| Description | Who/What/Why format complete | Format verification |
-| Business Value | Minimum 4 value statements | Count and relevance check |
-| Acceptance Criteria | Minimum 5 scenarios | Count and testability check |
-| Technical Details | Files, classes, dependencies listed | Completeness review |
-
-**State Street Guide Compliance:**
-
-| Guide Requirement | Compliance Check |
-|-------------------|------------------|
-| Story format (Who/What/Why) | ✓ As a Manager / I want dashboard / so that faster decisions |
-| Acceptance Criteria (Given/When/Then) | ✓ 6 scenarios with complete syntax |
-| INVEST criteria | ✓ All 6+1 criteria validated |
-| Summary length | ✓ 193 characters (under 255 limit) |
-| Demo-able | ✓ Dashboard can be demonstrated |
+| Requirement | Validation Method |
+|-------------|-------------------|
+| Summary ≤255 characters | Character count validation |
+| WHO/WHAT/WHY all present | Section completeness check |
+| All 6 acceptance criteria included | Count verification |
+| Each AC uses Given/When/Then format | Syntax validation |
+| Story points included with rationale | Section presence check |
+| INVEST criteria validated | Validation table present |
+| Labels included | Non-empty labels section |
 
 **Accuracy Validation:**
 
-| Validation Area | Method |
-|-----------------|--------|
-| Technical file paths | Cross-reference with repository structure |
-| Entity references | Verify against STORY-002 schema |
-| API endpoint patterns | Align with STORY-007 conventions |
-| Component patterns | Match STORY-008 structure |
-| Story point sizing | Relative comparison to similar stories |
-
-### 0.7.3 Clarity and Consistency Standards
+| Element | Accuracy Check |
+|---------|----------------|
+| Summary | Accurately reflects business objective |
+| WHO | Matches actual user role (Manager) |
+| WHAT | Describes dashboard functionality correctly |
+| WHY | States valid business value |
+| Acceptance Criteria | Testable, measurable conditions |
+| Story Points | Consistent with comparable stories |
 
 **Clarity Standards:**
 
-| Standard | Application |
-|----------|-------------|
-| Technical accuracy | All file paths and class names verified |
-| Accessible language | Business value in non-technical terms |
-| Progressive disclosure | Summary → Description → Details |
-| Consistent terminology | Use existing entity/service names |
+| Standard | Implementation |
+|----------|---------------|
+| Technical accuracy | Terms match WebVella ERP terminology |
+| Accessible language | Understandable by non-technical stakeholders |
+| Progressive disclosure | Overview before details |
+| Consistent terminology | "Manager", "dashboard", "metrics" used consistently |
 
-**Consistency with Existing Stories:**
+**Maintainability:**
 
-| Element | Consistency Check |
-|---------|-------------------|
-| Markdown structure | Matches STORY-001 through STORY-008 |
-| Section ordering | Description → Business Value → Acceptance Criteria → Technical Details |
-| Table formatting | Pipe-delimited, header row, alignment |
-| Code block style | Fenced with language identifier |
-| Checkbox format | `- [ ] **ACx**: Description` |
+| Aspect | Implementation |
+|--------|---------------|
+| Source citations | Reference STORY-009 for technical details |
+| Clear ownership | Story assigned to Team |
+| Update dates | Include generation timestamp |
+| Template-based | Follow SST structure exactly |
 
-### 0.7.4 Example and Diagram Requirements
+### 0.7.3 Acceptance Criteria Quality Standards
 
-**Minimum Content Requirements:**
+**AC Effectiveness Metrics (per SST Guide):**
 
-| Content Type | Minimum Count | Purpose |
-|--------------|---------------|---------|
-| Acceptance Criteria | 6 scenarios | Comprehensive testable requirements |
-| Business Value points | 5 bullets | Stakeholder justification |
-| Technical files | 8 paths | Implementation scope |
-| Diagrams | 2 Mermaid | Visual architecture and workflow |
+| Criterion | Requirement | Validation |
+|-----------|-------------|------------|
+| Clarity | Straightforward and easy to understand | Review by non-technical reader |
+| Conciseness | No unnecessary detail | Minimum words for complete meaning |
+| Testability | Clear pass/fail determination | Each AC has verifiable outcome |
+| Result-Oriented | Focus on customer value | Business benefit visible in each AC |
 
-**Diagram Types Required:**
+**AC Quality Checklist:**
 
-| Diagram | Purpose | Location |
-|---------|---------|----------|
-| Component architecture | Show dashboard component structure | Technical Details section |
-| User workflow sequence | Show manager interaction flow | Technical Details section |
+| AC# | Given (Scenario) | When (Trigger) | Then (Expected Result) | Testable? |
+|-----|------------------|----------------|------------------------|-----------|
+| AC1 | Manager role logged in | Navigate to dashboard | See 5 KPIs | ✓ Yes |
+| AC2 | Dashboard displayed | 60 seconds elapsed | Auto-refresh occurs | ✓ Yes |
+| AC3 | Viewing dashboard | Select date range | Metrics update | ✓ Yes |
+| AC4 | Pending requests exist | View Pending count | Accurate count | ✓ Yes |
+| AC5 | Requests past timeout | View Overdue count | Accurate count | ✓ Yes |
+| AC6 | Non-Manager user | Access dashboard | Access denied | ✓ Yes |
 
-### 0.7.5 Quality Validation Checklist
+### 0.7.4 INVEST Criteria Validation Targets
 
-**Pre-Delivery Checklist:**
+| Criterion | Target | Validation Evidence |
+|-----------|--------|---------------------|
+| **Independent** | ✓ Pass | Self-contained story; no blocking dependencies on undelivered features |
+| **Negotiable** | ✓ Pass | Refresh interval, date ranges, and metric selection are configurable options |
+| **Valuable** | ✓ Pass | Directly addresses manager decision-making business objective |
+| **Estimable** | ✓ Pass | 5 story points based on comparable story analysis |
+| **Sized** | ✓ Pass | Single dashboard view deliverable within one sprint |
+| **Testable** | ✓ Pass | All 6 acceptance criteria have clear pass/fail conditions |
 
-| Check | Status |
-|-------|--------|
-| Summary under 255 characters | ✓ Verified (193 chars) |
-| Who/What/Why format complete | ✓ All three elements present |
-| Minimum 5 acceptance criteria | ✓ 6 criteria defined |
-| Given/When/Then syntax | ✓ All 6 use correct format |
-| INVEST criteria passed | ✓ All 7 criteria validated |
-| Technical details complete | ✓ Files, classes, endpoints listed |
-| Dependencies documented | ✓ STORY-007, STORY-008 referenced |
-| Story points assigned | ✓ 5 points (consistent with scope) |
-| Labels defined | ✓ 6 labels assigned |
-| CSV export row ready | ✓ All columns mapped |
-| JSON export object ready | ✓ All fields defined |
+**Demo-ability Target:** Dashboard with live metrics can be demonstrated to Product Owner showing all 5 KPIs updating in real-time.
 
-**Acceptance Criteria Clarity Validation:**
+### 0.7.5 Example and Diagram Requirements
 
-| AC ID | Clarity | Conciseness | Testability | Result-Oriented |
-|-------|---------|-------------|-------------|-----------------|
-| AC1 | ✓ | ✓ | ✓ | ✓ |
-| AC2 | ✓ | ✓ | ✓ | ✓ |
-| AC3 | ✓ | ✓ | ✓ | ✓ |
-| AC4 | ✓ | ✓ | ✓ | ✓ |
-| AC5 | ✓ | ✓ | ✓ | ✓ |
-| AC6 | ✓ | ✓ | ✓ | ✓ |
+| Requirement | Quantity | Purpose |
+|-------------|----------|---------|
+| User Story flow diagram | 1 | Visualize WHO/WHAT/WHY structure |
+| INVEST validation diagram | 1 | Show criteria pass/fail status |
+| Dependency chain diagram | 1 | Show story relationships |
+
+**Visual Content Quality Standards:**
+- Mermaid diagrams use `flowchart` or `graph` syntax
+- Diagrams are self-explanatory with labels
+- Color coding for pass/fail status where applicable
 
 ## 0.8 Scope Boundaries
 
@@ -928,477 +814,493 @@ Since this is a new story being created, no existing documentation links need up
 
 **New Documentation Files:**
 
-| File Pattern | Description |
-|--------------|-------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | Complete user story for manager dashboard |
+| File Pattern | Purpose |
+|--------------|---------|
+| `jira-stories/STORY-010-manager-performance-dashboard-sst.md` | SST-formatted User Story document |
 
 **Documentation File Updates:**
 
-| File Pattern | Description |
+| File Pattern | Update Type |
 |--------------|-------------|
-| `jira-stories/stories-export.csv` | Add STORY-009 row to backlog export |
-| `jira-stories/stories-export.json` | Add STORY-009 object to stories array |
+| `jira-stories/stories-export.json` | Add STORY-010 entry, update metadata counts |
+| `jira-stories/stories-export.csv` | Add STORY-010 row |
 
-**Documentation Content Scope:**
+**Documentation Content In Scope:**
 
-| Content Element | In Scope |
+| Content Element | Included |
 |-----------------|----------|
-| User story summary | ✓ Maximum 255 characters |
-| Description (Who/What/Why) | ✓ Manager role, dashboard goal, decision benefit |
-| Business Value statements | ✓ 5 value articulations |
-| Acceptance Criteria | ✓ 6 Given/When/Then scenarios |
-| Technical Implementation Details | ✓ Files, classes, endpoints, dependencies |
-| Mermaid diagrams | ✓ Architecture and workflow diagrams |
-| Story metadata | ✓ Story points (5), labels, dependencies |
+| Summary (≤255 characters) | ✓ |
+| WHO/WHAT/WHY description | ✓ |
+| Given/When/Then acceptance criteria | ✓ |
+| Story points estimation | ✓ |
+| INVEST criteria validation | ✓ |
+| Labels/categorization | ✓ |
+| Dependencies section | ✓ |
+| Testing considerations | ✓ |
 
-**User Story Content Boundaries:**
+**Reference Documentation:**
 
-| Boundary | Definition |
-|----------|------------|
-| User role | Manager with approval responsibilities |
-| Feature scope | Single dashboard view with 5 key metrics |
-| Real-time scope | Auto-refresh at configurable interval (default 60 seconds) |
-| Filter scope | Date range filter only |
-| Metrics scope | Pending count, average time, approval rate, overdue count, recent activity |
-
-**Reference Files (Read-Only):**
-
-| File | Purpose |
-|------|---------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Structure template |
-| `jira-stories/STORY-007-approval-rest-api.md` | API documentation pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | Component documentation pattern |
-| State Street "Writing a User Story" guide (PDF) | Formatting requirements |
+| Reference | Purpose |
+|-----------|---------|
+| SST User Story Guide.pdf | Template structure compliance |
+| STORY-009-manager-dashboard-metrics.md | Technical content source |
+| stories-export.json | Export schema reference |
 
 ### 0.8.2 Explicitly Out of Scope
 
 **Source Code Modifications:**
 
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Creating PcApprovalDashboard component code | This is documentation only, not implementation |
-| Implementing DashboardMetricsService | Story documents requirements, not implementation |
-| Adding API endpoints to ApprovalController | Implementation follows from story acceptance |
-| Modifying existing plugin files | No code changes, only documentation |
+| Exclusion | Reason |
+|-----------|--------|
+| `WebVella.Erp.Plugins.Approval/**/*.cs` | Documentation task only; no code changes |
+| `WebVella.Erp.Plugins.Approval/**/*.cshtml` | Documentation task only; no view changes |
+| `WebVella.Erp.Plugins.Approval/**/*.js` | Documentation task only; no script changes |
 
-**Other Stories/Documentation:**
+**Test File Modifications:**
 
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Modifying STORY-001 through STORY-008 content | Existing stories are reference only |
-| Creating additional dashboard stories | Single vertical slice per request |
-| Epic-level documentation | User requested single sprint story |
-| Test case documentation | Not part of user story artifact |
-| Release notes | Separate documentation artifact |
+| Exclusion | Reason |
+|-----------|--------|
+| Test files | No test documentation requested |
+| Test plans | Outside User Story scope |
 
-**Feature Scope Exclusions:**
+**Feature Additions:**
 
-| Exclusion | Rationale |
-|-----------|-----------|
-| Multiple dashboard views | Vertical slice = one view |
-| Complex filtering (team, user, status) | Future story candidates |
-| Export functionality | Future story candidate |
-| Drill-down to individual records | Future story candidate |
-| Historical trend charts | Future story candidate |
-| Mobile-specific responsive design | Can be addressed in implementation |
-| Push notifications (SignalR) | Auto-refresh provides real-time, push is enhancement |
+| Exclusion | Reason |
+|-----------|--------|
+| New dashboard functionality | Story documents existing STORY-009 feature |
+| Additional KPIs | Not requested in business objective |
+| Code refactoring | Documentation only |
 
-**Explicitly Excluded per User Instructions:**
+**Other Documentation:**
+
+| Exclusion | Reason |
+|-----------|--------|
+| `docs/developer/**/*.md` | Developer docs not affected |
+| `README.md` | Project readme not affected |
+| API documentation | Covered in STORY-007 |
+| Architecture documentation | Covered in tech spec |
+
+**Explicitly Excluded by User:**
 
 | Exclusion | Source |
 |-----------|--------|
-| Items not specified by user | Only manager dashboard metrics story requested |
-| Full epic documentation | Single story requested |
-| Sprint planning artifacts | Only user story artifact requested |
+| None specified | User did not specify exclusions |
 
-### 0.8.3 Boundary Clarifications
+### 0.8.3 Boundary Conditions
 
-**Vertical Slice Definition:**
+**Conditional Inclusions:**
 
-This user story represents ONE vertical slice of the larger business objective. The full objective could include:
+| Condition | Include If True | Exclude If False |
+|-----------|-----------------|------------------|
+| stories-export.json exists | UPDATE file | CREATE new file |
+| stories-export.csv exists | UPDATE file | CREATE new file |
+| STORY-010 already exists | UPDATE existing | CREATE new file |
 
-| Potential Future Stories | Not In This Scope |
-|--------------------------|-------------------|
-| STORY-010: Department-level metrics dashboard | Future backlog item |
-| STORY-011: Approval trend analysis charts | Future backlog item |
-| STORY-012: Manager notification preferences | Future backlog item |
-| STORY-013: Dashboard export to PDF/Excel | Future backlog item |
-| STORY-014: Mobile dashboard optimization | Future backlog item |
+**Boundary Decisions:**
 
-**This Vertical Slice Delivers:**
-- One dashboard page component
-- Five key approval metrics
-- Auto-refresh capability
-- Date range filtering
-- Role-based access control
+| Decision Point | Resolution |
+|----------------|------------|
+| STORY-009 relationship | Reference only; do not modify STORY-009 |
+| Export file format changes | Add entry only; do not modify schema |
+| Metadata calculations | Update totalStories and totalStoryPoints only |
 
-**Sprint Delivery Boundary:**
-- Story sized at 5 points (moderate complexity)
-- Comparable to STORY-007 (API endpoints) or STORY-003 (configuration services)
-- Single sprint delivery achievable based on relative sizing
+### 0.8.4 Scope Validation Checklist
+
+| Scope Item | In Scope | Out of Scope | Validation |
+|------------|----------|--------------|------------|
+| Create STORY-010 markdown | ✓ | | Required deliverable |
+| Update stories-export.json | ✓ | | Required for consistency |
+| Update stories-export.csv | ✓ | | Required for consistency |
+| Modify STORY-009 | | ✓ | Reference only |
+| Create new C# files | | ✓ | Documentation task |
+| Modify existing C# files | | ✓ | Documentation task |
+| Update developer docs | | ✓ | Not requested |
+| Create test documentation | | ✓ | Not requested |
 
 ## 0.9 Execution Parameters
 
 ### 0.9.1 Documentation-Specific Instructions
 
-**Documentation Creation Commands:**
+**Documentation Format:**
 
-| Operation | Command/Action |
-|-----------|----------------|
-| Create story file | Create `jira-stories/STORY-009-manager-dashboard-metrics.md` |
-| Update CSV export | Append row to `jira-stories/stories-export.csv` |
-| Update JSON export | Add object to `jira-stories/stories-export.json` |
+| Parameter | Value |
+|-----------|-------|
+| Primary format | Markdown (.md) |
+| Diagram tool | Mermaid (embedded in Markdown) |
+| Checkbox syntax | `- [ ]` for incomplete, `- [x]` for complete |
+| Code block syntax | Triple backticks with language identifier |
 
-**Documentation Validation Commands:**
+**Documentation Build Commands:**
 
-| Validation | Method |
-|------------|--------|
-| Markdown syntax | Validate headers, tables, code blocks render correctly |
-| CSV format | Verify column alignment with existing rows |
-| JSON format | Validate JSON syntax with parser |
-| Link integrity | Verify internal references resolve |
+| Command | Purpose | Notes |
+|---------|---------|-------|
+| N/A | No build required | Static Markdown documentation |
 
-**Default Documentation Format:**
-- Primary format: Markdown with Mermaid diagrams
-- Export formats: CSV (JIRA-compatible), JSON (API/tool-compatible)
-- Character encoding: UTF-8
-- Line endings: LF (Unix-style)
+**Documentation Preview Commands:**
 
-### 0.9.2 Style Guide Compliance
+| Command | Purpose |
+|---------|---------|
+| Any Markdown viewer | Preview .md files locally |
+| GitHub/GitLab preview | Preview when pushed to repository |
+| VS Code Markdown Preview | Local development preview |
 
-**Repository-Specific Conventions:**
+**Documentation Validation:**
 
-| Convention | Standard |
-|------------|----------|
-| Story ID format | `STORY-XXX` (sequential numbering) |
-| File naming | `STORY-XXX-kebab-case-title.md` |
-| Header format | `# STORY-XXX: Title Case Title` |
-| Section headers | `## Section Name` (no numbering) |
-| Acceptance criteria | `- [ ] **ACx**: Description` |
-| Tables | Pipe-delimited with header separator |
+| Validation | Command/Method |
+|------------|----------------|
+| Markdown linting | Visual inspection or markdownlint |
+| Link checking | Manual verification of references |
+| JSON validation | `python -m json.tool stories-export.json` |
+| CSV validation | Open in spreadsheet application |
+| Character count | `wc -c` or text editor word count |
 
-**State Street Guide Compliance:**
+### 0.9.2 File Creation Instructions
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Summary ≤255 chars | "Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability." (193 chars) |
-| Who/What/Why format | "As a Manager... I want... so that..." |
-| Given/When/Then syntax | All 6 acceptance criteria use full syntax |
-| INVEST validation | All criteria verified and documented |
+**STORY-010-manager-performance-dashboard-sst.md:**
 
-### 0.9.3 Citation Requirements
+```bash
+# Create the User Story file
 
-**Source Citation Format:**
+cat > jira-stories/STORY-010-manager-performance-dashboard-sst.md << 'EOF'
+# STORY-010: Manager Performance Dashboard (SST Format)
 
-Every technical detail must reference source files using the format:
-- `Source: /path/to/file.ext:LineNumber` (for specific lines)
-- `Pattern: /path/to/reference/file.ext` (for structural patterns)
+#### Summary
 
-**Key Citations for STORY-009:**
+Manager Performance Dashboard: Real-time approval workflow metrics enabling data-driven decisions through consolidated KPI views with auto-refresh and date filtering.
 
-| Claim | Citation |
-|-------|----------|
-| Component structure pattern | Pattern: `STORY-008-approval-ui-components.md` |
-| API endpoint conventions | Pattern: `STORY-007-approval-rest-api.md` |
-| Entity schema references | Pattern: `STORY-002-approval-entity-schema.md` |
-| Plugin infrastructure | Pattern: `STORY-001-approval-plugin-infrastructure.md` |
-| State Street format | Source: SST User Story Guide.pdf (Pages 1-3) |
+#### User Story Description
 
-### 0.9.4 Export File Specifications
+**As a** Manager with approval responsibilities,
+**I want** to view a real-time dashboard displaying my team's approval workflow metrics,
+**so that** I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.
 
-**CSV Export Format:**
+#### Acceptance Criteria
 
-| Column | Data Type | Example Value |
-|--------|-----------|---------------|
-| Story ID | String | STORY-009 |
-| Title | String | Manager Approval Dashboard with Real-Time Metrics |
-| Description | String | Implement a real-time dashboard... |
-| Business Value | String | Reduces manager time gathering...; Enables proactive... |
-| Acceptance Criteria | String | [ ] Manager sees dashboard...; [ ] Dashboard auto-refreshes... |
-| Technical Details | String | Files: Components/PcApprovalDashboard/...; Classes: ... |
-| Dependencies | String | STORY-007, STORY-008 |
-| Story Points | Number | 5 |
-| Labels | String | dashboard, metrics, ui, manager, approval, real-time |
+- [ ] **AC1**: Given I am logged in as a user with Manager role, When I navigate to the Approvals Dashboard page, Then I see a dashboard displaying my team's approval metrics including Pending Approvals Count, Average Approval Time, Approval Rate, Overdue Requests, and Recent Activity
 
-**JSON Export Schema:**
+- [ ] **AC2**: Given the dashboard is displayed, When 60 seconds have elapsed, Then the metrics automatically refresh without requiring page reload and the display updates to reflect current data
 
-| Field | Type | Required |
-|-------|------|----------|
-| id | string | Yes |
-| title | string | Yes |
-| description | string | Yes |
-| businessValue | string | Yes |
-| acceptanceCriteria | array[string] | Yes |
-| technicalDetails | object | Yes |
-| technicalDetails.files | array[string] | Yes |
-| technicalDetails.classes | array[string] | Yes |
-| technicalDetails.integrationPoints | array[string] | Yes |
-| technicalDetails.technicalApproach | string | Yes |
-| dependencies | array[string] | Yes |
-| storyPoints | number | Yes |
-| labels | array[string] | Yes |
+- [ ] **AC3**: Given I am viewing the dashboard, When I select a date range filter (7 days, 30 days, 90 days, or custom range), Then the metrics update to reflect only the selected time period
 
-### 0.9.5 Quality Assurance Parameters
+- [ ] **AC4**: Given I have pending approval requests in queue where I am an authorized approver, When I view the Pending Approvals metric, Then the count accurately reflects requests awaiting my action
 
-**Pre-Commit Checks:**
+- [ ] **AC5**: Given approval requests exceed their configured timeout from the associated approval step, When I view the Overdue Requests metric, Then the count accurately identifies requests past their SLA
 
-| Check | Criteria |
-|-------|----------|
-| File encoding | UTF-8 without BOM |
-| Line endings | LF only |
-| Trailing whitespace | None |
-| Markdown headers | Proper hierarchy (no skipped levels) |
-| Table alignment | Consistent column widths |
-| JSON validity | Passes JSON.parse() |
-| CSV validity | Correct column count per row |
+- [ ] **AC6**: Given I am a user without Manager role, When I attempt to access the dashboard, Then I receive an access denied message and am not shown the dashboard metrics
 
-**Content Validation:**
+#### Story Estimation
 
-| Validation | Pass Criteria |
-|------------|---------------|
-| Summary length | ≤255 characters |
-| AC count | ≥5 acceptance criteria |
-| Dependencies listed | All prerequisite stories referenced |
-| Story points | Reasonable relative to similar stories (3-8 range) |
-| Labels present | Minimum 3 labels |
+**5 Story Points** (Fibonacci)
+
+| Factor | Assessment |
+|--------|------------|
+| Effort | Medium - Single dashboard component with established patterns |
+| Complexity | Medium - Service layer with entity queries |
+| Uncertainty | Low - Clear requirements from STORY-009 |
+
+#### INVEST Criteria Validation
+
+| Criterion | Status | Evidence |
+|-----------|--------|----------|
+| Independent | ✓ Pass | Self-contained; builds on completed STORY-007/008 |
+| Negotiable | ✓ Pass | Configurable refresh interval, date ranges, metrics |
+| Valuable | ✓ Pass | Addresses manager decision-making objective |
+| Estimable | ✓ Pass | 5 points based on comparable stories |
+| Sized | ✓ Pass | Single sprint deliverable |
+| Testable | ✓ Pass | 6 clear Given/When/Then criteria |
+
+#### Labels
+
+`dashboard`, `metrics`, `ui`, `manager`, `approval`, `real-time`
+
+#### Dependencies
+
+| Story | Dependency Type |
+|-------|-----------------|
+| STORY-007 | REST API endpoints for metrics retrieval |
+| STORY-008 | PageComponent pattern implementation |
+| STORY-009 | Technical implementation reference |
+
+#### Additional Notes
+
+- Dashboard is demo-able to Product Owner showing live metrics
+- Implementation details available in STORY-009
+- Part of WebVella ERP Approval Workflow System initiative
+EOF
+```
+
+### 0.9.3 JSON Update Instructions
+
+**Update stories-export.json:**
+
+```bash
+# The following entry should be added to the stories array in stories-export.json
+
+#### and metadata.totalStories updated to 10, metadata.totalStoryPoints to 57
+
+```
+
+**New Entry Structure:**
+
+```json
+{
+  "id": "STORY-010",
+  "title": "Manager Performance Dashboard (SST Format)",
+  "description": "As a Manager with approval responsibilities, I want to view a real-time dashboard displaying my team's approval workflow metrics, so that I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.",
+  "businessValue": "Reduces manager time gathering performance data by providing a unified dashboard view. Enables proactive bottleneck identification through real-time visibility. Supports compliance with SLA monitoring.",
+  "acceptanceCriteria": [
+    "Given Manager role logged in, When navigate to dashboard, Then see 5 KPIs",
+    "Given dashboard displayed, When 60 seconds elapsed, Then auto-refresh",
+    "Given viewing dashboard, When select date range, Then metrics update",
+    "Given pending requests exist, When view Pending count, Then accurate",
+    "Given requests past timeout, When view Overdue count, Then accurate",
+    "Given non-Manager user, When access dashboard, Then access denied"
+  ],
+  "technicalDetails": {
+    "files": ["jira-stories/STORY-010-manager-performance-dashboard-sst.md"],
+    "classes": [],
+    "integrationPoints": ["SST User Story format documentation"],
+    "technicalApproach": "SST-formatted User Story documenting STORY-009 feature"
+  },
+  "dependencies": [
+    {"storyId": "STORY-009", "description": "Technical implementation reference"}
+  ],
+  "storyPoints": 5,
+  "labels": ["dashboard", "metrics", "ui", "manager", "documentation", "sst-format"]
+}
+```
+
+### 0.9.4 Style Guide Requirements
+
+| Requirement | Standard |
+|-------------|----------|
+| Story title format | `STORY-{NNN}: {Title}` |
+| Section headings | `##` for main sections, `###` for subsections |
+| Acceptance criteria | `- [ ] **AC{N}**:` prefix with checkbox |
+| Given/When/Then | Capitalized keywords, comma-separated clauses |
+| Tables | Markdown pipe tables with header row |
+| Labels | Comma-separated, lowercase, no spaces |
+| Story points | Single integer from Fibonacci sequence |
 
 ## 0.10 Rules for Documentation
 
-### 0.10.1 User-Specified Rules
+### 0.10.1 User-Specified Documentation Rules
 
-**Rules Explicitly Stated by User:**
+The following rules are derived from the SST User Story Guide template provided by the user:
 
-| Rule | Source | Application |
-|------|--------|-------------|
-| Follow State Street "Writing a User Story" guide | User instructions | Apply all formatting, structure, and quality standards from guide |
-| Use Who/What/Why format for description | User instructions | "As a... I want... so that..." structure |
-| Use Given/When/Then syntax for acceptance criteria | User instructions | BDD-style scenario format |
-| Appropriate level of detail for single sprint | User instructions | Size story as vertical slice (~5 story points) |
-| Represent one vertical slice of functionality | User instructions | Dashboard with core metrics, not full reporting suite |
-| Deliver measurable progress toward objective | User instructions | Specific metrics that enable faster decisions |
+**Rule 1: Follow WHO/WHAT/WHY Format**
+- User Story description MUST use the format:
+  - "As a < named user or role >" (WHO)
+  - "I want < some goal >" (WHAT)
+  - "so that < some reason >" (WHY)
 
-### 0.10.2 State Street Guide Rules
+**Rule 2: Use Given/When/Then Syntax for Acceptance Criteria**
+- Each acceptance criterion MUST follow the format:
+  - "Given < a scenario >"
+  - "When < a criteria is met >"
+  - "Then < the expected result >"
 
-**Mandatory Requirements from Guide:**
+**Rule 3: Summary Maximum Length**
+- Summary field MUST NOT exceed 255 characters
 
-| Rule | Guide Section | Implementation |
-|------|---------------|----------------|
-| Summary maximum 255 characters | Anatomy of a Story | 193 characters used |
-| Story must be demo-able | Purpose | Dashboard can be demonstrated |
-| Sub-tasks describe actions for acceptance criteria | Ownership | Technical details map to acceptance criteria |
-| Only Product Owner transitions to Done | Ownership | Story written for PO acceptance |
+**Rule 4: INVEST Criteria Compliance**
+- User Story MUST meet all INVEST criteria:
+  - Independent, Negotiable, Valuable, Estimable, Sized appropriately, Testable
 
-**INVEST Criteria Rules:**
+**Rule 5: Demo-ability Requirement**
+- User Story MUST be demonstrable to Product Owner for acceptance
 
-| Criterion | Rule | Compliance |
-|-----------|------|------------|
-| Independent | Self-contained with no inherent dependency on undelivered stories | ✓ Builds on completed F-007/F-008 |
-| Negotiable | Can be changed until committed to iteration | ✓ Metrics selection is negotiable |
-| Valuable | Must deliver value to end user/customer | ✓ Enables faster manager decisions |
-| Estimable | Must be able to estimate size | ✓ 5 story points assigned |
-| Sized appropriately | Not too big for planning/prioritization | ✓ Single dashboard view |
-| Testable | Provides information for test development | ✓ All AC have pass/fail criteria |
+**Rule 6: Acceptance Criteria Effectiveness**
+- Each criterion must have:
+  - Clarity (straightforward, avoids confusion)
+  - Conciseness (necessary information only)
+  - Testability (independently verifiable, clear pass/fail)
+  - Result-Orientation (customer value focused)
 
-**Acceptance Criteria Quality Rules:**
+### 0.10.2 Repository-Specific Documentation Rules
 
-| Quality Dimension | Rule | Implementation |
-|-------------------|------|----------------|
-| Clarity | Straightforward and easy to understand | Plain language, specific outcomes |
-| Conciseness | Necessary information without unnecessary detail | Each AC is one scenario |
-| Testability | Independently verifiable (clear pass/fail) | Given/When/Then enables test cases |
-| Result-Oriented | Focus on delivering customer satisfaction | Outcomes aligned with business objective |
+Based on analysis of existing documentation patterns in `jira-stories/`:
 
-### 0.10.3 Repository Convention Rules
+**Rule 7: File Naming Convention**
+- User Story files MUST follow pattern: `STORY-{NNN}-{kebab-case-title}.md`
 
-**File Naming Rules:**
+**Rule 8: Export Consistency**
+- Any new story MUST be added to both:
+  - `stories-export.json` (with matching schema)
+  - `stories-export.csv` (with matching columns)
 
-| Rule | Pattern | Example |
-|------|---------|---------|
-| Story file naming | `STORY-XXX-kebab-case-title.md` | `STORY-009-manager-dashboard-metrics.md` |
-| Story ID format | Sequential `STORY-XXX` | `STORY-009` |
-| Export file naming | Preserve existing names | `stories-export.csv`, `stories-export.json` |
+**Rule 9: Metadata Updates**
+- When adding stories, update `stories-export.json` metadata:
+  - `totalStories` count
+  - `totalStoryPoints` sum
 
-**Content Structure Rules:**
+**Rule 10: Dependency Documentation**
+- Stories MUST document dependencies on other stories using:
+  - Story ID reference
+  - Dependency description
 
-| Rule | Standard |
-|------|----------|
-| Markdown header levels | # for title, ## for sections, ### for subsections |
-| Table format | Pipe-delimited with header row separator |
-| Checkbox format | `- [ ] **ACx**: Text` |
-| Code fence format | Triple backticks with language identifier |
-| Diagram format | Mermaid in fenced code block |
+### 0.10.3 Quality Assurance Rules
 
-**Export Format Rules:**
+**Rule 11: Character Count Verification**
+- Verify Summary ≤255 characters before finalizing
 
-| Export | Rule |
-|--------|------|
-| CSV | Maintain column order matching existing file |
-| CSV | Double-quote values containing commas |
-| JSON | Maintain field order matching existing objects |
-| JSON | Use consistent data types per field |
+**Rule 12: AC Completeness Check**
+- Each acceptance criterion must have all three parts (Given/When/Then)
+- Missing parts indicate incomplete criterion
 
-### 0.10.4 Documentation Integrity Rules
+**Rule 13: Testability Validation**
+- Each AC must have a clear pass/fail condition
+- Ambiguous outcomes indicate rewrite needed
 
-**Consistency Rules:**
+**Rule 14: Story Point Justification**
+- Story points must include rationale comparing to similar stories
 
-| Rule | Enforcement |
-|------|-------------|
-| Terminology consistency | Use entity names from STORY-002 schema |
-| Pattern consistency | Follow component patterns from STORY-008 |
-| API consistency | Follow endpoint patterns from STORY-007 |
-| Reference consistency | Cite source stories for patterns used |
+### 0.10.4 Template Adherence Rules
 
-**Completeness Rules:**
+**Rule 15: Section Order**
+- Follow this section order in User Story documents:
+  1. Summary
+  2. User Story Description (WHO/WHAT/WHY)
+  3. Acceptance Criteria
+  4. Story Estimation
+  5. INVEST Criteria Validation
+  6. Labels
+  7. Dependencies
+  8. Additional Notes
 
-| Rule | Requirement |
-|------|-------------|
-| No pending items | All documentation artifacts explicitly listed |
-| No TBD sections | All content fully specified |
-| All dependencies documented | Prerequisite stories referenced |
-| All files mapped | Complete file transformation table |
+**Rule 16: Markdown Formatting**
+- Use `##` for main sections
+- Use tables for structured data
+- Use checkboxes `- [ ]` for acceptance criteria
+- Use bold `**text**` for keywords (As a, I want, so that, Given, When, Then)
 
-### 0.10.5 Quality Gate Rules
+### 0.10.5 Rules Summary Table
 
-**Story Quality Gates:**
-
-| Gate | Criteria | Required |
-|------|----------|----------|
-| Format compliance | Follows State Street template | Yes |
-| INVEST compliance | All 6+1 criteria pass | Yes |
-| AC quality | Clarity, conciseness, testability, result-oriented | Yes |
-| Technical accuracy | File paths and patterns verified | Yes |
-| Export readiness | CSV and JSON data complete | Yes |
-
-**Documentation Delivery Rules:**
-
-| Rule | Standard |
-|------|----------|
-| Single story per request | One STORY-009 file |
-| Vertical slice scope | Core dashboard, not full reporting |
-| Sprint-sized | 5 points (single sprint deliverable) |
-| Demo-able outcome | Dashboard can be shown to Product Owner |
+| Rule # | Rule Name | Enforcement |
+|--------|-----------|-------------|
+| 1 | WHO/WHAT/WHY Format | Mandatory |
+| 2 | Given/When/Then Syntax | Mandatory |
+| 3 | Summary Max 255 chars | Mandatory |
+| 4 | INVEST Compliance | Mandatory |
+| 5 | Demo-ability | Mandatory |
+| 6 | AC Effectiveness | Mandatory |
+| 7 | File Naming Convention | Mandatory |
+| 8 | Export Consistency | Mandatory |
+| 9 | Metadata Updates | Mandatory |
+| 10 | Dependency Documentation | Recommended |
+| 11 | Character Count Verification | Mandatory |
+| 12 | AC Completeness Check | Mandatory |
+| 13 | Testability Validation | Mandatory |
+| 14 | Story Point Justification | Recommended |
+| 15 | Section Order | Recommended |
+| 16 | Markdown Formatting | Recommended |
 
 ## 0.11 References
 
-### 0.11.1 Repository Files Searched
+### 0.11.1 Files and Folders Searched
 
-**Files Retrieved and Analyzed:**
+**Repository Root Level:**
 
-| File Path | Purpose | Key Findings |
-|-----------|---------|--------------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Story structure template | Markdown format, section ordering, checkbox AC format |
-| `jira-stories/stories-export.csv` | CSV export format | Column structure, data formatting conventions |
-| `jira-stories/stories-export.json` | JSON export format | Object schema, array structure, field types |
+| Path | Type | Purpose |
+|------|------|---------|
+| `` (root) | Folder | Project structure analysis |
+| `README.md` | File | Project overview |
+| `WebVella.ERP3.sln` | File | Solution structure |
+| `global.json` | File | SDK configuration |
 
-**Folders Explored:**
+**Documentation Directories:**
 
-| Folder Path | Purpose | Key Findings |
-|-------------|---------|--------------|
-| `/` (root) | Repository structure | `jira-stories/`, `docs/`, plugin folders |
-| `jira-stories/` | User story artifacts | 8 stories (STORY-001 to STORY-008), CSV and JSON exports |
-| `docs/developer/` | Technical documentation | Components, entities, API documentation patterns |
+| Path | Type | Purpose |
+|------|------|---------|
+| `docs/` | Folder | Developer documentation root |
+| `docs/developer/` | Folder | Technical documentation hub |
+| `jira-stories/` | Folder | User Story specifications |
 
-**Search Patterns Employed:**
+**User Story Files Examined:**
 
-| Pattern | Results |
-|---------|---------|
-| `jira-stories/*.md` | 8 story files |
-| `jira-stories/*.csv` | 1 export file |
-| `jira-stories/*.json` | 1 export file |
-| Root folder contents | 9 folders, 8 files |
+| Path | Type | Relevance |
+|------|------|-----------|
+| `jira-stories/STORY-009-manager-dashboard-metrics.md` | File | Primary content source - directly addresses business objective |
+| `jira-stories/stories-export.json` | File | Story metadata schema reference |
+| `jira-stories/stories-export.csv` | File | Export format reference |
+| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | File | Story format reference |
+| `jira-stories/STORY-008-approval-ui-components.md` | File | UI component story pattern |
+| `jira-stories/STORY-007-approval-rest-api.md` | File | API story pattern |
 
-### 0.11.2 Technical Specification Sections Referenced
+**Plugin Source Directories (Referenced):**
 
-| Section | Relevance to STORY-009 |
-|---------|------------------------|
-| 2.1 FEATURE CATALOG | Feature dependency chain, story point comparisons |
-| 7.3 PAGE COMPONENT SYSTEM | Component pattern for dashboard implementation |
-| 6.1 Core Services Architecture | Service layer patterns for metrics service |
+| Path | Type | Purpose |
+|------|------|---------|
+| `WebVella.Erp.Plugins.Approval/` | Folder | Approval plugin implementation (referenced in stories) |
+| `WebVella.Erp.Web/` | Folder | Web layer patterns |
+| `WebVella.Erp/` | Folder | Core ERP library |
 
-### 0.11.3 External Attachments
+### 0.11.2 Attachments Provided
 
-**Attachment 1: SST User Story Guide.pdf**
+| Attachment | File Type | Size | Summary |
+|------------|-----------|------|---------|
+| **SST User Story Guide.pdf** | PDF | 429,127 bytes | State Street User Story writing guide defining template structure (WHO/WHAT/WHY format), acceptance criteria syntax (Given/When/Then), INVEST criteria for story quality validation, story estimation using Fibonacci points, and Scrum Master recommendations for story management |
 
-| Attribute | Value |
-|-----------|-------|
-| File Name | SST User Story Guide.pdf |
-| MIME Type | application/pdf |
-| File Size | 429,127 bytes |
-| Pages | 6 |
+**SST User Story Guide.pdf Contents Summary:**
 
-**Content Summary:**
+| Page | Section | Key Content |
+|------|---------|-------------|
+| 1 | Purpose | User stories written from user perspective with acceptance criteria |
+| 1 | Ownership | Stories owned by Team, sub-tasks by individuals |
+| 1 | Relationships | Stories are children of Epics, parents of sub-tasks |
+| 1-2 | Anatomy of a Story | Summary (≤255 chars), WHO/WHAT/WHY format |
+| 2 | INVEST Criteria | Independent, Negotiable, Valuable, Estimable, Sized, Testable |
+| 2-3 | Acceptance Criteria | Given/When/Then format with effectiveness measures |
+| 3-4 | Recommendations | Scrum Master best practices for story writing |
+| 4-5 | Story Estimation | Fibonacci sequence, relative sizing approach |
+| 5-6 | Understanding Estimation | Fruit salad analogy for relative sizing |
 
-The State Street "Writing a User Story" guide provides comprehensive standards for user story creation within Agile/Scrum environments. Key sections include:
+### 0.11.3 Figma Screens Provided
 
-| Section | Key Content |
-|---------|-------------|
-| Purpose (Page 1) | User stories cover vertical slices, include acceptance criteria, allow flexibility |
-| Ownership (Page 1) | Stories owned by team, sub-tasks by individuals, PO transitions to Done |
-| Relationships (Page 1) | Children are sub-tasks, parent is Epic |
-| Anatomy of a Story (Pages 1-2) | Summary (255 chars max), Who/What/Why format, example |
-| INVEST Criteria (Page 2) | Independent, Negotiable, Valuable, Estimable, Sized, Testable, Demo-able |
-| Acceptance Criteria (Pages 2-3) | Given/When/Then syntax, clarity, conciseness, testability, result-oriented |
-| Scrum Master Recommendations (Pages 3-4) | Story writing techniques, engagement, lifecycle, templates |
-| Story Estimation (Pages 4-6) | Fibonacci sequence, relative sizing, fruit salad analogy, effort/complexity/uncertainty |
+| Frame Name | URL | Description |
+|------------|-----|-------------|
+| None provided | N/A | No Figma attachments were included in this request |
 
-**Key Templates Extracted:**
+### 0.11.4 Technical Specification Sections Referenced
 
-User Story Description:
-- As a [named user or role], (WHO)
-- I want [some goal], (WHAT)
-- so that [some reason] (WHY)
+| Section | Heading | Purpose |
+|---------|---------|---------|
+| 1.1 | EXECUTIVE SUMMARY | Project context, stakeholder identification |
+| 2.1 | FEATURE CATALOG | F-009 feature specification for Manager Dashboard |
 
-Acceptance Criteria:
-- Given [a scenario]
-- When [a criteria is met]
-- Then [the expected result]
+### 0.11.5 External References
 
-### 0.11.4 Figma Attachments
+| Reference | Type | Purpose |
+|-----------|------|---------|
+| INVEST Criteria | Methodology | User Story quality validation framework |
+| Behavior-Driven Development (BDD) | Methodology | Given/When/Then acceptance criteria format |
+| Fibonacci Sequence | Estimation | Story point sizing (1, 2, 3, 5, 8, 13, 20, 40) |
+| Agile/Scrum | Framework | Story ownership, sprint planning context |
 
-No Figma attachments were provided for this documentation task.
+### 0.11.6 Documentation Source Traceability
 
-### 0.11.5 Web Search Research
+| Documentation Element | Primary Source | Secondary Source |
+|----------------------|----------------|------------------|
+| Summary text | Business objective input | STORY-009 description |
+| WHO (Manager role) | STORY-009 | F-009 feature spec |
+| WHAT (Dashboard features) | STORY-009 | Technical spec 2.1 |
+| WHY (Business value) | STORY-009 | Business objective |
+| Acceptance Criteria 1-6 | STORY-009 | SST template format |
+| Story Points (5) | STORY-009 | Comparable story analysis |
+| INVEST Validation | SST User Story Guide | STORY-009 validation |
+| Labels | STORY-009 | Repository conventions |
+| Dependencies | STORY-009 | Technical spec 2.1 |
 
-**Topics Researched:**
+### 0.11.7 Search Tracking Summary
 
-| Topic | Purpose |
-|-------|---------|
-| User story best practices for dashboards | Validate vertical slice approach |
-| Real-time dashboard user story examples | Confirm acceptance criteria patterns |
-| INVEST criteria validation | Ensure story quality compliance |
-| Given/When/Then acceptance criteria | Verify BDD format usage |
-
-### 0.11.6 Cross-Reference Summary
-
-**Story Dependencies Documented:**
-
-| Story | Reference Purpose |
-|-------|-------------------|
-| STORY-001 | Plugin infrastructure pattern |
-| STORY-002 | Entity schema (data sources) |
-| STORY-003 | Configuration service pattern |
-| STORY-004 | Service layer pattern |
-| STORY-005 | Hooks integration pattern |
-| STORY-006 | Background job pattern (for auto-refresh alternative) |
-| STORY-007 | REST API endpoint pattern |
-| STORY-008 | UI page component pattern |
-
-**Documentation Artifacts Created:**
-
-| Artifact | Type | Status |
-|----------|------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | User Story | To be created |
-| `jira-stories/stories-export.csv` (row addition) | CSV Export | To be updated |
-| `jira-stories/stories-export.json` (object addition) | JSON Export | To be updated |
-
-### 0.11.7 Comprehensive Source List
-
-| Source Category | Items |
-|-----------------|-------|
-| User-Provided Documents | SST User Story Guide.pdf |
-| Repository Story Files | STORY-001 through STORY-008 markdown files |
-| Repository Export Files | stories-export.csv, stories-export.json |
-| Tech Spec Sections | 2.1 Feature Catalog |
-| Documentation Folders | docs/developer/ hierarchy |
-| Business Objective | User-provided requirement text |
+| Search # | Tool Used | Target | Result |
+|----------|-----------|--------|--------|
+| 1 | bash | `.blitzyignore` files | None found |
+| 2 | get_source_folder_contents | Repository root | Project structure identified |
+| 3 | get_source_folder_contents | `docs/` | Documentation structure found |
+| 4 | get_source_folder_contents | `jira-stories/` | User story files identified |
+| 5 | read_file | `STORY-009-manager-dashboard-metrics.md` | Full content retrieved |
+| 6 | read_file | `stories-export.json` | Export schema analyzed |
+| 7 | get_tech_spec_section | 1.1 EXECUTIVE SUMMARY | Project context gathered |
+| 8 | get_tech_spec_section | 2.1 FEATURE CATALOG | Feature specifications retrieved |
 
