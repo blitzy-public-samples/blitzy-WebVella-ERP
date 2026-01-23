@@ -4,6 +4,6 @@
 @using WebVella.Erp.Web.Utils;
 @using WebVella.Erp.Exceptions;
 @{
-    var validation = (ValidationException)ViewBag.Error;
+	var validation = (ValidationException)ViewBag.Error;
 }
 <wv-validation errors="@validation.ToErrorList()" message="@validation.Message"></wv-validation>
