@@ -1,0 +1,333 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@using WebVella.Erp.Plugins.Approval.Api;
+@{
+    // Cast ViewBag data to strongly typed models
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var metrics = (DashboardMetricsModel)ViewBag.Metrics;
+    
+    // Extract metrics values for display
+    var pendingCount = metrics?.PendingCount ?? 0;
+    var avgTime = metrics?.AverageApprovalTimeHours ?? 0m;
+    var approvalRate = metrics?.ApprovalRate ?? 0m;
+    var overdueCount = metrics?.OverdueCount ?? 0;
+    var recentActivity = metrics?.RecentActivityCount ?? 0;
+    
+    // Generate unique container ID for JavaScript targeting
+    var containerId = "approval-dashboard-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+    
+    // Get refresh interval from options (default 60 seconds)
+    var refreshInterval = options?.RefreshIntervalSeconds ?? 60;
+}
+
+<div id="@containerId" class="approval-dashboard-container">
+    @* Dashboard Header *@
+    <wv-row class="mb-3">
+        <wv-column>
+            <h5 class="mb-0">
+                <i class="fas fa-tachometer-alt mr-2"></i>Approval Dashboard
+                <small class="text-muted ml-2" id="@(containerId)-last-updated">
+                    Last updated: @DateTime.UtcNow.ToString("HH:mm:ss") UTC
+                </small>
+            </h5>
+        </wv-column>
+    </wv-row>
+
+    @* KPI Cards Row 1 - Primary Metrics *@
+    <wv-row class="mb-3">
+        @* Pending Count Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-hourglass-half fa-2x @(pendingCount > 0 ? "go-orange" : "go-gray")"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        <span class="pending-count @(pendingCount > 10 ? "go-orange" : "")">@pendingCount</span>
+                    </h3>
+                    <div class="text-muted small">Pending Approvals</div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Average Approval Time Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-clock fa-2x go-light-blue"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        <span class="avg-time">@avgTime.ToString("F1")</span> <small>hrs</small>
+                    </h3>
+                    <div class="text-muted small">Avg. Approval Time</div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Approval Rate Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-percentage fa-2x @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")"></i>
+                    </div>
+                    <h3 class="mb-1 @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")">
+                        <span class="approval-rate">@approvalRate.ToString("F1")</span><small>%</small>
+                    </h3>
+                    <div class="text-muted small">Approval Rate</div>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* KPI Cards Row 2 - Secondary Metrics *@
+    <wv-row class="mb-3">
+        @* Overdue Count Card *@
+        <wv-column width="6">
+            <div class="card h-100 @(overdueCount > 0 ? "border-danger" : "")">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x @(overdueCount > 0 ? "go-red" : "go-gray")"></i>
+                    </div>
+                    <h3 class="mb-1 @(overdueCount > 0 ? "go-red" : "go-gray")">
+                        <span class="overdue-count">@overdueCount</span>
+                    </h3>
+                    <div class="text-muted small">Overdue / Escalated</div>
+                    @if (overdueCount > 0)
+                    {
+                        <div class="mt-2">
+                            <span class="badge badge-danger">Requires Attention</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </wv-column>
+
+        @* Recent Activity Card *@
+        <wv-column width="6">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-history fa-2x go-purple"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        <span class="recent-activity">@recentActivity</span>
+                    </h3>
+                    <div class="text-muted small">Recent Activity (24h)</div>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* Summary Statistics Row *@
+    <wv-row>
+        <wv-column>
+            <div class="card">
+                <div class="card-body">
+                    <wv-row flex-vertical-alignment="Center" class="text-center">
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-orange mr-2"></i>
+                                <span><strong>@pendingCount</strong> Pending</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-green mr-2"></i>
+                                <span><strong>@approvalRate.ToString("F1")%</strong> Approved</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle @(overdueCount > 0 ? "go-red" : "go-gray") mr-2"></i>
+                                <span><strong>@overdueCount</strong> Overdue</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-light-blue mr-2"></i>
+                                <span><strong>@avgTime.ToString("F1")h</strong> Avg. Time</span>
+                            </div>
+                        </wv-column>
+                    </wv-row>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+</div>
+
+@* Auto-refresh JavaScript initialization *@
+<script>
+    (function() {
+        // Initialize the approval dashboard with auto-refresh capability
+        var containerId = '@containerId';
+        var refreshInterval = @refreshInterval;
+        
+        // Function to initialize dashboard auto-refresh
+        function initApprovalDashboard(containerId, refreshIntervalSeconds) {
+            var container = document.getElementById(containerId);
+            if (!container) {
+                console.warn('Approval Dashboard container not found:', containerId);
+                return;
+            }
+            
+            // Set up auto-refresh if interval is greater than 0
+            if (refreshIntervalSeconds > 0) {
+                var intervalMs = refreshIntervalSeconds * 1000;
+                
+                // Store interval ID on container for cleanup
+                container.dataset.refreshIntervalId = setInterval(function() {
+                    refreshDashboardMetrics(containerId);
+                }, intervalMs);
+                
+                // Clean up interval when container is removed from DOM
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.removedNodes.forEach(function(node) {
+                            if (node === container || (node.contains && node.contains(container))) {
+                                clearInterval(parseInt(container.dataset.refreshIntervalId));
+                                observer.disconnect();
+                            }
+                        });
+                    });
+                });
+                
+                if (container.parentNode) {
+                    observer.observe(container.parentNode, { childList: true, subtree: true });
+                }
+            }
+        }
+        
+        // Function to refresh dashboard metrics via AJAX
+        function refreshDashboardMetrics(containerId) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Call the dashboard metrics API endpoint
+            fetch('/api/v3.0/p/approval/dashboard/metrics', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch metrics');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success && data.object) {
+                    updateDashboardDisplay(containerId, data.object);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error refreshing dashboard metrics:', error);
+            });
+        }
+        
+        // Function to update dashboard display with new metrics
+        function updateDashboardDisplay(containerId, metrics) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Update pending count
+            var pendingEl = container.querySelector('.pending-count');
+            if (pendingEl) {
+                pendingEl.textContent = metrics.pendingCount || 0;
+                pendingEl.className = 'pending-count' + (metrics.pendingCount > 10 ? ' go-orange' : '');
+            }
+            
+            // Update average time
+            var avgTimeEl = container.querySelector('.avg-time');
+            if (avgTimeEl) {
+                avgTimeEl.textContent = (metrics.averageApprovalTimeHours || 0).toFixed(1);
+            }
+            
+            // Update approval rate
+            var approvalRateEl = container.querySelector('.approval-rate');
+            if (approvalRateEl) {
+                var rate = metrics.approvalRate || 0;
+                approvalRateEl.textContent = rate.toFixed(1);
+                var rateParent = approvalRateEl.parentElement;
+                if (rateParent) {
+                    rateParent.className = 'mb-1 ' + (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
+                }
+            }
+            
+            // Update overdue count
+            var overdueEl = container.querySelector('.overdue-count');
+            if (overdueEl) {
+                overdueEl.textContent = metrics.overdueCount || 0;
+                var overdueParent = overdueEl.parentElement;
+                if (overdueParent) {
+                    overdueParent.className = 'mb-1 ' + (metrics.overdueCount > 0 ? 'go-red' : 'go-gray');
+                }
+            }
+            
+            // Update recent activity
+            var recentEl = container.querySelector('.recent-activity');
+            if (recentEl) {
+                recentEl.textContent = metrics.recentActivityCount || 0;
+            }
+            
+            // Update last updated timestamp
+            var timestampEl = document.getElementById(containerId + '-last-updated');
+            if (timestampEl) {
+                var now = new Date();
+                var timeStr = now.getUTCHours().toString().padStart(2, '0') + ':' +
+                              now.getUTCMinutes().toString().padStart(2, '0') + ':' +
+                              now.getUTCSeconds().toString().padStart(2, '0');
+                timestampEl.textContent = 'Last updated: ' + timeStr + ' UTC';
+            }
+        }
+        
+        // Initialize dashboard on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initApprovalDashboard(containerId, refreshInterval);
+            });
+        } else {
+            initApprovalDashboard(containerId, refreshInterval);
+        }
+    })();
+</script>
+
+<style>
+    .approval-dashboard-container .card {
+        transition: box-shadow 0.2s ease-in-out;
+    }
+    .approval-dashboard-container .card:hover {
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+    .approval-dashboard-container .go-green {
+        color: #28a745 !important;
+    }
+    .approval-dashboard-container .go-red {
+        color: #dc3545 !important;
+    }
+    .approval-dashboard-container .go-orange {
+        color: #fd7e14 !important;
+    }
+    .approval-dashboard-container .go-gray {
+        color: #6c757d !important;
+    }
+    .approval-dashboard-container .go-light-blue {
+        color: #17a2b8 !important;
+    }
+    .approval-dashboard-container .go-purple {
+        color: #6f42c1 !important;
+    }
+    .approval-dashboard-container .border-danger {
+        border-color: #dc3545 !important;
+        border-width: 2px !important;
+    }
+</style>
