@@ -9,11 +9,16 @@
     var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
     var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
 }
+@* Options configuration panel for PcApprovalDashboard component *@
+@* Allows administrators to configure the auto-refresh interval for dashboard metrics *@
 <wv-row>
     <wv-column span="6">
-        <wv-field-number name="refresh_interval_seconds" value="@options.RefreshIntervalSeconds" label-text="Refresh Interval (seconds)" min="10" max="3600"></wv-field-number>
+        <wv-field-number name="refresh_interval_seconds" value="@options.RefreshIntervalSeconds" label-text="Refresh Interval (seconds)" min="10" max="3600" decimal-digits="0"></wv-field-number>
         <small class="form-text text-muted">
-            Set the auto-refresh interval in seconds. Minimum is 10 seconds. Set to 0 to disable auto-refresh.
+            Specify the auto-refresh interval in seconds for the dashboard metrics. The dashboard will automatically 
+            refresh and reload all metrics (pending count, average approval time, approval rate, overdue count, 
+            and recent activity) at this interval. The minimum value is 10 seconds and the maximum is 3600 seconds 
+            (1 hour). Default is 60 seconds for optimal balance between data freshness and system performance.
         </small>
     </wv-column>
 </wv-row>
