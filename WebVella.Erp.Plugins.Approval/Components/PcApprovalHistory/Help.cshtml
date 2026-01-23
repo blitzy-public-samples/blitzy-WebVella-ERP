@@ -1,0 +1,70 @@
+@*
+    Help documentation view for PcApprovalHistory component.
+    Provides user documentation explaining the approval history timeline functionality.
+*@
+
+<div class="pc-approval-history-help">
+    <h4><i class="fas fa-history"></i> Approval History Component</h4>
+    
+    <p>
+        The <strong>Approval History</strong> component displays a timeline of all actions taken on an approval request.
+        It provides a comprehensive audit trail showing the complete lifecycle of the approval process.
+    </p>
+    
+    <h5>Timeline Information</h5>
+    <p>Each entry in the timeline displays the following information:</p>
+    <ul>
+        <li><strong>Action Type</strong> - The type of action performed:
+            <ul>
+                <li><i class="fas fa-paper-plane text-primary"></i> <em>Submitted</em> - Request was initially submitted for approval</li>
+                <li><i class="fas fa-check text-success"></i> <em>Approved</em> - Request was approved by an approver</li>
+                <li><i class="fas fa-times text-danger"></i> <em>Rejected</em> - Request was rejected by an approver</li>
+                <li><i class="fas fa-share text-info"></i> <em>Delegated</em> - Request was delegated to another user</li>
+                <li><i class="fas fa-arrow-up text-warning"></i> <em>Escalated</em> - Request was escalated due to timeout or manual escalation</li>
+            </ul>
+        </li>
+        <li><strong>User</strong> - The name of the user who performed the action</li>
+        <li><strong>Timestamp</strong> - The date and time when the action was performed</li>
+        <li><strong>Comments</strong> - Any comments or notes provided by the user during the action (if applicable)</li>
+    </ul>
+    
+    <h5>Configuration Options</h5>
+    <table class="table table-sm table-bordered">
+        <thead>
+            <tr>
+                <th>Option</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>request_id</code></td>
+                <td>Datasource Binding</td>
+                <td>
+                    Binds to the ID of the approval request whose history should be displayed.
+                    This can be bound to a page datasource, URL parameter, or a record field containing
+                    the approval request GUID.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h5>Usage</h5>
+    <p>
+        Add this component to any page where you want to display the approval history for a specific request.
+        Configure the <code>request_id</code> option to bind to the appropriate datasource that provides
+        the approval request identifier.
+    </p>
+    
+    <h5>Notes</h5>
+    <ul>
+        <li>The timeline is displayed in reverse chronological order (most recent actions first)</li>
+        <li>If no history records exist for the specified request, an informational message is shown</li>
+        <li>The component automatically refreshes when the page is reloaded</li>
+    </ul>
+</div>
+
+<script>
+    console.log("PcApprovalHistory HELP script ran");
+</script>
