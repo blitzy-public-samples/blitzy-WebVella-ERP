@@ -1,0 +1,19 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+<wv-row>
+    <wv-column span="6">
+        <wv-field-number name="refresh_interval_seconds" value="@options.RefreshIntervalSeconds" label-text="Refresh Interval (seconds)" min="10" max="3600"></wv-field-number>
+        <small class="form-text text-muted">
+            Set the auto-refresh interval in seconds. Minimum is 10 seconds. Set to 0 to disable auto-refresh.
+        </small>
+    </wv-column>
+</wv-row>

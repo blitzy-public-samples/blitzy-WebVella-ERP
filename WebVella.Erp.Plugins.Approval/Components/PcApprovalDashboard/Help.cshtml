@@ -1,0 +1,29 @@
+<h5>Approval Dashboard</h5>
+<p>
+    The Approval Dashboard component displays real-time metrics for the approval workflow system.
+    It provides managers and administrators with quick visibility into the current state of approvals.
+</p>
+
+<h6>KPIs Displayed:</h6>
+<ul>
+    <li><strong>Pending Count</strong> - Number of approval requests waiting for action</li>
+    <li><strong>Average Approval Time</strong> - Average time from request submission to completion (in hours)</li>
+    <li><strong>Approval Rate</strong> - Percentage of approved requests vs total completed (approved + rejected)</li>
+    <li><strong>Overdue Count</strong> - Number of requests that have been escalated or expired</li>
+    <li><strong>Recent Activity</strong> - Count of approval actions in the last 24 hours</li>
+</ul>
+
+<h6>Configuration:</h6>
+<ul>
+    <li><strong>Refresh Interval</strong> - Auto-refresh interval in seconds (minimum 10, default 60). Set to 0 to disable.</li>
+</ul>
+
+<h6>Access Control:</h6>
+<p>
+    This component requires Manager or Administrator role to view the metrics.
+    Users without the appropriate role will see an access denied message.
+</p>
+
+<script>
+    console.log("approval dashboard HELP script ran");
+</script>
