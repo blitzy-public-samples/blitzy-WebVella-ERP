@@ -12,7 +12,6 @@ using WebVella.Erp.Exceptions;
 using WebVella.Erp.Web;
 using WebVella.Erp.Web.Models;
 using WebVella.Erp.Web.Services;
-using WebVella.Erp.Web.Utils;
 
 namespace WebVella.Erp.Plugins.Approval.Components
 {
@@ -168,7 +167,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                     }
 
                     // Set the site root URL for link generation
-                    ViewBag.SiteRootUrl = UrlUtils.FullyQualifiedApplicationPath(httpContext);
+                    ViewBag.SiteRootUrl = GetFullyQualifiedApplicationPath(httpContext);
 
                     // Build the EQL query based on options
                     var records = new List<EntityRecord>();
@@ -583,6 +582,23 @@ namespace WebVella.Erp.Plugins.Approval.Components
             pager["show_last_ellipsis"] = endPage < totalPages;
 
             return pager;
+        }
+
+        /// <summary>
+        /// Gets the fully qualified application path including scheme and host.
+        /// </summary>
+        /// <param name="context">The HTTP context.</param>
+        /// <returns>The fully qualified application path or empty string if context is null.</returns>
+        private string GetFullyQualifiedApplicationPath(HttpContext context)
+        {
+            if (context == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Format("{0}://{1}",
+                context.Request.Scheme,
+                context.Request.Host);
         }
     }
 }
