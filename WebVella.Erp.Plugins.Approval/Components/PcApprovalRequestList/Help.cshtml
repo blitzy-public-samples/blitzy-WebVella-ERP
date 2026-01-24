@@ -1,0 +1,47 @@
+@*
+    Help documentation view for PcApprovalRequestList component.
+    Provides static help text explaining the component's purpose for displaying and filtering pending approval requests.
+*@
+
+<div class="help-content">
+    <h5><i class="fas fa-list-alt me-2"></i>Approval Request List Component</h5>
+    
+    <p>
+        The <strong>Approval Request List</strong> component displays a filterable, paginated list of pending approval requests 
+        within your workflow system. It allows users to view and manage approval tasks assigned to them or their teams.
+    </p>
+
+    <h6 class="mt-3">Purpose</h6>
+    <p>
+        This component is designed to show all approval requests that require action. Users can quickly identify 
+        pending items, view request details, and navigate to take approval actions (approve, reject, or delegate).
+    </p>
+
+    <h6 class="mt-3">Configuration Options</h6>
+    <ul>
+        <li><strong>Status Filter:</strong> Filter requests by their current status (pending, approved, rejected, escalated, expired).</li>
+        <li><strong>Page Size:</strong> Configure the number of requests displayed per page (default: 10).</li>
+        <li><strong>Show My Requests Only:</strong> When enabled, displays only requests where the current user is the designated approver.</li>
+        <li><strong>Auto Refresh:</strong> When enabled, the list automatically refreshes to show the latest requests.</li>
+    </ul>
+
+    <h6 class="mt-3">Displayed Information</h6>
+    <p>For each approval request, the component displays:</p>
+    <ul>
+        <li>Workflow name and source entity type</li>
+        <li>Current status with visual badge indicators</li>
+        <li>Requester information and submission date</li>
+        <li>Current approval step</li>
+        <li>Action links to view details and perform approval actions</li>
+    </ul>
+
+    <h6 class="mt-3">Usage</h6>
+    <p>
+        Add this component to any page where users need to manage their approval queue. 
+        The component integrates with the Approval Workflow REST API to retrieve and display request data.
+    </p>
+</div>
+
+<script>
+    console.log("PcApprovalRequestList HELP view script loaded");
+</script>
