@@ -1,0 +1,467 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalAction component
+    Renders approve, reject, and delegate action buttons with Bootstrap modals
+    for capturing comments before each approval action is submitted via AJAX.
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using System
+@using System.Collections.Generic
+@{
+    // Cast ViewBag data to appropriate types
+    var options = (PcApprovalAction.PcApprovalActionOptions)ViewBag.Options;
+    var requestId = ViewBag.RequestId != null ? (Guid)ViewBag.RequestId : Guid.Empty;
+    var request = ViewBag.Request as EntityRecord;
+    var canApprove = ViewBag.CanApprove != null ? (bool)ViewBag.CanApprove : false;
+    var delegateUsers = ViewBag.DelegateUsers as List<EntityRecord> ?? new List<EntityRecord>();
+    
+    // Determine the current status of the request
+    var status = "unknown";
+    if (request != null && request["status"] != null)
+    {
+        status = request["status"].ToString().ToLower();
+    }
+    
+    // Only show action buttons if status is 'pending' and user can approve
+    var isPending = status == "pending";
+    var showButtons = isPending && canApprove;
+    
+    // Generate unique modal IDs to avoid conflicts when multiple components on same page
+    var uniqueId = Guid.NewGuid().ToString("N").Substring(0, 8);
+    var approveModalId = $"approveModal_{uniqueId}";
+    var rejectModalId = $"rejectModal_{uniqueId}";
+    var delegateModalId = $"delegateModal_{uniqueId}";
+}
+
+<div class="approval-actions" data-request-id="@requestId">
+    @if (requestId == Guid.Empty)
+    {
+        <!-- No request ID configured or found -->
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            No approval request is currently associated with this component.
+        </div>
+    }
+    else if (!isPending)
+    {
+        <!-- Request is not in pending status - show informative message -->
+        <div class="alert alert-info" role="alert">
+            @switch (status)
+            {
+                case "approved":
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <span>This request has been <strong>approved</strong>.</span>
+                    break;
+                case "rejected":
+                    <i class="fas fa-times-circle text-danger me-2"></i>
+                    <span>This request has been <strong>rejected</strong>.</span>
+                    break;
+                case "escalated":
+                    <i class="fas fa-level-up-alt text-warning me-2"></i>
+                    <span>This request has been <strong>escalated</strong>.</span>
+                    break;
+                case "expired":
+                    <i class="fas fa-clock text-secondary me-2"></i>
+                    <span>This request has <strong>expired</strong>.</span>
+                    break;
+                default:
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span>Status: <strong>@status</strong></span>
+                    break;
+            }
+        </div>
+    }
+    else if (!canApprove)
+    {
+        <!-- User is not authorized to approve this request -->
+        <div class="alert alert-secondary" role="alert">
+            <i class="fas fa-lock me-2"></i>
+            You are not authorized to approve, reject, or delegate this request.
+        </div>
+    }
+    else
+    {
+        <!-- Render action buttons for pending requests when user can approve -->
+        <div class="btn-group" role="group" aria-label="Approval Actions">
+            @if (options.ShowApprove)
+            {
+                <button type="button" class="btn btn-success btn-approve" 
+                        data-bs-toggle="modal" data-bs-target="#@approveModalId"
+                        title="Approve this request">
+                    <i class="fas fa-check me-1"></i> Approve
+                </button>
+            }
+            @if (options.ShowReject)
+            {
+                <button type="button" class="btn btn-danger btn-reject" 
+                        data-bs-toggle="modal" data-bs-target="#@rejectModalId"
+                        title="Reject this request">
+                    <i class="fas fa-times me-1"></i> Reject
+                </button>
+            }
+            @if (options.ShowDelegate)
+            {
+                <button type="button" class="btn btn-primary btn-delegate" 
+                        data-bs-toggle="modal" data-bs-target="#@delegateModalId"
+                        title="Delegate this request to another user">
+                    <i class="fas fa-share me-1"></i> Delegate
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@if (showButtons)
+{
+    <!-- Bootstrap Modal for Approve Action -->
+    @if (options.ShowApprove)
+    {
+        <div class="modal fade" id="@approveModalId" tabindex="-1" aria-labelledby="@(approveModalId)Label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="@(approveModalId)Label">
+                            <i class="fas fa-check-circle me-2"></i>Approve Request
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            You are about to approve this request. This action will advance the request to the next approval step, 
+                            or mark it as fully approved if this is the final step.
+                        </p>
+                        <div class="mb-3">
+                            <label for="@(approveModalId)_comments" class="form-label">Comments (Optional)</label>
+                            <textarea class="form-control approve-comments" id="@(approveModalId)_comments" 
+                                      rows="3" placeholder="Enter any comments about your approval decision..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success confirm-approve" data-request-id="@requestId" data-modal-id="@approveModalId">
+                            <i class="fas fa-check me-1"></i>Confirm Approval
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Bootstrap Modal for Reject Action -->
+    @if (options.ShowReject)
+    {
+        <div class="modal fade" id="@rejectModalId" tabindex="-1" aria-labelledby="@(rejectModalId)Label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="@(rejectModalId)Label">
+                            <i class="fas fa-times-circle me-2"></i>Reject Request
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            You are about to reject this request. Please provide a reason for the rejection.
+                        </p>
+                        <div class="mb-3">
+                            <label for="@(rejectModalId)_reason" class="form-label">
+                                Reason for Rejection <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control reject-reason" id="@(rejectModalId)_reason" 
+                                      rows="3" placeholder="Enter the reason for rejecting this request..." required></textarea>
+                            <div class="invalid-feedback">
+                                Please provide a reason for rejection.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="@(rejectModalId)_comments" class="form-label">Additional Comments (Optional)</label>
+                            <textarea class="form-control reject-comments" id="@(rejectModalId)_comments" 
+                                      rows="2" placeholder="Enter any additional comments..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-danger confirm-reject" data-request-id="@requestId" data-modal-id="@rejectModalId">
+                            <i class="fas fa-ban me-1"></i>Confirm Rejection
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Bootstrap Modal for Delegate Action -->
+    @if (options.ShowDelegate)
+    {
+        <div class="modal fade" id="@delegateModalId" tabindex="-1" aria-labelledby="@(delegateModalId)Label" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="@(delegateModalId)Label">
+                            <i class="fas fa-share me-2"></i>Delegate Request
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">
+                            Delegate this approval request to another user. The selected user will be responsible 
+                            for reviewing and taking action on this request.
+                        </p>
+                        <div class="mb-3">
+                            <label for="@(delegateModalId)_user" class="form-label">
+                                Delegate To <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select delegate-user" id="@(delegateModalId)_user" required>
+                                <option value="">-- Select a user --</option>
+                                @foreach (var user in delegateUsers)
+                                {
+                                    var userId = user["id"] != null ? user["id"].ToString() : "";
+                                    var userName = user["username"] != null ? user["username"].ToString() : "";
+                                    var fullName = "";
+                                    if (user["first_name"] != null || user["last_name"] != null)
+                                    {
+                                        var firstName = user["first_name"]?.ToString() ?? "";
+                                        var lastName = user["last_name"]?.ToString() ?? "";
+                                        fullName = $"{firstName} {lastName}".Trim();
+                                    }
+                                    var displayName = !string.IsNullOrEmpty(fullName) ? $"{fullName} ({userName})" : userName;
+                                    <option value="@userId">@displayName</option>
+                                }
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select a user to delegate to.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="@(delegateModalId)_comments" class="form-label">Comments (Optional)</label>
+                            <textarea class="form-control delegate-comments" id="@(delegateModalId)_comments" 
+                                      rows="3" placeholder="Enter any comments or instructions for the delegate..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-primary confirm-delegate" data-request-id="@requestId" data-modal-id="@delegateModalId">
+                            <i class="fas fa-paper-plane me-1"></i>Confirm Delegation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Inline script to initialize service.js functionality -->
+    <script>
+        (function () {
+            'use strict';
+
+            // Wait for DOM and service.js to be ready
+            document.addEventListener('DOMContentLoaded', function () {
+                // Find the approval actions container for this component instance
+                var container = document.querySelector('[data-request-id="@requestId"]');
+                if (!container) return;
+
+                var requestId = '@requestId';
+
+                // Bind Approve confirmation button
+                var approveBtn = document.querySelector('#@approveModalId .confirm-approve');
+                if (approveBtn) {
+                    approveBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var commentsTextarea = document.querySelector('#@(approveModalId)_comments');
+                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+                        
+                        // Call the global approveRequest function from service.js
+                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.approveRequest === 'function') {
+                            window.WvApprovalAction.approveRequest(requestId, comments, '@approveModalId');
+                        } else {
+                            // Fallback inline AJAX call
+                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/approve', 
+                                { comments: comments }, '@approveModalId', 'Request approved successfully!');
+                        }
+                    });
+                }
+
+                // Bind Reject confirmation button
+                var rejectBtn = document.querySelector('#@rejectModalId .confirm-reject');
+                if (rejectBtn) {
+                    rejectBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var reasonTextarea = document.querySelector('#@(rejectModalId)_reason');
+                        var commentsTextarea = document.querySelector('#@(rejectModalId)_comments');
+                        var reason = reasonTextarea ? reasonTextarea.value.trim() : '';
+                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+                        
+                        // Validate required reason field
+                        if (!reason) {
+                            reasonTextarea.classList.add('is-invalid');
+                            reasonTextarea.focus();
+                            return;
+                        }
+                        reasonTextarea.classList.remove('is-invalid');
+                        
+                        // Call the global rejectRequest function from service.js
+                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.rejectRequest === 'function') {
+                            window.WvApprovalAction.rejectRequest(requestId, reason, comments, '@rejectModalId');
+                        } else {
+                            // Fallback inline AJAX call
+                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/reject', 
+                                { reason: reason, comments: comments }, '@rejectModalId', 'Request rejected.');
+                        }
+                    });
+                }
+
+                // Bind Delegate confirmation button
+                var delegateBtn = document.querySelector('#@delegateModalId .confirm-delegate');
+                if (delegateBtn) {
+                    delegateBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var userSelect = document.querySelector('#@(delegateModalId)_user');
+                        var commentsTextarea = document.querySelector('#@(delegateModalId)_comments');
+                        var delegateToUserId = userSelect ? userSelect.value : '';
+                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+                        
+                        // Validate required user selection
+                        if (!delegateToUserId) {
+                            userSelect.classList.add('is-invalid');
+                            userSelect.focus();
+                            return;
+                        }
+                        userSelect.classList.remove('is-invalid');
+                        
+                        // Call the global delegateRequest function from service.js
+                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.delegateRequest === 'function') {
+                            window.WvApprovalAction.delegateRequest(requestId, delegateToUserId, comments, '@delegateModalId');
+                        } else {
+                            // Fallback inline AJAX call
+                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/delegate', 
+                                { delegateToUserId: delegateToUserId, comments: comments }, '@delegateModalId', 'Request delegated successfully!');
+                        }
+                    });
+                }
+
+                // Clear validation state when modal is hidden
+                var modals = document.querySelectorAll('.modal');
+                modals.forEach(function(modal) {
+                    modal.addEventListener('hidden.bs.modal', function() {
+                        var invalidElements = modal.querySelectorAll('.is-invalid');
+                        invalidElements.forEach(function(el) {
+                            el.classList.remove('is-invalid');
+                        });
+                    });
+                });
+            });
+
+            // Fallback AJAX function if service.js is not loaded
+            function performApprovalAction(url, data, modalId, successMessage) {
+                var btn = document.querySelector('#' + modalId + ' button[class*="confirm-"]');
+                var originalText = btn ? btn.innerHTML : '';
+                
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+                }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        return response.json().then(function(err) {
+                            throw new Error(err.message || 'An error occurred');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function(result) {
+                    // Close the modal
+                    var modalElement = document.getElementById(modalId);
+                    if (modalElement) {
+                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                    }
+                    
+                    // Show success message using toastr if available
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(successMessage);
+                    } else {
+                        alert(successMessage);
+                    }
+                    
+                    // Refresh the page to show updated status
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                })
+                .catch(function(error) {
+                    console.error('Approval action error:', error);
+                    
+                    // Show error message
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(error.message || 'An error occurred while processing your request.');
+                    } else {
+                        alert('Error: ' + (error.message || 'An error occurred while processing your request.'));
+                    }
+                    
+                    // Re-enable the button
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }
+                });
+            }
+        })();
+    </script>
+}
+
+<!-- Component Styles -->
+<style>
+    .approval-actions {
+        margin: 10px 0;
+    }
+    
+    .approval-actions .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .approval-actions .btn {
+        min-width: 100px;
+    }
+    
+    .approval-actions .alert {
+        margin-bottom: 0;
+    }
+    
+    /* Modal button loading state */
+    .modal .btn:disabled {
+        cursor: wait;
+    }
+    
+    /* Ensure modal backdrops are properly layered */
+    .modal-backdrop {
+        z-index: 1040;
+    }
+    
+    .modal {
+        z-index: 1050;
+    }
+</style>
