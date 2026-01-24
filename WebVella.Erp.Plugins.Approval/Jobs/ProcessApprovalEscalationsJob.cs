@@ -131,8 +131,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                             if (step == null)
                             {
                                 // Step not found - log warning and continue
-                                Log.Create(LogType.Warning, "ProcessApprovalEscalationsJob",
-                                    $"Approval step with ID '{currentStepId}' not found for request '{request.Id}'.");
+                                new Log().Create(LogType.Info, "ProcessApprovalEscalationsJob",
+                                    $"Approval step with ID '{currentStepId}' not found for request '{request.Id}'.", string.Empty);
                                 continue;
                             }
 
@@ -169,25 +169,23 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                         {
                             // Log error for this specific request but continue processing others
                             errorCount++;
-                            Log.Create(LogType.Error, "ProcessApprovalEscalationsJob",
-                                $"Error processing escalation for request '{request.Id}': {requestEx.Message}",
-                                requestEx.StackTrace);
+                            new Log().Create(LogType.Error, "ProcessApprovalEscalationsJob",
+                                $"Error processing escalation for request '{request.Id}'", requestEx);
                         }
                     }
 
                     // Log summary
                     if (escalatedCount > 0 || errorCount > 0)
                     {
-                        Log.Create(LogType.Info, "ProcessApprovalEscalationsJob",
-                            $"Escalation job completed. Processed: {processedCount}, Escalated: {escalatedCount}, Errors: {errorCount}");
+                        new Log().Create(LogType.Info, "ProcessApprovalEscalationsJob",
+                            $"Escalation job completed. Processed: {processedCount}, Escalated: {escalatedCount}, Errors: {errorCount}", string.Empty);
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log fatal error that prevented job execution
-                    Log.Create(LogType.Error, "ProcessApprovalEscalationsJob",
-                        $"Fatal error in escalation job: {ex.Message}",
-                        ex.StackTrace);
+                    new Log().Create(LogType.Error, "ProcessApprovalEscalationsJob", 
+                        "Fatal error in escalation job", ex);
                     throw;
                 }
             }
@@ -230,8 +228,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             }
             catch (Exception ex)
             {
-                Log.Create(LogType.Error, "ProcessApprovalEscalationsJob",
-                    $"Error loading approval step '{stepId}': {ex.Message}");
+                new Log().Create(LogType.Error, "ProcessApprovalEscalationsJob",
+                    $"Error loading approval step '{stepId}'", ex);
             }
 
             return null;
@@ -366,15 +364,15 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                 catch (Exception notifyEx)
                 {
                     // Log notification failure but don't fail the escalation
-                    Log.Create(LogType.Warning, "ProcessApprovalEscalationsJob",
-                        $"Failed to send escalation notification for request '{requestId}': {notifyEx.Message}");
+                    new Log().Create(LogType.Info, "ProcessApprovalEscalationsJob",
+                        $"Failed to send escalation notification for request '{requestId}'", notifyEx);
                 }
             }
             else
             {
                 // Log that no approver was configured for notification
-                Log.Create(LogType.Warning, "ProcessApprovalEscalationsJob",
-                    $"No approver configured for escalation notification on request '{requestId}'.");
+                new Log().Create(LogType.Info, "ProcessApprovalEscalationsJob",
+                    $"No approver configured for escalation notification on request '{requestId}'.", string.Empty);
             }
         }
 
