@@ -6,6 +6,11 @@
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 	</PropertyGroup>
 
+	<!-- Exclude ad-hoc test files and test project files from compilation -->
+	<ItemGroup>
+		<Compile Remove="blitzy_adhoc_test_*.cs" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>

@@ -196,7 +196,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                     {
                         httpContext = ErpRequestContext.PageContext.HttpContext;
                     }
-                    ViewBag.SiteRootUrl = UrlUtils.FullyQualifiedApplicationPath(httpContext);
+                    ViewBag.SiteRootUrl = GetFullyQualifiedApplicationPath(httpContext);
 
                     // Only load workflows for Display mode (Design mode shows preview with mock data)
                     if (context.Mode == ComponentMode.Display)
@@ -277,6 +277,29 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 };
                 return await Task.FromResult<IViewComponentResult>(View("Error"));
             }
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// Builds the fully qualified application URL from the HTTP context.
+        /// </summary>
+        /// <param name="context">The HTTP context containing request information.</param>
+        /// <returns>
+        /// The fully qualified application URL (scheme + host), or empty string if context is null.
+        /// </returns>
+        private string GetFullyQualifiedApplicationPath(HttpContext context)
+        {
+            if (context == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Format("{0}://{1}",
+                context.Request.Scheme,
+                context.Request.Host);
         }
 
         #endregion
