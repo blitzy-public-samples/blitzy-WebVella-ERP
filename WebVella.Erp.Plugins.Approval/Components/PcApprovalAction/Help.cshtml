@@ -1,61 +1,63 @@
 @*
     Help.cshtml - Help documentation view for PcApprovalAction component
+    Provides user documentation about the approval action buttons component
 *@
-<div class="help-content">
-    <h4>Approval Action Component</h4>
+
+<h4>Approval Action Component</h4>
+
+<p>
+    This component renders <strong>approve</strong>, <strong>reject</strong>, and <strong>delegate</strong> 
+    buttons for processing approval requests. These action buttons allow authorized approvers to take 
+    action on pending approval requests within a workflow.
+</p>
+
+<h5>How It Works</h5>
+<p>
+    Clicking each button opens a modal dialog for entering comments before submitting the action. 
+    This ensures that all approval decisions are documented with appropriate context.
+</p>
+
+<h5>Available Actions</h5>
+<dl>
+    <dt><strong>Approve</strong></dt>
+    <dd>
+        Advances the request to the next step in the approval workflow. If this is the final step, 
+        the request is marked as fully approved and the workflow completes successfully.
+    </dd>
     
-    <p>
-        This component renders approve, reject, and delegate buttons for processing approval requests.
-        Each button opens a modal dialog for entering comments before submitting the action.
-    </p>
+    <dt><strong>Reject</strong></dt>
+    <dd>
+        Marks the request as rejected. A reason for rejection is required in the comments field. 
+        Once rejected, the workflow terminates and the source record's approval status is updated accordingly.
+    </dd>
     
-    <h5>Actions</h5>
-    <ul>
-        <li>
-            <strong>Approve</strong>: Advances the request to the next approval step, or marks the request as 
-            fully approved if this is the final step in the workflow.
-        </li>
-        <li>
-            <strong>Reject</strong>: Marks the request as rejected. A reason for rejection is required.
-        </li>
-        <li>
-            <strong>Delegate</strong>: Allows reassigning the approval request to another user who will then 
-            be responsible for taking action.
-        </li>
-    </ul>
-    
-    <h5>Configuration Options</h5>
-    <ul>
-        <li>
-            <strong>Request ID</strong>: Data source binding for the approval request ID. Use a data source 
-            expression like <code>{{"{{Record.id}}"}}</code> to bind to a record property.
-        </li>
-        <li>
-            <strong>Show Approve Button</strong>: Toggle visibility of the approve button.
-        </li>
-        <li>
-            <strong>Show Reject Button</strong>: Toggle visibility of the reject button.
-        </li>
-        <li>
-            <strong>Show Delegate Button</strong>: Toggle visibility of the delegate button.
-        </li>
-    </ul>
-    
-    <h5>Behavior</h5>
-    <p>
-        Action buttons are only enabled when:
-    </p>
-    <ul>
-        <li>The request status is "pending"</li>
-        <li>The current user is an authorized approver for the current workflow step</li>
-    </ul>
-    <p>
-        When the request is in any other status (approved, rejected, escalated, expired), 
-        an informative message is displayed instead of the action buttons.
-    </p>
-</div>
+    <dt><strong>Delegate</strong></dt>
+    <dd>
+        Allows reassigning the approval request to another user. The delegatee becomes responsible 
+        for taking the approval action. This is useful when the original approver is unavailable 
+        or when the request requires input from someone with different expertise.
+    </dd>
+</dl>
+
+<h5>Configuration Options</h5>
+<dl>
+    <dt><code>request_id</code></dt>
+    <dd>
+        <strong>Required.</strong> Data source binding for the approval request ID. Use a data source 
+        expression like <code>{{Record.id}}</code> to bind to a record property from the page context. 
+        This identifies which approval request the action buttons will operate on.
+    </dd>
+</dl>
+
+<h5>Usage Notes</h5>
+<ul>
+    <li>Action buttons are only enabled when the request status is "pending".</li>
+    <li>The current user must be an authorized approver for the current workflow step to see enabled buttons.</li>
+    <li>All actions are recorded in the approval history for audit purposes.</li>
+    <li>Email notifications are sent to relevant parties when actions are taken.</li>
+</ul>
+
 
 <script>
-    // Help view initialization
-    console.log('PcApprovalAction Help loaded');
+	console.log("html block HELP script ran");
 </script>
