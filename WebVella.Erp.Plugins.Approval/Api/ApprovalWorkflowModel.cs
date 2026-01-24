@@ -63,6 +63,20 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// This is a foreign key reference to the user entity.
         /// </summary>
         [JsonProperty(PropertyName = "created_by")]
-        public Guid CreatedBy { get; set; }
+        public Guid? CreatedBy { get; set; }
+
+        /// <summary>
+        /// Gets or sets the count of approval steps configured for this workflow.
+        /// This is a calculated field populated during retrieval, not stored in the database.
+        /// </summary>
+        [JsonProperty(PropertyName = "steps_count")]
+        public int StepsCount { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the count of approval rules configured for this workflow.
+        /// This is a calculated field populated during retrieval, not stored in the database.
+        /// </summary>
+        [JsonProperty(PropertyName = "rules_count")]
+        public int RulesCount { get; set; } = 0;
     }
 }

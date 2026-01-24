@@ -1,0 +1,76 @@
+@*
+    Options.cshtml - Configuration panel for PcApprovalWorkflowConfig component
+    
+    Allows administrators to configure the component display options:
+    - Show inactive (disabled) workflows
+    - Page size for pagination
+    - Filter by target entity
+    
+    STORY-008: UI components must support Options render mode
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    var options = (PcApprovalWorkflowConfig.PcApprovalWorkflowConfigOptions)ViewBag.Options;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+
+@* Options configuration panel for PcApprovalWorkflowConfig component *@
+@* Configures display settings and filtering options for workflow list *@
+
+<wv-row>
+    <wv-column span="12">
+        <div class="form-group">
+            <div class="custom-control custom-checkbox">
+                <input type="checkbox" 
+                       class="custom-control-input" 
+                       id="show_inactive" 
+                       name="show_inactive"
+                       @(options.ShowInactive ? "checked" : "")>
+                <label class="custom-control-label" for="show_inactive">
+                    Show Inactive Workflows
+                </label>
+            </div>
+            <small class="form-text text-muted">
+                When enabled, the component will display both active and disabled workflows.
+                By default, only active (enabled) workflows are shown.
+            </small>
+        </div>
+    </wv-column>
+</wv-row>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-number name="page_size" 
+                         value="@options.PageSize" 
+                         label-text="Page Size" 
+                         min="5" 
+                         max="100" 
+                         decimal-digits="0">
+        </wv-field-number>
+        <small class="form-text text-muted">
+            Number of workflows to display per page. Valid range is 5 to 100.
+            Default is 10 workflows per page.
+        </small>
+    </wv-column>
+</wv-row>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-text name="filter_by_entity" 
+                       value="@options.FilterByEntity" 
+                       label-text="Filter by Target Entity">
+        </wv-field-text>
+        <small class="form-text text-muted">
+            Optional: Enter an entity name to filter the workflow list.
+            Only workflows targeting this entity will be displayed.
+            Leave empty to show all workflows.
+            Example: <code>purchase_order</code> or <code>expense_request</code>
+        </small>
+    </wv-column>
+</wv-row>

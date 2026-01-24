@@ -1,0 +1,60 @@
+@*
+    Help.cshtml - Documentation view for PcApprovalWorkflowConfig component
+    
+    Provides usage instructions, configuration options, and integration guidance
+    for the approval workflow configuration component.
+    
+    STORY-008: Components must provide user documentation
+*@
+<h5>Approval Workflow Configuration</h5>
+<p>
+    The Approval Workflow Configuration component provides an administrative interface for
+    managing approval workflow definitions. It allows you to create, edit, delete, and
+    enable/disable workflows that control how records flow through the approval process.
+</p>
+
+<h6>Features:</h6>
+<ul>
+    <li><strong>Workflow Management</strong> - Create, update, and delete approval workflow definitions</li>
+    <li><strong>Enable/Disable</strong> - Toggle workflows on or off without deleting them</li>
+    <li><strong>Target Entity</strong> - Configure which entity type triggers each workflow</li>
+    <li><strong>Step Configuration</strong> - Link to configure approval steps for each workflow</li>
+    <li><strong>Rule Configuration</strong> - Link to configure routing rules for conditional approvals</li>
+</ul>
+
+<h6>Workflow Properties:</h6>
+<ul>
+    <li><strong>Name</strong> - A descriptive name for the workflow (max 256 characters)</li>
+    <li><strong>Target Entity</strong> - The entity name that triggers this workflow (e.g., purchase_order, expense_request)</li>
+    <li><strong>Status</strong> - Whether the workflow is enabled or disabled</li>
+    <li><strong>Steps Count</strong> - Number of approval steps configured</li>
+    <li><strong>Rules Count</strong> - Number of routing rules configured</li>
+</ul>
+
+<h6>Configuration Options:</h6>
+<ul>
+    <li><strong>Show Inactive</strong> - When enabled, displays disabled workflows in addition to active ones</li>
+    <li><strong>Page Size</strong> - Number of workflows to display per page (5-100, default 10)</li>
+    <li><strong>Filter by Entity</strong> - Optionally filter workflows by target entity name</li>
+</ul>
+
+<h6>Usage:</h6>
+<ol>
+    <li>Click <strong>Add Workflow</strong> to create a new workflow definition</li>
+    <li>Enter the workflow name and target entity name</li>
+    <li>Toggle the enabled status as needed</li>
+    <li>Use the action buttons to edit, configure steps, configure rules, or delete workflows</li>
+</ol>
+
+<h6>API Endpoints:</h6>
+<p>This component communicates with the following REST API endpoints:</p>
+<ul>
+    <li><code>GET /api/v3.0/p/approval/workflow</code> - List all workflows</li>
+    <li><code>POST /api/v3.0/p/approval/workflow</code> - Create a new workflow</li>
+    <li><code>PUT /api/v3.0/p/approval/workflow/{id}</code> - Update an existing workflow</li>
+    <li><code>DELETE /api/v3.0/p/approval/workflow/{id}</code> - Delete a workflow</li>
+</ul>
+
+<script>
+    console.log("approval workflow config HELP script ran");
+</script>

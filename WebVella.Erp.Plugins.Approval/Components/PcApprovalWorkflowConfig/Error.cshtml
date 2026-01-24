@@ -1,0 +1,17 @@
+@*
+    Error.cshtml - Error display view for PcApprovalWorkflowConfig component
+    
+    Displays validation errors and exception messages using the WebVella
+    wv-validation tag helper.
+    
+    STORY-008: Error views MUST display ValidationException messages
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Exceptions;
+@{
+    var validation = (ValidationException)ViewBag.Error;
+}
+<wv-validation errors="@validation.ToErrorList()" message="@validation.Message"></wv-validation>
