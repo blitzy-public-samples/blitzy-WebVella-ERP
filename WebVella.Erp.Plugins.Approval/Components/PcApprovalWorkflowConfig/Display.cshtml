@@ -1,0 +1,641 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalWorkflowConfig component
+    
+    Provides the administrative interface for managing approval workflow definitions.
+    Features:
+    - Workflow list table with CRUD operations
+    - Enable/disable workflow toggles
+    - Links to step and rule configuration
+    - Create/Edit modal form
+    - Delete confirmation modal
+    
+    STORY-008: PcApprovalWorkflowConfig component must provide runtime display for CRUD workflow operations
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using Newtonsoft.Json
+@{
+    // Cast ViewBag values to strongly-typed variables
+    var options = (PcApprovalWorkflowConfig.PcApprovalWorkflowConfigOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+    var componentMeta = ViewBag.ComponentMeta;
+    var workflowsJson = (string)ViewBag.WorkflowsJson ?? "[]";
+    var currentUserJson = (string)ViewBag.CurrentUserJson ?? "{}";
+    
+    // Generate unique component instance ID for JavaScript binding
+    var componentId = "wv-approval-workflow-config-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+}
+
+<div id="@componentId" class="wv-approval-workflow-config" data-workflows='@workflowsJson'>
+    @* ================== HEADER SECTION ================== *@
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-cogs mr-2"></i>Approval Workflow Configuration
+            </h5>
+            <button type="button" class="btn btn-sm btn-success" 
+                    data-toggle="modal" 
+                    data-target="#@(componentId)-workflow-modal"
+                    onclick="window.WvApprovalWorkflowConfig.openCreateModal('@componentId')">
+                <i class="fas fa-plus mr-1"></i>Add Workflow
+            </button>
+        </div>
+        
+        <div class="card-body p-0">
+            @* ================== WORKFLOW TABLE ================== *@
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0" id="@(componentId)-table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Target Entity</th>
+                            <th scope="col" class="text-center" style="width: 100px;">Status</th>
+                            <th scope="col" class="text-center" style="width: 80px;">Steps</th>
+                            <th scope="col" class="text-center" style="width: 80px;">Rules</th>
+                            <th scope="col" style="width: 140px;">Created On</th>
+                            <th scope="col" class="text-center" style="width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="@(componentId)-tbody">
+                        @* Workflow rows will be populated via JavaScript from workflowsJson *@
+                    </tbody>
+                </table>
+            </div>
+            
+            @* ================== EMPTY STATE ================== *@
+            <div id="@(componentId)-empty" class="alert alert-info m-3" style="display: none;">
+                <i class="fas fa-info-circle mr-2"></i>
+                No approval workflows configured. Click <strong>Add Workflow</strong> to create your first workflow.
+            </div>
+        </div>
+    </div>
+    
+    @* ================== CREATE/EDIT WORKFLOW MODAL ================== *@
+    <div class="modal fade" id="@(componentId)-workflow-modal" tabindex="-1" role="dialog" 
+         aria-labelledby="@(componentId)-workflow-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="@(componentId)-workflow-modal-label">
+                        <i class="fas fa-cogs mr-2"></i>
+                        <span id="@(componentId)-modal-title">Create Workflow</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="@(componentId)-workflow-form" onsubmit="return window.WvApprovalWorkflowConfig.saveWorkflow('@componentId', event)">
+                    <div class="modal-body">
+                        @* Hidden field for workflow ID (used during edit) *@
+                        <input type="hidden" id="@(componentId)-workflow-id" name="id" value="">
+                        
+                        @* Workflow Name Field *@
+                        <div class="form-group">
+                            <label for="@(componentId)-workflow-name" class="font-weight-bold">
+                                Workflow Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="@(componentId)-workflow-name" 
+                                   name="name" 
+                                   placeholder="Enter workflow name (e.g., Purchase Order Approval)"
+                                   maxlength="256"
+                                   required>
+                            <small class="form-text text-muted">
+                                A descriptive name for this approval workflow. Maximum 256 characters.
+                            </small>
+                        </div>
+                        
+                        @* Target Entity Name Field *@
+                        <div class="form-group">
+                            <label for="@(componentId)-target-entity" class="font-weight-bold">
+                                Target Entity <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="@(componentId)-target-entity" 
+                                   name="target_entity_name" 
+                                   placeholder="Enter entity name (e.g., purchase_order)"
+                                   maxlength="128"
+                                   required>
+                            <small class="form-text text-muted">
+                                The system name of the entity that will trigger this approval workflow. Maximum 128 characters.
+                            </small>
+                        </div>
+                        
+                        @* Is Enabled Checkbox *@
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" 
+                                       class="custom-control-input" 
+                                       id="@(componentId)-is-enabled" 
+                                       name="is_enabled"
+                                       checked>
+                                <label class="custom-control-label font-weight-bold" for="@(componentId)-is-enabled">
+                                    Workflow Enabled
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                When enabled, this workflow will automatically trigger for new records of the target entity.
+                            </small>
+                        </div>
+                        
+                        @* Validation Error Display *@
+                        <div id="@(componentId)-form-errors" class="alert alert-danger" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="@(componentId)-save-btn">
+                            <i class="fas fa-save mr-1"></i>
+                            <span id="@(componentId)-save-btn-text">Create Workflow</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    @* ================== DELETE CONFIRMATION MODAL ================== *@
+    <div class="modal fade" id="@(componentId)-delete-modal" tabindex="-1" role="dialog" 
+         aria-labelledby="@(componentId)-delete-modal-label" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="@(componentId)-delete-modal-label">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>Confirm Delete
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="@(componentId)-delete-workflow-id" value="">
+                    <p class="mb-0">
+                        Are you sure you want to delete the workflow 
+                        <strong id="@(componentId)-delete-workflow-name"></strong>?
+                    </p>
+                    <p class="text-danger mt-2 mb-0">
+                        <i class="fas fa-warning mr-1"></i>
+                        This action cannot be undone. All associated steps, rules, and pending approval requests will be affected.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" 
+                            onclick="window.WvApprovalWorkflowConfig.confirmDelete('@componentId')">
+                        <i class="fas fa-trash mr-1"></i>Delete Workflow
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ================== COMPONENT JAVASCRIPT ================== *@
+<script>
+(function() {
+    'use strict';
+    
+    // Create global namespace for approval workflow config if not exists
+    window.WvApprovalWorkflowConfig = window.WvApprovalWorkflowConfig || {};
+    
+    // API base URL for approval workflows
+    var API_BASE_URL = '/api/v3.0/p/approval/workflow';
+    
+    /**
+     * Initialize the workflow config component
+     * @@param {string} componentId - The unique component instance ID
+     */
+    window.WvApprovalWorkflowConfig.init = function(componentId) {
+        var container = document.getElementById(componentId);
+        if (!container) {
+            console.error('WvApprovalWorkflowConfig: Container not found:', componentId);
+            return;
+        }
+        
+        // Parse workflows from data attribute
+        var workflowsJson = container.getAttribute('data-workflows') || '[]';
+        var workflows = [];
+        try {
+            workflows = JSON.parse(workflowsJson);
+        } catch (e) {
+            console.error('WvApprovalWorkflowConfig: Failed to parse workflows JSON:', e);
+            workflows = [];
+        }
+        
+        // Store workflows in container for later access
+        container._workflows = workflows;
+        
+        // Render the workflow table
+        renderWorkflowTable(componentId, workflows);
+    };
+    
+    /**
+     * Render the workflow table body
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {Array} workflows - Array of workflow objects
+     */
+    function renderWorkflowTable(componentId, workflows) {
+        var tbody = document.getElementById(componentId + '-tbody');
+        var emptyDiv = document.getElementById(componentId + '-empty');
+        
+        if (!tbody) return;
+        
+        // Clear existing rows
+        tbody.innerHTML = '';
+        
+        // Show/hide empty state
+        if (!workflows || workflows.length === 0) {
+            emptyDiv.style.display = 'block';
+            return;
+        }
+        emptyDiv.style.display = 'none';
+        
+        // Render each workflow row
+        workflows.forEach(function(workflow) {
+            var row = document.createElement('tr');
+            row.setAttribute('data-workflow-id', workflow.id);
+            
+            // Status badge class and text
+            var statusBadgeClass = workflow.is_enabled ? 'badge-success' : 'badge-secondary';
+            var statusText = workflow.is_enabled ? 'Enabled' : 'Disabled';
+            
+            // Format created date
+            var createdOn = workflow.created_on ? new Date(workflow.created_on).toLocaleDateString() : 'N/A';
+            
+            // Steps and rules count (these would come from the API if available)
+            var stepsCount = workflow.steps_count !== undefined ? workflow.steps_count : '-';
+            var rulesCount = workflow.rules_count !== undefined ? workflow.rules_count : '-';
+            
+            row.innerHTML = 
+                '<td class="align-middle">' +
+                    '<strong>' + escapeHtml(workflow.name) + '</strong>' +
+                '</td>' +
+                '<td class="align-middle">' +
+                    '<code>' + escapeHtml(workflow.target_entity_name) + '</code>' +
+                '</td>' +
+                '<td class="align-middle text-center">' +
+                    '<span class="badge ' + statusBadgeClass + '">' + statusText + '</span>' +
+                '</td>' +
+                '<td class="align-middle text-center">' +
+                    '<span class="badge badge-info">' + stepsCount + '</span>' +
+                '</td>' +
+                '<td class="align-middle text-center">' +
+                    '<span class="badge badge-info">' + rulesCount + '</span>' +
+                '</td>' +
+                '<td class="align-middle">' +
+                    '<small>' + createdOn + '</small>' +
+                '</td>' +
+                '<td class="align-middle text-center">' +
+                    '<div class="btn-group btn-group-sm" role="group">' +
+                        '<button type="button" class="btn btn-outline-primary" ' +
+                                'title="Edit Workflow" ' +
+                                'onclick="window.WvApprovalWorkflowConfig.openEditModal(\'' + componentId + '\', \'' + workflow.id + '\')">' +
+                            '<i class="fas fa-edit"></i>' +
+                        '</button>' +
+                        '<button type="button" class="btn btn-outline-' + (workflow.is_enabled ? 'warning' : 'success') + '" ' +
+                                'title="' + (workflow.is_enabled ? 'Disable' : 'Enable') + ' Workflow" ' +
+                                'onclick="window.WvApprovalWorkflowConfig.toggleStatus(\'' + componentId + '\', \'' + workflow.id + '\', ' + !workflow.is_enabled + ')">' +
+                            '<i class="fas fa-' + (workflow.is_enabled ? 'pause' : 'play') + '"></i>' +
+                        '</button>' +
+                        '<button type="button" class="btn btn-outline-info" ' +
+                                'title="Configure Steps" ' +
+                                'onclick="window.WvApprovalWorkflowConfig.configureSteps(\'' + workflow.id + '\')">' +
+                            '<i class="fas fa-list-ol"></i>' +
+                        '</button>' +
+                        '<button type="button" class="btn btn-outline-secondary" ' +
+                                'title="Configure Rules" ' +
+                                'onclick="window.WvApprovalWorkflowConfig.configureRules(\'' + workflow.id + '\')">' +
+                            '<i class="fas fa-filter"></i>' +
+                        '</button>' +
+                        '<button type="button" class="btn btn-outline-danger" ' +
+                                'title="Delete Workflow" ' +
+                                'onclick="window.WvApprovalWorkflowConfig.openDeleteModal(\'' + componentId + '\', \'' + workflow.id + '\', \'' + escapeHtml(workflow.name).replace(/'/g, "\\'") + '\')">' +
+                            '<i class="fas fa-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</td>';
+            
+            tbody.appendChild(row);
+        });
+    }
+    
+    /**
+     * Open the create workflow modal
+     * @@param {string} componentId - The unique component instance ID
+     */
+    window.WvApprovalWorkflowConfig.openCreateModal = function(componentId) {
+        // Reset form
+        var form = document.getElementById(componentId + '-workflow-form');
+        if (form) form.reset();
+        
+        // Clear hidden ID
+        document.getElementById(componentId + '-workflow-id').value = '';
+        
+        // Set modal title and button text
+        document.getElementById(componentId + '-modal-title').textContent = 'Create Workflow';
+        document.getElementById(componentId + '-save-btn-text').textContent = 'Create Workflow';
+        
+        // Reset checkbox to checked (default enabled)
+        document.getElementById(componentId + '-is-enabled').checked = true;
+        
+        // Hide error display
+        document.getElementById(componentId + '-form-errors').style.display = 'none';
+        
+        // Show modal using Bootstrap
+        $('#' + componentId + '-workflow-modal').modal('show');
+    };
+    
+    /**
+     * Open the edit workflow modal
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} workflowId - The workflow ID to edit
+     */
+    window.WvApprovalWorkflowConfig.openEditModal = function(componentId, workflowId) {
+        var container = document.getElementById(componentId);
+        var workflows = container._workflows || [];
+        
+        // Find the workflow
+        var workflow = workflows.find(function(w) { return w.id === workflowId; });
+        if (!workflow) {
+            toastr.error('Workflow not found');
+            return;
+        }
+        
+        // Populate form fields
+        document.getElementById(componentId + '-workflow-id').value = workflow.id;
+        document.getElementById(componentId + '-workflow-name').value = workflow.name || '';
+        document.getElementById(componentId + '-target-entity').value = workflow.target_entity_name || '';
+        document.getElementById(componentId + '-is-enabled').checked = workflow.is_enabled;
+        
+        // Set modal title and button text
+        document.getElementById(componentId + '-modal-title').textContent = 'Edit Workflow';
+        document.getElementById(componentId + '-save-btn-text').textContent = 'Save Changes';
+        
+        // Hide error display
+        document.getElementById(componentId + '-form-errors').style.display = 'none';
+        
+        // Show modal
+        $('#' + componentId + '-workflow-modal').modal('show');
+    };
+    
+    /**
+     * Save workflow (create or update)
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {Event} event - The form submit event
+     * @@returns {boolean} - Always returns false to prevent form submission
+     */
+    window.WvApprovalWorkflowConfig.saveWorkflow = function(componentId, event) {
+        event.preventDefault();
+        
+        var workflowId = document.getElementById(componentId + '-workflow-id').value;
+        var isEdit = !!workflowId;
+        
+        // Gather form data
+        var data = {
+            name: document.getElementById(componentId + '-workflow-name').value.trim(),
+            target_entity_name: document.getElementById(componentId + '-target-entity').value.trim(),
+            is_enabled: document.getElementById(componentId + '-is-enabled').checked
+        };
+        
+        // Validate
+        if (!data.name) {
+            showFormError(componentId, 'Workflow name is required.');
+            return false;
+        }
+        if (!data.target_entity_name) {
+            showFormError(componentId, 'Target entity name is required.');
+            return false;
+        }
+        
+        // Set up AJAX request
+        var url = isEdit ? API_BASE_URL + '/' + workflowId : API_BASE_URL;
+        var method = isEdit ? 'PUT' : 'POST';
+        
+        $.ajax({
+            url: url,
+            type: method,
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(isEdit ? 'Workflow updated successfully' : 'Workflow created successfully');
+                    $('#' + componentId + '-workflow-modal').modal('hide');
+                    // Reload workflows
+                    reloadWorkflows(componentId);
+                } else {
+                    showFormError(componentId, response.message || 'An error occurred while saving the workflow.');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'An error occurred while saving the workflow.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                showFormError(componentId, errorMsg);
+            }
+        });
+        
+        return false;
+    };
+    
+    /**
+     * Open the delete confirmation modal
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} workflowId - The workflow ID to delete
+     * @@param {string} workflowName - The workflow name for display
+     */
+    window.WvApprovalWorkflowConfig.openDeleteModal = function(componentId, workflowId, workflowName) {
+        document.getElementById(componentId + '-delete-workflow-id').value = workflowId;
+        document.getElementById(componentId + '-delete-workflow-name').textContent = workflowName;
+        $('#' + componentId + '-delete-modal').modal('show');
+    };
+    
+    /**
+     * Confirm and execute workflow deletion
+     * @@param {string} componentId - The unique component instance ID
+     */
+    window.WvApprovalWorkflowConfig.confirmDelete = function(componentId) {
+        var workflowId = document.getElementById(componentId + '-delete-workflow-id').value;
+        
+        if (!workflowId) {
+            toastr.error('No workflow selected for deletion');
+            return;
+        }
+        
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId,
+            type: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('Workflow deleted successfully');
+                    $('#' + componentId + '-delete-modal').modal('hide');
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'An error occurred while deleting the workflow.');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'An error occurred while deleting the workflow.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+    };
+    
+    /**
+     * Toggle workflow enabled/disabled status
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} workflowId - The workflow ID
+     * @@param {boolean} enabled - The new enabled state
+     */
+    window.WvApprovalWorkflowConfig.toggleStatus = function(componentId, workflowId, enabled) {
+        var container = document.getElementById(componentId);
+        var workflows = container._workflows || [];
+        
+        // Find the workflow
+        var workflow = workflows.find(function(w) { return w.id === workflowId; });
+        if (!workflow) {
+            toastr.error('Workflow not found');
+            return;
+        }
+        
+        // Update via API
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                name: workflow.name,
+                target_entity_name: workflow.target_entity_name,
+                is_enabled: enabled
+            }),
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('Workflow ' + (enabled ? 'enabled' : 'disabled') + ' successfully');
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'An error occurred while updating the workflow.');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'An error occurred while updating the workflow.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+    };
+    
+    /**
+     * Navigate to step configuration page
+     * @@param {string} workflowId - The workflow ID
+     */
+    window.WvApprovalWorkflowConfig.configureSteps = function(workflowId) {
+        // Navigate to step configuration page or open step config modal
+        toastr.info('Opening step configuration for workflow: ' + workflowId);
+        // Future: window.location.href = '/approval/workflow/' + workflowId + '/steps';
+    };
+    
+    /**
+     * Navigate to rule configuration page
+     * @@param {string} workflowId - The workflow ID
+     */
+    window.WvApprovalWorkflowConfig.configureRules = function(workflowId) {
+        // Navigate to rule configuration page or open rule config modal
+        toastr.info('Opening rule configuration for workflow: ' + workflowId);
+        // Future: window.location.href = '/approval/workflow/' + workflowId + '/rules';
+    };
+    
+    /**
+     * Reload workflows from API
+     * @@param {string} componentId - The unique component instance ID
+     */
+    function reloadWorkflows(componentId) {
+        $.ajax({
+            url: API_BASE_URL,
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.object) {
+                    var container = document.getElementById(componentId);
+                    container._workflows = response.object;
+                    renderWorkflowTable(componentId, response.object);
+                } else {
+                    toastr.error('Failed to reload workflows');
+                }
+            },
+            error: function() {
+                toastr.error('Failed to reload workflows');
+            }
+        });
+    }
+    
+    /**
+     * Show form validation error
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} message - The error message
+     */
+    function showFormError(componentId, message) {
+        var errorDiv = document.getElementById(componentId + '-form-errors');
+        errorDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-1"></i>' + escapeHtml(message);
+        errorDiv.style.display = 'block';
+    }
+    
+    /**
+     * Escape HTML special characters to prevent XSS
+     * @@param {string} text - The text to escape
+     * @@returns {string} - The escaped text
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        var map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // Initialize component on DOM ready
+    $(function() {
+        window.WvApprovalWorkflowConfig.init('@componentId');
+    });
+})();
+</script>
+
+<style>
+/* Scoped styles for approval workflow config component */
+.wv-approval-workflow-config .table th {
+    white-space: nowrap;
+    font-size: 0.875rem;
+}
+.wv-approval-workflow-config .table td {
+    vertical-align: middle;
+}
+.wv-approval-workflow-config .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+}
+.wv-approval-workflow-config code {
+    font-size: 0.875rem;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.2rem;
+}
+</style>
