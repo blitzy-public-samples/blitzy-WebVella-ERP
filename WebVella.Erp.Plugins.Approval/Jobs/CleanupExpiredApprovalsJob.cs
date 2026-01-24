@@ -139,7 +139,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                 // Log error querying expired requests
                 try
                 {
-                    Log.Create(LogType.Error, "CleanupExpiredApprovalsJob", ex);
+                    new Log().Create(LogType.Error, "CleanupExpiredApprovalsJob", ex);
                 }
                 catch
                 {
@@ -194,12 +194,12 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             catch (ArgumentException)
             {
                 // The 'expired' action may not be in the valid actions list
-                // Log a warning but don't fail the overall expiration process
+                // Log info (since Warning doesn't exist in WebVella LogType) but don't fail the overall expiration process
                 try
                 {
-                    Log.Create(LogType.Warning, "CleanupExpiredApprovalsJob", 
+                    new Log().Create(LogType.Info, "CleanupExpiredApprovalsJob", 
                         $"Could not log history for expired request {requestId}. " +
-                        "The 'expired' action may not be in the valid actions list.");
+                        "The 'expired' action may not be in the valid actions list.", string.Empty);
                 }
                 catch
                 {
@@ -211,8 +211,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                 // Log error but don't fail the expiration process
                 try
                 {
-                    Log.Create(LogType.Warning, "CleanupExpiredApprovalsJob", 
-                        $"Failed to log history for request {requestId}: {ex.Message}");
+                    new Log().Create(LogType.Info, "CleanupExpiredApprovalsJob", 
+                        $"Failed to log history for request {requestId}: {ex.Message}", string.Empty);
                 }
                 catch
                 {
@@ -231,8 +231,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             try
             {
                 var requestId = request["id"] != null ? request["id"].ToString() : "unknown";
-                Log.Create(LogType.Error, "CleanupExpiredApprovalsJob", 
-                    $"Error processing expired approval request {requestId}: {ex.Message}");
+                new Log().Create(LogType.Error, "CleanupExpiredApprovalsJob", 
+                    $"Error processing expired approval request {requestId}", ex);
             }
             catch
             {
@@ -249,9 +249,10 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         {
             try
             {
-                var logType = failureCount > 0 ? LogType.Warning : LogType.Info;
+                // Use Error type for failures, Info for success (Warning doesn't exist in WebVella LogType)
+                var logType = failureCount > 0 ? LogType.Error : LogType.Info;
                 var message = $"Cleanup completed: {successCount} expired requests processed successfully, {failureCount} failures";
-                Log.Create(logType, "CleanupExpiredApprovalsJob", message);
+                new Log().Create(logType, "CleanupExpiredApprovalsJob", message, string.Empty);
             }
             catch
             {
