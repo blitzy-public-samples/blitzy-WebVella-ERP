@@ -100,7 +100,7 @@ namespace WebVella.Erp.Plugins.Approval
 								{
 									// Preserve validation exception details for debugging
 									var exception = ex;
-									throw ex;
+									throw;
 								}
 								catch (Exception)
 								{
@@ -141,11 +141,11 @@ namespace WebVella.Erp.Plugins.Approval
 						// Commit all changes if everything succeeded
 						connection.CommitTransaction();
 					}
-					catch (ValidationException ex)
+					catch (ValidationException)
 					{
 						// Rollback transaction on validation errors
 						connection.RollbackTransaction();
-						throw ex;
+						throw;
 					}
 					catch (Exception)
 					{
