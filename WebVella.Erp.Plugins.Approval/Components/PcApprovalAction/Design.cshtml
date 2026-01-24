@@ -1,22 +1,16 @@
-@*
-    Design.cshtml - Design-time preview view for PcApprovalAction component
-    Shows a static representation of approval action buttons in the page builder.
-*@
 <div class="p-2">
-    <h4><i class="fas fa-check-circle"></i> Approval Action</h4>
-    <p class="text-muted">
-        Renders approve, reject, and delegate action buttons with comment modals for processing approval requests.
-    </p>
-    <!-- Mock button representations for visual preview -->
-    <div class="btn-group" role="group">
-        <button type="button" class="btn btn-sm btn-success" disabled>
-            <i class="fas fa-check me-1"></i> Approve
-        </button>
-        <button type="button" class="btn btn-sm btn-danger" disabled>
-            <i class="fas fa-times me-1"></i> Reject
-        </button>
-        <button type="button" class="btn btn-sm btn-primary" disabled>
-            <i class="fas fa-share me-1"></i> Delegate
-        </button>
-    </div>
+	<h4><i class="fas fa-check-circle"></i> Approval Action</h4>
+	<p>Renders approve, reject, and delegate action buttons with comment modals for processing approval requests.</p>
+	<div class="btn-group mt-2" role="group" aria-label="Approval action buttons preview">
+		<button type="button" class="btn btn-sm btn-success" disabled>
+			<i class="fas fa-check"></i> Approve
+		</button>
+		<button type="button" class="btn btn-sm btn-danger" disabled>
+			<i class="fas fa-times"></i> Reject
+		</button>
+		<button type="button" class="btn btn-sm btn-primary" disabled>
+			<i class="fas fa-share"></i> Delegate
+		</button>
+	</div>
 </div>
+@* Design view provides a static preview for the page builder - actual component loads data dynamically at runtime *@
