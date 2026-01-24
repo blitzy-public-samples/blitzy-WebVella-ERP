@@ -1,0 +1,61 @@
+@*
+    Help.cshtml - Help documentation view for PcApprovalAction component
+*@
+<div class="help-content">
+    <h4>Approval Action Component</h4>
+    
+    <p>
+        This component renders approve, reject, and delegate buttons for processing approval requests.
+        Each button opens a modal dialog for entering comments before submitting the action.
+    </p>
+    
+    <h5>Actions</h5>
+    <ul>
+        <li>
+            <strong>Approve</strong>: Advances the request to the next approval step, or marks the request as 
+            fully approved if this is the final step in the workflow.
+        </li>
+        <li>
+            <strong>Reject</strong>: Marks the request as rejected. A reason for rejection is required.
+        </li>
+        <li>
+            <strong>Delegate</strong>: Allows reassigning the approval request to another user who will then 
+            be responsible for taking action.
+        </li>
+    </ul>
+    
+    <h5>Configuration Options</h5>
+    <ul>
+        <li>
+            <strong>Request ID</strong>: Data source binding for the approval request ID. Use a data source 
+            expression like <code>{{"{{Record.id}}"}}</code> to bind to a record property.
+        </li>
+        <li>
+            <strong>Show Approve Button</strong>: Toggle visibility of the approve button.
+        </li>
+        <li>
+            <strong>Show Reject Button</strong>: Toggle visibility of the reject button.
+        </li>
+        <li>
+            <strong>Show Delegate Button</strong>: Toggle visibility of the delegate button.
+        </li>
+    </ul>
+    
+    <h5>Behavior</h5>
+    <p>
+        Action buttons are only enabled when:
+    </p>
+    <ul>
+        <li>The request status is "pending"</li>
+        <li>The current user is an authorized approver for the current workflow step</li>
+    </ul>
+    <p>
+        When the request is in any other status (approved, rejected, escalated, expired), 
+        an informative message is displayed instead of the action buttons.
+    </p>
+</div>
+
+<script>
+    // Help view initialization
+    console.log('PcApprovalAction Help loaded');
+</script>
