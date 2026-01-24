@@ -1,13 +1,9 @@
-@*
-    Error.cshtml - Error display view for PcApprovalAction component
-    Displays validation errors using the WebVella validation tag helper.
-*@
 @addTagHelper *, WebVella.Erp.Plugins.Core
 @addTagHelper *, WebVella.Erp.Web
 @addTagHelper *, WebVella.TagHelpers
 @using WebVella.Erp.Web.Utils;
 @using WebVella.Erp.Exceptions;
 @{
-    var validation = (ValidationException)ViewBag.Error;
+	var validation = (ValidationException)ViewBag.Error;
 }
 <wv-validation errors="@validation.ToErrorList()" message="@validation.Message"></wv-validation>
