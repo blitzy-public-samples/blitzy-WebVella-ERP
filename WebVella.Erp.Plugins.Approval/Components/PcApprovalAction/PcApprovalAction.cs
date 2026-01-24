@@ -8,6 +8,8 @@ using WebVella.Erp.Api;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
 using WebVella.Erp.Exceptions;
+using WebVella.Erp.Plugins.Approval.Api;
+using WebVella.Erp.Plugins.Approval.Services;
 using WebVella.Erp.Web;
 using WebVella.Erp.Web.Models;
 using WebVella.Erp.Web.Services;
@@ -17,8 +19,23 @@ namespace WebVella.Erp.Plugins.Approval.Components
     /// <summary>
     /// PageComponent for displaying approval action buttons (approve, reject, delegate).
     /// Renders action buttons with modal dialogs for capturing comments and reasons.
-    /// Validates user authorization before showing action buttons.
+    /// Validates user authorization using ApprovalRouteService before showing action buttons.
     /// </summary>
+    /// <remarks>
+    /// This component is designed to be placed on approval detail pages where users can
+    /// take action on pending approval requests. It handles:
+    /// - Loading approval request data from the database
+    /// - Validating user authorization using ApprovalRouteService.IsUserAuthorizedApprover
+    /// - Loading available users for delegation dropdown
+    /// - Rendering appropriate buttons based on request status and user permissions
+    /// 
+    /// The component supports multiple render modes:
+    /// - Display: Shows action buttons with current request context
+    /// - Design: Shows placeholder preview for page builder
+    /// - Options: Shows configuration panel for component settings
+    /// - Help: Shows documentation for component usage
+    /// - Error: Shows error messages when component fails
+    /// </remarks>
     [PageComponent(
         Label = "Approval Action",
         Library = "WebVella",
@@ -30,12 +47,14 @@ namespace WebVella.Erp.Plugins.Approval.Components
     {
         /// <summary>
         /// The ERP request context injected via constructor.
-        /// Provides access to the current HTTP request context and page information.
+        /// Provides access to the current HTTP request context, page information,
+        /// and other request-scoped data needed for component rendering.
         /// </summary>
         protected ErpRequestContext ErpRequestContext { get; set; }
 
         /// <summary>
         /// Constructor with dependency injection for ErpRequestContext.
+        /// The [FromServices] attribute enables automatic injection from the DI container.
         /// </summary>
         /// <param name="coreReqCtx">The ERP request context provided by the DI container.</param>
         public PcApprovalAction([FromServices] ErpRequestContext coreReqCtx)
@@ -46,30 +65,39 @@ namespace WebVella.Erp.Plugins.Approval.Components
         /// <summary>
         /// Options class for configuring the PcApprovalAction component.
         /// Contains the request ID binding and visibility settings for each action button.
+        /// All properties are serialized with JSON for persistence in page configuration.
         /// </summary>
         public class PcApprovalActionOptions
         {
             /// <summary>
             /// The data source binding for the approval request ID.
-            /// Can be a static GUID string or a data source expression like {{Record.id}}.
+            /// Can be a static GUID string (e.g., "12345678-1234-1234-1234-123456789abc")
+            /// or a data source expression (e.g., "{{Record.id}}" or "{{UrlQuery.requestId}}").
+            /// The component will resolve this binding at render time to obtain the actual request ID.
             /// </summary>
             [JsonProperty(PropertyName = "request_id")]
             public string RequestId { get; set; } = "";
 
             /// <summary>
             /// Whether to show the Approve button. Default is true.
+            /// When set to false, the approve action will be hidden from the user,
+            /// useful for read-only views or when approve should be disabled.
             /// </summary>
             [JsonProperty(PropertyName = "show_approve")]
             public bool ShowApprove { get; set; } = true;
 
             /// <summary>
             /// Whether to show the Reject button. Default is true.
+            /// When set to false, the reject action will be hidden from the user,
+            /// useful for workflows where rejection is not permitted.
             /// </summary>
             [JsonProperty(PropertyName = "show_reject")]
             public bool ShowReject { get; set; } = true;
 
             /// <summary>
             /// Whether to show the Delegate button. Default is true.
+            /// When set to false, the delegate action will be hidden from the user,
+            /// useful for workflows where delegation is not permitted.
             /// </summary>
             [JsonProperty(PropertyName = "show_delegate")]
             public bool ShowDelegate { get; set; } = true;
@@ -78,23 +106,25 @@ namespace WebVella.Erp.Plugins.Approval.Components
         /// <summary>
         /// Asynchronously invokes the component to render the appropriate view based on context mode.
         /// Handles Display, Design, Options, Help, and Error modes.
-        /// In Display mode, loads approval request data and validates user authorization.
+        /// In Display mode, loads approval request data and validates user authorization
+        /// using the ApprovalRouteService.
         /// </summary>
         /// <param name="context">The page component context containing node, options, and mode information.</param>
         /// <returns>A task that resolves to the appropriate view component result.</returns>
+        /// <exception cref="ValidationException">Thrown when validation errors occur during component processing.</exception>
         public async Task<IViewComponentResult> InvokeAsync(PageComponentContext context)
         {
             ErpPage currentPage = null;
             try
             {
                 #region << Init >>
-                // Validate that the node ID is provided
+                // Validate that the node ID is provided - required for component identification
                 if (context.Node == null)
                 {
                     return await Task.FromResult<IViewComponentResult>(Content("Error: The node Id is required to be set as query parameter 'nid', when requesting this component"));
                 }
 
-                // Validate that the page model is available
+                // Validate that the page model is available and is the correct type
                 var pageFromModel = context.DataModel.GetProperty("Page");
                 if (pageFromModel == null)
                 {
@@ -110,17 +140,19 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 }
 
                 // Deserialize component options from the context
+                // If options are null, use default values
                 var options = new PcApprovalActionOptions();
                 if (context.Options != null)
                 {
                     options = JsonConvert.DeserializeObject<PcApprovalActionOptions>(context.Options.ToString());
                 }
 
-                // Get component metadata for rendering
+                // Get component metadata for rendering in design mode and options panel
                 var componentMeta = new PageComponentLibraryService().GetComponentMeta(context.Node.ComponentName);
                 #endregion
 
                 #region << Set ViewBag Values >>
+                // Set common ViewBag values used across all render modes
                 ViewBag.Options = options;
                 ViewBag.Node = context.Node;
                 ViewBag.ComponentMeta = componentMeta;
@@ -130,7 +162,8 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 ViewBag.CurrentUser = SecurityContext.CurrentUser;
                 #endregion
 
-                #region << Load Request Data for Display Mode >>
+                #region << Load Request Data for Display and Design Modes >>
+                // Skip data loading for Options and Help modes as they don't need it
                 if (context.Mode != ComponentMode.Options && context.Mode != ComponentMode.Help)
                 {
                     // Resolve the request ID from the data source binding
@@ -138,7 +171,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                     
                     if (!string.IsNullOrWhiteSpace(options.RequestId))
                     {
-                        // Try to get the value from data source binding
+                        // Try to get the value from data source binding (e.g., {{Record.id}})
                         var requestIdValue = context.DataModel.GetPropertyValueByDataSource(options.RequestId);
                         
                         if (requestIdValue != null)
@@ -159,10 +192,10 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         }
                     }
 
-                    // Store the request ID in ViewBag for use in views
+                    // Store the request ID in ViewBag for use in views and AJAX calls
                     ViewBag.RequestId = requestId;
 
-                    // Initialize default values
+                    // Initialize default values for display
                     EntityRecord request = null;
                     bool canApprove = false;
                     var delegateUsers = new List<EntityRecord>();
@@ -170,9 +203,9 @@ namespace WebVella.Erp.Plugins.Approval.Components
                     // Load request data if we have a valid request ID
                     if (requestId != Guid.Empty)
                     {
+                        // Query the approval_request record using EQL with parameterized query
                         try
                         {
-                            // Query the approval_request record using EQL with parameterized query
                             var requestEql = new EqlCommand(
                                 "SELECT * FROM approval_request WHERE id = @requestId",
                                 new List<EqlParameter>
@@ -189,53 +222,72 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         }
                         catch (Exception queryEx)
                         {
-                            // Log the error but don't fail the component
+                            // Log the error but don't fail the component - allow display with error indication
                             ViewBag.QueryError = queryEx.Message;
                         }
 
                         // Check if current user is authorized to approve this request
+                        // Using ApprovalRouteService for consistent authorization logic across the system
                         if (request != null && SecurityContext.CurrentUser != null)
                         {
-                            canApprove = IsUserAuthorizedApprover(request, SecurityContext.CurrentUser.Id);
+                            canApprove = CheckUserAuthorization(request, SecurityContext.CurrentUser.Id);
                         }
 
                         // Load users available for delegation
-                        try
+                        // Only load if delegate button is enabled and user can approve
+                        if (options.ShowDelegate && canApprove)
                         {
-                            // Query active users excluding the current user
-                            var usersEql = new EqlCommand(
-                                "SELECT id, username, first_name, last_name, email FROM user WHERE enabled = @enabled ORDER BY username",
-                                new List<EqlParameter>
-                                {
-                                    new EqlParameter("enabled", true)
-                                });
-
-                            var usersResult = usersEql.Execute();
-                            
-                            if (usersResult != null && usersResult.Count > 0)
+                            try
                             {
-                                // Exclude the current user from delegate options
-                                var currentUserId = SecurityContext.CurrentUser?.Id ?? Guid.Empty;
-                                delegateUsers = usersResult.Where(u => 
-                                    u["id"] != null && 
-                                    (Guid)u["id"] != currentUserId
-                                ).ToList();
+                                // Query active users excluding the current user for delegation
+                                var usersEql = new EqlCommand(
+                                    "SELECT id, username, first_name, last_name, email FROM user WHERE enabled = @enabled ORDER BY username",
+                                    new List<EqlParameter>
+                                    {
+                                        new EqlParameter("enabled", true)
+                                    });
+
+                                var usersResult = usersEql.Execute();
+                                
+                                if (usersResult != null && usersResult.Count > 0)
+                                {
+                                    // Exclude the current user from delegate options - can't delegate to self
+                                    var currentUserId = SecurityContext.CurrentUser?.Id ?? Guid.Empty;
+                                    delegateUsers = usersResult.Where(u => 
+                                        u["id"] != null && 
+                                        (Guid)u["id"] != currentUserId
+                                    ).ToList();
+                                }
                             }
-                        }
-                        catch (Exception userQueryEx)
-                        {
-                            // Log the error but continue with empty delegate list
-                            ViewBag.UserQueryError = userQueryEx.Message;
+                            catch (Exception userQueryEx)
+                            {
+                                // Log the error but continue with empty delegate list
+                                ViewBag.UserQueryError = userQueryEx.Message;
+                            }
                         }
                     }
 
+                    // Set ViewBag values for the views to consume
                     ViewBag.Request = request;
                     ViewBag.CanApprove = canApprove;
                     ViewBag.DelegateUsers = delegateUsers;
+                    
+                    // Set request status information for conditional rendering
+                    if (request != null)
+                    {
+                        var status = request["status"]?.ToString()?.ToLowerInvariant();
+                        ViewBag.RequestStatus = status;
+                        ViewBag.IsPending = status == "pending";
+                    }
+                    else
+                    {
+                        ViewBag.RequestStatus = null;
+                        ViewBag.IsPending = false;
+                    }
                 }
                 #endregion
 
-                #region << Return Appropriate View >>
+                #region << Return Appropriate View Based on Mode >>
                 switch (context.Mode)
                 {
                     case ComponentMode.Display:
@@ -247,6 +299,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                     case ComponentMode.Help:
                         return await Task.FromResult<IViewComponentResult>(View("Help"));
                     default:
+                        // Unknown mode - return error view with appropriate message
                         ViewBag.Error = new ValidationException()
                         {
                             Message = "Unknown component mode"
@@ -257,11 +310,13 @@ namespace WebVella.Erp.Plugins.Approval.Components
             }
             catch (ValidationException ex)
             {
+                // Handle validation exceptions with proper error display
                 ViewBag.Error = ex;
                 return await Task.FromResult<IViewComponentResult>(View("Error"));
             }
             catch (Exception ex)
             {
+                // Handle all other exceptions, wrapping in ValidationException for consistent error display
                 ViewBag.Error = new ValidationException()
                 {
                     Message = ex.Message
@@ -272,102 +327,54 @@ namespace WebVella.Erp.Plugins.Approval.Components
 
         /// <summary>
         /// Checks if the specified user is authorized to approve the given approval request.
-        /// Authorization is based on the current step's approver_type and approver_id settings.
+        /// Uses the ApprovalRouteService to validate authorization based on the current step's
+        /// approver_type and approver_id settings.
         /// </summary>
         /// <param name="request">The approval request EntityRecord to check authorization for.</param>
         /// <param name="userId">The user ID to check authorization for.</param>
         /// <returns>True if the user is authorized to approve, false otherwise.</returns>
-        private bool IsUserAuthorizedApprover(EntityRecord request, Guid userId)
+        /// <remarks>
+        /// Authorization flow:
+        /// 1. Validate request is not null and has a valid status
+        /// 2. Check if request status is "pending" (only pending requests can be actioned)
+        /// 3. Get the current step ID from the request
+        /// 4. Use ApprovalRouteService.IsUserAuthorizedApprover to validate authorization
+        /// 
+        /// This method encapsulates the authorization check and handles all error conditions
+        /// gracefully, returning false if any step fails.
+        /// </remarks>
+        private bool CheckUserAuthorization(EntityRecord request, Guid userId)
         {
             if (request == null || userId == Guid.Empty)
             {
                 return false;
             }
 
-            // Check if request is in pending status
-            var status = request["status"]?.ToString()?.ToLower();
+            // Check if request status is pending - only pending requests can be actioned
+            var status = request["status"]?.ToString()?.ToLowerInvariant();
             if (status != "pending")
             {
                 return false;
             }
 
-            // Get the current step ID
+            // Get the current step ID from the request
             var currentStepId = request["current_step_id"] as Guid?;
-            if (currentStepId == null || currentStepId == Guid.Empty)
+            if (!currentStepId.HasValue || currentStepId.Value == Guid.Empty)
             {
                 return false;
             }
 
             try
             {
-                // Query the approval_step to get approver settings
-                var stepEql = new EqlCommand(
-                    "SELECT * FROM approval_step WHERE id = @stepId",
-                    new List<EqlParameter>
-                    {
-                        new EqlParameter("stepId", currentStepId)
-                    });
-
-                var stepResult = stepEql.Execute();
-                
-                if (stepResult == null || stepResult.Count == 0)
-                {
-                    return false;
-                }
-
-                var step = stepResult.FirstOrDefault();
-                var approverType = step["approver_type"]?.ToString()?.ToLower();
-                var approverId = step["approver_id"] as Guid?;
-
-                switch (approverType)
-                {
-                    case "user":
-                        // Direct user assignment - check if the user matches
-                        return approverId.HasValue && approverId.Value == userId;
-                    
-                    case "role":
-                        // Role-based assignment - check if user has the specified role
-                        if (!approverId.HasValue || SecurityContext.CurrentUser == null)
-                        {
-                            return false;
-                        }
-                        
-                        // Check if user has the specified role
-                        foreach (var role in SecurityContext.CurrentUser.Roles)
-                        {
-                            if (role.Id == approverId.Value)
-                            {
-                                return true;
-                            }
-                        }
-                        return false;
-                    
-                    case "department_head":
-                        // Department head assignment - for now, allow any user with Manager or Administrator role
-                        // This is a simplified implementation; a full implementation would check organizational hierarchy
-                        if (SecurityContext.CurrentUser == null)
-                        {
-                            return false;
-                        }
-                        
-                        foreach (var role in SecurityContext.CurrentUser.Roles)
-                        {
-                            var roleName = role.Name?.ToLower();
-                            if (roleName == "manager" || roleName == "administrator" || roleName == "admin")
-                            {
-                                return true;
-                            }
-                        }
-                        return false;
-                    
-                    default:
-                        // Unknown approver type - deny by default
-                        return false;
-                }
+                // Use ApprovalRouteService for authorization validation
+                // This ensures consistent authorization logic across the system
+                var routeService = new ApprovalRouteService();
+                return routeService.IsUserAuthorizedApprover(userId, currentStepId.Value);
             }
             catch
             {
-                // If we can't determine authorization, deny by default
+                // If authorization check fails for any reason, deny by default
+                // This is a security best practice - fail secure
                 return false;
             }
         }
