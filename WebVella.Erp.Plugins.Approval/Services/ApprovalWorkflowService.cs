@@ -70,7 +70,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
             var workflow = GetWorkflowById(workflowId);
             if (workflow == null)
             {
-                throw new ValidationException(new ValidationError("id", "Workflow not found."));
+                var ex = new ValidationException("Workflow not found.");
+                ex.AddError("id", "Workflow not found.");
+                throw ex;
             }
 
             // Validate workflow configuration before enabling
@@ -105,7 +107,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
             var workflow = GetWorkflowById(workflowId);
             if (workflow == null)
             {
-                throw new ValidationException(new ValidationError("id", "Workflow not found."));
+                var ex = new ValidationException("Workflow not found.");
+                ex.AddError("id", "Workflow not found.");
+                throw ex;
             }
 
             // Update is_enabled to false
@@ -204,18 +208,18 @@ namespace WebVella.Erp.Plugins.Approval.Services
             // Check workflow has at least one step
             if (steps == null || steps.Count == 0)
             {
-                throw new ValidationException(new ValidationError(
-                    "steps",
-                    "Workflow must have at least one step configured."));
+                var ex = new ValidationException("Workflow must have at least one step configured.");
+                ex.AddError("steps", "Workflow must have at least one step configured.");
+                throw ex;
             }
 
             // Check at least one step has is_final = true
             var hasFinalStep = steps.Any(s => s.IsFinal);
             if (!hasFinalStep)
             {
-                throw new ValidationException(new ValidationError(
-                    "is_final",
-                    "Workflow must have at least one final step configured."));
+                var ex = new ValidationException("Workflow must have at least one final step configured.");
+                ex.AddError("is_final", "Workflow must have at least one final step configured.");
+                throw ex;
             }
         }
 
