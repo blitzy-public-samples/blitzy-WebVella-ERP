@@ -11,6 +11,8 @@ using WebVella.Erp.Eql;
 using WebVella.Erp.Plugins.Approval.Api;
 using WebVella.Erp.Plugins.Approval.Services;
 using WebVella.Erp.Web.Services;
+// Alias to resolve ambiguous ResponseModel reference
+using ApprovalResponseModel = WebVella.Erp.Plugins.Approval.Api.ResponseModel;
 
 namespace WebVella.Erp.Plugins.Approval.Controllers
 {
@@ -105,7 +107,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetAllWorkflows()
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -138,7 +140,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetWorkflow(Guid id)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -185,7 +187,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpPost]
         public ActionResult CreateWorkflow([FromBody] ApprovalWorkflowModel model)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -227,7 +229,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpPut]
         public ActionResult UpdateWorkflow(Guid id, [FromBody] ApprovalWorkflowModel model)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -278,7 +280,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpDelete]
         public ActionResult DeleteWorkflow(Guid id)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -322,7 +324,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetPendingApprovals()
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -363,7 +365,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetRequest(Guid id)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -414,7 +416,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpPost]
         public ActionResult ApproveRequest(Guid id, [FromBody] ApproveRequestModel model)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -467,7 +469,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpPost]
         public ActionResult RejectRequest(Guid id, [FromBody] RejectRequestModel model)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -526,7 +528,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpPost]
         public ActionResult DelegateRequest(Guid id, [FromBody] DelegateRequestModel model)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -586,7 +588,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetRequestHistory(Guid id)
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
@@ -633,7 +635,7 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         [HttpGet]
         public ActionResult GetDashboardMetrics()
         {
-            var response = new ResponseModel();
+            var response = new ApprovalResponseModel();
 
             try
             {
