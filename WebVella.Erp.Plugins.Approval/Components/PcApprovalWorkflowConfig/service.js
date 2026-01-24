@@ -648,43 +648,103 @@
      */
     $(function () {
 
-        // WvPbManager_Design_Loaded: Fired when a component enters design mode in the page builder.
-        // Use this to initialize any design-time specific functionality.
-        //	document.addEventListener("WvPbManager_Design_Loaded", function (event) {
-        //		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig"){
-        //			console.log("[ApprovalWorkflowConfig] Design mode loaded");
-        //		}
-        //	});
+        /**
+         * WvPbManager_Design_Loaded: Fired when a component enters design mode in the page builder.
+         * Initializes design-time specific functionality for the workflow configuration component.
+         */
+        document.addEventListener("WvPbManager_Design_Loaded", function (event) {
+            if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
+                console.log("[ApprovalWorkflowConfig] Design mode loaded");
+                // Initialize design-time preview with sample data
+                var nodeId = event.payload.node_id;
+                if (nodeId) {
+                    var $component = $('[data-node-id="' + nodeId + '"]');
+                    if ($component.length) {
+                        $component.addClass('wv-pb-design-mode');
+                    }
+                }
+            }
+        });
 
-        // WvPbManager_Design_Unloaded: Fired when a component exits design mode.
-        // Use this to clean up any design-time resources.
-        //	document.addEventListener("WvPbManager_Design_Unloaded", function (event) {
-        //		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig"){
-        //			console.log("[ApprovalWorkflowConfig] Design mode unloaded");
-        //		}
-        //	});
+        /**
+         * WvPbManager_Design_Unloaded: Fired when a component exits design mode.
+         * Cleans up any design-time resources and state.
+         */
+        document.addEventListener("WvPbManager_Design_Unloaded", function (event) {
+            if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
+                console.log("[ApprovalWorkflowConfig] Design mode unloaded");
+                // Clean up design-time resources
+                var nodeId = event.payload.node_id;
+                if (nodeId) {
+                    var $component = $('[data-node-id="' + nodeId + '"]');
+                    if ($component.length) {
+                        $component.removeClass('wv-pb-design-mode');
+                    }
+                }
+            }
+        });
 
-        // WvPbManager_Options_Loaded: Fired when the component options panel is displayed.
-        // Use this to set up any options-specific UI behavior.
-        //	document.addEventListener("WvPbManager_Options_Loaded", function (event) {
-        //		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
-        //			console.log("[ApprovalWorkflowConfig] Options panel loaded");
-        //		}
-        //	});
+        /**
+         * WvPbManager_Options_Loaded: Fired when the component options panel is displayed.
+         * Sets up options-specific UI behavior and event handlers.
+         */
+        document.addEventListener("WvPbManager_Options_Loaded", function (event) {
+            if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
+                console.log("[ApprovalWorkflowConfig] Options panel loaded");
+                // Initialize options panel interactions
+                var optionsContainer = document.querySelector('.wv-pb-options-panel');
+                if (optionsContainer) {
+                    // Set up entity name autocomplete or select if available
+                    var entityNameInput = optionsContainer.querySelector('input[name="filterEntityName"]');
+                    if (entityNameInput) {
+                        // Add input validation for entity name
+                        $(entityNameInput).on('blur', function () {
+                            var value = $(this).val();
+                            if (value && !/^[a-z_][a-z0-9_]*$/.test(value)) {
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.warning('Entity name should use snake_case format');
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
 
-        // WvPbManager_Options_Unloaded: Fired when the component options panel is closed.
-        // Use this to save any pending changes or clean up resources.
-        //	document.addEventListener("WvPbManager_Options_Unloaded", function (event) {
-        //		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig"){
-        //			console.log("[ApprovalWorkflowConfig] Options panel unloaded");
-        //		}
-        //	});
+        /**
+         * WvPbManager_Options_Unloaded: Fired when the component options panel is closed.
+         * Saves any pending changes and cleans up resources.
+         */
+        document.addEventListener("WvPbManager_Options_Unloaded", function (event) {
+            if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
+                console.log("[ApprovalWorkflowConfig] Options panel unloaded");
+                // Clean up options panel event handlers
+                var optionsContainer = document.querySelector('.wv-pb-options-panel');
+                if (optionsContainer) {
+                    var entityNameInput = optionsContainer.querySelector('input[name="filterEntityName"]');
+                    if (entityNameInput) {
+                        $(entityNameInput).off('blur');
+                    }
+                }
+            }
+        });
 
-        // WvPbManager_Node_Moved: Fired when a component is moved within the page builder.
-        // Handle any re-initialization needed after the component moves.
+        /**
+         * WvPbManager_Node_Moved: Fired when a component is moved within the page builder.
+         * Handles any re-initialization needed after the component moves.
+         */
         document.addEventListener("WvPbManager_Node_Moved", function (event) {
             if (event && event.payload && event.payload.component_name === "WebVella.Erp.Plugins.Approval.Components.PcApprovalWorkflowConfig") {
                 console.log("[ApprovalWorkflowConfig] Component moved in page builder");
+                // Re-initialize component after move if needed
+                var nodeId = event.payload.node_id;
+                if (nodeId) {
+                    var containerId = $('[data-node-id="' + nodeId + '"]').find('.approval-workflow-config-container').attr('id');
+                    if (containerId && componentStates[containerId]) {
+                        // Refresh the component data after move
+                        loadWorkflows(containerId);
+                    }
+                }
             }
         });
 
