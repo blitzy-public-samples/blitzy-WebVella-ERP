@@ -204,7 +204,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             try
             {
                 // Query with related entities for step and rule counts
-                var eqlCommand = "SELECT *,$approval_step_workflow.id,$approval_rule_workflow.id FROM approval_workflow WHERE id = @id";
+                var eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE id = @id";
                 var eqlParams = new List<EqlParameter>() { new EqlParameter("id", id) };
                 var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
 
@@ -217,16 +217,16 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 var model = MapToModel(record);
 
                 // Calculate steps count from relation data
-                if (record.Properties.ContainsKey("$approval_step_workflow"))
+                if (record.Properties.ContainsKey("$approval_workflow_1n_step"))
                 {
-                    var steps = record["$approval_step_workflow"] as List<EntityRecord>;
+                    var steps = record["$approval_workflow_1n_step"] as List<EntityRecord>;
                     model.StepsCount = steps?.Count ?? 0;
                 }
 
                 // Calculate rules count from relation data
-                if (record.Properties.ContainsKey("$approval_rule_workflow"))
+                if (record.Properties.ContainsKey("$approval_workflow_1n_rule"))
                 {
-                    var rules = record["$approval_rule_workflow"] as List<EntityRecord>;
+                    var rules = record["$approval_workflow_1n_rule"] as List<EntityRecord>;
                     model.RulesCount = rules?.Count ?? 0;
                 }
 
@@ -268,11 +268,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 if (includeDisabled)
                 {
-                    eqlCommand = "SELECT *,$approval_step_workflow.id,$approval_rule_workflow.id FROM approval_workflow ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow ORDER BY name ASC";
                 }
                 else
                 {
-                    eqlCommand = "SELECT *,$approval_step_workflow.id,$approval_rule_workflow.id FROM approval_workflow WHERE is_enabled = @enabled ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE is_enabled = @enabled ORDER BY name ASC";
                     eqlParams.Add(new EqlParameter("enabled", true));
                 }
 
@@ -285,16 +285,16 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         var model = MapToModel(record);
 
                         // Calculate steps count from relation data
-                        if (record.Properties.ContainsKey("$approval_step_workflow"))
+                        if (record.Properties.ContainsKey("$approval_workflow_1n_step"))
                         {
-                            var steps = record["$approval_step_workflow"] as List<EntityRecord>;
+                            var steps = record["$approval_workflow_1n_step"] as List<EntityRecord>;
                             model.StepsCount = steps?.Count ?? 0;
                         }
 
                         // Calculate rules count from relation data
-                        if (record.Properties.ContainsKey("$approval_rule_workflow"))
+                        if (record.Properties.ContainsKey("$approval_workflow_1n_rule"))
                         {
-                            var rules = record["$approval_rule_workflow"] as List<EntityRecord>;
+                            var rules = record["$approval_workflow_1n_rule"] as List<EntityRecord>;
                             model.RulesCount = rules?.Count ?? 0;
                         }
 
@@ -501,12 +501,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 if (enabledOnly)
                 {
-                    eqlCommand = "SELECT *,$approval_step_workflow.id,$approval_rule_workflow.id FROM approval_workflow WHERE target_entity_name = @entityName AND is_enabled = @enabled ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity_name = @entityName AND is_enabled = @enabled ORDER BY name ASC";
                     eqlParams.Add(new EqlParameter("enabled", true));
                 }
                 else
                 {
-                    eqlCommand = "SELECT *,$approval_step_workflow.id,$approval_rule_workflow.id FROM approval_workflow WHERE target_entity_name = @entityName ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity_name = @entityName ORDER BY name ASC";
                 }
 
                 var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
@@ -517,15 +517,15 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     {
                         var model = MapToModel(record);
 
-                        if (record.Properties.ContainsKey("$approval_step_workflow"))
+                        if (record.Properties.ContainsKey("$approval_workflow_1n_step"))
                         {
-                            var steps = record["$approval_step_workflow"] as List<EntityRecord>;
+                            var steps = record["$approval_workflow_1n_step"] as List<EntityRecord>;
                             model.StepsCount = steps?.Count ?? 0;
                         }
 
-                        if (record.Properties.ContainsKey("$approval_rule_workflow"))
+                        if (record.Properties.ContainsKey("$approval_workflow_1n_rule"))
                         {
-                            var rules = record["$approval_rule_workflow"] as List<EntityRecord>;
+                            var rules = record["$approval_workflow_1n_rule"] as List<EntityRecord>;
                             model.RulesCount = rules?.Count ?? 0;
                         }
 

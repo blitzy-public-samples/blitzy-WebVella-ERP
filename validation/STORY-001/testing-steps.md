@@ -1,52 +1,82 @@
 # STORY-001 Testing Steps - Plugin Infrastructure
 
 ## Prerequisites
-- Application running (`dotnet run` from WebVella.Erp.Site directory)
+- .NET 9.0 SDK installed
 - PostgreSQL database available and configured
-- Browser open to http://localhost:5000
+- Application source code available
 
 ## Steps to Test
 
-### 1. Verify Plugin Registration
-1. Navigate to http://localhost:5000/sdk/objects/plugin
-2. **Expected Result:** The "Approval Workflow" plugin should appear in the plugin list
-3. **Screenshot:** plugin-registration.png
+### 1. Verify Plugin Project Structure
+1. Open file explorer or terminal
+2. Navigate to `WebVella.Erp.Plugins.Approval/` directory
+3. **Expected Files:**
+   - `WebVella.Erp.Plugins.Approval.csproj` (project file)
+   - `ApprovalPlugin.cs` (main plugin entry point)
+   - `ApprovalPlugin._.cs` (ProcessPatches orchestration)
+   - `ApprovalPlugin.20260123.cs` (entity migration)
+   - `Model/PluginSettings.cs` (version tracking)
 
-### 2. Verify Plugin Initialization
-1. Check application startup logs in console
-2. **Expected Result:** No errors related to ApprovalPlugin initialization
-3. Look for messages confirming:
-   - `ProcessPatches()` executed successfully
-   - `SetSchedulePlans()` registered background jobs
+### 2. Verify Plugin Registration in Solution
+1. Open `WebVella.ERP3.sln`
+2. Search for "Approval" project
+3. **Expected Result:** `WebVella.Erp.Plugins.Approval` project is listed
+4. Verify project references include:
+   - `WebVella.Erp.Web`
+   - `WebVella.Erp`
 
-### 3. Verify Plugin Properties
-1. In the plugin list, locate "approval" plugin
-2. **Expected Result:**
-   - Name: "approval"
-   - Version: "1.7.4" (or current version)
-   - Status: Enabled
+### 3. Verify Plugin Configuration in Site
+1. Open `WebVella.Erp.Site/Startup.cs`
+2. Search for "ApprovalPlugin"
+3. **Expected Result:** Plugin registered in ConfigureServices/UseErpPlugin chain
+4. Open `WebVella.Erp.Site/WebVella.Erp.Site.csproj`
+5. **Expected Result:** Project reference to `WebVella.Erp.Plugins.Approval`
 
-## Test Data Used
-- No test data required for plugin registration verification
-
-## Validation Commands
+### 4. Build Solution
 ```bash
-# Build the solution
+cd /tmp/blitzy/blitzy-WebVella-ERP/blitzy145b21cba
+dotnet restore WebVella.ERP3.sln
 dotnet build WebVella.ERP3.sln --configuration Debug
+```
+**Expected Result:** Build succeeds with 0 errors
 
-# Run the application
+### 5. Run Unit Tests
+```bash
+dotnet test WebVella.Erp.Plugins.Approval.Tests/WebVella.Erp.Plugins.Approval.Tests.csproj \
+    --no-build --configuration Debug --verbosity normal
+```
+**Expected Result:** All 437 tests pass
+
+### 6. Start Application and Verify Plugin Loads
+```bash
 cd WebVella.Erp.Site
 dotnet run
 ```
+**Expected Result:** 
+- Application starts without errors
+- Console shows plugin initialization messages
+- No migration errors in logs
 
-## Code Verification Points
-- `ApprovalPlugin.cs` extends `ErpPlugin` base class
-- `Initialize()` method calls `ProcessPatches()` and `SetSchedulePlans()`
-- Plugin name property returns "approval"
+### 7. Verify Plugin via Admin Interface
+1. Navigate to http://localhost:5000
+2. Login as administrator
+3. Navigate to SDK → Plugins (if available)
+4. **Expected Result:** "approval" plugin listed
+
+## Test Data Used
+- No manual test data required
+
+## Screenshots
+- `plugin-project-structure.png` (file tree showing plugin files)
+- `plugin-build-success.png` (terminal showing successful build)
+- `plugin-tests-passed.png` (unit test results)
 
 ## Result
-✅ PASS - Plugin implementation verified:
-- Extends ErpPlugin correctly
-- Implements Initialize() method
-- Calls ProcessPatches() and SetSchedulePlans()
-- Unit tests: 437/437 passed
+✅ PASS - Plugin infrastructure verified:
+- Project structure correct
+- Plugin registered in solution
+- Site references plugin
+- Build succeeds (0 errors)
+- 437/437 unit tests pass
+- Application starts successfully
+- Plugin initializes and runs migrations

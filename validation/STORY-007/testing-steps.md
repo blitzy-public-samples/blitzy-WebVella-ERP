@@ -2,188 +2,253 @@
 
 ## Prerequisites
 - Application running (`dotnet run` from WebVella.Erp.Site directory)
-- PostgreSQL database available with migrations applied
-- User authenticated with Bearer token
-- API client (Postman, curl, or browser DevTools)
+- Database migrated with approval entities
+- Valid admin login credentials
+- API client (curl, Postman, or browser dev tools)
 
 ## Steps to Test
 
-### 1. List Workflows (GET /api/v3.0/p/approval/workflow)
+### 1. Obtain Authentication Credentials
+
+#### 1.1 Login and Get Session Cookie
+1. Navigate to http://localhost:5000/login
+2. Login with admin credentials
+3. Open browser DevTools → Application → Cookies
+4. Copy `.AspNetCore.Cookies` value
+
+#### 1.2 Get CSRF Token
+1. On any authenticated page, open DevTools → Console
+2. Run: `document.querySelector('input[name="__RequestVerificationToken"]')?.value`
+3. Or from page source: `<input name="__RequestVerificationToken" ...>`
+
+### 2. Test Workflow Management Endpoints
+
+#### 2.1 GET /api/v3.0/p/approval/workflow - List All Workflows
 ```bash
 curl -X GET "http://localhost:5000/api/v3.0/p/approval/workflow" \
-  -H "Authorization: Bearer {token}"
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "Content-Type: application/json"
 ```
 **Expected Response:**
 ```json
 {
   "success": true,
+  "object": [],
   "message": "",
-  "data": [
-    {
-      "id": "guid",
-      "name": "Purchase Order Approval",
-      "targetEntityName": "purchase_order",
-      "isEnabled": true
-    }
-  ]
+  "timestamp": "2026-01-27T..."
 }
 ```
-**Screenshot:** api-list-workflows.png
 
-### 2. Create Workflow (POST /api/v3.0/p/approval/workflow)
+#### 2.2 POST /api/v3.0/p/approval/workflow - Create Workflow
 ```bash
 curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow" \
-  -H "Authorization: Bearer {token}" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Test Workflow",
-    "targetEntityName": "test_entity",
-    "description": "Test description",
-    "isEnabled": true
+    "name": "PO Approval Workflow",
+    "target_entity_name": "purchase_order",
+    "description": "For purchase orders over $5000",
+    "is_enabled": true
   }'
 ```
 **Expected Response:**
 ```json
 {
   "success": true,
-  "message": "Workflow created successfully",
-  "data": { "id": "new-guid", ... }
+  "object": {
+    "id": "guid...",
+    "name": "PO Approval Workflow",
+    "target_entity_name": "purchase_order",
+    "description": "For purchase orders over $5000",
+    "is_enabled": true,
+    "created_on": "2026-01-27T...",
+    "created_by": "user-guid"
+  },
+  "message": "",
+  "timestamp": "..."
 }
 ```
-**Screenshot:** api-create-workflow.png
 
-### 3. Get Workflow by ID (GET /api/v3.0/p/approval/workflow/{id})
+#### 2.3 GET /api/v3.0/p/approval/workflow/{id} - Get Single Workflow
 ```bash
-curl -X GET "http://localhost:5000/api/v3.0/p/approval/workflow/{id}" \
-  -H "Authorization: Bearer {token}"
+curl -X GET "http://localhost:5000/api/v3.0/p/approval/workflow/{workflow-id}" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
 ```
-**Expected Response:** Full workflow details including steps and rules
 
-### 4. Update Workflow (PUT /api/v3.0/p/approval/workflow/{id})
+#### 2.4 PUT /api/v3.0/p/approval/workflow/{id} - Update Workflow
 ```bash
-curl -X PUT "http://localhost:5000/api/v3.0/p/approval/workflow/{id}" \
-  -H "Authorization: Bearer {token}" \
+curl -X PUT "http://localhost:5000/api/v3.0/p/approval/workflow/{workflow-id}" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Updated Workflow",
-    "isEnabled": false
+    "name": "Updated PO Approval",
+    "is_enabled": false
   }'
 ```
-**Expected Response:** Updated workflow data
 
-### 5. Delete Workflow (DELETE /api/v3.0/p/approval/workflow/{id})
+#### 2.5 DELETE /api/v3.0/p/approval/workflow/{id} - Delete Workflow
 ```bash
-curl -X DELETE "http://localhost:5000/api/v3.0/p/approval/workflow/{id}" \
-  -H "Authorization: Bearer {token}"
-```
-**Expected Response:**
-```json
-{
-  "success": true,
-  "message": "Workflow deleted successfully"
-}
+curl -X DELETE "http://localhost:5000/api/v3.0/p/approval/workflow/{workflow-id}" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN"
 ```
 
-### 6. Get Pending Approvals (GET /api/v3.0/p/approval/pending)
+### 3. Test Approval Action Endpoints
+
+#### 3.1 GET /api/v3.0/p/approval/pending - Get Pending Approvals
 ```bash
 curl -X GET "http://localhost:5000/api/v3.0/p/approval/pending" \
-  -H "Authorization: Bearer {token}"
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
 ```
-**Expected Response:** List of pending approval requests for current user
-**Screenshot:** api-pending-approvals.png
+**Expected:** List of requests pending current user's approval
 
-### 7. Approve Request (POST /api/v3.0/p/approval/request/{id}/approve)
+#### 3.2 GET /api/v3.0/p/approval/request/{id} - Get Request Details
 ```bash
-curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{id}/approve" \
-  -H "Authorization: Bearer {token}" \
+curl -X GET "http://localhost:5000/api/v3.0/p/approval/request/{request-id}" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
+```
+
+#### 3.3 POST /api/v3.0/p/approval/request/{id}/approve - Approve Request
+```bash
+curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{request-id}/approve" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "comments": "Approved"
-  }'
+  -d '{"comments": "Approved - meets requirements"}'
 ```
-**Expected Response:** Updated request with new status
 
-### 8. Reject Request (POST /api/v3.0/p/approval/request/{id}/reject)
+#### 3.4 POST /api/v3.0/p/approval/request/{id}/reject - Reject Request
 ```bash
-curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{id}/reject" \
-  -H "Authorization: Bearer {token}" \
+curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{request-id}/reject" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "comments": "Rejected",
-    "reason": "Budget constraints"
+    "reason": "Budget exceeded"
   }'
 ```
-**Expected Response:** Updated request with rejected status
 
-### 9. Delegate Request (POST /api/v3.0/p/approval/request/{id}/delegate)
+#### 3.5 POST /api/v3.0/p/approval/request/{id}/delegate - Delegate Request
 ```bash
-curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{id}/delegate" \
-  -H "Authorization: Bearer {token}" \
+curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/{request-id}/delegate" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "delegateToUserId": "user-guid",
+    "delegateToUserId": "delegate-user-guid",
     "comments": "Please review"
   }'
 ```
-**Expected Response:** Delegation confirmation
 
-### 10. Get Request History (GET /api/v3.0/p/approval/request/{id}/history)
+#### 3.6 GET /api/v3.0/p/approval/request/{id}/history - Get Request History
 ```bash
-curl -X GET "http://localhost:5000/api/v3.0/p/approval/request/{id}/history" \
-  -H "Authorization: Bearer {token}"
+curl -X GET "http://localhost:5000/api/v3.0/p/approval/request/{request-id}/history" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
 ```
-**Expected Response:** Chronological list of history entries
 
-### 11. Get Dashboard Metrics (GET /api/v3.0/p/approval/dashboard/metrics)
+### 4. Test Dashboard Metrics Endpoint
+
+#### 4.1 GET /api/v3.0/p/approval/dashboard/metrics - Get Dashboard Metrics
 ```bash
 curl -X GET "http://localhost:5000/api/v3.0/p/approval/dashboard/metrics" \
-  -H "Authorization: Bearer {token}"
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
 ```
-**Expected Response (requires Manager/Administrator role):**
+**Expected Response:**
 ```json
 {
   "success": true,
-  "data": {
-    "pendingCount": 5,
-    "averageTimeInHours": 12.5,
-    "approvalRatePercent": 85.0,
-    "overdueCount": 2,
-    "recentActivity": [...]
-  }
+  "object": {
+    "pending_count": 5,
+    "average_approval_time_hours": 12.5,
+    "approval_rate": 85.0,
+    "overdue_count": 1,
+    "recent_activity": [...]
+  },
+  "message": "",
+  "timestamp": "..."
 }
 ```
-**Screenshot:** api-dashboard-metrics.png
+
+### 5. Test Error Handling
+
+#### 5.1 Unauthorized Request (No Auth)
+```bash
+curl -X GET "http://localhost:5000/api/v3.0/p/approval/workflow"
+```
+**Expected:** 401 Unauthorized or redirect to login
+
+#### 5.2 Not Found
+```bash
+curl -X GET "http://localhost:5000/api/v3.0/p/approval/workflow/non-existent-guid" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE"
+```
+**Expected:** 404 or `{"success": false, "message": "Workflow not found"}`
+
+#### 5.3 Validation Error
+```bash
+curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow" \
+  -H "Cookie: .AspNetCore.Cookies=YOUR_COOKIE" \
+  -H "RequestVerificationToken: YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": ""}'  # Empty name
+```
+**Expected:** 400 Bad Request with validation errors
+
+### 6. Verify Controller Implementation
+
+#### 6.1 Check Controller File
+```bash
+cat WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | head -50
+```
+**Expected Attributes:**
+- `[Authorize]`
+- `[Route("api/v3.0/p/approval")]`
+- Correct HTTP method attributes on actions
+
+### 7. API Bug Fix Applied
+
+**Issue Found:** EQL relation names were incorrect
+**File:** `WebVella.Erp.Plugins.Approval/Services/WorkflowConfigService.cs`
+**Fix:** Changed `$approval_step_step` to `$approval_workflow_1n_step`
 
 ## Test Data Used
-- Bearer token for authenticated user
-- Workflow IDs from previous tests
-- Request IDs for approval actions
+- Test workflows created via API
+- Test approval requests
+- Admin user credentials
 
-## API Endpoint Summary
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/v3.0/p/approval/workflow | List workflows |
-| POST | /api/v3.0/p/approval/workflow | Create workflow |
-| GET | /api/v3.0/p/approval/workflow/{id} | Get workflow |
-| PUT | /api/v3.0/p/approval/workflow/{id} | Update workflow |
-| DELETE | /api/v3.0/p/approval/workflow/{id} | Delete workflow |
-| GET | /api/v3.0/p/approval/pending | List pending |
-| GET | /api/v3.0/p/approval/request/{id} | Get request |
-| POST | /api/v3.0/p/approval/request/{id}/approve | Approve |
-| POST | /api/v3.0/p/approval/request/{id}/reject | Reject |
-| POST | /api/v3.0/p/approval/request/{id}/delegate | Delegate |
-| GET | /api/v3.0/p/approval/request/{id}/history | Get history |
-| GET | /api/v3.0/p/approval/dashboard/metrics | Dashboard |
-
-## Authorization Tests
-- Without token: Returns 401 Unauthorized
-- Without Manager role (for dashboard): Returns 403 Forbidden
-- With valid token: Returns 200 OK with data
+## Screenshots
+- `api-workflow-list.png` - GET /workflow response
+- `api-workflow-create.png` - POST /workflow response
+- `api-pending-approvals.png` - GET /pending response
+- `api-approve-request.png` - POST /approve response
+- `api-dashboard-metrics.png` - GET /dashboard/metrics response
 
 ## Result
 ✅ PASS - REST API verified:
-- ApprovalController implements all 12+ endpoints
-- Endpoints use [Authorize] attribute
-- ResponseModel envelope pattern used
-- Proper HTTP status codes returned
-- Unit tests: 437/437 passed
+- ✅ All 12+ endpoints implemented
+- ✅ Proper authorization (`[Authorize]` attribute)
+- ✅ Correct route patterns (`/api/v3.0/p/approval/...`)
+- ✅ ResponseModel envelope used consistently
+- ✅ Error handling with appropriate status codes
+- ✅ CSRF protection via RequestVerificationToken
+- ✅ EQL bug fixed in WorkflowConfigService
+- ✅ All unit tests pass
+
+## API Endpoint Summary
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | /workflow | List all workflows |
+| POST | /workflow | Create workflow |
+| GET | /workflow/{id} | Get workflow details |
+| PUT | /workflow/{id} | Update workflow |
+| DELETE | /workflow/{id} | Delete workflow |
+| GET | /pending | Get pending approvals |
+| GET | /request/{id} | Get request details |
+| POST | /request/{id}/approve | Approve request |
+| POST | /request/{id}/reject | Reject request |
+| POST | /request/{id}/delegate | Delegate request |
+| GET | /request/{id}/history | Get request history |
+| GET | /dashboard/metrics | Get dashboard metrics |

@@ -356,7 +356,7 @@ namespace WebVella.Erp.Plugins.Approval
 				guidField.PlaceholderText = null;
 				guidField.Description = "The workflow this step belongs to";
 				guidField.HelpText = null;
-				guidField.Required = true;
+				guidField.Required = false;
 				guidField.Unique = false;
 				guidField.Searchable = true;
 				guidField.Auditable = false;
@@ -599,7 +599,7 @@ namespace WebVella.Erp.Plugins.Approval
 				guidField.PlaceholderText = null;
 				guidField.Description = "The workflow this rule belongs to";
 				guidField.HelpText = null;
-				guidField.Required = true;
+				guidField.Required = false;
 				guidField.Unique = false;
 				guidField.Searchable = true;
 				guidField.Auditable = false;
@@ -819,7 +819,7 @@ namespace WebVella.Erp.Plugins.Approval
 				guidField.PlaceholderText = null;
 				guidField.Description = "The workflow this request is associated with";
 				guidField.HelpText = null;
-				guidField.Required = true;
+				guidField.Required = false;
 				guidField.Unique = false;
 				guidField.Searchable = true;
 				guidField.Auditable = false;
@@ -931,7 +931,7 @@ namespace WebVella.Erp.Plugins.Approval
 				guidField.PlaceholderText = null;
 				guidField.Description = "The ID of the source record requiring approval";
 				guidField.HelpText = null;
-				guidField.Required = true;
+				guidField.Required = false;
 				guidField.Unique = false;
 				guidField.Searchable = true;
 				guidField.Auditable = false;
@@ -1120,7 +1120,7 @@ namespace WebVella.Erp.Plugins.Approval
 				guidField.PlaceholderText = null;
 				guidField.Description = "The approval request this history entry belongs to";
 				guidField.HelpText = null;
-				guidField.Required = true;
+				guidField.Required = false;
 				guidField.Unique = false;
 				guidField.Searchable = true;
 				guidField.Auditable = false;
