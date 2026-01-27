@@ -153,7 +153,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 256;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -181,7 +181,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 128;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -419,7 +419,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 256;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -632,7 +632,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 256;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -660,7 +660,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 128;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -725,7 +725,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = false;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 1024;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();
@@ -908,7 +908,7 @@ namespace WebVella.Erp.Plugins.Approval
 				textboxField.Searchable = true;
 				textboxField.Auditable = false;
 				textboxField.System = false;
-				textboxField.DefaultValue = null;
+				textboxField.DefaultValue = "";
 				textboxField.MaxLength = 128;
 				textboxField.EnableSecurity = false;
 				textboxField.Permissions = new FieldPermissions();

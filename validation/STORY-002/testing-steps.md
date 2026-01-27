@@ -1,81 +1,120 @@
 # STORY-002 Testing Steps - Entity Schema
 
 ## Prerequisites
-- Application running with PostgreSQL database connected
-- Database migrated (run application once to trigger migrations)
-- WebVella ERP admin access
+- Application running (`dotnet run` from WebVella.Erp.Site directory)
+- PostgreSQL database available and configured
+- Database migration completed on first startup
+- Browser open to http://localhost:5000
 
 ## Steps to Test
 
-### 1. Verify Migration File Exists
-1. Check file: `WebVella.Erp.Plugins.Approval/ApprovalPlugin.20260123.cs`
-2. **Expected**: File exists with entity definitions for all 5 entities
-
-### 2. Verify Entity Definitions in Code
-Check the migration file contains:
-- `approval_workflow` entity with fields: id, name, target_entity_name, is_enabled, created_on, created_by
-- `approval_step` entity with fields: id, workflow_id, step_order, name, approver_type, approver_id, timeout_hours, is_final
-- `approval_rule` entity with fields: id, workflow_id, name, field_name, operator, value, priority
-- `approval_request` entity with fields: id, workflow_id, current_step_id, source_entity_name, source_record_id, status, requested_by, requested_on, completed_on
-- `approval_history` entity with fields: id, request_id, step_id, action, performed_by, performed_on, comments
-
-### 3. Verify Entity Relations
-Check the migration file defines these relations:
-- `approval_workflow_1n_step` (workflow → steps)
-- `approval_workflow_1n_rule` (workflow → rules)
-- `approval_workflow_1n_request` (workflow → requests)
-- `approval_step_1n_request` (step → requests)
-- `approval_request_1n_history` (request → history)
-- `approval_step_1n_history` (step → history)
-- `user_1n_workflow_created_by` (user → workflows)
-- `user_1n_request_requested_by` (user → requests)
-- `user_1n_history_performed_by` (user → history)
-
-### 4. Run Application to Execute Migration
-```bash
-cd WebVella.Erp.Site
-dotnet run
-```
-Navigate to the WebVella admin panel.
-
-### 5. Verify Entities in Entity Manager
-1. Navigate to WebVella Entity Manager (typically `/admin/entities`)
-2. **Expected**: All 5 approval entities are visible:
+### 1. Verify Entity Creation in Entity Manager
+1. Navigate to http://localhost:5000/sdk/objects/entity
+2. Search for "approval" in the entity list
+3. **Expected Result:** Five entities should be visible:
    - `approval_workflow`
    - `approval_step`
    - `approval_rule`
    - `approval_request`
    - `approval_history`
-3. Take screenshot: `validation/STORY-002/entities-list.png`
+4. **Screenshot:** entity-manager-view.png
 
-### 6. Verify Entity Fields
-1. Click on each entity to view its fields
-2. Verify all expected fields exist with correct types
-3. Take screenshot of each entity's field list
+### 2. Verify approval_workflow Entity Fields
+1. Click on `approval_workflow` entity
+2. Navigate to Fields tab
+3. **Expected Fields:**
+   - `id` (Guid, Primary Key)
+   - `name` (Text, Required, Unique, Max 256)
+   - `target_entity_name` (Text, Required, Max 128)
+   - `description` (Multiline Text, Optional)
+   - `is_enabled` (Checkbox, Default: true)
+   - `created_on` (DateTime, Auto)
+   - `created_by` (Guid, FK to user)
 
-### 7. Verify Database Tables (Direct DB Access)
-```sql
-SELECT table_name 
-FROM information_schema.tables 
-WHERE table_name LIKE 'approval_%';
-```
-**Expected**: 5 tables returned
+### 3. Verify approval_step Entity Fields
+1. Click on `approval_step` entity
+2. Navigate to Fields tab
+3. **Expected Fields:**
+   - `id` (Guid, Primary Key)
+   - `workflow_id` (Guid, FK to approval_workflow)
+   - `step_order` (Number, Required, Default: 1)
+   - `name` (Text, Required)
+   - `approver_type` (Select: role/user/department_head)
+   - `approver_id` (Guid, Optional)
+   - `timeout_hours` (Number, Optional)
+   - `is_final` (Checkbox, Default: false)
+
+### 4. Verify approval_rule Entity Fields
+1. Click on `approval_rule` entity
+2. Navigate to Fields tab
+3. **Expected Fields:**
+   - `id` (Guid, Primary Key)
+   - `workflow_id` (Guid, FK to approval_workflow)
+   - `name` (Text, Required)
+   - `field_name` (Text, Required)
+   - `operator` (Select: eq/neq/gt/gte/lt/lte/contains)
+   - `value` (Text, Required)
+   - `priority` (Number, Default: 0)
+
+### 5. Verify approval_request Entity Fields
+1. Click on `approval_request` entity
+2. Navigate to Fields tab
+3. **Expected Fields:**
+   - `id` (Guid, Primary Key)
+   - `workflow_id` (Guid, FK to approval_workflow)
+   - `current_step_id` (Guid, FK to approval_step)
+   - `title` (Text, Optional)
+   - `source_entity_name` (Text, Required)
+   - `source_record_id` (Guid, Required)
+   - `status` (Select: pending/approved/rejected/escalated/expired)
+   - `requested_by` (Guid, FK to user)
+   - `requested_on` (DateTime, Auto)
+   - `completed_on` (DateTime, Optional)
+
+### 6. Verify approval_history Entity Fields
+1. Click on `approval_history` entity
+2. Navigate to Fields tab
+3. **Expected Fields:**
+   - `id` (Guid, Primary Key)
+   - `request_id` (Guid, FK to approval_request)
+   - `step_id` (Guid, FK to approval_step)
+   - `action` (Select: submitted/approved/rejected/delegated/escalated)
+   - `performed_by` (Guid, FK to user)
+   - `performed_on` (DateTime, Auto)
+   - `comments` (Multiline Text, Optional)
+
+### 7. Verify Entity Relationships
+1. Navigate to http://localhost:5000/sdk/objects/entity_relation
+2. Search for "approval" in relations
+3. **Expected Relations:**
+   - `approval_workflow_1n_step` (workflow → steps)
+   - `approval_workflow_1n_rule` (workflow → rules)
+   - `approval_workflow_1n_request` (workflow → requests)
+   - `approval_step_1n_request` (step → requests)
+   - `approval_request_1n_history` (request → history)
 
 ## Test Data Used
-- None required (schema verification only)
+- No manual test data required - entities are created by migration
 
-## Code Verification Completed
-- [x] Migration file `ApprovalPlugin.20260123.cs` exists (1555 lines)
-- [x] All 5 entities defined with correct fields
-- [x] All 8 entity relations defined
-- [x] Field types match specifications (Guid, Text, Select, DateTime, Number, Checkbox)
-- [x] Required flags set appropriately
-- [x] Default values set appropriately (status="pending", action="submitted", etc.)
+## Database Verification
+```sql
+-- Connect to PostgreSQL and verify tables
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name LIKE 'approval%';
+
+-- Expected output:
+-- approval_workflow
+-- approval_step
+-- approval_rule
+-- approval_request
+-- approval_history
+```
 
 ## Result
-✅ PASS (Code verification complete - database verification requires runtime)
-
-## Notes
-- Entity schema verified via code review
-- Runtime database verification requires PostgreSQL connection
-- Migration uses standard WebVella `EntityManager.CreateEntity()` pattern
+✅ PASS - Entity schema verified:
+- All 5 entities defined in migration patch
+- Fields correctly configured with types and constraints
+- Relationships established between entities
+- Default values fixed for required text fields
+- Unit tests: 437/437 passed

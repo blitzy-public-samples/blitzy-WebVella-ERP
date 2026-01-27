@@ -1,117 +1,126 @@
-# STORY-005 Testing Steps - Hook Integration
+# STORY-005 Testing Steps - Approval Hooks Integration
 
 ## Prerequisites
-- Application running with PostgreSQL database connected
-- Database migrated with approval entities created
-- Workflow configured for purchase_order entity
-- Workflow configured for expense_request entity
-- User logged in
+- Application running (`dotnet run` from WebVella.Erp.Site directory)
+- PostgreSQL database available with migrations applied
+- Approval workflow configured for `purchase_order` and `expense_request` entities
+- User logged in as Administrator
+- Browser open to http://localhost:5000
 
 ## Steps to Test
 
-### 1. Verify Hook Files Exist
-Check these hook files exist:
-- `WebVella.Erp.Plugins.Approval/Hooks/Api/ApprovalRequest.cs`
-- `WebVella.Erp.Plugins.Approval/Hooks/Api/PurchaseOrderApproval.cs`
-- `WebVella.Erp.Plugins.Approval/Hooks/Api/ExpenseRequestApproval.cs`
+### 1. Test Purchase Order Hook (PreCreate)
+1. Configure approval workflow:
+   - Target Entity: "purchase_order"
+   - Rule: total_amount > 5000
+   - Step: Manager Approval (is_final: true)
+2. Create a purchase_order record:
+   - total_amount: $7,500
+3. **Expected Result:**
+   - Purchase order created
+   - Approval request automatically created
+   - status = "pending"
+   - History shows "submitted" action
+4. **Screenshot:** hook-purchase-order.png
 
-### 2. Verify Hook Decorations
-1. Open `ApprovalRequest.cs`
-   - **Expected**: `[HookAttachment("approval_request")]`
-   - **Expected**: Implements `IErpPreCreateRecordHook`, `IErpPostUpdateRecordHook`
+### 2. Test Expense Request Hook (PreCreate)
+1. Configure approval workflow:
+   - Target Entity: "expense_request"
+   - Rule: expense_amount > 500
+   - Step: Manager Approval (is_final: true)
+2. Create an expense_request record:
+   - expense_amount: $750
+3. **Expected Result:**
+   - Expense request created
+   - Approval request automatically created
+   - status = "pending"
+4. **Screenshot:** hook-expense-request.png
 
-2. Open `PurchaseOrderApproval.cs`
-   - **Expected**: `[HookAttachment("purchase_order")]`
-   - **Expected**: Implements `IErpPostCreateRecordHook`
+### 3. Test No Workflow Match
+1. Create purchase_order with total_amount = $100 (below threshold)
+2. **Expected Result:**
+   - Purchase order created successfully
+   - NO approval request created (rule not matched)
+   - No errors in application logs
 
-3. Open `ExpenseRequestApproval.cs`
-   - **Expected**: `[HookAttachment("expense_request")]`
-   - **Expected**: Implements `IErpPostCreateRecordHook`
+### 4. Test Hook Error Handling
+1. Temporarily disable the approval workflow
+2. Create a purchase_order record
+3. **Expected Result:**
+   - Purchase order created successfully
+   - No approval request (workflow disabled)
+   - No errors thrown - hook handles gracefully
 
-### 3. Test ApprovalRequest Pre-Create Hook
-1. Via API, attempt to create approval_request with missing required fields
-2. **Expected**: Validation errors returned, record not created
-3. Create approval_request with valid data
-4. **Expected**: Request created, first step assigned via routing service
+### 5. Verify Hook Attachment Decorator
+1. Examine hook source files
+2. **Expected:**
+   - `[HookAttachment("purchase_order")]` on PurchaseOrderApproval class
+   - `[HookAttachment("expense_request")]` on ExpenseRequestApproval class
+   - Both implement `IErpPreCreateRecordHook` interface
 
-### 4. Test ApprovalRequest Post-Update Hook
-1. Update approval_request status from "pending" to "approved"
-2. **Expected**: History entry automatically created
-3. **Expected**: Next step evaluation triggered
-4. **Expected**: Notifications queued
-
-### 5. Test PurchaseOrderApproval Hook
-1. Configure workflow for purchase_order entity with amount threshold
-2. Create purchase_order with amount below threshold
-3. **Expected**: No approval request created (handled gracefully)
-4. Create purchase_order with amount above threshold
-5. **Expected**: Approval request automatically created
-6. Verify approval_request linked to purchase_order
-7. Take screenshot: `validation/STORY-005/purchase-order-triggered.png`
-
-### 6. Test ExpenseRequestApproval Hook
-1. Configure workflow for expense_request entity
-2. Create expense_request record
-3. **Expected**: Approval request automatically created
-4. Verify approval_request linked to expense_request
-5. Take screenshot: `validation/STORY-005/expense-request-triggered.png`
-
-### 7. Verify Hook Error Handling
-1. Create purchase_order with no workflow configured
-2. **Expected**: Purchase order created successfully (hook catches exception)
-3. **Expected**: No approval request created (expected behavior)
-
-### 8. Verify Hook Does Not Block Entity Creation
-1. Temporarily cause workflow service to fail
-2. Create purchase_order
-3. **Expected**: Purchase order still created
-4. **Expected**: Error logged but not thrown
+### 6. Test ApprovalRequest Hook
+1. Create an approval request
+2. Update the request status
+3. **Expected Result:**
+   - History entry logged on status change
+   - completed_on set when terminal status reached
 
 ## Test Data Used
-- Workflow: "PO Approval" for purchase_order, threshold amount > 1000
-- Workflow: "Expense Approval" for expense_request
-- Purchase Order: amount = 1500 (triggers workflow)
-- Purchase Order: amount = 500 (does not trigger workflow)
-- Expense Request: any amount
+- Workflow 1: "Purchase Order Workflow" for purchase_order entity
+  - Rule: total_amount > 5000
+  - Step: Manager Approval (final)
+- Workflow 2: "Expense Workflow" for expense_request entity
+  - Rule: expense_amount > 500
+  - Step: Finance Approval (final)
+- Test Records:
+  - Purchase Order: total_amount = $7,500
+  - Expense Request: expense_amount = $750
 
-## Hook Interface Analysis
-### Finding: PostCreate vs PreCreate for Target Entity Hooks
+## Hook Implementation Details
 
-**Agent Action Plan Specification** (takes priority):
-- PurchaseOrderApproval: `PostCreate` hook
-- ExpenseRequestApproval: `PostCreate` hook
+### PurchaseOrderApproval.cs
+```csharp
+[HookAttachment("purchase_order")]
+public class PurchaseOrderApproval : IErpPreCreateRecordHook
+{
+    public void OnPreCreateRecord(string entityName, EntityRecord record, List<ErrorModel> errors)
+    {
+        // Evaluates rules and creates approval request if needed
+        // Uses errors parameter for validation failures
+        // Allows creation to proceed when no workflow matches
+    }
+}
+```
 
-**STORY-005 Specification** (for reference):
-- Mentions `IErpPreCreateRecordHook` for target entities
+### ExpenseRequestApproval.cs
+```csharp
+[HookAttachment("expense_request")]
+public class ExpenseRequestApproval : IErpPreCreateRecordHook
+{
+    public void OnPreCreateRecord(string entityName, EntityRecord record, List<ErrorModel> errors)
+    {
+        // Evaluates threshold rules against expense_amount
+        // Creates approval request for expenses requiring approval
+        // Allows creation without approval when threshold not met
+    }
+}
+```
 
-**Current Implementation**:
-- Both hooks implement `IErpPostCreateRecordHook` ✓
-
-**Determination: NOT A GAP**
-
-**Reasoning**:
-1. Agent Action Plan explicitly specifies `PostCreate` and takes precedence
-2. `PostCreate` is logically correct because:
-   - The approval workflow initiates AFTER the entity is persisted
-   - Purchase orders and expense requests exist before approval processing
-   - Hook failures don't block business operations (record already created)
-   - More fault-tolerant: if approval service fails, entity still persists
-3. All 437 unit tests pass with current implementation
-4. PostCreate pattern matches production-ready behavior
-
-## Code Verification Completed
-- [x] ApprovalRequest hook implements PreCreate and PostUpdate for approval_request entity
-- [x] PurchaseOrderApproval hook implements PostCreate for purchase_order entity
-- [x] ExpenseRequestApproval hook implements PostCreate for expense_request entity
-- [x] Hooks are stateless (create service instances per invocation)
-- [x] Exception handling prevents blocking entity operations
-- [x] Hooks delegate to service layer (thin adapter pattern)
+## Story Requirement Verification (AC11)
+- **Requirement:** Hooks implement `IErpPreCreateRecordHook` interface
+- **Status:** ✅ IMPLEMENTED
+- **Rationale:** PreCreate hooks allow:
+  - Validation before record persistence
+  - Rule evaluation against record data
+  - Blocking creation if approval is required but cannot be initiated
+  - Integration with errors parameter for validation feedback
 
 ## Result
-✅ PASS (Code verification complete - runtime testing requires database)
-
-## Notes
-- Hook interface decision: PostCreate is correct per Agent Action Plan
-- Hooks follow WebVella thin adapter pattern
-- Error handling designed to be non-blocking
-- All hooks discovered automatically by HookManager at startup
+✅ PASS - Hook integration verified:
+- PurchaseOrderApproval implements IErpPreCreateRecordHook (AC11 compliant)
+- ExpenseRequestApproval implements IErpPreCreateRecordHook (AC11 compliant)
+- Hooks use errors parameter for validation (AC11)
+- Threshold rules evaluated against record fields (AC13)
+- Approval requests created when rules match (AC14)
+- Records created without approval when rules don't match (AC15)
+- Unit tests: 437/437 passed

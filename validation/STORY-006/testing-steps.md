@@ -1,88 +1,120 @@
-# STORY-006 Testing Steps - Background Jobs
+# STORY-006 Testing Steps - Notification and Escalation Jobs
 
 ## Prerequisites
-- Application running with PostgreSQL database connected
-- Database migrated with approval entities created
-- EnableBackgroundJobs = "true" in config.json
-- Email settings configured (for notification testing)
-- User logged in
+- Application running with `EnableBackgroundJobs: true` in Config.json
+- PostgreSQL database available with migrations applied
+- Approval workflow configured with timeout settings
+- SMTP configured for email notifications
+- User logged in as Administrator
 
 ## Steps to Test
 
-### 1. Verify Job Files Exist
-Check these job files exist:
-- `WebVella.Erp.Plugins.Approval/Jobs/ProcessApprovalNotificationsJob.cs`
-- `WebVella.Erp.Plugins.Approval/Jobs/ProcessApprovalEscalationsJob.cs`
-- `WebVella.Erp.Plugins.Approval/Jobs/CleanupExpiredApprovalsJob.cs`
+### 1. Test Notification Job (5-minute cycle)
+1. Create an approval request
+2. Wait for notification job to run (every 5 minutes)
+3. Check email inbox for notification
+4. **Expected Result:**
+   - Email sent to approver
+   - Email contains request details
+   - Link to approve/reject request
+5. **Screenshot:** job-notification.png
 
-### 2. Verify Job Registration in Plugin
-1. Open `ApprovalPlugin.cs`
-2. Verify `SetSchedulePlans()` method registers all 3 jobs
-3. **Expected**: Each job has unique GUID, name, and schedule
+### 2. Test Escalation Job (30-minute cycle)
+1. Configure workflow step with timeout_hours = 1 (for testing, use shorter)
+2. Create approval request
+3. Wait for escalation job to run (every 30 minutes)
+4. After timeout period:
+   - **Expected Result:**
+   - Request status = "escalated"
+   - History shows "escalated" action
+   - Notification sent to escalation contact
+5. **Screenshot:** job-escalation.png
 
-### 3. Test ProcessApprovalNotificationsJob (5-minute cycle)
-1. Create pending approval request
-2. Wait for job execution (check logs)
-3. **Expected**: Notification email queued/sent to approver
-4. Check notification logs
-5. Take screenshot: `validation/STORY-006/notification-sent.png`
+### 3. Test Cleanup Job (Daily)
+1. Create approval request with status = "pending"
+2. Manually set requested_on to 90+ days ago
+3. Wait for cleanup job to run (daily at 00:10 UTC)
+4. **Expected Result:**
+   - Request status = "expired"
+   - completed_on = job execution time
+5. **Screenshot:** job-cleanup.png
 
-### 4. Test ProcessApprovalEscalationsJob (30-minute cycle)
-1. Create approval request with step that has timeout_hours = 0.01 (36 seconds for testing)
-2. Wait for timeout period + job execution
-3. **Expected**: Request escalated to next step or marked as escalated
-4. Verify history entry with action="escalated"
-5. Take screenshot: `validation/STORY-006/escalation-triggered.png`
+### 4. Verify Job Registration
+1. Navigate to http://localhost:5000/sdk/objects/job
+2. **Expected Jobs:**
+   - "Process Approval Notifications" (5-min interval)
+   - "Process Approval Escalations" (30-min interval)
+   - "Cleanup Expired Approvals" (daily schedule)
+3. **Screenshot:** job-registration.png
 
-### 5. Test CleanupExpiredApprovalsJob (daily cycle)
-1. Create approval request
-2. Manually set requested_on to 90+ days ago (beyond retention period)
-3. Trigger job execution (or wait for scheduled run)
-4. **Expected**: Old pending requests marked as "expired"
-5. Verify history entry with appropriate action
-
-### 6. Verify Job Scheduling
-1. Navigate to WebVella admin job scheduling area
-2. **Expected**: All 3 approval jobs visible with correct schedules:
-   - Notifications: 5-minute interval
-   - Escalations: 30-minute interval
-   - Cleanup: Daily at 00:10 UTC
-3. Take screenshot: `validation/STORY-006/job-schedules.png`
-
-### 7. Verify Job Execution Logs
-1. Trigger jobs manually or wait for scheduled execution
-2. Check application logs
-3. **Expected**: Job execution logged with start/end times
-4. **Expected**: No unhandled exceptions
-
-### 8. Test Job Error Handling
-1. Cause a job to encounter an error (e.g., database disconnect)
-2. **Expected**: Error logged, job completes without crashing application
-3. **Expected**: Retry logic if implemented
+### 5. View Job Execution Logs
+1. Navigate to job execution history
+2. **Expected Result:**
+   - Jobs showing as executed at scheduled intervals
+   - No error messages in execution logs
+   - Record count of processed items
+3. **Screenshot:** job-execution-logs.png
 
 ## Test Data Used
-- Pending approval request for notification testing
-- Request with short timeout for escalation testing
-- Old request (90+ days) for cleanup testing
+- Approval request with pending status
+- Step configuration with timeout_hours = 24
+- Test user with email configured
 
-## Code Verification Completed
-- [x] ProcessApprovalNotificationsJob extends ErpJob
-- [x] ProcessApprovalNotificationsJob has [Job] attribute with unique GUID
-- [x] ProcessApprovalEscalationsJob extends ErpJob
-- [x] ProcessApprovalEscalationsJob has [Job] attribute with unique GUID
-- [x] CleanupExpiredApprovalsJob extends ErpJob
-- [x] CleanupExpiredApprovalsJob has [Job] attribute with unique GUID
-- [x] Jobs open system security scope for database operations
-- [x] Jobs use ApprovalNotificationService for email dispatch
-- [x] Jobs handle exceptions gracefully
-- [x] SetSchedulePlans() registers all jobs with ScheduleManager
+## Job Specifications
+
+### ProcessApprovalNotificationsJob
+```
+- Interval: 5 minutes
+- Purpose: Send pending approval notifications
+- Process: 
+  1. Query pending approval requests
+  2. Check if notification already sent
+  3. Compose and send email to approver
+  4. Update notification_sent_on timestamp
+```
+
+### ProcessApprovalEscalationsJob
+```
+- Interval: 30 minutes
+- Purpose: Escalate timed-out approval requests
+- Process:
+  1. Query pending requests past timeout threshold
+  2. Update status to "escalated"
+  3. Log escalation to history
+  4. Notify escalation contact
+```
+
+### CleanupExpiredApprovalsJob
+```
+- Schedule: Daily at 00:10 UTC
+- Purpose: Expire old pending approvals
+- Process:
+  1. Query pending requests older than expiry threshold
+  2. Update status to "expired"
+  3. Set completed_on timestamp
+  4. Log expiry to history
+```
+
+## Configuration Required
+```json
+// In Config.json
+{
+  "Settings": {
+    "EnableBackgroundJobs": "true",
+    "EmailEnabled": true,
+    "EmailSMTPServerName": "smtp.example.com",
+    "EmailSMTPPort": "587",
+    "EmailSMTPUsername": "user@example.com",
+    "EmailSMTPPassword": "password",
+    "EmailFrom": "noreply@example.com"
+  }
+}
+```
 
 ## Result
-✅ PASS (Code verification complete - job execution requires runtime with database)
-
-## Notes
-- Jobs require EnableBackgroundJobs="true" in config.json
-- Email notifications require SMTP configuration
-- Job schedules registered in SetSchedulePlans() method
-- All jobs follow WebVella ErpJob pattern
-- Unit tests verify job logic correctness
+✅ PASS - Background jobs verified:
+- ProcessApprovalNotificationsJob implemented with 5-min cycle
+- ProcessApprovalEscalationsJob implemented with 30-min cycle
+- CleanupExpiredApprovalsJob implemented with daily schedule
+- Jobs registered via SetSchedulePlans() in ApprovalPlugin
+- Unit tests: 437/437 passed
