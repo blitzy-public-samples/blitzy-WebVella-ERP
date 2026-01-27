@@ -175,12 +175,12 @@ namespace WebVella.Erp.Plugins.Approval
 			}
 			#endregion
 
-			#region << ***Create field*** Entity: approval_workflow Field Name: target_entity_name >>
+			#region << ***Create field*** Entity: approval_workflow Field Name: target_entity >>
 			{
 				InputTextField textboxField = new InputTextField();
 				textboxField.Id = WORKFLOW_TARGET_ENTITY_NAME_FIELD_ID;
-				textboxField.Name = "target_entity_name";
-				textboxField.Label = "Target Entity Name";
+				textboxField.Name = "target_entity";
+				textboxField.Label = "Target Entity";
 				textboxField.PlaceholderText = "e.g., purchase_order";
 				textboxField.Description = "The entity name this workflow applies to";
 				textboxField.HelpText = null;
@@ -198,7 +198,7 @@ namespace WebVella.Erp.Plugins.Approval
 				{
 					var response = entMan.CreateField(APPROVAL_WORKFLOW_ENTITY_ID, textboxField, false);
 					if (!response.Success)
-						throw new Exception("System error 10060. Entity: approval_workflow Field: target_entity_name Message:" + response.Message);
+						throw new Exception("System error 10060. Entity: approval_workflow Field: target_entity Message:" + response.Message);
 				}
 			}
 			#endregion
@@ -747,30 +747,32 @@ namespace WebVella.Erp.Plugins.Approval
 			}
 			#endregion
 
-			#region << ***Create field*** Entity: approval_rule Field Name: value >>
+			#region << ***Create field*** Entity: approval_rule Field Name: threshold_value >>
 			{
-				InputTextField textboxField = new InputTextField();
-				textboxField.Id = RULE_VALUE_FIELD_ID;
-				textboxField.Name = "value";
-				textboxField.Label = "Value";
-				textboxField.PlaceholderText = "Enter comparison value";
-				textboxField.Description = "The value to compare against";
-				textboxField.HelpText = null;
-				textboxField.Required = true;
-				textboxField.Unique = false;
-				textboxField.Searchable = false;
-				textboxField.Auditable = false;
-				textboxField.System = false;
-				textboxField.DefaultValue = "";
-				textboxField.MaxLength = 1024;
-				textboxField.EnableSecurity = false;
-				textboxField.Permissions = new FieldPermissions();
-				textboxField.Permissions.CanRead = new List<Guid>();
-				textboxField.Permissions.CanUpdate = new List<Guid>();
+				InputNumberField numberField = new InputNumberField();
+				numberField.Id = RULE_VALUE_FIELD_ID;
+				numberField.Name = "threshold_value";
+				numberField.Label = "Threshold Value";
+				numberField.PlaceholderText = null;
+				numberField.Description = "Threshold value for comparison (decimal)";
+				numberField.HelpText = null;
+				numberField.Required = true;
+				numberField.Unique = false;
+				numberField.Searchable = false;
+				numberField.Auditable = false;
+				numberField.System = false;
+				numberField.DefaultValue = 0m;
+				numberField.MinValue = null;
+				numberField.MaxValue = null;
+				numberField.DecimalPlaces = 2;
+				numberField.EnableSecurity = false;
+				numberField.Permissions = new FieldPermissions();
+				numberField.Permissions.CanRead = new List<Guid>();
+				numberField.Permissions.CanUpdate = new List<Guid>();
 				{
-					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, textboxField, false);
+					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, numberField, false);
 					if (!response.Success)
-						throw new Exception("System error 10060. Entity: approval_rule Field: value Message:" + response.Message);
+						throw new Exception("System error 10060. Entity: approval_rule Field: threshold_value Message:" + response.Message);
 				}
 			}
 			#endregion
@@ -958,14 +960,14 @@ namespace WebVella.Erp.Plugins.Approval
 			}
 			#endregion
 
-			#region << ***Create field*** Entity: approval_request Field Name: source_entity_name >>
+			#region << ***Create field*** Entity: approval_request Field Name: source_entity >>
 			{
 				InputTextField textboxField = new InputTextField();
 				textboxField.Id = REQUEST_SOURCE_ENTITY_NAME_FIELD_ID;
-				textboxField.Name = "source_entity_name";
-				textboxField.Label = "Source Entity Name";
+				textboxField.Name = "source_entity";
+				textboxField.Label = "Source Entity";
 				textboxField.PlaceholderText = null;
-				textboxField.Description = "The entity name of the source record";
+				textboxField.Description = "Entity name of the source record";
 				textboxField.HelpText = null;
 				textboxField.Required = true;
 				textboxField.Unique = false;
@@ -981,7 +983,7 @@ namespace WebVella.Erp.Plugins.Approval
 				{
 					var response = entMan.CreateField(APPROVAL_REQUEST_ENTITY_ID, textboxField, false);
 					if (!response.Success)
-						throw new Exception("System error 10060. Entity: approval_request Field: source_entity_name Message:" + response.Message);
+						throw new Exception("System error 10060. Entity: approval_request Field: source_entity Message:" + response.Message);
 				}
 			}
 			#endregion

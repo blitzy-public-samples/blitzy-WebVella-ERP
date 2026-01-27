@@ -176,7 +176,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     requestRecord["id"] = requestId;
                     requestRecord["workflow_id"] = matchingWorkflow.Id;
                     requestRecord["current_step_id"] = firstStep.Id;
-                    requestRecord["source_entity_name"] = sourceEntityName;
+                    requestRecord["source_entity"] = sourceEntityName;
                     requestRecord["source_record_id"] = sourceRecordId;
                     requestRecord["status"] = STATUS_PENDING;
                     requestRecord["requested_by"] = requestedBy;
@@ -657,7 +657,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, source_record_id, 
                                           status, requested_by, requested_on, completed_on 
                                    FROM approval_request 
                                    WHERE id = @requestId";
@@ -713,7 +713,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             try
             {
-                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, source_record_id, 
                                           status, requested_by, requested_on, completed_on 
                                    FROM approval_request 
                                    WHERE status = @status
@@ -786,7 +786,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, source_record_id, 
                                           status, requested_by, requested_on, completed_on 
                                    FROM approval_request 
                                    WHERE status = @status
@@ -831,7 +831,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <remarks>
         /// This method is intended to be called from an IErpPreCreateRecordHook implementation.
         /// It validates:
-        /// - Required fields are present (workflow_id, source_entity_name, source_record_id, requested_by)
+        /// - Required fields are present (workflow_id, source_entity, source_record_id, requested_by)
         /// - Referenced workflow exists and is enabled
         /// - No duplicate pending requests exist for the same source record
         /// </remarks>
@@ -852,11 +852,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 });
             }
 
-            if (!record.Properties.ContainsKey("source_entity_name") || string.IsNullOrWhiteSpace(record["source_entity_name"]?.ToString()))
+            if (!record.Properties.ContainsKey("source_entity") || string.IsNullOrWhiteSpace(record["source_entity"]?.ToString()))
             {
                 errors.Add(new ErrorModel
                 {
-                    Key = "source_entity_name",
+                    Key = "source_entity",
                     Message = "Source entity name is required."
                 });
             }
@@ -886,7 +886,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
 
             var workflowId = (Guid)record["workflow_id"];
-            var sourceEntityName = record["source_entity_name"]?.ToString();
+            var sourceEntityName = record["source_entity"]?.ToString();
             var sourceRecordId = (Guid)record["source_record_id"];
 
             // Validate workflow exists and is enabled
@@ -924,7 +924,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             try
             {
                 var duplicateCheckEql = @"SELECT id FROM approval_request 
-                                          WHERE source_entity_name = @entityName 
+                                          WHERE source_entity = @entityName 
                                           AND source_record_id = @recordId 
                                           AND status = @status";
 
@@ -1097,8 +1097,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 CurrentStepId = record.Properties.ContainsKey("current_step_id") && record["current_step_id"] != null
                     ? (Guid?)record["current_step_id"]
                     : null,
-                SourceEntityName = record.Properties.ContainsKey("source_entity_name")
-                    ? record["source_entity_name"]?.ToString()
+                SourceEntityName = record.Properties.ContainsKey("source_entity")
+                    ? record["source_entity"]?.ToString()
                     : string.Empty,
                 SourceRecordId = record.Properties.ContainsKey("source_record_id") && record["source_record_id"] != null
                     ? (Guid)record["source_record_id"]
@@ -1128,13 +1128,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
             // Implementation depends on business requirements
             // For now, this is a placeholder for extensibility
             
-            if (!record.Properties.ContainsKey("source_entity_name") || 
+            if (!record.Properties.ContainsKey("source_entity") || 
                 !record.Properties.ContainsKey("source_record_id"))
             {
                 return;
             }
 
-            var sourceEntityName = record["source_entity_name"]?.ToString();
+            var sourceEntityName = record["source_entity"]?.ToString();
             var sourceRecordId = record["source_record_id"];
 
             if (string.IsNullOrWhiteSpace(sourceEntityName) || sourceRecordId == null)
@@ -1171,13 +1171,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             // Similar to approval, this could trigger notifications and updates
             
-            if (!record.Properties.ContainsKey("source_entity_name") || 
+            if (!record.Properties.ContainsKey("source_entity") || 
                 !record.Properties.ContainsKey("source_record_id"))
             {
                 return;
             }
 
-            var sourceEntityName = record["source_entity_name"]?.ToString();
+            var sourceEntityName = record["source_entity"]?.ToString();
             var sourceRecordId = record["source_record_id"];
 
             if (string.IsNullOrWhiteSpace(sourceEntityName) || sourceRecordId == null)

@@ -171,7 +171,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 return null;
             }
 
-            var eqlCommand = "SELECT * FROM approval_workflow WHERE target_entity_name = @entityName AND is_enabled = @isEnabled";
+            var eqlCommand = "SELECT * FROM approval_workflow WHERE target_entity = @entityName AND is_enabled = @isEnabled";
             var eqlParams = new List<EqlParameter>
             {
                 new EqlParameter("entityName", entityName),
@@ -331,8 +331,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 Name = record.Properties.ContainsKey("name") && record["name"] != null
                     ? (string)record["name"]
                     : string.Empty,
-                TargetEntityName = record.Properties.ContainsKey("target_entity_name") && record["target_entity_name"] != null
-                    ? (string)record["target_entity_name"]
+                TargetEntityName = record.Properties.ContainsKey("target_entity") && record["target_entity"] != null
+                    ? (string)record["target_entity"]
                     : string.Empty,
                 IsEnabled = record.Properties.ContainsKey("is_enabled") && record["is_enabled"] != null
                     && (bool)record["is_enabled"],
@@ -422,9 +422,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 Operator = record.Properties.ContainsKey("operator") && record["operator"] != null
                     ? (string)record["operator"]
                     : string.Empty,
-                Value = record.Properties.ContainsKey("value") && record["value"] != null
-                    ? (string)record["value"]
-                    : string.Empty,
+                ThresholdValue = record.Properties.ContainsKey("threshold_value") && record["threshold_value"] != null
+                    ? Convert.ToDecimal(record["threshold_value"])
+                    : 0m,
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null
                     ? Convert.ToInt32(record["priority"])
                     : 0

@@ -37,7 +37,7 @@ namespace WebVella.Erp.Plugins.Approval.Hooks.Api
         /// </param>
         /// <remarks>
         /// This method delegates to ApprovalRequestService.PreCreateApiHookLogic() which:
-        /// - Validates required fields: workflow_id, source_entity_name, source_record_id, requested_by
+        /// - Validates required fields: workflow_id, source_entity, source_record_id, requested_by
         /// - Checks that the referenced workflow exists and is enabled
         /// - Prevents duplicate pending requests for the same source record
         /// 

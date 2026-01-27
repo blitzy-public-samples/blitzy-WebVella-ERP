@@ -30,7 +30,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
             Assert.Null(model.Name);
             Assert.Null(model.FieldName);
             Assert.Null(model.Operator);
-            Assert.Null(model.Value);
+            Assert.Equal(0m, model.ThresholdValue);
             Assert.Equal(0, model.Priority);
         }
 
@@ -52,7 +52,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
                 Name = "High Value Purchase Rule",
                 FieldName = "total_amount",
                 Operator = "gt",
-                Value = "10000",
+                ThresholdValue = 10000m,
                 Priority = 100
             };
 
@@ -62,7 +62,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
             Assert.Equal("High Value Purchase Rule", model.Name);
             Assert.Equal("total_amount", model.FieldName);
             Assert.Equal("gt", model.Operator);
-            Assert.Equal("10000", model.Value);
+            Assert.Equal(10000m, model.ThresholdValue);
             Assert.Equal(100, model.Priority);
         }
 
@@ -497,7 +497,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
                 Name = "High Value Purchase Rule",
                 FieldName = "total_amount",
                 Operator = "gt",
-                Value = "10000",
+                ThresholdValue = 10000m,
                 Priority = 100
             };
 
@@ -509,8 +509,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
             Assert.False(string.IsNullOrWhiteSpace(model.FieldName));
             Assert.True(model.FieldName.Length <= RuleConfigService.MAX_FIELD_NAME_LENGTH);
             Assert.True(Array.Exists(RuleConfigService.VALID_OPERATORS, o => o == model.Operator));
-            Assert.False(string.IsNullOrWhiteSpace(model.Value));
-            Assert.True(model.Value.Length <= RuleConfigService.MAX_VALUE_LENGTH);
+            Assert.Equal(10000m, model.ThresholdValue);
             Assert.True(model.Priority >= 0);
         }
 
@@ -518,13 +517,13 @@ namespace WebVella.Erp.Plugins.Approval.Tests
         /// Tests different comparison operators with numeric values.
         /// </summary>
         [Theory]
-        [InlineData("eq", "1000")]
-        [InlineData("neq", "0")]
-        [InlineData("gt", "5000")]
-        [InlineData("gte", "5000")]
-        [InlineData("lt", "100")]
-        [InlineData("lte", "100")]
-        public void NumericRule_ValidOperatorAndValue_PassesValidation(string operatorValue, string value)
+        [InlineData("eq", 1000)]
+        [InlineData("neq", 0)]
+        [InlineData("gt", 5000)]
+        [InlineData("gte", 5000)]
+        [InlineData("lt", 100)]
+        [InlineData("lte", 100)]
+        public void NumericRule_ValidOperatorAndValue_PassesValidation(string operatorValue, decimal thresholdValue)
         {
             // Arrange
             var model = new ApprovalRuleModel
@@ -534,20 +533,21 @@ namespace WebVella.Erp.Plugins.Approval.Tests
                 Name = "Numeric Rule",
                 FieldName = "amount",
                 Operator = operatorValue,
-                Value = value,
+                ThresholdValue = thresholdValue,
                 Priority = 0
             };
 
             // Assert
             Assert.True(Array.Exists(RuleConfigService.VALID_OPERATORS, o => o == model.Operator));
-            Assert.False(string.IsNullOrWhiteSpace(model.Value));
+            Assert.Equal(thresholdValue, model.ThresholdValue);
         }
 
         /// <summary>
-        /// Tests string contains operator with text value.
+        /// Tests contains operator with threshold value (for field matching).
+        /// Note: Contains operator uses threshold_value as numeric comparison.
         /// </summary>
         [Fact]
-        public void StringRule_ContainsOperator_PassesValidation()
+        public void ContainsOperator_PassesValidation()
         {
             // Arrange
             var model = new ApprovalRuleModel
@@ -555,9 +555,9 @@ namespace WebVella.Erp.Plugins.Approval.Tests
                 Id = Guid.NewGuid(),
                 WorkflowId = Guid.NewGuid(),
                 Name = "Department Filter",
-                FieldName = "department_name",
+                FieldName = "department_code",
                 Operator = "contains",
-                Value = "Sales",
+                ThresholdValue = 100m,
                 Priority = 50
             };
 

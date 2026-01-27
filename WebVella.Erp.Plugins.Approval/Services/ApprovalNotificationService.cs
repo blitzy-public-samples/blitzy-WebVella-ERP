@@ -133,7 +133,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 			}
 
 			// Extract request fields for notification content
-			var sourceEntityName = requestRecord["source_entity_name"]?.ToString() ?? "Unknown Entity";
+			var sourceEntityName = requestRecord["source_entity"]?.ToString() ?? "Unknown Entity";
 			var sourceRecordId = requestRecord["source_record_id"] != null 
 				? (Guid)requestRecord["source_record_id"] 
 				: Guid.Empty;
@@ -208,7 +208,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 			}
 
 			// Extract request fields for notification content
-			var sourceEntityName = requestRecord["source_entity_name"]?.ToString() ?? "Unknown Entity";
+			var sourceEntityName = requestRecord["source_entity"]?.ToString() ?? "Unknown Entity";
 			var sourceRecordId = requestRecord["source_record_id"] != null 
 				? (Guid)requestRecord["source_record_id"] 
 				: Guid.Empty;
@@ -271,7 +271,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 			}
 
 			// Extract request fields for notification content
-			var sourceEntityName = requestRecord["source_entity_name"]?.ToString() ?? "Unknown Entity";
+			var sourceEntityName = requestRecord["source_entity"]?.ToString() ?? "Unknown Entity";
 			var sourceRecordId = requestRecord["source_record_id"] != null 
 				? (Guid)requestRecord["source_record_id"] 
 				: Guid.Empty;
@@ -428,7 +428,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		{
 			try
 			{
-				var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, 
+				var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, 
                                    source_record_id, status, requested_by, requested_on, completed_on 
                                    FROM approval_request 
                                    WHERE id = @id";

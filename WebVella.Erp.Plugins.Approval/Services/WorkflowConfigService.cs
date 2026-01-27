@@ -12,7 +12,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
     /// <summary>
     /// Foundational admin-facing service for CRUD operations on approval_workflow entity configuration.
     /// Provides Create(), GetById(), GetAll(), Update(), and Delete() methods for managing workflow definitions.
-    /// Includes validation logic to ensure name uniqueness, target_entity_name references a valid entity,
+    /// Includes validation logic to ensure name uniqueness, target_entity references a valid entity,
     /// and prevents deletion of workflows with active requests.
     /// </summary>
     /// <remarks>
@@ -157,7 +157,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             var record = new EntityRecord();
             record["id"] = model.Id;
             record["name"] = model.Name;
-            record["target_entity_name"] = model.TargetEntityName;
+            record["target_entity"] = model.TargetEntityName;
             record["is_enabled"] = model.IsEnabled;
             record["created_on"] = model.CreatedOn;
             record["created_by"] = model.CreatedBy;
@@ -383,7 +383,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             if (!string.Equals(existing.TargetEntityName, model.TargetEntityName, StringComparison.OrdinalIgnoreCase))
             {
-                patchRecord["target_entity_name"] = model.TargetEntityName;
+                patchRecord["target_entity"] = model.TargetEntityName;
             }
 
             if (existing.IsEnabled != model.IsEnabled)
@@ -501,12 +501,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 if (enabledOnly)
                 {
-                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity_name = @entityName AND is_enabled = @enabled ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity = @entityName AND is_enabled = @enabled ORDER BY name ASC";
                     eqlParams.Add(new EqlParameter("enabled", true));
                 }
                 else
                 {
-                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity_name = @entityName ORDER BY name ASC";
+                    eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE target_entity = @entityName ORDER BY name ASC";
                 }
 
                 var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
@@ -921,8 +921,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     ? record["name"].ToString() 
                     : string.Empty,
                     
-                TargetEntityName = record.Properties.ContainsKey("target_entity_name") && record["target_entity_name"] != null 
-                    ? record["target_entity_name"].ToString() 
+                TargetEntityName = record.Properties.ContainsKey("target_entity") && record["target_entity"] != null 
+                    ? record["target_entity"].ToString() 
                     : string.Empty,
                     
                 IsEnabled = record.Properties.ContainsKey("is_enabled") && record["is_enabled"] != null 

@@ -173,7 +173,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             record["name"] = model.Name;
             record["field_name"] = model.FieldName;
             record["operator"] = model.Operator;
-            record["value"] = model.Value;
+            record["threshold_value"] = model.ThresholdValue;
             record["priority"] = model.Priority;
 
             // Execute the create operation
@@ -340,7 +340,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             patchRecord["name"] = model.Name;
             patchRecord["field_name"] = model.FieldName;
             patchRecord["operator"] = model.Operator;
-            patchRecord["value"] = model.Value;
+            patchRecord["threshold_value"] = model.ThresholdValue;
             patchRecord["priority"] = model.Priority;
 
             // Execute the update operation
@@ -593,16 +593,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 throw new ValidationException("Operator is required and cannot be empty or whitespace.");
             }
 
-            // Validate Value
-            if (model.Value == null)
-            {
-                throw new ValidationException("Value is required and cannot be null.");
-            }
-
-            if (model.Value.Length > MAX_VALUE_LENGTH)
-            {
-                throw new ValidationException($"Value cannot exceed {MAX_VALUE_LENGTH} characters. Current length: {model.Value.Length}.");
-            }
+            // ThresholdValue is a decimal and always has a valid default value (0m)
+            // No specific validation needed as decimal type enforces valid numeric values
         }
 
         /// <summary>
@@ -717,9 +709,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     ? record["operator"].ToString()
                     : string.Empty,
 
-                Value = record.Properties.ContainsKey("value") && record["value"] != null
-                    ? record["value"].ToString()
-                    : string.Empty,
+                ThresholdValue = record.Properties.ContainsKey("threshold_value") && record["threshold_value"] != null
+                    ? Convert.ToDecimal(record["threshold_value"])
+                    : 0m,
 
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null
                     ? Convert.ToInt32(record["priority"])

@@ -138,7 +138,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             {
                 // Per AC12: Query terminal status records older than retention period
                 // Per AC13: Only include non-archived records
-                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, source_record_id, 
                                           status, requested_by, requested_on, completed_on, is_archived 
                                    FROM approval_request 
                                    WHERE (status = @statusApproved OR status = @statusRejected OR status = @statusCancelled)

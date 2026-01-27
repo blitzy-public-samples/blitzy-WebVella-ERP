@@ -81,7 +81,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
 
             // Query enabled workflows for the specified entity type
-            var workflowEql = "SELECT * FROM approval_workflow WHERE target_entity_name = @entityName AND is_enabled = @isEnabled";
+            var workflowEql = "SELECT * FROM approval_workflow WHERE target_entity = @entityName AND is_enabled = @isEnabled";
             var workflowParams = new List<EqlParameter>
             {
                 new EqlParameter("entityName", entityName),
@@ -165,14 +165,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
 
             var fieldValue = record[rule.FieldName];
-            var ruleValue = rule.Value ?? string.Empty;
+            var thresholdValue = rule.ThresholdValue;
 
             // Handle null field values
             if (fieldValue == null)
             {
-                // Null field value - only matches if rule expects empty/null
-                return string.IsNullOrEmpty(ruleValue) && 
-                       (rule.Operator == "eq" || rule.Operator == "contains");
+                // Null field value - only matches if threshold is zero (for eq)
+                return thresholdValue == 0m && rule.Operator == "eq";
             }
 
             var fieldValueStr = fieldValue.ToString() ?? string.Empty;
@@ -180,32 +179,28 @@ namespace WebVella.Erp.Plugins.Approval.Services
             switch (rule.Operator?.ToLowerInvariant())
             {
                 case "eq":
-                    // Equal comparison - case-insensitive string comparison
-                    return string.Equals(fieldValueStr, ruleValue, StringComparison.OrdinalIgnoreCase);
+                    // Equal comparison - numeric
+                    return CompareNumeric(fieldValue, thresholdValue) == 0;
 
-                case "neq":
-                    // Not equal comparison - case-insensitive string comparison
-                    return !string.Equals(fieldValueStr, ruleValue, StringComparison.OrdinalIgnoreCase);
+                case "ne":
+                    // Not equal comparison - numeric
+                    return CompareNumeric(fieldValue, thresholdValue) != 0;
 
                 case "gt":
                     // Greater than comparison - numeric
-                    return CompareNumeric(fieldValue, ruleValue) > 0;
+                    return CompareNumeric(fieldValue, thresholdValue) > 0;
 
                 case "gte":
                     // Greater than or equal comparison - numeric
-                    return CompareNumeric(fieldValue, ruleValue) >= 0;
+                    return CompareNumeric(fieldValue, thresholdValue) >= 0;
 
                 case "lt":
                     // Less than comparison - numeric
-                    return CompareNumeric(fieldValue, ruleValue) < 0;
+                    return CompareNumeric(fieldValue, thresholdValue) < 0;
 
                 case "lte":
                     // Less than or equal comparison - numeric
-                    return CompareNumeric(fieldValue, ruleValue) <= 0;
-
-                case "contains":
-                    // Contains substring comparison - case-insensitive
-                    return fieldValueStr.IndexOf(ruleValue, StringComparison.OrdinalIgnoreCase) >= 0;
+                    return CompareNumeric(fieldValue, thresholdValue) <= 0;
 
                 default:
                     // Unknown operator - rule does not match
@@ -214,20 +209,19 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Compares two values numerically by attempting to parse them as decimals.
+        /// Compares two values numerically by attempting to parse the field value as decimal.
         /// </summary>
         /// <param name="fieldValue">The field value from the record.</param>
-        /// <param name="ruleValue">The rule value to compare against.</param>
+        /// <param name="thresholdValue">The threshold value to compare against.</param>
         /// <returns>
-        /// Negative value if fieldValue less than ruleValue,
+        /// Negative value if fieldValue less than thresholdValue,
         /// zero if equal,
-        /// positive value if fieldValue greater than ruleValue.
-        /// Returns 0 if either value cannot be parsed as a decimal.
+        /// positive value if fieldValue greater than thresholdValue.
+        /// Returns 0 if field value cannot be parsed as a decimal.
         /// </returns>
-        private int CompareNumeric(object fieldValue, string ruleValue)
+        private int CompareNumeric(object fieldValue, decimal thresholdValue)
         {
             decimal fieldDecimal = 0m;
-            decimal ruleDecimal = 0m;
 
             // Try to parse field value as decimal
             if (fieldValue is decimal fieldDec)
@@ -256,14 +250,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 return 0;
             }
 
-            // Try to parse rule value as decimal
-            if (!decimal.TryParse(ruleValue, out ruleDecimal))
-            {
-                // Cannot parse rule value as decimal
-                return 0;
-            }
-
-            return fieldDecimal.CompareTo(ruleDecimal);
+            return fieldDecimal.CompareTo(thresholdValue);
         }
 
         /// <summary>
@@ -759,7 +746,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             {
                 Id = record.Properties.ContainsKey("id") ? (Guid)record["id"] : Guid.Empty,
                 Name = record.Properties.ContainsKey("name") ? record["name"]?.ToString() : string.Empty,
-                TargetEntityName = record.Properties.ContainsKey("target_entity_name") ? record["target_entity_name"]?.ToString() : string.Empty,
+                TargetEntityName = record.Properties.ContainsKey("target_entity") ? record["target_entity"]?.ToString() : string.Empty,
                 IsEnabled = record.Properties.ContainsKey("is_enabled") && record["is_enabled"] != null && (bool)record["is_enabled"],
                 CreatedOn = record.Properties.ContainsKey("created_on") && record["created_on"] != null 
                     ? (DateTime)record["created_on"] 
@@ -824,7 +811,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 Name = record.Properties.ContainsKey("name") ? record["name"]?.ToString() : string.Empty,
                 FieldName = record.Properties.ContainsKey("field_name") ? record["field_name"]?.ToString() : string.Empty,
                 Operator = record.Properties.ContainsKey("operator") ? record["operator"]?.ToString() : string.Empty,
-                Value = record.Properties.ContainsKey("value") ? record["value"]?.ToString() : string.Empty,
+                ThresholdValue = record.Properties.ContainsKey("threshold_value") && record["threshold_value"] != null 
+                    ? Convert.ToDecimal(record["threshold_value"]) 
+                    : 0m,
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null 
                     ? Convert.ToInt32(record["priority"]) 
                     : 0

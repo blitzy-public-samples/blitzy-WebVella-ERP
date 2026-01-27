@@ -134,7 +134,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                 var cutoffTime = DateTime.UtcNow.AddHours(-REMINDER_INTERVAL_HOURS);
 
                 // Per AC2: Query pending requests where last_notification_sent is null or older than interval
-                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity, source_record_id, 
                                           status, requested_by, requested_on, last_notification_sent, notification_count
                                    FROM approval_request 
                                    WHERE status = @status 

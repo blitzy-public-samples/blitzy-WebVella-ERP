@@ -98,11 +98,11 @@ namespace WebVella.Erp.Plugins.Approval.Api
         public string Operator { get; set; }
 
         /// <summary>
-        /// The value to compare against the entity field.
-        /// Stored as string and converted to appropriate type during rule evaluation.
+        /// The threshold value to compare against the entity field.
+        /// Stored as decimal with precision for numeric comparisons.
         /// </summary>
-        [JsonProperty(PropertyName = "value")]
-        public string Value { get; set; }
+        [JsonProperty(PropertyName = "threshold_value")]
+        public decimal ThresholdValue { get; set; }
 
         /// <summary>
         /// Priority order for rule evaluation.

@@ -86,7 +86,7 @@ namespace WebVella.Erp.Plugins.Approval.Api
 		/// Examples: "purchase_order", "expense_request".
 		/// Used to navigate back to the source record for context during approval.
 		/// </summary>
-		[JsonProperty(PropertyName = "source_entity_name")]
+		[JsonProperty(PropertyName = "source_entity")]
 		public string SourceEntityName { get; set; }
 
 		/// <summary>

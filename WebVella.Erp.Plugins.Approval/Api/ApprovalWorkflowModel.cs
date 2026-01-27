@@ -12,7 +12,7 @@ namespace WebVella.Erp.Plugins.Approval.Api
     /// Maps to the 'approval_workflow' entity with the following database schema:
     /// - id (Guid, Primary Key, Auto-generated)
     /// - name (Text, Required, Max 256 characters)
-    /// - target_entity_name (Text, Required, Max 128 characters)
+    /// - target_entity (Text, Required, Max 128 characters)
     /// - is_enabled (Checkbox, Default true)
     /// - created_on (DateTime, Auto-generated)
     /// - created_by (Guid, Foreign Key to user)
@@ -40,7 +40,7 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// This determines which entity records will trigger this approval workflow.
         /// </summary>
         /// <example>purchase_order</example>
-        [JsonProperty(PropertyName = "target_entity_name")]
+        [JsonProperty(PropertyName = "target_entity")]
         public string TargetEntityName { get; set; }
 
         /// <summary>
