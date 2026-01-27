@@ -485,6 +485,64 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves all rules for a specific field within a workflow.
+        /// This is useful for evaluating which rules apply to a particular field's value.
+        /// </summary>
+        /// <param name="workflowId">The workflow ID to filter by.</param>
+        /// <param name="fieldName">The field name to filter by.</param>
+        /// <returns>
+        /// A list of ApprovalRuleModel objects that match the workflow and field criteria,
+        /// ordered by threshold value in ascending order. Returns empty list if no matches found.
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// var service = new RuleConfigService();
+        /// // Get all rules that evaluate the "amount" field for a workflow
+        /// var rules = service.GetRulesForField(workflowId, "amount");
+        /// foreach (var rule in rules)
+        /// {
+        ///     Console.WriteLine($"Rule: {rule.Name}, Threshold: {rule.ThresholdValue}");
+        /// }
+        /// </code>
+        /// </example>
+        public List<ApprovalRuleModel> GetRulesForField(Guid workflowId, string fieldName)
+        {
+            var result = new List<ApprovalRuleModel>();
+
+            if (workflowId == Guid.Empty || string.IsNullOrWhiteSpace(fieldName))
+            {
+                return result;
+            }
+
+            try
+            {
+                var eqlCommand = @"SELECT * FROM approval_rule 
+                                   WHERE workflow_id = @workflowId AND field_name = @fieldName 
+                                   ORDER BY threshold_value ASC";
+                var eqlParams = new List<EqlParameter>() 
+                { 
+                    new EqlParameter("workflowId", workflowId),
+                    new EqlParameter("fieldName", fieldName)
+                };
+                var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+                if (eqlResult != null && eqlResult.Any())
+                {
+                    foreach (var record in eqlResult)
+                    {
+                        result.Add(MapToModel(record));
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during plugin initialization
+            }
+
+            return result;
+        }
+
         #endregion
 
         #region Private Validation Methods

@@ -266,6 +266,75 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves approval history records filtered by action type within a date range.
+        /// Useful for reporting on specific approval actions (approved, rejected, delegated, etc.)
+        /// over a defined time period.
+        /// </summary>
+        /// <param name="actionType">
+        /// The action type to filter by (e.g., "submitted", "approved", "rejected", "delegated", "escalated").
+        /// Must not be null or empty.
+        /// </param>
+        /// <param name="fromDate">The start date/time of the range (inclusive). UTC recommended.</param>
+        /// <param name="toDate">The end date/time of the range (inclusive). UTC recommended.</param>
+        /// <returns>
+        /// A list of ApprovalHistoryModel records matching the action type and date range,
+        /// ordered by performed_on date descending (most recent first).
+        /// </returns>
+        /// <exception cref="ArgumentException">Thrown when actionType is null or empty.</exception>
+        /// <exception cref="ArgumentException">Thrown when fromDate is greater than toDate.</exception>
+        /// <example>
+        /// <code>
+        /// var service = new ApprovalHistoryService();
+        /// var fromDate = DateTime.UtcNow.AddDays(-30);
+        /// var toDate = DateTime.UtcNow;
+        /// var approvalHistory = service.GetHistoryByActionType("approved", fromDate, toDate);
+        /// Console.WriteLine($"Found {approvalHistory.Count} approval actions in the last 30 days");
+        /// </code>
+        /// </example>
+        public List<ApprovalHistoryModel> GetHistoryByActionType(string actionType, DateTime fromDate, DateTime toDate)
+        {
+            if (string.IsNullOrWhiteSpace(actionType))
+            {
+                throw new ArgumentException("Action type is required.", nameof(actionType));
+            }
+
+            if (fromDate > toDate)
+            {
+                throw new ArgumentException("From date cannot be greater than to date.", nameof(fromDate));
+            }
+
+            try
+            {
+                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status 
+                                   FROM approval_history 
+                                   WHERE action = @actionType 
+                                     AND performed_on >= @fromDate 
+                                     AND performed_on <= @toDate 
+                                   ORDER BY performed_on DESC";
+
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("actionType", actionType),
+                    new EqlParameter("fromDate", fromDate),
+                    new EqlParameter("toDate", toDate)
+                };
+
+                var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+                if (eqlResult == null || !eqlResult.Any())
+                {
+                    return new List<ApprovalHistoryModel>();
+                }
+
+                return eqlResult.Select(record => MapToModel(record)).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new ValidationException($"Failed to retrieve history by action type '{actionType}': {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region << Private Methods >>

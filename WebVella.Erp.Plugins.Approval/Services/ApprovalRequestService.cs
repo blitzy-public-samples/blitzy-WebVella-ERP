@@ -885,8 +885,40 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 return;
             }
 
+            var workflowId = (Guid)record["workflow_id"];
             var sourceEntityName = record["source_entity_name"]?.ToString();
             var sourceRecordId = (Guid)record["source_record_id"];
+
+            // Validate workflow exists and is enabled
+            try
+            {
+                var workflowService = new WorkflowConfigService();
+                var workflow = workflowService.GetById(workflowId);
+                
+                if (workflow == null)
+                {
+                    errors.Add(new ErrorModel
+                    {
+                        Key = "workflow_id",
+                        Message = $"Workflow with ID '{workflowId}' not found."
+                    });
+                    return;
+                }
+                
+                if (!workflow.IsEnabled)
+                {
+                    errors.Add(new ErrorModel
+                    {
+                        Key = "workflow_id",
+                        Message = "The specified workflow is disabled and cannot accept new requests."
+                    });
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                // Silently continue if we can't validate the workflow - it may not exist yet during init
+            }
 
             // Check for duplicate pending requests
             try
@@ -912,11 +944,52 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         Key = "source_record_id",
                         Message = "A pending approval request already exists for this record."
                     });
+                    return;
                 }
             }
             catch (Exception)
             {
                 // Silently continue - validation is best-effort
+            }
+
+            // Determine and set initial step (AC3: setting current_step_id on the record before creation)
+            try
+            {
+                var routeService = new ApprovalRouteService();
+                var firstStep = routeService.GetFirstStep(workflowId);
+                
+                if (firstStep != null)
+                {
+                    record["current_step_id"] = firstStep.Id;
+                }
+            }
+            catch (Exception)
+            {
+                // Silently continue - step may be assigned later
+            }
+
+            // Set initial status if not already set
+            if (!record.Properties.ContainsKey("status") || record["status"] == null || string.IsNullOrWhiteSpace(record["status"]?.ToString()))
+            {
+                record["status"] = STATUS_PENDING;
+            }
+
+            // Set creation timestamp if not already set
+            if (!record.Properties.ContainsKey("requested_on") || record["requested_on"] == null)
+            {
+                record["requested_on"] = DateTime.UtcNow;
+            }
+
+            // Initialize notification tracking fields
+            if (!record.Properties.ContainsKey("notification_count") || record["notification_count"] == null)
+            {
+                record["notification_count"] = 0;
+            }
+
+            // Initialize archived flag
+            if (!record.Properties.ContainsKey("is_archived") || record["is_archived"] == null)
+            {
+                record["is_archived"] = false;
             }
         }
 

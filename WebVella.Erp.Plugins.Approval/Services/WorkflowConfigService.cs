@@ -611,6 +611,69 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves a workflow by its unique name.
+        /// </summary>
+        /// <param name="name">The workflow name to search for.</param>
+        /// <returns>
+        /// The ApprovalWorkflowModel if found, including calculated StepsCount and RulesCount;
+        /// null if no workflow exists with the specified name.
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// var service = new WorkflowConfigService();
+        /// var workflow = service.GetWorkflowByName("Purchase Order Approval");
+        /// if (workflow != null)
+        /// {
+        ///     Console.WriteLine($"Found workflow: {workflow.Id}");
+        /// }
+        /// </code>
+        /// </example>
+        public ApprovalWorkflowModel GetWorkflowByName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            try
+            {
+                // Query with related entities for step and rule counts
+                var eqlCommand = "SELECT *,$approval_workflow_1n_step.id,$approval_workflow_1n_rule.id FROM approval_workflow WHERE name = @name";
+                var eqlParams = new List<EqlParameter>() { new EqlParameter("name", name) };
+
+                var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+                
+                if (eqlResult == null || !eqlResult.Any())
+                {
+                    return null;
+                }
+
+                var record = eqlResult.First();
+                var model = MapToModel(record);
+                
+                // Calculate steps count from relation data
+                if (record.Properties.ContainsKey("$approval_workflow_1n_step"))
+                {
+                    var steps = record["$approval_workflow_1n_step"] as List<EntityRecord>;
+                    model.StepsCount = steps?.Count ?? 0;
+                }
+
+                // Calculate rules count from relation data
+                if (record.Properties.ContainsKey("$approval_workflow_1n_rule"))
+                {
+                    var rules = record["$approval_workflow_1n_rule"] as List<EntityRecord>;
+                    model.RulesCount = rules?.Count ?? 0;
+                }
+                
+                return model;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region Private Validation Methods
