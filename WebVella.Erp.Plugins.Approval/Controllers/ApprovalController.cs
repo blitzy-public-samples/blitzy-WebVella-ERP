@@ -99,13 +99,15 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
 
         /// <summary>
         /// Retrieves all approval workflows.
+        /// Per AC1: Supports optional entityName query parameter to filter by target entity.
         /// </summary>
+        /// <param name="entityName">Optional filter: target entity name to filter workflows.</param>
         /// <returns>JSON response containing list of all workflows wrapped in ResponseModel.</returns>
         /// <response code="200">Returns the list of workflows.</response>
         /// <response code="500">If an error occurs during retrieval.</response>
         [Route("api/v3.0/p/approval/workflow")]
         [HttpGet]
-        public ActionResult GetAllWorkflows()
+        public ActionResult GetAllWorkflows([FromQuery] string entityName = null)
         {
             var response = new ApprovalResponseModel();
 
@@ -113,6 +115,15 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
             {
                 var workflowService = new WorkflowConfigService();
                 var workflows = workflowService.GetAll();
+
+                // Per AC1: Apply entityName filter if provided
+                if (!string.IsNullOrWhiteSpace(entityName))
+                {
+                    workflows = workflows
+                        .Where(w => w.TargetEntityName != null && 
+                               w.TargetEntityName.Equals(entityName, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                }
 
                 response.Success = true;
                 response.Message = "Workflows retrieved successfully.";
@@ -130,15 +141,17 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
 
         /// <summary>
         /// Retrieves a specific approval workflow by its unique identifier.
+        /// Per AC2: Supports optional includeStepsAndRules parameter to include related records.
         /// </summary>
         /// <param name="id">The unique identifier (GUID) of the workflow to retrieve.</param>
+        /// <param name="includeStepsAndRules">Optional: Set to true to include related approval_step and approval_rule records.</param>
         /// <returns>JSON response containing the workflow wrapped in ResponseModel, or error if not found.</returns>
         /// <response code="200">Returns the requested workflow.</response>
         /// <response code="404">If workflow with specified ID is not found.</response>
         /// <response code="500">If an error occurs during retrieval.</response>
         [Route("api/v3.0/p/approval/workflow/{id}")]
         [HttpGet]
-        public ActionResult GetWorkflow(Guid id)
+        public ActionResult GetWorkflow(Guid id, [FromQuery] bool includeStepsAndRules = true)
         {
             var response = new ApprovalResponseModel();
 
@@ -161,9 +174,30 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                     return Json(response);
                 }
 
-                response.Success = true;
-                response.Message = "Workflow retrieved successfully.";
-                response.Object = workflow;
+                // Per AC2: Include steps and rules if requested
+                if (includeStepsAndRules)
+                {
+                    var stepService = new StepConfigService();
+                    var ruleService = new RuleConfigService();
+
+                    // Create a response object that includes steps and rules
+                    var workflowWithDetails = new
+                    {
+                        Workflow = workflow,
+                        Steps = stepService.GetByWorkflowId(id),
+                        Rules = ruleService.GetByWorkflowId(id)
+                    };
+
+                    response.Success = true;
+                    response.Message = "Workflow with steps and rules retrieved successfully.";
+                    response.Object = workflowWithDetails;
+                }
+                else
+                {
+                    response.Success = true;
+                    response.Message = "Workflow retrieved successfully.";
+                    response.Object = workflow;
+                }
             }
             catch (Exception ex)
             {
@@ -315,14 +349,17 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         /// <summary>
         /// Retrieves pending approval requests for the current authenticated user.
         /// Returns requests where the user is an authorized approver for the current step.
+        /// Per AC9: Supports optional pagination via page and pageSize query parameters.
         /// </summary>
+        /// <param name="page">Optional: Page number for pagination (1-based, default 1).</param>
+        /// <param name="pageSize">Optional: Number of items per page (default 20, max 100).</param>
         /// <returns>JSON response containing list of pending requests wrapped in ResponseModel.</returns>
         /// <response code="200">Returns the list of pending requests.</response>
         /// <response code="401">If user is not authenticated.</response>
         /// <response code="500">If an error occurs during retrieval.</response>
         [Route("api/v3.0/p/approval/pending")]
         [HttpGet]
-        public ActionResult GetPendingApprovals()
+        public ActionResult GetPendingApprovals([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             var response = new ApprovalResponseModel();
 
@@ -336,12 +373,34 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                     return Json(response);
                 }
 
+                // Validate pagination parameters
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 20;
+                if (pageSize > 100) pageSize = 100; // Max limit
+
                 var requestService = new ApprovalRequestService();
-                var pending = requestService.GetPending(userId);
+                var allPending = requestService.GetPending(userId);
+
+                // Per AC9: Apply pagination
+                var totalCount = allPending?.Count ?? 0;
+                var paginatedResults = allPending?
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                // Return with pagination metadata
+                var paginatedResponse = new
+                {
+                    Items = paginatedResults,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = totalCount,
+                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                };
 
                 response.Success = true;
                 response.Message = "Pending approvals retrieved successfully.";
-                response.Object = pending;
+                response.Object = paginatedResponse;
             }
             catch (Exception ex)
             {
@@ -355,15 +414,17 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
 
         /// <summary>
         /// Retrieves a specific approval request by its unique identifier.
+        /// Per AC10: Returns full details including current status, workflow information, and optionally history records.
         /// </summary>
         /// <param name="id">The unique identifier (GUID) of the approval request.</param>
+        /// <param name="includeHistory">Optional: Set to true to include history records in the response.</param>
         /// <returns>JSON response containing the request wrapped in ResponseModel, or error if not found.</returns>
         /// <response code="200">Returns the requested approval request.</response>
         /// <response code="404">If request with specified ID is not found.</response>
         /// <response code="500">If an error occurs during retrieval.</response>
         [Route("api/v3.0/p/approval/request/{id}")]
         [HttpGet]
-        public ActionResult GetRequest(Guid id)
+        public ActionResult GetRequest(Guid id, [FromQuery] bool includeHistory = false)
         {
             var response = new ApprovalResponseModel();
 
@@ -386,9 +447,37 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                     return Json(response);
                 }
 
-                response.Success = true;
-                response.Message = "Approval request retrieved successfully.";
-                response.Object = request;
+                // Per AC10: Include history records if requested
+                if (includeHistory)
+                {
+                    var historyService = new ApprovalHistoryService();
+                    var history = historyService.GetByRequestId(id);
+
+                    // Also get workflow information for full context
+                    ApprovalWorkflowModel workflow = null;
+                    if (request.WorkflowId != Guid.Empty)
+                    {
+                        var workflowService = new WorkflowConfigService();
+                        workflow = workflowService.GetById(request.WorkflowId);
+                    }
+
+                    var requestWithDetails = new
+                    {
+                        Request = request,
+                        Workflow = workflow,
+                        History = history
+                    };
+
+                    response.Success = true;
+                    response.Message = "Approval request with history retrieved successfully.";
+                    response.Object = requestWithDetails;
+                }
+                else
+                {
+                    response.Success = true;
+                    response.Message = "Approval request retrieved successfully.";
+                    response.Object = request;
+                }
             }
             catch (Exception ex)
             {

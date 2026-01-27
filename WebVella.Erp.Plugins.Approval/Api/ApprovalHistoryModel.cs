@@ -98,5 +98,20 @@ namespace WebVella.Erp.Plugins.Approval.Api
 		/// </summary>
 		[JsonProperty(PropertyName = "comments")]
 		public string Comments { get; set; }
+
+		/// <summary>
+		/// Gets or sets the status of the request before this action was performed.
+		/// Used for audit trail and rollback purposes.
+		/// This field is nullable for the initial submission action.
+		/// </summary>
+		[JsonProperty(PropertyName = "previous_status")]
+		public string PreviousStatus { get; set; }
+
+		/// <summary>
+		/// Gets or sets the status of the request after this action was performed.
+		/// Used for audit trail and status tracking.
+		/// </summary>
+		[JsonProperty(PropertyName = "new_status")]
+		public string NewStatus { get; set; }
 	}
 }

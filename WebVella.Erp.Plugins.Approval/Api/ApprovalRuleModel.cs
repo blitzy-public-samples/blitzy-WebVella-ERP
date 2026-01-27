@@ -111,5 +111,13 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// </summary>
         [JsonProperty(PropertyName = "priority")]
         public int Priority { get; set; } = 0;
+
+        /// <summary>
+        /// Optional foreign key reference to the step to route to when this rule matches.
+        /// When set, overrides the default sequential step progression.
+        /// When null, the workflow follows the default step order.
+        /// </summary>
+        [JsonProperty(PropertyName = "next_step_id")]
+        public Guid? NextStepId { get; set; }
     }
 }

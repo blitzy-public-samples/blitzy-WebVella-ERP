@@ -584,6 +584,166 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
+        /// Gets the list of user IDs who can approve a specific step.
+        /// Resolves approvers based on the step's approver_type configuration.
+        /// Per AC3 of STORY-006: Resolves current step approvers for notification purposes.
+        /// </summary>
+        /// <param name="stepId">The unique identifier of the approval step.</param>
+        /// <returns>
+        /// A list of user GUIDs who are authorized to approve this step.
+        /// Returns empty list if step not found or no approvers configured.
+        /// </returns>
+        /// <exception cref="ArgumentException">Thrown when stepId is empty.</exception>
+        /// <remarks>
+        /// Resolution logic based on approver_type:
+        /// - "user": Returns single user ID from approver_id
+        /// - "role": Returns all users who have the role specified by approver_id
+        /// - "department_head": Returns users with manager/department_head roles
+        /// </remarks>
+        public List<Guid> GetApproversForStep(Guid stepId)
+        {
+            var result = new List<Guid>();
+
+            if (stepId == Guid.Empty)
+            {
+                throw new ArgumentException("Step ID cannot be empty.", nameof(stepId));
+            }
+
+            // Get the step configuration
+            var step = GetCurrentApprover(stepId);
+            if (step == null)
+            {
+                return result;
+            }
+
+            var approverType = step.ApproverType?.ToLowerInvariant();
+
+            switch (approverType)
+            {
+                case "user":
+                    // Direct user - return single user ID
+                    if (step.ApproverId.HasValue && step.ApproverId.Value != Guid.Empty)
+                    {
+                        result.Add(step.ApproverId.Value);
+                    }
+                    break;
+
+                case "role":
+                    // Role-based - find all users with this role
+                    if (step.ApproverId.HasValue && step.ApproverId.Value != Guid.Empty)
+                    {
+                        var usersWithRole = GetUsersWithRole(step.ApproverId.Value);
+                        result.AddRange(usersWithRole);
+                    }
+                    break;
+
+                case "department_head":
+                    // Department head - find users with manager roles
+                    var departmentHeads = GetDepartmentHeadUsers();
+                    result.AddRange(departmentHeads);
+                    break;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Gets all users who have a specific role.
+        /// </summary>
+        /// <param name="roleId">The role ID to query for.</param>
+        /// <returns>List of user IDs who have the specified role.</returns>
+        private List<Guid> GetUsersWithRole(Guid roleId)
+        {
+            var userIds = new List<Guid>();
+
+            try
+            {
+                // Query users who have this role using the user_role relation
+                var eqlCommand = "SELECT * FROM user WHERE id != @systemUser";
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("systemUser", Guid.Empty)
+                };
+
+                var users = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+                if (users == null)
+                {
+                    return userIds;
+                }
+
+                foreach (var userRecord in users)
+                {
+                    var userId = (Guid)userRecord["id"];
+                    var user = SecMan.GetUser(userId);
+                    
+                    if (user?.Roles != null && user.Roles.Any(r => r.Id == roleId))
+                    {
+                        userIds.Add(userId);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Log error but return empty list
+            }
+
+            return userIds;
+        }
+
+        /// <summary>
+        /// Gets all users who can act as department heads.
+        /// Returns users with manager or administrator roles.
+        /// </summary>
+        /// <returns>List of user IDs who can act as department heads.</returns>
+        private List<Guid> GetDepartmentHeadUsers()
+        {
+            var userIds = new List<Guid>();
+
+            try
+            {
+                // Query all users and filter by role
+                var eqlCommand = "SELECT * FROM user WHERE id != @systemUser";
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("systemUser", Guid.Empty)
+                };
+
+                var users = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+                if (users == null)
+                {
+                    return userIds;
+                }
+
+                foreach (var userRecord in users)
+                {
+                    var userId = (Guid)userRecord["id"];
+                    var user = SecMan.GetUser(userId);
+                    
+                    if (user?.Roles != null)
+                    {
+                        var isManagerRole = user.Roles.Any(r => 
+                            r.Name.Equals("manager", StringComparison.OrdinalIgnoreCase) ||
+                            r.Name.Equals("department_head", StringComparison.OrdinalIgnoreCase) ||
+                            r.Name.Equals("administrator", StringComparison.OrdinalIgnoreCase));
+
+                        if (isManagerRole)
+                        {
+                            userIds.Add(userId);
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Log error but return empty list
+            }
+
+            return userIds;
+        }
+
+        /// <summary>
         /// Maps an EntityRecord to an ApprovalWorkflowModel.
         /// </summary>
         /// <param name="record">The entity record containing workflow data.</param>

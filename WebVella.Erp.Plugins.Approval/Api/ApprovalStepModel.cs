@@ -96,5 +96,14 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// </summary>
         [JsonProperty(PropertyName = "is_final")]
         public bool IsFinal { get; set; }
+
+        /// <summary>
+        /// Gets or sets the JSON configuration for threshold-based routing.
+        /// Used to define amount thresholds or other criteria that determine step applicability.
+        /// Nullable - when null, no threshold configuration is applied.
+        /// Example: {"min_amount": 1000, "max_amount": 5000}
+        /// </summary>
+        [JsonProperty(PropertyName = "threshold_config")]
+        public string ThresholdConfig { get; set; }
     }
 }

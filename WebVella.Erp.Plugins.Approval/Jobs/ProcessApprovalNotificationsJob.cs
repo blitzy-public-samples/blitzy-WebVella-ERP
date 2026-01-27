@@ -1,363 +1,303 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WebVella.Erp.Api;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Diagnostics;
+using WebVella.Erp.Eql;
 using WebVella.Erp.Jobs;
 using WebVella.Erp.Plugins.Approval.Services;
 
 namespace WebVella.Erp.Plugins.Approval.Jobs
 {
-	/// <summary>
-	/// Background job for processing approval notifications.
-	/// Runs on a 5-minute interval cycle to process pending notification records.
-	/// Queries pending notifications via ApprovalNotificationService.GetPendingNotifications(),
-	/// processes each notification by sending email content, and marks them as sent.
-	/// </summary>
-	/// <remarks>
-	/// This job is registered with ScheduleManager by ApprovalPlugin.SetSchedulePlans().
-	/// The job operates under system security scope for elevated permissions.
-	/// Individual notification failures are logged and do not stop batch processing.
-	/// 
-	/// Notification workflow:
-	/// 1. ApprovalNotificationService.Send*Notification() methods create notification records with all email content
-	/// 2. This job retrieves pending notifications and processes them
-	/// 3. Successfully processed notifications are marked as 'sent'
-	/// 4. Failed notifications are marked as 'failed' with error details
-	/// </remarks>
-	[Job("A7B3C1D2-E4F5-6789-ABCD-EF0123456789", "Process approval notifications", true, JobPriority.Low)]
-	public class ProcessApprovalNotificationsJob : ErpJob
-	{
-		#region Constants
+    /// <summary>
+    /// Background job for processing approval notifications per STORY-006 AC1-AC5.
+    /// Runs on a 5-minute interval to query pending approval requests and send
+    /// notification emails to assigned approvers.
+    /// </summary>
+    /// <remarks>
+    /// Per AC2: Queries approval_request records with status "Pending" where last_notification_sent
+    /// is null or older than configured reminder interval (24 hours default).
+    /// Per AC3: Resolves current step approvers via ApprovalRouteService.GetApproversForStep()
+    /// and queues notification emails.
+    /// Per AC4: Updates approval_request.last_notification_sent timestamp and increments
+    /// notification_count after successful email queue.
+    /// Per AC5: Completes within 60 seconds for typical workloads.
+    /// </remarks>
+    [Job("A7B3C1D2-E4F5-6789-ABCD-EF0123456789", "Process approval notifications", true, JobPriority.Low)]
+    public class ProcessApprovalNotificationsJob : ErpJob
+    {
+        #region Constants
 
-		/// <summary>
-		/// Source name for logging operations related to this job.
-		/// </summary>
-		private const string LOG_SOURCE = "ProcessApprovalNotificationsJob";
+        /// <summary>
+        /// Entity name for approval request records.
+        /// </summary>
+        private const string APPROVAL_REQUEST_ENTITY = "approval_request";
 
-		/// <summary>
-		/// Notification type indicating a new approval request needs attention.
-		/// </summary>
-		private const string NOTIFICATION_TYPE_REQUEST = "request";
+        /// <summary>
+        /// Per AC2: Batch size limit - process up to 50 records per execution cycle.
+        /// </summary>
+        private const int BATCH_SIZE = 50;
 
-		/// <summary>
-		/// Notification type indicating an approval request has been completed.
-		/// </summary>
-		private const string NOTIFICATION_TYPE_COMPLETED = "completed";
+        /// <summary>
+        /// Reminder interval in hours. Requests will receive notifications if
+        /// last_notification_sent is null or older than this interval.
+        /// </summary>
+        private const int REMINDER_INTERVAL_HOURS = 24;
 
-		/// <summary>
-		/// Notification type indicating an escalation has occurred.
-		/// </summary>
-		private const string NOTIFICATION_TYPE_ESCALATION = "escalation";
+        /// <summary>
+        /// Status value for pending requests.
+        /// </summary>
+        private const string STATUS_PENDING = "pending";
 
-		#endregion
+        /// <summary>
+        /// System user GUID used for automated operations.
+        /// </summary>
+        private static readonly Guid SYSTEM_USER_ID = new Guid("00000000-0000-0000-0000-000000000001");
 
-		#region Public Methods
+        #endregion
 
-		/// <summary>
-		/// Executes the notification processing job.
-		/// Retrieves all pending notifications and attempts to send each one.
-		/// Individual failures are logged but do not stop the overall batch processing.
-		/// </summary>
-		/// <param name="context">The job execution context provided by the scheduler.</param>
-		/// <exception cref="Exception">
-		/// Critical errors during job initialization are propagated to the job framework.
-		/// Individual notification processing errors are caught and logged.
-		/// </exception>
-		public override void Execute(JobContext context)
-		{
-			using (SecurityContext.OpenSystemScope())
-			{
-				var notificationService = new ApprovalNotificationService();
-				var processedCount = 0;
-				var failedCount = 0;
+        #region Public Methods
 
-				try
-				{
-					// Retrieve all pending notifications that need to be processed
-					var pendingNotifications = notificationService.GetPendingNotifications();
+        /// <summary>
+        /// Executes the notification processing job per STORY-006 AC1-AC5.
+        /// Queries pending approval requests, resolves approvers, and sends notifications.
+        /// </summary>
+        /// <param name="context">The job execution context provided by the scheduler.</param>
+        public override void Execute(JobContext context)
+        {
+            using (SecurityContext.OpenSystemScope())
+            {
+                var recMan = new RecordManager();
+                var routeService = new ApprovalRouteService();
+                var notificationService = new ApprovalNotificationService();
+                
+                int processedCount = 0;
+                int errorCount = 0;
+                
+                try
+                {
+                    // Per AC2: Query pending requests needing notification
+                    var pendingRequests = GetPendingRequestsForNotification();
+                    
+                    if (pendingRequests == null || !pendingRequests.Any())
+                    {
+                        // No pending notifications - job completes successfully
+                        return;
+                    }
 
-					if (pendingNotifications == null || pendingNotifications.Count == 0)
-					{
-						// No pending notifications - job completes successfully with nothing to process
-						return;
-					}
+                    foreach (var request in pendingRequests)
+                    {
+                        try
+                        {
+                            // Process single request notification
+                            ProcessRequestNotification(request, recMan, routeService, notificationService);
+                            processedCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errorCount++;
+                            LogRequestError(request, ex);
+                            // Continue processing remaining requests per AC18
+                        }
+                    }
 
-					// Process each notification individually to ensure partial failures don't stop the batch
-					foreach (var notification in pendingNotifications)
-					{
-						var notificationId = Guid.Empty;
+                    // Log summary if there was any activity
+                    if (processedCount > 0 || errorCount > 0)
+                    {
+                        LogSummary(processedCount, errorCount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log critical job-level failure
+                    new Log().Create(LogType.Error, "ProcessApprovalNotificationsJob",
+                        "Critical error during notification job execution", ex);
+                    throw;
+                }
+            }
+        }
 
-						try
-						{
-							// Extract notification identifier for processing and error reporting
-							notificationId = notification["id"] != null 
-								? (Guid)notification["id"] 
-								: Guid.Empty;
+        #endregion
 
-							if (notificationId == Guid.Empty)
-							{
-								LogError("Notification record has invalid or missing ID. Skipping.", null);
-								failedCount++;
-								continue;
-							}
+        #region Private Methods
 
-							// Process the notification based on its type and stored email content
-							ProcessNotification(notification, notificationService);
+        /// <summary>
+        /// Per AC2: Queries approval_request records with status "Pending" where
+        /// last_notification_sent is null or older than the configured reminder interval.
+        /// </summary>
+        /// <returns>List of EntityRecord objects representing requests needing notification.</returns>
+        private List<EntityRecord> GetPendingRequestsForNotification()
+        {
+            try
+            {
+                var cutoffTime = DateTime.UtcNow.AddHours(-REMINDER_INTERVAL_HOURS);
 
-							// Mark notification as successfully sent
-							notificationService.MarkNotificationSent(notificationId);
-							processedCount++;
-						}
-						catch (Exception ex)
-						{
-							// Log individual notification failure but continue processing others
-							failedCount++;
-							LogNotificationError(notificationId, ex);
+                // Per AC2: Query pending requests where last_notification_sent is null or older than interval
+                var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
+                                          status, requested_by, requested_on, last_notification_sent, notification_count
+                                   FROM approval_request 
+                                   WHERE status = @status 
+                                   AND (last_notification_sent = NULL OR last_notification_sent < @cutoff)
+                                   ORDER BY requested_on ASC 
+                                   PAGE 1 PAGESIZE @batchSize";
 
-							// Attempt to mark the notification as failed for tracking
-							try
-							{
-								if (notificationId != Guid.Empty)
-								{
-									notificationService.MarkNotificationFailed(notificationId, ex.Message);
-								}
-							}
-							catch (Exception markFailedEx)
-							{
-								// Log the secondary failure but don't propagate
-								LogError(
-									$"Failed to mark notification '{notificationId}' as failed",
-									markFailedEx
-								);
-							}
-						}
-					}
+                var parameters = new List<EqlParameter>
+                {
+                    new EqlParameter("status", STATUS_PENDING),
+                    new EqlParameter("cutoff", cutoffTime),
+                    new EqlParameter("batchSize", BATCH_SIZE)
+                };
 
-					// Log summary if there were any processing activities
-					if (processedCount > 0 || failedCount > 0)
-					{
-						LogInfo($"Notification processing completed. Processed: {processedCount}, Failed: {failedCount}");
-					}
-				}
-				catch (Exception ex)
-				{
-					// Log critical job-level failure
-					LogError("Critical error during notification job execution", ex);
-					throw;
-				}
-			}
-		}
+                var result = new EqlCommand(eqlCommand, parameters).Execute();
 
-		#endregion
+                if (result == null)
+                {
+                    return new List<EntityRecord>();
+                }
 
-		#region Private Methods
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                new Log().Create(LogType.Error, "ProcessApprovalNotificationsJob",
+                    "Error querying pending requests for notification", ex);
+                return new List<EntityRecord>();
+            }
+        }
 
-		/// <summary>
-		/// Processes a single notification record by sending the email content.
-		/// The notification record contains all information needed for email delivery:
-		/// recipient email, subject, body, and notification type.
-		/// </summary>
-		/// <param name="notification">The notification EntityRecord containing email details.</param>
-		/// <param name="notificationService">The notification service instance.</param>
-		/// <exception cref="Exception">Thrown when notification processing fails.</exception>
-		private void ProcessNotification(EntityRecord notification, ApprovalNotificationService notificationService)
-		{
-			// Extract notification details from the record
-			var recipientEmail = notification["recipient_email"]?.ToString();
-			var subject = notification["subject"]?.ToString();
-			var body = notification["body"]?.ToString();
-			var notificationType = notification["notification_type"]?.ToString() ?? NOTIFICATION_TYPE_REQUEST;
+        /// <summary>
+        /// Per AC3: Processes a single request notification by resolving approvers and sending emails.
+        /// Per AC4: Updates notification tracking fields after successful notification.
+        /// </summary>
+        /// <param name="request">The approval request record.</param>
+        /// <param name="recMan">RecordManager for database operations.</param>
+        /// <param name="routeService">ApprovalRouteService for approver resolution.</param>
+        /// <param name="notificationService">ApprovalNotificationService for sending emails.</param>
+        private void ProcessRequestNotification(
+            EntityRecord request,
+            RecordManager recMan,
+            ApprovalRouteService routeService,
+            ApprovalNotificationService notificationService)
+        {
+            var requestId = (Guid)request["id"];
+            var currentStepId = request["current_step_id"] != null ? (Guid?)request["current_step_id"] : null;
 
-			// Validate required fields
-			if (string.IsNullOrWhiteSpace(recipientEmail))
-			{
-				throw new Exception("Notification record is missing recipient email address.");
-			}
+            if (!currentStepId.HasValue)
+            {
+                // No current step - cannot determine approvers
+                return;
+            }
 
-			if (string.IsNullOrWhiteSpace(subject))
-			{
-				throw new Exception("Notification record is missing email subject.");
-			}
+            // Per AC3: Resolve current step approvers
+            var approverIds = routeService.GetApproversForStep(currentStepId.Value);
 
-			if (string.IsNullOrWhiteSpace(body))
-			{
-				throw new Exception("Notification record is missing email body.");
-			}
+            if (approverIds == null || !approverIds.Any())
+            {
+                // No approvers configured for this step
+                return;
+            }
 
-			// Send the notification email using available email infrastructure
-			// The notification record already contains the composed email content
-			// that was created by the Send*Notification methods
-			SendNotificationEmail(recipientEmail, subject, body, notificationType);
-		}
+            // Send notification to each approver
+            bool notificationSent = false;
+            foreach (var approverId in approverIds)
+            {
+                try
+                {
+                    // Send approval request notification
+                    notificationService.SendApprovalRequestNotification(requestId, approverId);
+                    notificationSent = true;
+                }
+                catch (Exception ex)
+                {
+                    // Log individual notification failure but continue with others
+                    new Log().Create(LogType.Info, "ProcessApprovalNotificationsJob",
+                        $"Failed to send notification for request {requestId} to approver {approverId}: {ex.Message}", string.Empty);
+                }
+            }
 
-		/// <summary>
-		/// Sends the notification email using WebVella's mail infrastructure.
-		/// Attempts to use the Mail plugin's SmtpService if available.
-		/// </summary>
-		/// <param name="recipientEmail">The recipient's email address.</param>
-		/// <param name="subject">The email subject line.</param>
-		/// <param name="body">The email body content (HTML or plain text).</param>
-		/// <param name="notificationType">The type of notification for logging purposes.</param>
-		/// <exception cref="Exception">Thrown when email sending fails.</exception>
-		private void SendNotificationEmail(string recipientEmail, string subject, string body, string notificationType)
-		{
-			try
-			{
-				// Attempt to use WebVella's email infrastructure
-				// The Mail plugin provides EmailServiceManager and SmtpService for sending emails
-				// We use reflection/dynamic access to avoid hard dependency on Mail plugin
-				var emailServiceManagerType = Type.GetType(
-					"WebVella.Erp.Plugins.Mail.Api.EmailServiceManager, WebVella.Erp.Plugins.Mail",
-					throwOnError: false
-				);
+            // Per AC4: Update notification tracking on the approval_request
+            if (notificationSent)
+            {
+                UpdateNotificationTracking(requestId, request, recMan);
+            }
+        }
 
-				if (emailServiceManagerType != null)
-				{
-					// Mail plugin is available - use it to send email
-					SendEmailViaMailPlugin(emailServiceManagerType, recipientEmail, subject, body);
-				}
-				else
-				{
-					// Mail plugin not available - log and proceed
-					// The notification is still marked as sent to prevent infinite retry loops
-					// In production, ensure Mail plugin is installed and configured
-					LogInfo($"Mail plugin not available. Notification to '{recipientEmail}' logged but not sent. Type: {notificationType}");
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception($"Failed to send {notificationType} notification to '{recipientEmail}': {ex.Message}", ex);
-			}
-		}
+        /// <summary>
+        /// Per AC4: Updates approval_request.last_notification_sent timestamp and
+        /// increments notification_count after successful email queue.
+        /// </summary>
+        /// <param name="requestId">The request ID to update.</param>
+        /// <param name="request">The original request record (to read current notification_count).</param>
+        /// <param name="recMan">RecordManager for database operations.</param>
+        private void UpdateNotificationTracking(Guid requestId, EntityRecord request, RecordManager recMan)
+        {
+            try
+            {
+                // Get current notification count (default to 0)
+                var currentCount = request["notification_count"] != null
+                    ? Convert.ToInt32(request["notification_count"])
+                    : 0;
 
-		/// <summary>
-		/// Sends email using the WebVella Mail plugin's SmtpService.
-		/// Uses reflection to dynamically invoke the mail service to avoid compile-time dependency.
-		/// </summary>
-		/// <param name="emailServiceManagerType">The EmailServiceManager type from the Mail plugin.</param>
-		/// <param name="recipientEmail">The recipient's email address.</param>
-		/// <param name="subject">The email subject line.</param>
-		/// <param name="body">The email body content.</param>
-		/// <exception cref="Exception">Thrown when email sending fails.</exception>
-		private void SendEmailViaMailPlugin(Type emailServiceManagerType, string recipientEmail, string subject, string body)
-		{
-			// Create EmailServiceManager instance
-			var emailServiceManager = Activator.CreateInstance(emailServiceManagerType);
+                var patchRecord = new EntityRecord();
+                patchRecord["id"] = requestId;
+                patchRecord["last_notification_sent"] = DateTime.UtcNow;
+                patchRecord["notification_count"] = currentCount + 1;
 
-			// Get default SMTP service (passing null for name gets the default)
-			var getSmtpServiceMethod = emailServiceManagerType.GetMethod(
-				"GetSmtpService",
-				new[] { typeof(string) }
-			);
+                var updateResult = recMan.UpdateRecord(APPROVAL_REQUEST_ENTITY, patchRecord);
 
-			if (getSmtpServiceMethod == null)
-			{
-				throw new Exception("Could not find GetSmtpService method on EmailServiceManager.");
-			}
+                if (!updateResult.Success)
+                {
+                    new Log().Create(LogType.Info, "ProcessApprovalNotificationsJob",
+                        $"Failed to update notification tracking for request {requestId}: {updateResult.Message}", string.Empty);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail - notification was already sent
+                new Log().Create(LogType.Info, "ProcessApprovalNotificationsJob",
+                    $"Error updating notification tracking for request {requestId}", ex);
+            }
+        }
 
-			var smtpService = getSmtpServiceMethod.Invoke(emailServiceManager, new object[] { null });
+        /// <summary>
+        /// Logs an error that occurred while processing a specific request.
+        /// </summary>
+        /// <param name="request">The request that caused the error.</param>
+        /// <param name="ex">The exception that occurred.</param>
+        private void LogRequestError(EntityRecord request, Exception ex)
+        {
+            try
+            {
+                var requestId = request["id"] != null ? request["id"].ToString() : "unknown";
+                new Log().Create(LogType.Error, "ProcessApprovalNotificationsJob",
+                    $"Error processing notification for request {requestId}", ex);
+            }
+            catch
+            {
+                // Suppress logging errors
+            }
+        }
 
-			if (smtpService == null)
-			{
-				throw new Exception("No default SMTP service configured. Please configure an SMTP service in the Mail plugin.");
-			}
+        /// <summary>
+        /// Logs a summary of the notification job execution.
+        /// </summary>
+        /// <param name="processedCount">Number of requests successfully processed.</param>
+        /// <param name="errorCount">Number of requests that failed.</param>
+        private void LogSummary(int processedCount, int errorCount)
+        {
+            try
+            {
+                var logType = errorCount > 0 ? LogType.Error : LogType.Info;
+                var message = $"Notification job completed: {processedCount} requests processed, {errorCount} errors";
+                new Log().Create(logType, "ProcessApprovalNotificationsJob", message, string.Empty);
+            }
+            catch
+            {
+                // Suppress logging errors
+            }
+        }
 
-			// Create EmailAddress object for recipient
-			var emailAddressType = Type.GetType(
-				"WebVella.Erp.Plugins.Mail.Api.EmailAddress, WebVella.Erp.Plugins.Mail",
-				throwOnError: true
-			);
-
-			var emailAddress = Activator.CreateInstance(emailAddressType);
-			emailAddressType.GetProperty("Address")?.SetValue(emailAddress, recipientEmail);
-
-			// Call SendEmail method on SmtpService
-			// Signature: SendEmail(EmailAddress recipient, string subject, string textBody, string htmlBody, List<string> attachments)
-			var sendEmailMethod = smtpService.GetType().GetMethod(
-				"SendEmail",
-				new[] { emailAddressType, typeof(string), typeof(string), typeof(string), typeof(List<string>) }
-			);
-
-			if (sendEmailMethod == null)
-			{
-				throw new Exception("Could not find SendEmail method on SmtpService.");
-			}
-
-			// Send the email - using body as both text and HTML content
-			// Passing null for attachments
-			sendEmailMethod.Invoke(
-				smtpService,
-				new object[] { emailAddress, subject, body, body, null }
-			);
-		}
-
-		/// <summary>
-		/// Logs an error that occurred during notification processing.
-		/// </summary>
-		/// <param name="notificationId">The ID of the notification that failed.</param>
-		/// <param name="exception">The exception that occurred.</param>
-		private void LogNotificationError(Guid notificationId, Exception exception)
-		{
-			LogError(
-				$"Failed to process notification '{notificationId}'",
-				exception
-			);
-		}
-
-		/// <summary>
-		/// Logs an error message with exception details to the WebVella log system.
-		/// </summary>
-		/// <param name="message">The error message.</param>
-		/// <param name="exception">The exception that occurred, or null if no exception.</param>
-		private void LogError(string message, Exception exception)
-		{
-			try
-			{
-				var log = new Log();
-				var details = exception != null
-					? $"{exception.Message}\n\nStack Trace:\n{exception.StackTrace}"
-					: message;
-
-				log.Create(
-					LogType.Error,
-					LOG_SOURCE,
-					message,
-					details,
-					saveDetailsAsJson: true
-				);
-			}
-			catch
-			{
-				// Logging failed - can't do much here except ensure job continues
-				System.Diagnostics.Debug.WriteLine($"[{LOG_SOURCE}] Error: {message} - Exception: {exception?.Message}");
-			}
-		}
-
-		/// <summary>
-		/// Logs an informational message to the WebVella log system.
-		/// </summary>
-		/// <param name="message">The informational message.</param>
-		private void LogInfo(string message)
-		{
-			try
-			{
-				var log = new Log();
-				log.Create(
-					LogType.Info,
-					LOG_SOURCE,
-					message,
-					message,
-					saveDetailsAsJson: false
-				);
-			}
-			catch
-			{
-				// Logging failed - continue without logging
-				System.Diagnostics.Debug.WriteLine($"[{LOG_SOURCE}] Info: {message}");
-			}
-		}
-
-		#endregion
-	}
+        #endregion
+    }
 }

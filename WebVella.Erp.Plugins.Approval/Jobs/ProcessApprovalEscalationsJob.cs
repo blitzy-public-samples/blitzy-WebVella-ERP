@@ -311,8 +311,9 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
 
         /// <summary>
         /// Processes the escalation for a timed-out approval request.
-        /// Updates the request status to 'escalated', logs the action to history,
-        /// and sends an escalation notification to the next approver.
+        /// Per AC8: Evaluates next step to determine escalation target and updates current_step_id
+        /// to the escalation step, or marks request as "escalated" if no further steps exist.
+        /// Logs the action to history and sends an escalation notification.
         /// </summary>
         /// <param name="request">The approval request to escalate.</param>
         /// <param name="step">The current step of the request.</param>
@@ -327,39 +328,66 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             ApprovalNotificationService notificationService)
         {
             var requestId = request.Id;
-            var stepId = request.CurrentStepId.Value;
-
-            // Step 1: Update the request status to 'escalated'
+            var currentStepId = request.CurrentStepId.Value;
+            var previousStatus = request.Status;
+            
+            // Per AC8: Evaluate next step to determine escalation target
+            var routeService = new ApprovalRouteService();
+            var nextStep = routeService.GetNextStep(request.WorkflowId, currentStepId);
+            
             var patchRecord = new EntityRecord();
             patchRecord["id"] = requestId;
-            patchRecord["status"] = STATUS_ESCALATED;
+            
+            string newStatus;
+            string escalationComments;
+            Guid notificationTargetStep;
+            
+            if (nextStep != null)
+            {
+                // Advance workflow to next step (escalation by advancing)
+                patchRecord["current_step_id"] = nextStep.Id;
+                newStatus = STATUS_PENDING; // Status remains pending, but at higher level
+                escalationComments = $"Request automatically escalated due to timeout. " +
+                                    $"Step timeout: {GetTimeoutHours(step)} hours exceeded. " +
+                                    $"Advanced from step '{step["name"]}' to step '{nextStep.Name}'.";
+                notificationTargetStep = nextStep.Id;
+            }
+            else
+            {
+                // No further steps exist - mark as escalated status (terminal)
+                patchRecord["status"] = STATUS_ESCALATED;
+                newStatus = STATUS_ESCALATED;
+                escalationComments = $"Request automatically escalated due to timeout. " +
+                                    $"Step timeout: {GetTimeoutHours(step)} hours exceeded. " +
+                                    $"No further escalation steps available - marked as escalated.";
+                notificationTargetStep = currentStepId;
+            }
 
             var updateResult = recordManager.UpdateRecord(APPROVAL_REQUEST_ENTITY, patchRecord);
             if (!updateResult.Success)
             {
-                throw new Exception($"Failed to update request status to escalated: {updateResult.Message}");
+                throw new Exception($"Failed to update request during escalation: {updateResult.Message}");
             }
 
-            // Step 2: Log the escalation action to history
-            var escalationComments = $"Request automatically escalated due to timeout. " +
-                                    $"Step timeout: {GetTimeoutHours(step)} hours exceeded.";
-            
+            // Step 2: Log the escalation action to history with status tracking
             historyService.LogAction(
                 requestId: requestId,
-                stepId: stepId,
+                stepId: currentStepId,
                 action: ACTION_ESCALATED,
                 performedBy: SYSTEM_USER_ID,
-                comments: escalationComments
+                comments: escalationComments,
+                previousStatus: previousStatus,
+                newStatus: newStatus
             );
 
             // Step 3: Send escalation notification
-            // Get the approver ID from the step for notification
-            var approverId = GetApproverId(step);
-            if (approverId != Guid.Empty)
+            // Get the approver ID from the target step for notification
+            var approverId = nextStep != null ? nextStep.ApproverId : GetApproverId(step);
+            if (approverId.HasValue && approverId.Value != Guid.Empty)
             {
                 try
                 {
-                    notificationService.SendEscalationNotification(requestId, approverId);
+                    notificationService.SendEscalationNotification(requestId, approverId.Value);
                 }
                 catch (Exception notifyEx)
                 {

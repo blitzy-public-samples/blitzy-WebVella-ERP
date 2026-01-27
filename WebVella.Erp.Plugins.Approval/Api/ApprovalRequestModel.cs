@@ -129,5 +129,45 @@ namespace WebVella.Erp.Plugins.Approval.Api
 		/// </summary>
 		[JsonProperty(PropertyName = "completed_on")]
 		public DateTime? CompletedOn { get; set; }
+
+		/// <summary>
+		/// Display title for the approval request.
+		/// Provides a human-readable summary of what is being approved.
+		/// Used in UI listings and notifications.
+		/// </summary>
+		[JsonProperty(PropertyName = "title")]
+		public string Title { get; set; }
+
+		/// <summary>
+		/// Timestamp when the last notification was sent for this request.
+		/// Nullable - null indicates no notifications have been sent yet.
+		/// Used by the notification job to determine notification frequency.
+		/// </summary>
+		[JsonProperty(PropertyName = "last_notification_sent")]
+		public DateTime? LastNotificationSent { get; set; }
+
+		/// <summary>
+		/// Number of notifications sent for this request.
+		/// Defaults to 0. Incremented each time a notification is sent.
+		/// Used for notification throttling and escalation logic.
+		/// </summary>
+		[JsonProperty(PropertyName = "notification_count")]
+		public int NotificationCount { get; set; } = 0;
+
+		/// <summary>
+		/// Indicates whether this request has been archived.
+		/// Archived requests are excluded from active listings but retained for audit purposes.
+		/// Defaults to false.
+		/// </summary>
+		[JsonProperty(PropertyName = "is_archived")]
+		public bool IsArchived { get; set; } = false;
+
+		/// <summary>
+		/// Timestamp when the request was archived.
+		/// Nullable - null indicates the request has not been archived.
+		/// Set by the cleanup job when archiving completed requests.
+		/// </summary>
+		[JsonProperty(PropertyName = "archived_on")]
+		public DateTime? ArchivedOn { get; set; }
 	}
 }

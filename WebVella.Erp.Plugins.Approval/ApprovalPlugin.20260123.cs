@@ -58,6 +58,7 @@ namespace WebVella.Erp.Plugins.Approval
 		private static readonly Guid STEP_APPROVER_ID_FIELD_ID = new Guid("51e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8aa");
 		private static readonly Guid STEP_TIMEOUT_HOURS_FIELD_ID = new Guid("61f6a7b8-c9d0-e1f2-a3b4-c5d6e7f8a9b1");
 		private static readonly Guid STEP_IS_FINAL_FIELD_ID = new Guid("71a7b8c9-d0e1-f2a3-b4c5-d6e7f8a9b0c1");
+		private static readonly Guid STEP_THRESHOLD_CONFIG_FIELD_ID = new Guid("81b8c9d0-e1f2-a3b4-c5d6-e7f8a9b0c1d2");
 
 		// approval_rule fields
 		private static readonly Guid RULE_WORKFLOW_ID_FIELD_ID = new Guid("12a1b2c3-d4e5-f6a7-b8c9-d0e1f2a3b4c7");
@@ -66,6 +67,7 @@ namespace WebVella.Erp.Plugins.Approval
 		private static readonly Guid RULE_OPERATOR_FIELD_ID = new Guid("42d4e5f6-a7b8-c9d0-e1f2-a3b4c5d6e7fa");
 		private static readonly Guid RULE_VALUE_FIELD_ID = new Guid("52e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8ab");
 		private static readonly Guid RULE_PRIORITY_FIELD_ID = new Guid("62f6a7b8-c9d0-e1f2-a3b4-c5d6e7f8a9b2");
+		private static readonly Guid RULE_NEXT_STEP_ID_FIELD_ID = new Guid("72f7a8b9-c0d1-e2f3-a4b5-c6d7e8f9a0b3");
 
 		// approval_request fields
 		private static readonly Guid REQUEST_WORKFLOW_ID_FIELD_ID = new Guid("13a1b2c3-d4e5-f6a7-b8c9-d0e1f2a3b4c8");
@@ -77,6 +79,10 @@ namespace WebVella.Erp.Plugins.Approval
 		private static readonly Guid REQUEST_REQUESTED_ON_FIELD_ID = new Guid("73a7b8c9-d0e1-f2a3-b4c5-d6e7f8a9b0c2");
 		private static readonly Guid REQUEST_COMPLETED_ON_FIELD_ID = new Guid("83b8c9d0-e1f2-a3b4-c5d6-e7f8a9b0c1d3");
 		private static readonly Guid REQUEST_TITLE_FIELD_ID = new Guid("93c9d0e1-f2a3-b4c5-d6e7-f8a9b0c1d2e4");
+		private static readonly Guid REQUEST_LAST_NOTIFICATION_SENT_FIELD_ID = new Guid("a4d0e1f2-a3b4-c5d6-e7f8-a9b0c1d2e3f5");
+		private static readonly Guid REQUEST_NOTIFICATION_COUNT_FIELD_ID = new Guid("b5e1f2a3-b4c5-d6e7-f8a9-b0c1d2e3f4a6");
+		private static readonly Guid REQUEST_IS_ARCHIVED_FIELD_ID = new Guid("c6f2a3b4-c5d6-e7f8-a9b0-c1d2e3f4a5b7");
+		private static readonly Guid REQUEST_ARCHIVED_ON_FIELD_ID = new Guid("d7a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c8");
 
 		// approval_history fields
 		private static readonly Guid HISTORY_REQUEST_ID_FIELD_ID = new Guid("14a1b2c3-d4e5-f6a7-b8c9-d0e1f2a3b4c9");
@@ -85,6 +91,8 @@ namespace WebVella.Erp.Plugins.Approval
 		private static readonly Guid HISTORY_PERFORMED_BY_FIELD_ID = new Guid("44d4e5f6-a7b8-c9d0-e1f2-a3b4c5d6e7fc");
 		private static readonly Guid HISTORY_PERFORMED_ON_FIELD_ID = new Guid("54e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8ad");
 		private static readonly Guid HISTORY_COMMENTS_FIELD_ID = new Guid("64f6a7b8-c9d0-e1f2-a3b4-c5d6e7f8a9b4");
+		private static readonly Guid HISTORY_PREVIOUS_STATUS_FIELD_ID = new Guid("e8b4c5d6-e7f8-a9b0-c1d2-e3f4a5b6c7d9");
+		private static readonly Guid HISTORY_NEW_STATUS_FIELD_ID = new Guid("f9c5d6e7-f8a9-b0c1-d2e3-f4a5b6c7d8ea");
 		#endregion
 
 		/// <summary>
@@ -551,6 +559,34 @@ namespace WebVella.Erp.Plugins.Approval
 			}
 			#endregion
 
+			#region << ***Create field*** Entity: approval_step Field Name: threshold_config >>
+			{
+				InputTextField textboxField = new InputTextField();
+				textboxField.Id = STEP_THRESHOLD_CONFIG_FIELD_ID;
+				textboxField.Name = "threshold_config";
+				textboxField.Label = "Threshold Configuration";
+				textboxField.PlaceholderText = "JSON threshold configuration";
+				textboxField.Description = "JSON configuration for threshold-based routing (e.g., amount thresholds)";
+				textboxField.HelpText = null;
+				textboxField.Required = false;
+				textboxField.Unique = false;
+				textboxField.Searchable = false;
+				textboxField.Auditable = false;
+				textboxField.System = false;
+				textboxField.DefaultValue = null;
+				textboxField.MaxLength = null;
+				textboxField.EnableSecurity = false;
+				textboxField.Permissions = new FieldPermissions();
+				textboxField.Permissions.CanRead = new List<Guid>();
+				textboxField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_STEP_ENTITY_ID, textboxField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_step Field: threshold_config Message:" + response.Message);
+				}
+			}
+			#endregion
+
 			#region << ***Create entity*** Entity name: approval_rule >>
 			{
 				#region << entity >>
@@ -765,6 +801,34 @@ namespace WebVella.Erp.Plugins.Approval
 					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, numberField, false);
 					if (!response.Success)
 						throw new Exception("System error 10060. Entity: approval_rule Field: priority Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_rule Field Name: next_step_id >>
+			{
+				InputGuidField guidField = new InputGuidField();
+				guidField.Id = RULE_NEXT_STEP_ID_FIELD_ID;
+				guidField.Name = "next_step_id";
+				guidField.Label = "Next Step";
+				guidField.PlaceholderText = null;
+				guidField.Description = "The step to route to when this rule matches (optional FK to approval_step)";
+				guidField.HelpText = null;
+				guidField.Required = false;
+				guidField.Unique = false;
+				guidField.Searchable = true;
+				guidField.Auditable = false;
+				guidField.System = false;
+				guidField.DefaultValue = null;
+				guidField.GenerateNewId = false;
+				guidField.EnableSecurity = false;
+				guidField.Permissions = new FieldPermissions();
+				guidField.Permissions.CanRead = new List<Guid>();
+				guidField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, guidField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_rule Field: next_step_id Message:" + response.Message);
 				}
 			}
 			#endregion
@@ -1071,6 +1135,121 @@ namespace WebVella.Erp.Plugins.Approval
 			}
 			#endregion
 
+			#region << ***Create field*** Entity: approval_request Field Name: last_notification_sent >>
+			{
+				InputDateTimeField datetimeField = new InputDateTimeField();
+				datetimeField.Id = REQUEST_LAST_NOTIFICATION_SENT_FIELD_ID;
+				datetimeField.Name = "last_notification_sent";
+				datetimeField.Label = "Last Notification Sent";
+				datetimeField.PlaceholderText = null;
+				datetimeField.Description = "When the last notification was sent for this request";
+				datetimeField.HelpText = null;
+				datetimeField.Required = false;
+				datetimeField.Unique = false;
+				datetimeField.Searchable = true;
+				datetimeField.Auditable = false;
+				datetimeField.System = false;
+				datetimeField.DefaultValue = null;
+				datetimeField.Format = "yyyy-MMM-dd HH:mm";
+				datetimeField.UseCurrentTimeAsDefaultValue = false;
+				datetimeField.EnableSecurity = false;
+				datetimeField.Permissions = new FieldPermissions();
+				datetimeField.Permissions.CanRead = new List<Guid>();
+				datetimeField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_REQUEST_ENTITY_ID, datetimeField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_request Field: last_notification_sent Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_request Field Name: notification_count >>
+			{
+				InputNumberField numberField = new InputNumberField();
+				numberField.Id = REQUEST_NOTIFICATION_COUNT_FIELD_ID;
+				numberField.Name = "notification_count";
+				numberField.Label = "Notification Count";
+				numberField.PlaceholderText = null;
+				numberField.Description = "Number of notifications sent for this request";
+				numberField.HelpText = null;
+				numberField.Required = false;
+				numberField.Unique = false;
+				numberField.Searchable = false;
+				numberField.Auditable = false;
+				numberField.System = false;
+				numberField.DefaultValue = Decimal.Parse("0");
+				numberField.MinValue = Decimal.Parse("0");
+				numberField.MaxValue = Decimal.Parse("999");
+				numberField.DecimalPlaces = byte.Parse("0");
+				numberField.EnableSecurity = false;
+				numberField.Permissions = new FieldPermissions();
+				numberField.Permissions.CanRead = new List<Guid>();
+				numberField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_REQUEST_ENTITY_ID, numberField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_request Field: notification_count Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_request Field Name: is_archived >>
+			{
+				InputCheckboxField checkboxField = new InputCheckboxField();
+				checkboxField.Id = REQUEST_IS_ARCHIVED_FIELD_ID;
+				checkboxField.Name = "is_archived";
+				checkboxField.Label = "Is Archived";
+				checkboxField.PlaceholderText = null;
+				checkboxField.Description = "Whether this request has been archived";
+				checkboxField.HelpText = null;
+				checkboxField.Required = false;
+				checkboxField.Unique = false;
+				checkboxField.Searchable = true;
+				checkboxField.Auditable = false;
+				checkboxField.System = false;
+				checkboxField.DefaultValue = false;
+				checkboxField.EnableSecurity = false;
+				checkboxField.Permissions = new FieldPermissions();
+				checkboxField.Permissions.CanRead = new List<Guid>();
+				checkboxField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_REQUEST_ENTITY_ID, checkboxField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_request Field: is_archived Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_request Field Name: archived_on >>
+			{
+				InputDateTimeField datetimeField = new InputDateTimeField();
+				datetimeField.Id = REQUEST_ARCHIVED_ON_FIELD_ID;
+				datetimeField.Name = "archived_on";
+				datetimeField.Label = "Archived On";
+				datetimeField.PlaceholderText = null;
+				datetimeField.Description = "When this request was archived";
+				datetimeField.HelpText = null;
+				datetimeField.Required = false;
+				datetimeField.Unique = false;
+				datetimeField.Searchable = true;
+				datetimeField.Auditable = false;
+				datetimeField.System = false;
+				datetimeField.DefaultValue = null;
+				datetimeField.Format = "yyyy-MMM-dd HH:mm";
+				datetimeField.UseCurrentTimeAsDefaultValue = false;
+				datetimeField.EnableSecurity = false;
+				datetimeField.Permissions = new FieldPermissions();
+				datetimeField.Permissions.CanRead = new List<Guid>();
+				datetimeField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_REQUEST_ENTITY_ID, datetimeField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_request Field: archived_on Message:" + response.Message);
+				}
+			}
+			#endregion
+
 			#region << ***Create entity*** Entity name: approval_history >>
 			{
 				#region << entity >>
@@ -1284,6 +1463,62 @@ namespace WebVella.Erp.Plugins.Approval
 					var response = entMan.CreateField(APPROVAL_HISTORY_ENTITY_ID, textareaField, false);
 					if (!response.Success)
 						throw new Exception("System error 10060. Entity: approval_history Field: comments Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_history Field Name: previous_status >>
+			{
+				InputTextField textboxField = new InputTextField();
+				textboxField.Id = HISTORY_PREVIOUS_STATUS_FIELD_ID;
+				textboxField.Name = "previous_status";
+				textboxField.Label = "Previous Status";
+				textboxField.PlaceholderText = null;
+				textboxField.Description = "The status before this action was performed";
+				textboxField.HelpText = null;
+				textboxField.Required = false;
+				textboxField.Unique = false;
+				textboxField.Searchable = true;
+				textboxField.Auditable = false;
+				textboxField.System = false;
+				textboxField.DefaultValue = null;
+				textboxField.MaxLength = 50;
+				textboxField.EnableSecurity = false;
+				textboxField.Permissions = new FieldPermissions();
+				textboxField.Permissions.CanRead = new List<Guid>();
+				textboxField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_HISTORY_ENTITY_ID, textboxField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_history Field: previous_status Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_history Field Name: new_status >>
+			{
+				InputTextField textboxField = new InputTextField();
+				textboxField.Id = HISTORY_NEW_STATUS_FIELD_ID;
+				textboxField.Name = "new_status";
+				textboxField.Label = "New Status";
+				textboxField.PlaceholderText = null;
+				textboxField.Description = "The status after this action was performed";
+				textboxField.HelpText = null;
+				textboxField.Required = false;
+				textboxField.Unique = false;
+				textboxField.Searchable = true;
+				textboxField.Auditable = false;
+				textboxField.System = false;
+				textboxField.DefaultValue = null;
+				textboxField.MaxLength = 50;
+				textboxField.EnableSecurity = false;
+				textboxField.Permissions = new FieldPermissions();
+				textboxField.Permissions.CanRead = new List<Guid>();
+				textboxField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_HISTORY_ENTITY_ID, textboxField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_history Field: new_status Message:" + response.Message);
 				}
 			}
 			#endregion

@@ -49,7 +49,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>The created ApprovalHistoryModel representing the logged action.</returns>
         /// <exception cref="ValidationException">Thrown when the record creation fails.</exception>
         /// <exception cref="ArgumentException">Thrown when requestId, stepId, or performedBy is empty.</exception>
-        public ApprovalHistoryModel LogAction(Guid requestId, Guid stepId, string action, Guid performedBy, string comments = null)
+        public ApprovalHistoryModel LogAction(Guid requestId, Guid stepId, string action, Guid performedBy, string comments = null, string previousStatus = null, string newStatus = null)
         {
             // Validate required parameters
             if (requestId == Guid.Empty)
@@ -95,6 +95,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 record["performed_by"] = performedBy;
                 record["performed_on"] = performedOn;
                 record["comments"] = comments;
+                record["previous_status"] = previousStatus;
+                record["new_status"] = newStatus;
 
                 var response = RecMan.CreateRecord(ENTITY_NAME, record);
 
@@ -112,7 +114,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     Action = action.ToLowerInvariant(),
                     PerformedBy = performedBy,
                     PerformedOn = performedOn,
-                    Comments = comments
+                    Comments = comments,
+                    PreviousStatus = previousStatus,
+                    NewStatus = newStatus
                 };
             }
             catch (ValidationException)
@@ -145,7 +149,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments 
+                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status 
                                    FROM approval_history 
                                    WHERE request_id = @requestId 
                                    ORDER BY performed_on ASC";
@@ -187,7 +191,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments 
+                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status 
                                    FROM approval_history 
                                    WHERE performed_by = @userId 
                                    ORDER BY performed_on DESC";
@@ -237,7 +241,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 // Calculate the cutoff timestamp
                 var cutoff = DateTime.UtcNow.AddHours(-hours);
 
-                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments 
+                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status 
                                    FROM approval_history 
                                    WHERE performed_on >= @cutoff 
                                    ORDER BY performed_on DESC";
@@ -321,6 +325,18 @@ namespace WebVella.Erp.Plugins.Approval.Services
             if (record.Properties.ContainsKey("comments") && record["comments"] != null)
             {
                 model.Comments = (string)record["comments"];
+            }
+
+            // Map PreviousStatus (nullable)
+            if (record.Properties.ContainsKey("previous_status") && record["previous_status"] != null)
+            {
+                model.PreviousStatus = (string)record["previous_status"];
+            }
+
+            // Map NewStatus (nullable)
+            if (record.Properties.ContainsKey("new_status") && record["new_status"] != null)
+            {
+                model.NewStatus = (string)record["new_status"];
             }
 
             return model;

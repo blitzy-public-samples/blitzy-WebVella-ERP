@@ -190,7 +190,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     }
 
                     // Step 5: Log the 'submitted' action to history
-                    HistoryService.LogAction(requestId, firstStep.Id, ACTION_SUBMITTED, requestedBy, "Approval request submitted.");
+                    HistoryService.LogAction(requestId, firstStep.Id, ACTION_SUBMITTED, requestedBy, "Approval request submitted.", null, STATUS_PENDING);
 
                     connection.CommitTransaction();
 
@@ -340,7 +340,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                     // Step 7: Log the 'approved' action to history
                     var historyComments = string.IsNullOrWhiteSpace(comments) ? "Step approved." : comments;
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_APPROVED, userId, historyComments);
+                    HistoryService.LogAction(requestId, currentStepId, ACTION_APPROVED, userId, historyComments, STATUS_PENDING, newStatus);
 
                     connection.CommitTransaction();
 
@@ -473,7 +473,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     {
                         historyComments += $". Comments: {comments}";
                     }
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_REJECTED, userId, historyComments);
+                    HistoryService.LogAction(requestId, currentStepId, ACTION_REJECTED, userId, historyComments, request.Status, STATUS_REJECTED);
 
                     connection.CommitTransaction();
 
@@ -603,7 +603,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     {
                         historyComments += $". Comments: {comments}";
                     }
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_DELEGATED, userId, historyComments);
+                    HistoryService.LogAction(requestId, currentStepId, ACTION_DELEGATED, userId, historyComments, request.Status, request.Status);
 
                     connection.CommitTransaction();
 

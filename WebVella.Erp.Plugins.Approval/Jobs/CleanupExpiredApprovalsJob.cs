@@ -11,15 +11,16 @@ using WebVella.Erp.Plugins.Approval.Services;
 namespace WebVella.Erp.Plugins.Approval.Jobs
 {
     /// <summary>
-    /// Background job for cleaning up expired approval requests.
-    /// Runs daily at 00:10 UTC and queries pending approval requests that have been 
-    /// pending beyond a configurable expiration threshold (default 30 days).
-    /// For each expired request, marks status as 'expired', sets completed_on to 
-    /// current timestamp, and logs a history entry recording the expiration.
+    /// Background job for archiving completed approval requests.
+    /// Per STORY-006 AC12/AC13: Runs daily to archive approval_request records with terminal 
+    /// status (Approved, Rejected, Cancelled) where created_on is older than the configured 
+    /// retention period (default 365 days).
+    /// Archives eligible records by setting is_archived flag to true (soft delete pattern),
+    /// preserving data for compliance queries while excluding from active workflow queries.
     /// </summary>
     /// <remarks>
-    /// This job ensures that stale approval requests don't remain in pending state indefinitely.
-    /// The expiration period can be adjusted via the EXPIRATION_DAYS constant.
+    /// This job ensures database performance by archiving old completed records while
+    /// maintaining full audit trail for compliance requirements.
     /// All operations are performed within a system security scope for elevated permissions.
     /// Individual request failures are caught and logged to prevent one failure from 
     /// stopping the entire batch processing.
@@ -35,14 +36,34 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         private const string APPROVAL_REQUEST_ENTITY = "approval_request";
 
         /// <summary>
-        /// Configurable expiration period in days.
-        /// Approval requests pending longer than this period will be marked as expired.
+        /// Per AC12: Configurable retention period in days (default 365 days).
+        /// Terminal status approval requests older than this period will be archived.
         /// </summary>
-        private const int EXPIRATION_DAYS = 30;
+        private const int RETENTION_DAYS = 365;
+
+        /// <summary>
+        /// Maximum number of records to process per job execution to prevent timeout.
+        /// </summary>
+        private const int BATCH_SIZE = 100;
+
+        /// <summary>
+        /// Terminal status indicating approved request.
+        /// </summary>
+        private const string STATUS_APPROVED = "approved";
+
+        /// <summary>
+        /// Terminal status indicating rejected request.
+        /// </summary>
+        private const string STATUS_REJECTED = "rejected";
+
+        /// <summary>
+        /// Terminal status indicating cancelled request.
+        /// </summary>
+        private const string STATUS_CANCELLED = "cancelled";
 
         /// <summary>
         /// System user GUID used for automated operations.
-        /// This represents the system performing the expiration action automatically.
+        /// This represents the system performing the archival action automatically.
         /// </summary>
         private static readonly Guid SYSTEM_USER_ID = new Guid("00000000-0000-0000-0000-000000000001");
 
@@ -51,9 +72,9 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         #region << Public Methods >>
 
         /// <summary>
-        /// Executes the expired approval cleanup job.
-        /// Queries all pending approval requests older than the configured expiration threshold,
-        /// marks them as expired, and logs the history action.
+        /// Executes the approval archival job per STORY-006 AC12-AC14.
+        /// Queries terminal status approval requests older than the configured retention period,
+        /// archives them by setting is_archived flag, and logs cleanup statistics.
         /// </summary>
         /// <param name="context">The job execution context provided by the scheduler.</param>
         public override void Execute(JobContext context)
@@ -61,42 +82,42 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             using (SecurityContext.OpenSystemScope())
             {
                 var recMan = new RecordManager();
-                var historyService = new ApprovalHistoryService();
                 
-                // Calculate the cutoff date for expiration
-                var cutoffDate = DateTime.UtcNow.AddDays(-EXPIRATION_DAYS);
+                // Per AC12: Calculate the cutoff date based on retention period (365 days)
+                var cutoffDate = DateTime.UtcNow.AddDays(-RETENTION_DAYS);
                 
-                // Query pending approval requests that are older than the cutoff date
-                var expiredRequests = GetExpiredPendingRequests(cutoffDate);
+                // Per AC12: Query terminal status requests older than retention period
+                var recordsToArchive = GetTerminalStatusRequestsForArchival(cutoffDate);
                 
-                if (expiredRequests == null || !expiredRequests.Any())
+                if (recordsToArchive == null || !recordsToArchive.Any())
                 {
-                    // No expired requests to process
+                    // No records to archive - this is normal operation
                     return;
                 }
 
-                int successCount = 0;
-                int failureCount = 0;
+                int archivedCount = 0;
+                int errorCount = 0;
 
-                foreach (var request in expiredRequests)
+                foreach (var request in recordsToArchive)
                 {
                     try
                     {
-                        ProcessExpiredRequest(request, recMan, historyService);
-                        successCount++;
+                        // Per AC13: Archive by setting is_archived flag to true
+                        ArchiveRequest(request, recMan);
+                        archivedCount++;
                     }
                     catch (Exception ex)
                     {
-                        failureCount++;
+                        errorCount++;
                         // Log the error but continue processing remaining requests
                         LogError(request, ex);
                     }
                 }
 
-                // Log summary of the cleanup operation
-                if (successCount > 0 || failureCount > 0)
+                // Per AC14: Log cleanup statistics
+                if (archivedCount > 0 || errorCount > 0)
                 {
-                    LogSummary(successCount, failureCount);
+                    LogSummary(archivedCount, errorCount);
                 }
             }
         }
@@ -106,23 +127,34 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         #region << Private Methods >>
 
         /// <summary>
-        /// Queries the database for pending approval requests that have exceeded the expiration threshold.
+        /// Per AC12: Queries approval_request records with terminal status (Approved, Rejected, Cancelled)
+        /// where created_on is older than the configured retention period.
         /// </summary>
-        /// <param name="cutoffDate">The date before which requests are considered expired.</param>
-        /// <returns>A list of EntityRecord objects representing expired pending requests.</returns>
-        private List<EntityRecord> GetExpiredPendingRequests(DateTime cutoffDate)
+        /// <param name="cutoffDate">The date before which requests are eligible for archival.</param>
+        /// <returns>A list of EntityRecord objects representing records to archive.</returns>
+        private List<EntityRecord> GetTerminalStatusRequestsForArchival(DateTime cutoffDate)
         {
             try
             {
+                // Per AC12: Query terminal status records older than retention period
+                // Per AC13: Only include non-archived records
                 var eqlCommand = @"SELECT id, workflow_id, current_step_id, source_entity_name, source_record_id, 
-                                          status, requested_by, requested_on 
+                                          status, requested_by, requested_on, completed_on, is_archived 
                                    FROM approval_request 
-                                   WHERE status = @status AND requested_on < @cutoffDate";
+                                   WHERE (status = @statusApproved OR status = @statusRejected OR status = @statusCancelled)
+                                   AND requested_on < @cutoffDate
+                                   AND (is_archived = @notArchived OR is_archived = NULL)
+                                   ORDER BY requested_on ASC
+                                   PAGE 1 PAGESIZE @batchSize";
 
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("status", "pending"),
-                    new EqlParameter("cutoffDate", cutoffDate)
+                    new EqlParameter("statusApproved", STATUS_APPROVED),
+                    new EqlParameter("statusRejected", STATUS_REJECTED),
+                    new EqlParameter("statusCancelled", STATUS_CANCELLED),
+                    new EqlParameter("cutoffDate", cutoffDate),
+                    new EqlParameter("notArchived", false),
+                    new EqlParameter("batchSize", BATCH_SIZE)
                 };
 
                 var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
@@ -136,7 +168,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             }
             catch (Exception ex)
             {
-                // Log error querying expired requests
+                // Log error querying records for archival
                 try
                 {
                     new Log().Create(LogType.Error, "CleanupExpiredApprovalsJob", ex);
@@ -150,79 +182,33 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         }
 
         /// <summary>
-        /// Processes a single expired approval request by updating its status and logging history.
+        /// Per AC13: Archives a single approval request by setting is_archived flag to true.
+        /// This implements the soft delete pattern for compliance while excluding from active queries.
         /// </summary>
-        /// <param name="request">The approval request record to process.</param>
+        /// <param name="request">The approval request record to archive.</param>
         /// <param name="recMan">The RecordManager instance for database operations.</param>
-        /// <param name="historyService">The ApprovalHistoryService for audit logging.</param>
-        private void ProcessExpiredRequest(EntityRecord request, RecordManager recMan, ApprovalHistoryService historyService)
+        private void ArchiveRequest(EntityRecord request, RecordManager recMan)
         {
             var requestId = (Guid)request["id"];
-            var currentStepId = request["current_step_id"] != null ? (Guid)request["current_step_id"] : Guid.Empty;
-            var completedOn = DateTime.UtcNow;
+            var archivedOn = DateTime.UtcNow;
 
-            // Create patch record to update the request status to 'expired'
+            // Per AC13: Set is_archived flag to true (soft delete pattern)
             var patchRecord = new EntityRecord();
             patchRecord["id"] = requestId;
-            patchRecord["status"] = "expired";
-            patchRecord["completed_on"] = completedOn;
+            patchRecord["is_archived"] = true;
+            patchRecord["archived_on"] = archivedOn;
 
             // Update the approval request record
             var updateResult = recMan.UpdateRecord(APPROVAL_REQUEST_ENTITY, patchRecord);
 
             if (!updateResult.Success)
             {
-                throw new Exception($"Failed to update approval request {requestId}: {updateResult.Message}");
-            }
-
-            // Log the expiration action to the audit trail
-            // Note: The 'expired' action may not be in the standard valid actions list.
-            // We attempt to log it but handle any validation errors gracefully.
-            try
-            {
-                // If current_step_id is empty, we use a placeholder step ID
-                var stepIdForHistory = currentStepId != Guid.Empty ? currentStepId : requestId;
-                
-                historyService.LogAction(
-                    requestId: requestId,
-                    stepId: stepIdForHistory,
-                    action: "expired",
-                    performedBy: SYSTEM_USER_ID,
-                    comments: $"Automatically expired after {EXPIRATION_DAYS} days of inactivity"
-                );
-            }
-            catch (ArgumentException)
-            {
-                // The 'expired' action may not be in the valid actions list
-                // Log info (since Warning doesn't exist in WebVella LogType) but don't fail the overall expiration process
-                try
-                {
-                    new Log().Create(LogType.Info, "CleanupExpiredApprovalsJob", 
-                        $"Could not log history for expired request {requestId}. " +
-                        "The 'expired' action may not be in the valid actions list.", string.Empty);
-                }
-                catch
-                {
-                    // Suppress logging errors
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log error but don't fail the expiration process
-                try
-                {
-                    new Log().Create(LogType.Info, "CleanupExpiredApprovalsJob", 
-                        $"Failed to log history for request {requestId}: {ex.Message}", string.Empty);
-                }
-                catch
-                {
-                    // Suppress logging errors
-                }
+                throw new Exception($"Failed to archive approval request {requestId}: {updateResult.Message}");
             }
         }
 
         /// <summary>
-        /// Logs an error that occurred while processing an individual approval request.
+        /// Logs an error that occurred while archiving an individual approval request.
         /// </summary>
         /// <param name="request">The approval request that caused the error.</param>
         /// <param name="ex">The exception that was thrown.</param>
@@ -232,7 +218,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             {
                 var requestId = request["id"] != null ? request["id"].ToString() : "unknown";
                 new Log().Create(LogType.Error, "CleanupExpiredApprovalsJob", 
-                    $"Error processing expired approval request {requestId}", ex);
+                    $"Error archiving approval request {requestId}", ex);
             }
             catch
             {
@@ -241,17 +227,16 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
         }
 
         /// <summary>
-        /// Logs a summary of the cleanup operation results.
+        /// Per AC14: Logs cleanup statistics for operational monitoring.
         /// </summary>
-        /// <param name="successCount">The number of successfully processed requests.</param>
-        /// <param name="failureCount">The number of requests that failed to process.</param>
-        private void LogSummary(int successCount, int failureCount)
+        /// <param name="archivedCount">The number of successfully archived requests.</param>
+        /// <param name="errorCount">The number of requests that failed to archive.</param>
+        private void LogSummary(int archivedCount, int errorCount)
         {
             try
             {
-                // Use Error type for failures, Info for success (Warning doesn't exist in WebVella LogType)
-                var logType = failureCount > 0 ? LogType.Error : LogType.Info;
-                var message = $"Cleanup completed: {successCount} expired requests processed successfully, {failureCount} failures";
+                var logType = errorCount > 0 ? LogType.Error : LogType.Info;
+                var message = $"Archival job completed: {archivedCount} records archived, {errorCount} errors encountered";
                 new Log().Create(logType, "CleanupExpiredApprovalsJob", message, string.Empty);
             }
             catch
