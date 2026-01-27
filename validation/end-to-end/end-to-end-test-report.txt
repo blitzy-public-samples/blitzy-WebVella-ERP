@@ -1,0 +1,39 @@
+=========================================
+End-to-End Approval Workflow Test Report
+=========================================
+Date: 2026-01-27
+Status: PASSED
+
+Test Scenario: Complete Approval Workflow
+
+Steps Executed:
+1. Created workflow "Test User Approval" targeting "user" entity
+2. Added workflow step "Manager Approval" with user-based approver
+3. Created approval request (source: test_entity)
+4. Verified dashboard shows 1 pending approval
+5. Approved request via REST API with comments
+6. Verified dashboard updated to 100% approval rate
+7. Confirmed history entry created with audit trail
+
+API Endpoints Tested:
+- POST /api/v3.0/p/approval/workflow (Create Workflow) ✓
+- GET /api/v3.0/p/approval/workflow (List Workflows) ✓
+- GET /api/v3.0/p/approval/pending (Pending Approvals) ✓
+- GET /api/v3.0/p/approval/dashboard/metrics (Dashboard Metrics) ✓
+- POST /api/v3.0/p/approval/request/{id}/approve (Approve Request) ✓
+- GET /api/v3.0/p/approval/request/{id}/history (Get History) ✓
+
+Final Metrics After Test:
+- Pending Count: 0
+- Approval Rate: 100%
+- Recent Activity: 1
+- Overdue: 0
+
+History Entry:
+- Action: approved
+- Performed By: administrator
+- Comments: "Approved via end-to-end test"
+- Timestamp: 2026-01-27T11:00:27.290
+
+RESULT: ALL TESTS PASSED
+=========================================
