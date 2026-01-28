@@ -15,29 +15,20 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<!-- Embedded resources for component JavaScript files - conditionally included when files exist -->
-	<ItemGroup Condition="Exists('Components\PcApprovalWorkflowConfig\service.js')">
+	<!-- Embedded resources for component JavaScript files -->
+	<ItemGroup>
 		<None Remove="Components\PcApprovalWorkflowConfig\service.js" />
-		<EmbeddedResource Include="Components\PcApprovalWorkflowConfig\service.js" />
-	</ItemGroup>
-
-	<ItemGroup Condition="Exists('Components\PcApprovalRequestList\service.js')">
 		<None Remove="Components\PcApprovalRequestList\service.js" />
-		<EmbeddedResource Include="Components\PcApprovalRequestList\service.js" />
-	</ItemGroup>
-
-	<ItemGroup Condition="Exists('Components\PcApprovalAction\service.js')">
 		<None Remove="Components\PcApprovalAction\service.js" />
-		<EmbeddedResource Include="Components\PcApprovalAction\service.js" />
-	</ItemGroup>
-
-	<ItemGroup Condition="Exists('Components\PcApprovalHistory\service.js')">
 		<None Remove="Components\PcApprovalHistory\service.js" />
-		<EmbeddedResource Include="Components\PcApprovalHistory\service.js" />
+		<None Remove="Components\PcApprovalDashboard\service.js" />
 	</ItemGroup>
 
-	<ItemGroup Condition="Exists('Components\PcApprovalDashboard\service.js')">
-		<None Remove="Components\PcApprovalDashboard\service.js" />
+	<ItemGroup>
+		<EmbeddedResource Include="Components\PcApprovalWorkflowConfig\service.js" />
+		<EmbeddedResource Include="Components\PcApprovalRequestList\service.js" />
+		<EmbeddedResource Include="Components\PcApprovalAction\service.js" />
+		<EmbeddedResource Include="Components\PcApprovalHistory\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
 	</ItemGroup>
 
