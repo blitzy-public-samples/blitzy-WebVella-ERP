@@ -201,7 +201,7 @@
 			var formattedDate = formatDate(request.requestedOn || request.requested_on);
 			var requesterName = request.requestedByName || request.requested_by_name || "Unknown";
 			var workflowName = request.workflowName || request.workflow_name || "N/A";
-			var entityName = request.sourceEntityName || request.source_entity_name || "N/A";
+			var entityName = request.source_entity || "N/A";
 			
 			var $row = $('<tr class="approval-request-row" data-request-id="' + request.id + '">' +
 				'<td class="request-id-cell">' + formatRequestId(request.id) + '</td>' +

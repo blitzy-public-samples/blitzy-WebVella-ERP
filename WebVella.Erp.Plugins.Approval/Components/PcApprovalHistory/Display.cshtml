@@ -300,5 +300,9 @@
     }
 </style>
 
-@* Reference the service.js for any dynamic functionality *@
-<script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/service.js"></script>
+@* 
+    Note: The service.js file is automatically loaded by WebVella's PageComponentLibraryService
+    when the component is registered. The ServiceJsUrl is exposed via the component's metadata
+    at: /api/v3.0/pc/WebVella.Erp.Plugins.Approval.Components.PcApprovalHistory/resource/service.js
+    No manual script tag is needed as the page builder handles script loading.
+*@

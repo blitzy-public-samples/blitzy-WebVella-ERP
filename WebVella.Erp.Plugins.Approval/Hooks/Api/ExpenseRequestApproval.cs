@@ -8,13 +8,13 @@ using WebVella.Erp.Plugins.Approval.Services;
 namespace WebVella.Erp.Plugins.Approval.Hooks.Api
 {
     /// <summary>
-    /// Pre-create hook for expense_request entity to initiate approval workflows.
+    /// Post-create hook for expense_request entity to initiate approval workflows.
     /// Evaluates threshold rules and creates approval requests when required.
     /// 
     /// This hook follows the WebVella thin adapter pattern - it is a stateless hook that:
-    /// 1. Triggers before an expense_request record is persisted (PreCreate)
+    /// 1. Triggers after an expense_request record is persisted (PostCreate)
     /// 2. Delegates all workflow evaluation and request creation logic to ApprovalRequestService
-    /// 3. Uses the errors parameter to report validation failures
+    /// 3. The record ID is guaranteed to exist at this point
     /// 
     /// The hook evaluates if approval is required based on workflow rules and thresholds.
     /// If a matching workflow exists for the expense_request entity, an approval_request record
@@ -23,22 +23,20 @@ namespace WebVella.Erp.Plugins.Approval.Hooks.Api
     /// <remarks>
     /// Implementation follows STORY-005 requirements for hook integration:
     /// - Decorated with [HookAttachment("expense_request")] to bind to the expense_request entity
-    /// - Implements IErpPreCreateRecordHook to fire before record creation
-    /// - Uses errors parameter for validation failures (AC11)
+    /// - Implements IErpPostCreateRecordHook to fire after record creation
     /// - Evaluates threshold rules against record field values like expense_amount (AC13)
     /// - Creates linked approval request when approval is required (AC14)
     /// - Allows creation to proceed without approval when not required (AC15)
     /// </remarks>
     [HookAttachment("expense_request")]
-    public class ExpenseRequestApproval : IErpPreCreateRecordHook
+    public class ExpenseRequestApproval : IErpPostCreateRecordHook
     {
         /// <summary>
         /// Intercepts expense request creation to evaluate approval requirements.
         /// Creates linked approval_request when workflow thresholds are met.
         /// </summary>
         /// <param name="entityName">Entity name ("expense_request")</param>
-        /// <param name="record">Expense request record being created</param>
-        /// <param name="errors">Error collection for validation failures</param>
+        /// <param name="record">Expense request record that was just created</param>
         /// <remarks>
         /// This method evaluates if the expense request requires approval based on:
         /// - Configured approval workflows for the expense_request entity
@@ -47,13 +45,13 @@ namespace WebVella.Erp.Plugins.Approval.Hooks.Api
         /// When approval is required:
         /// - An approval_request record is created immediately
         /// - The approval_request ID is linked to the source record for tracking
-        /// - The record proceeds to creation with pending approval status
+        /// - The workflow status starts as 'pending'
         /// 
         /// When no approval is required:
-        /// - The record creation proceeds normally without any approval workflow
+        /// - No approval workflow is started
         /// - This is the expected behavior when no workflows are configured
         /// </remarks>
-        public void OnPreCreateRecord(string entityName, EntityRecord record, List<ErrorModel> errors)
+        public void OnPostCreateRecord(string entityName, EntityRecord record)
         {
             try
             {

@@ -120,7 +120,7 @@
                             <input type="text" 
                                    class="form-control" 
                                    id="@(componentId)-target-entity" 
-                                   name="target_entity_name" 
+                                   name="target_entity" 
                                    placeholder="Enter entity name (e.g., purchase_order)"
                                    maxlength="128"
                                    required>
@@ -283,7 +283,7 @@
                     '<strong>' + escapeHtml(workflow.name) + '</strong>' +
                 '</td>' +
                 '<td class="align-middle">' +
-                    '<code>' + escapeHtml(workflow.target_entity_name) + '</code>' +
+                    '<code>' + escapeHtml(workflow.target_entity) + '</code>' +
                 '</td>' +
                 '<td class="align-middle text-center">' +
                     '<span class="badge ' + statusBadgeClass + '">' + statusText + '</span>' +
@@ -376,7 +376,7 @@
         // Populate form fields
         document.getElementById(componentId + '-workflow-id').value = workflow.id;
         document.getElementById(componentId + '-workflow-name').value = workflow.name || '';
-        document.getElementById(componentId + '-target-entity').value = workflow.target_entity_name || '';
+        document.getElementById(componentId + '-target-entity').value = workflow.target_entity || '';
         document.getElementById(componentId + '-is-enabled').checked = workflow.is_enabled;
         
         // Set modal title and button text
@@ -405,7 +405,7 @@
         // Gather form data
         var data = {
             name: document.getElementById(componentId + '-workflow-name').value.trim(),
-            target_entity_name: document.getElementById(componentId + '-target-entity').value.trim(),
+            target_entity: document.getElementById(componentId + '-target-entity').value.trim(),
             is_enabled: document.getElementById(componentId + '-is-enabled').checked
         };
         
@@ -414,7 +414,7 @@
             showFormError(componentId, 'Workflow name is required.');
             return false;
         }
-        if (!data.target_entity_name) {
+        if (!data.target_entity) {
             showFormError(componentId, 'Target entity name is required.');
             return false;
         }
@@ -520,7 +520,7 @@
             contentType: 'application/json',
             data: JSON.stringify({
                 name: workflow.name,
-                target_entity_name: workflow.target_entity_name,
+                target_entity: workflow.target_entity,
                 is_enabled: enabled
             }),
             success: function(response) {

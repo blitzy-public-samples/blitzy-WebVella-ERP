@@ -57,7 +57,7 @@
     {
         new WvGridColumnMeta { Name = "action", Label = "", Width = "50px" },
         new WvGridColumnMeta { Name = "workflow_name", Label = "Workflow", Width = "" },
-        new WvGridColumnMeta { Name = "source_entity_name", Label = "Source Entity", Width = "150px" },
+        new WvGridColumnMeta { Name = "source_entity", Label = "Source Entity", Width = "150px" },
         new WvGridColumnMeta { Name = "status", Label = "Status", Width = "100px" },
         new WvGridColumnMeta { Name = "requested_by", Label = "Requested By", Width = "150px" },
         new WvGridColumnMeta { Name = "requested_on", Label = "Requested On", Width = "150px" },
@@ -166,8 +166,8 @@
                 var workflowName = record.Properties.ContainsKey("workflow_name") && record["workflow_name"] != null 
                     ? record["workflow_name"].ToString() 
                     : "Unknown";
-                var sourceEntityName = record.Properties.ContainsKey("source_entity_name") && record["source_entity_name"] != null 
-                    ? record["source_entity_name"].ToString() 
+                var sourceEntityName = record.Properties.ContainsKey("source_entity") && record["source_entity"] != null 
+                    ? record["source_entity"].ToString() 
                     : "N/A";
                 var sourceRecordId = record.Properties.ContainsKey("source_record_id") && record["source_record_id"] != null 
                     ? record["source_record_id"].ToString() 
