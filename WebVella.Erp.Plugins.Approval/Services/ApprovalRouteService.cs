@@ -182,6 +182,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     // Equal comparison - numeric
                     return CompareNumeric(fieldValue, thresholdValue) == 0;
 
+                case "neq":
                 case "ne":
                     // Not equal comparison - numeric
                     return CompareNumeric(fieldValue, thresholdValue) != 0;
@@ -201,6 +202,17 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 case "lte":
                     // Less than or equal comparison - numeric
                     return CompareNumeric(fieldValue, thresholdValue) <= 0;
+
+                case "contains":
+                    // Contains comparison - string
+                    // For contains, we use the StringValue field which stores the text to search for
+                    var searchStr = rule.StringValue ?? string.Empty;
+                    if (string.IsNullOrEmpty(searchStr))
+                    {
+                        // No search string provided - rule matches if field has any value
+                        return !string.IsNullOrEmpty(fieldValueStr);
+                    }
+                    return fieldValueStr.IndexOf(searchStr, StringComparison.OrdinalIgnoreCase) >= 0;
 
                 default:
                     // Unknown operator - rule does not match
@@ -786,7 +798,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 TimeoutHours = record.Properties.ContainsKey("timeout_hours") && record["timeout_hours"] != null 
                     ? (int?)Convert.ToInt32(record["timeout_hours"]) 
                     : null,
-                IsFinal = record.Properties.ContainsKey("is_final") && record["is_final"] != null && (bool)record["is_final"]
+                IsFinal = record.Properties.ContainsKey("is_final") && record["is_final"] != null && (bool)record["is_final"],
+                ThresholdConfig = record.Properties.ContainsKey("threshold_config") && record["threshold_config"] != null
+                    ? record["threshold_config"].ToString()
+                    : null
             };
         }
 
@@ -814,9 +829,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 ThresholdValue = record.Properties.ContainsKey("threshold_value") && record["threshold_value"] != null 
                     ? Convert.ToDecimal(record["threshold_value"]) 
                     : 0m,
+                StringValue = record.Properties.ContainsKey("string_value") ? record["string_value"]?.ToString() : null,
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null 
                     ? Convert.ToInt32(record["priority"]) 
-                    : 0
+                    : 0,
+                NextStepId = record.Properties.ContainsKey("next_step_id") && record["next_step_id"] != null 
+                    ? (Guid?)record["next_step_id"] 
+                    : null
             };
         }
     }

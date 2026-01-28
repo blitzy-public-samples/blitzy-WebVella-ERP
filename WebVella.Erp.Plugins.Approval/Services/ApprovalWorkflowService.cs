@@ -389,7 +389,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     ? Convert.ToInt32(record["timeout_hours"])
                     : (int?)null,
                 IsFinal = record.Properties.ContainsKey("is_final") && record["is_final"] != null
-                    && (bool)record["is_final"]
+                    && (bool)record["is_final"],
+                ThresholdConfig = record.Properties.ContainsKey("threshold_config") && record["threshold_config"] != null
+                    ? record["threshold_config"].ToString()
+                    : null
             };
         }
 
@@ -425,9 +428,15 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 ThresholdValue = record.Properties.ContainsKey("threshold_value") && record["threshold_value"] != null
                     ? Convert.ToDecimal(record["threshold_value"])
                     : 0m,
+                StringValue = record.Properties.ContainsKey("string_value") && record["string_value"] != null
+                    ? (string)record["string_value"]
+                    : null,
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null
                     ? Convert.ToInt32(record["priority"])
-                    : 0
+                    : 0,
+                NextStepId = record.Properties.ContainsKey("next_step_id") && record["next_step_id"] != null
+                    ? (Guid?)record["next_step_id"]
+                    : null
             };
         }
 

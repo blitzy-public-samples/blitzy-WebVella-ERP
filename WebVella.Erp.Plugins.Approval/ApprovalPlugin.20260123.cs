@@ -66,6 +66,7 @@ namespace WebVella.Erp.Plugins.Approval
 		private static readonly Guid RULE_FIELD_NAME_FIELD_ID = new Guid("32c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e9");
 		private static readonly Guid RULE_OPERATOR_FIELD_ID = new Guid("42d4e5f6-a7b8-c9d0-e1f2-a3b4c5d6e7fa");
 		private static readonly Guid RULE_VALUE_FIELD_ID = new Guid("52e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8ab");
+		private static readonly Guid RULE_STRING_VALUE_FIELD_ID = new Guid("52e5f6a7-b8c9-d0e1-f2a3-b4c5d6e7f8ac");
 		private static readonly Guid RULE_PRIORITY_FIELD_ID = new Guid("62f6a7b8-c9d0-e1f2-a3b4-c5d6e7f8a9b2");
 		private static readonly Guid RULE_NEXT_STEP_ID_FIELD_ID = new Guid("72f7a8b9-c0d1-e2f3-a4b5-c6d7e8f9a0b3");
 
@@ -773,6 +774,34 @@ namespace WebVella.Erp.Plugins.Approval
 					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, numberField, false);
 					if (!response.Success)
 						throw new Exception("System error 10060. Entity: approval_rule Field: threshold_value Message:" + response.Message);
+				}
+			}
+			#endregion
+
+			#region << ***Create field*** Entity: approval_rule Field Name: string_value >>
+			{
+				InputTextField textField = new InputTextField();
+				textField.Id = RULE_STRING_VALUE_FIELD_ID;
+				textField.Name = "string_value";
+				textField.Label = "String Value";
+				textField.PlaceholderText = null;
+				textField.Description = "String value for text comparisons (contains, equals)";
+				textField.HelpText = null;
+				textField.Required = false;
+				textField.Unique = false;
+				textField.Searchable = true;
+				textField.Auditable = false;
+				textField.System = false;
+				textField.DefaultValue = null;
+				textField.MaxLength = null;
+				textField.EnableSecurity = false;
+				textField.Permissions = new FieldPermissions();
+				textField.Permissions.CanRead = new List<Guid>();
+				textField.Permissions.CanUpdate = new List<Guid>();
+				{
+					var response = entMan.CreateField(APPROVAL_RULE_ENTITY_ID, textField, false);
+					if (!response.Success)
+						throw new Exception("System error 10060. Entity: approval_rule Field: string_value Message:" + response.Message);
 				}
 			}
 			#endregion

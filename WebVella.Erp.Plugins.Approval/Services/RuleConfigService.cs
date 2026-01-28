@@ -174,6 +174,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             record["field_name"] = model.FieldName;
             record["operator"] = model.Operator;
             record["threshold_value"] = model.ThresholdValue;
+            record["string_value"] = model.StringValue;
             record["priority"] = model.Priority;
 
             // Execute the create operation
@@ -341,6 +342,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
             patchRecord["field_name"] = model.FieldName;
             patchRecord["operator"] = model.Operator;
             patchRecord["threshold_value"] = model.ThresholdValue;
+            patchRecord["string_value"] = model.StringValue;
             patchRecord["priority"] = model.Priority;
 
             // Execute the update operation
@@ -713,9 +715,17 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     ? Convert.ToDecimal(record["threshold_value"])
                     : 0m,
 
+                StringValue = record.Properties.ContainsKey("string_value") && record["string_value"] != null
+                    ? record["string_value"].ToString()
+                    : null,
+
                 Priority = record.Properties.ContainsKey("priority") && record["priority"] != null
                     ? Convert.ToInt32(record["priority"])
-                    : 0
+                    : 0,
+
+                NextStepId = record.Properties.ContainsKey("next_step_id") && record["next_step_id"] != null
+                    ? (Guid?)record["next_step_id"]
+                    : null
             };
         }
 

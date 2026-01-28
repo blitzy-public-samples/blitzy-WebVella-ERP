@@ -105,6 +105,13 @@ namespace WebVella.Erp.Plugins.Approval.Api
         public decimal ThresholdValue { get; set; }
 
         /// <summary>
+        /// String value for text-based comparisons (contains, equals).
+        /// Used when the operator requires string matching rather than numeric comparison.
+        /// </summary>
+        [JsonProperty(PropertyName = "string_value")]
+        public string StringValue { get; set; }
+
+        /// <summary>
         /// Priority order for rule evaluation.
         /// Higher priority rules are evaluated first. Default is 0.
         /// When multiple rules match, the highest priority rule determines the workflow.

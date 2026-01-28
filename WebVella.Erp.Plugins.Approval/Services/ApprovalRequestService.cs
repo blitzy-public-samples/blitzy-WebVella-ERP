@@ -1114,6 +1114,18 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     : DateTime.MinValue,
                 CompletedOn = record.Properties.ContainsKey("completed_on") && record["completed_on"] != null
                     ? (DateTime?)record["completed_on"]
+                    : null,
+                LastNotificationSent = record.Properties.ContainsKey("last_notification_sent") && record["last_notification_sent"] != null
+                    ? (DateTime?)record["last_notification_sent"]
+                    : null,
+                NotificationCount = record.Properties.ContainsKey("notification_count") && record["notification_count"] != null
+                    ? Convert.ToInt32(record["notification_count"])
+                    : 0,
+                IsArchived = record.Properties.ContainsKey("is_archived") && record["is_archived"] != null
+                    ? Convert.ToBoolean(record["is_archived"])
+                    : false,
+                ArchivedOn = record.Properties.ContainsKey("archived_on") && record["archived_on"] != null
+                    ? (DateTime?)record["archived_on"]
                     : null
             };
         }

@@ -657,6 +657,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
             model.ApproverId = record["approver_id"] as Guid?;
             model.TimeoutHours = record["timeout_hours"] != null ? Convert.ToInt32(record["timeout_hours"]) : (int?)null;
             model.IsFinal = record["is_final"] != null && (bool)record["is_final"];
+            model.ThresholdConfig = record.Properties.ContainsKey("threshold_config") && record["threshold_config"] != null
+                ? record["threshold_config"].ToString()
+                : null;
 
             return model;
         }
