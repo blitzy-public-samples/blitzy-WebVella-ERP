@@ -210,6 +210,7 @@ namespace WebVella.Erp.Database
 					JsonSerializerSettings settings = new JsonSerializerSettings
 					{
 						TypeNameHandling = TypeNameHandling.Auto,
+						MetadataPropertyHandling = MetadataPropertyHandling.ReadAhead,
 						NullValueHandling = NullValueHandling.Ignore,
 						MissingMemberHandling = MissingMemberHandling.Ignore,
 					};
