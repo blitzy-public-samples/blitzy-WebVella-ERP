@@ -1,10 +1,10 @@
 # Global Approval System Testing Report
 
 ## Test Environment
-- **Date:** January 27, 2026
+- **Date:** January 28, 2026
 - **Environment:** Development / Unit Test Validation
 - **Application Version:** WebVella ERP 3.x with Approval Plugin 1.0.0
-- **.NET SDK Version:** 9.0.203
+- **.NET SDK Version:** 9.0.310
 - **Build Status:** ✅ SUCCESS (0 errors, 0 warnings in new plugin code)
 - **Unit Test Status:** ✅ 437/437 PASSED
 
@@ -458,12 +458,45 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow" \
 
 ---
 
-## Bugs Found During Testing
+## Bugs Found and Fixed During Testing
 
-No bugs found during unit testing, code review, and runtime validation phases.
+### Issues Identified and Resolved (January 28, 2026)
 
-All 437 unit tests pass successfully.
-Application runs without errors.
+#### 1. Service Layer Field Mapping Gaps
+**Problem:** Multiple services had incomplete field mappings despite passing unit tests.
+
+**Files Fixed:**
+- `ApprovalRequestService.cs`: Added missing mappings for `last_notification_sent`, `notification_count`, `is_archived`, `archived_on`
+- `ApprovalRouteService.cs`: Added missing `NextStepId` and `threshold_config` mappings
+- `ApprovalWorkflowService.cs`: Added missing `NextStepId`, `threshold_config`, and `StringValue` mappings
+- `RuleConfigService.cs`: Added missing `NextStepId` and `StringValue` mappings
+- `StepConfigService.cs`: Added missing `threshold_config` mapping
+
+**Status:** ✅ FIXED
+
+#### 2. Rule Evaluation Logic Bugs
+**Problem:** The `EvaluateRule` method had two critical issues:
+- Used `case "ne":` but the enum/data uses `neq` 
+- `contains` operator was documented but not implemented
+
+**File Fixed:** `ApprovalRouteService.cs`
+- Added `case "ne":` alias to fall through to `neq` handling
+- Implemented proper `contains` operator using `StringValue` for text comparisons
+
+**Status:** ✅ FIXED
+
+#### 3. Schema Limitation for String-Based Rule Comparisons
+**Problem:** The `approval_rule` entity only had `threshold_value` (decimal) but no text field for string operators like "contains".
+
+**Files Fixed:**
+- `ApprovalPlugin.20260123.cs`: Added `string_value` field to `approval_rule` entity
+- `ApprovalRuleModel.cs`: Added `StringValue` property
+
+**Status:** ✅ FIXED
+
+#### Test Results After Fixes
+All 437 unit tests continue to pass after these fixes.
+Build successful with 0 errors.
 
 ---
 
