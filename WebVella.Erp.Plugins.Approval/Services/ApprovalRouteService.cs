@@ -166,58 +166,97 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             var fieldValue = record[rule.FieldName];
             var thresholdValue = rule.ThresholdValue;
+            var stringValue = rule.StringValue ?? string.Empty;
 
             // Handle null field values
             if (fieldValue == null)
             {
+                // For "neq" with empty string value, null field means NOT equal to empty string
+                if ((rule.Operator == "neq" || rule.Operator == "ne") && string.IsNullOrEmpty(stringValue))
+                {
+                    return false; // null is considered empty/equal to empty
+                }
                 // Null field value - only matches if threshold is zero (for eq)
                 return thresholdValue == 0m && rule.Operator == "eq";
             }
 
             var fieldValueStr = fieldValue.ToString() ?? string.Empty;
 
+            // Determine if we should use string comparison or numeric comparison
+            // Use string comparison if StringValue is populated OR if the field value is not numeric
+            bool useStringComparison = !string.IsNullOrEmpty(stringValue) || !IsNumeric(fieldValue);
+
             switch (rule.Operator?.ToLowerInvariant())
             {
                 case "eq":
-                    // Equal comparison - numeric
+                    if (useStringComparison)
+                    {
+                        // String equality comparison (case-insensitive)
+                        return string.Equals(fieldValueStr, stringValue, StringComparison.OrdinalIgnoreCase);
+                    }
+                    // Numeric equality comparison
                     return CompareNumeric(fieldValue, thresholdValue) == 0;
 
                 case "neq":
                 case "ne":
-                    // Not equal comparison - numeric
+                    if (useStringComparison)
+                    {
+                        // String not-equal comparison (case-insensitive)
+                        // If stringValue is empty, check if field has any non-empty value
+                        if (string.IsNullOrEmpty(stringValue))
+                        {
+                            return !string.IsNullOrEmpty(fieldValueStr);
+                        }
+                        return !string.Equals(fieldValueStr, stringValue, StringComparison.OrdinalIgnoreCase);
+                    }
+                    // Numeric not-equal comparison
                     return CompareNumeric(fieldValue, thresholdValue) != 0;
 
                 case "gt":
-                    // Greater than comparison - numeric
+                    // Greater than comparison - numeric only
                     return CompareNumeric(fieldValue, thresholdValue) > 0;
 
                 case "gte":
-                    // Greater than or equal comparison - numeric
+                    // Greater than or equal comparison - numeric only
                     return CompareNumeric(fieldValue, thresholdValue) >= 0;
 
                 case "lt":
-                    // Less than comparison - numeric
+                    // Less than comparison - numeric only
                     return CompareNumeric(fieldValue, thresholdValue) < 0;
 
                 case "lte":
-                    // Less than or equal comparison - numeric
+                    // Less than or equal comparison - numeric only
                     return CompareNumeric(fieldValue, thresholdValue) <= 0;
 
                 case "contains":
                     // Contains comparison - string
                     // For contains, we use the StringValue field which stores the text to search for
-                    var searchStr = rule.StringValue ?? string.Empty;
-                    if (string.IsNullOrEmpty(searchStr))
+                    if (string.IsNullOrEmpty(stringValue))
                     {
                         // No search string provided - rule matches if field has any value
                         return !string.IsNullOrEmpty(fieldValueStr);
                     }
-                    return fieldValueStr.IndexOf(searchStr, StringComparison.OrdinalIgnoreCase) >= 0;
+                    return fieldValueStr.IndexOf(stringValue, StringComparison.OrdinalIgnoreCase) >= 0;
 
                 default:
                     // Unknown operator - rule does not match
                     return false;
             }
+        }
+
+        /// <summary>
+        /// Checks if a value is numeric (can be converted to decimal).
+        /// </summary>
+        private bool IsNumeric(object value)
+        {
+            if (value == null) return false;
+            if (value is decimal || value is double || value is float || 
+                value is int || value is long || value is short ||
+                value is byte || value is uint || value is ulong)
+            {
+                return true;
+            }
+            return decimal.TryParse(value.ToString(), out _);
         }
 
         /// <summary>

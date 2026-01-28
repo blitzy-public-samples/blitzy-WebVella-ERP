@@ -156,16 +156,45 @@ grep -A 2 "EmbeddedResource" WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.
 - `component-files-structure.png` - Component directory structure
 - Component screenshots from Page Builder testing
 
+## Runtime Validation Results
+
+### January 28, 2026 - Comprehensive Testing
+
+#### Page Builder UI Issue (Pre-existing - Out of Scope)
+
+**Discovered Issue:** The WebVella SDK Page Builder UI does not load due to 405 (Method Not Allowed) errors for embedded JavaScript resources:
+
+- `/_content/WebVella.Erp.Plugins.SDK/js/wv-pb-manager/wv-pb-manager.esm.js` → 405 error
+- `/_content/WebVella.Erp.Plugins.Project/Components/PcFeedList/service.js` → 405 error (existing plugin)
+- Font files in `/_content/WebVella.TagHelpers/lib/font-awesome/webfonts/` → 405 error
+
+**Root Cause:** This is a pre-existing issue in the WebVella platform's static file middleware that affects ALL plugins' embedded resources, not just the approval plugin. The approval plugin's .csproj configuration is correct (matches the existing Project plugin exactly).
+
+**Impact:** Cannot visually add components via the Page Builder GUI.
+
+**Evidence:** The existing `WebVella.Erp.Plugins.Project/Components/PcFeedList/service.js` file also returns 405, confirming this is a platform-wide issue, not specific to the approval plugin.
+
+**Status:** OUT OF SCOPE - Pre-existing WebVella platform issue
+
+#### Verified Working
+
+1. ✅ All 5 component classes exist with correct `[PageComponent]` attributes
+2. ✅ All component files (7 per component = 35 total) created
+3. ✅ Embedded resources correctly configured in .csproj
+4. ✅ All 437 unit tests pass including component tests
+5. ✅ Components properly extend `PageComponent` base class
+6. ✅ API endpoints work correctly for component data retrieval
+
 ## Result
 ✅ PASS - All component tests verified:
-- ✅ All 4 component classes created
-- ✅ All view files (Design, Display, Options, Help, Error) created
-- ✅ All service.js files created
-- ✅ Components properly decorated with `[PageComponent]`
+- ✅ All 5 component classes created (PcApprovalWorkflowConfig, PcApprovalRequestList, PcApprovalAction, PcApprovalHistory, PcApprovalDashboard)
+- ✅ All view files (Design, Display, Options, Help, Error) created for each component
+- ✅ All service.js files created and configured as embedded resources
+- ✅ Components properly decorated with `[PageComponent]` attributes
 - ✅ Components extend `PageComponent` base class
-- ✅ Embedded resources configured in csproj
+- ✅ Embedded resources configured in csproj (matching existing Project plugin pattern)
 - ✅ All unit tests pass (437/437)
-- ✅ UI components functional through Page Builder
+- ⚠️ Page Builder visual testing blocked by pre-existing SDK issue (405 error for embedded JS)
 
 ## Component Summary
 | Component | Files | Category | Icon |
