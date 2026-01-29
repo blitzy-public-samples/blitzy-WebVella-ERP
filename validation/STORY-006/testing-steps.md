@@ -68,6 +68,83 @@ OR type_name LIKE '%Approval%';
 - ✅ `Execute_WithEmailSendFailure_ContinuesProcessing`
 - ✅ `Execute_WithNoPendingRequests_CompletesQuietly`
 
+#### 3.3 Testing Notification Feature - Step by Step
+
+**Prerequisites:**
+- WebVella Mail plugin installed and configured
+- SMTP settings configured in application settings
+- At least one user with valid email address
+
+**Step 1: Verify Mail Configuration**
+Check if mail plugin is enabled in Startup.cs or appsettings.json:
+```bash
+# Check for mail configuration
+grep -r "smtp\|email\|mail" WebVella.Erp.Site/appsettings*.json
+```
+
+**Step 2: Create Test Approval Request**
+1. Create a `purchase_order` or `expense_request` record via UI or API
+2. This triggers the `PurchaseOrderApproval` or `ExpenseRequestApproval` hook
+3. Verify an `approval_request` record is created with status = "pending"
+
+```sql
+-- Verify approval request created
+SELECT id, workflow_id, current_step_id, status, requested_on 
+FROM approval_request 
+WHERE status = 'pending'
+ORDER BY requested_on DESC 
+LIMIT 1;
+```
+
+**Step 3: Identify Approver Email**
+```sql
+-- Find approver for current step
+SELECT s.name as step_name, s.approver_type, s.approver_id, u.email as approver_email
+FROM approval_step s
+JOIN approval_request r ON r.current_step_id = s.id
+LEFT JOIN "user" u ON s.approver_id = u.id
+WHERE r.id = '<your_request_id>';
+```
+
+**Step 4: Trigger Notification Job**
+- **Option A:** Wait 5 minutes for scheduled job execution
+- **Option B:** Trigger job manually from WebVella admin panel under Jobs section
+- **Option C:** Create a temporary test that calls the job Execute method
+
+**Step 5: Verify Notification Sent**
+Check application logs:
+```bash
+tail -f logs/application.log | grep -i "notification\|email\|approval"
+```
+
+Expected log messages:
+- `"Processing approval notifications..."`
+- `"Sending notification to {email} for request {requestId}"`
+- `"Notification sent successfully"`
+
+**Step 6: Verify Email Received**
+- Check approver's email inbox
+- Email should contain:
+  - Subject: Approval request pending
+  - Body: Request details, workflow name, source entity info
+  - Link: URL to approve/reject the request
+
+**Step 7: Verify Database Updated**
+If the notification service tracks notifications:
+```sql
+-- Check if notification timestamp updated (if implemented)
+SELECT id, status, requested_on
+FROM approval_request 
+WHERE id = '<your_request_id>';
+```
+
+**Troubleshooting:**
+- If no emails received, check SMTP configuration
+- Verify Mail plugin is installed: `grep -r "WebVella.Erp.Plugins.Mail" *.csproj`
+- Check for errors in application logs
+- Test SMTP connectivity with a simple test email
+- For local testing, use Mailhog or similar SMTP test server
+
 ### 4. Test ProcessApprovalEscalationsJob
 
 #### 4.1 Job Purpose
@@ -136,7 +213,7 @@ tail -f logs/application.log | grep -i "approval.*job"
 - ✅ Jobs extend `ErpJob` base class
 - ✅ SetSchedulePlans() registers all jobs
 - ✅ Schedule intervals correct (5min, 30min, daily)
-- ✅ All job unit tests pass (437/437 total)
+- ✅ All tests pass (566/566 unit + integration)
 - ✅ Job logic implemented correctly
 
 ## Job Schedule Summary

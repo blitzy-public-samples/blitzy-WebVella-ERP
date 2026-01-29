@@ -4,6 +4,7 @@
 - .NET 9.0 SDK installed
 - PostgreSQL database available and configured
 - Application source code available
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -42,10 +43,11 @@ dotnet build WebVella.ERP3.sln --configuration Debug
 
 ### 5. Run Unit Tests
 ```bash
+export ASPNETCORE_ENVIRONMENT=Development
 dotnet test WebVella.Erp.Plugins.Approval.Tests/WebVella.Erp.Plugins.Approval.Tests.csproj \
-    --no-build --configuration Debug --verbosity normal
+    --configuration Release --verbosity normal
 ```
-**Expected Result:** All 437 tests pass
+**Expected Result:** All 566 tests pass (437 unit tests + 129 integration tests)
 
 ### 6. Start Application and Verify Plugin Loads
 ```bash
@@ -77,6 +79,6 @@ dotnet run
 - Plugin registered in solution
 - Site references plugin
 - Build succeeds (0 errors)
-- 437/437 unit tests pass
+- 566/566 tests pass (unit + integration)
 - Application starts successfully
 - Plugin initializes and runs migrations

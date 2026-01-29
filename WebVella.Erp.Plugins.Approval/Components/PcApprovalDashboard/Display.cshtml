@@ -125,7 +125,7 @@
         </wv-column>
     </wv-row>
 
-    @* Summary Statistics Row *@
+    @* Summary Statistics Row - Uses same class selectors as main cards for auto-refresh *@
     <wv-row>
         <wv-column>
             <div class="card">
@@ -134,25 +134,25 @@
                         <wv-column>
                             <div class="d-flex align-items-center justify-content-center">
                                 <i class="fas fa-circle go-orange mr-2"></i>
-                                <span><strong>@pendingCount</strong> Pending</span>
+                                <span><strong class="summary-pending-count">@pendingCount</strong> Pending</span>
                             </div>
                         </wv-column>
                         <wv-column>
                             <div class="d-flex align-items-center justify-content-center">
                                 <i class="fas fa-circle go-green mr-2"></i>
-                                <span><strong>@approvalRate.ToString("F1")%</strong> Approved</span>
+                                <span><strong class="summary-approval-rate">@approvalRate.ToString("F1")</strong>% Approved</span>
                             </div>
                         </wv-column>
                         <wv-column>
                             <div class="d-flex align-items-center justify-content-center">
-                                <i class="fas fa-circle @(overdueCount > 0 ? "go-red" : "go-gray") mr-2"></i>
-                                <span><strong>@overdueCount</strong> Overdue</span>
+                                <i class="fas fa-circle summary-overdue-icon @(overdueCount > 0 ? "go-red" : "go-gray") mr-2"></i>
+                                <span><strong class="summary-overdue-count">@overdueCount</strong> Overdue</span>
                             </div>
                         </wv-column>
                         <wv-column>
                             <div class="d-flex align-items-center justify-content-center">
                                 <i class="fas fa-circle go-light-blue mr-2"></i>
-                                <span><strong>@avgTime.ToString("F1")h</strong> Avg. Time</span>
+                                <span><strong class="summary-avg-time">@avgTime.ToString("F1")</strong>h Avg. Time</span>
                             </div>
                         </wv-column>
                     </wv-row>
@@ -239,20 +239,32 @@
             var container = document.getElementById(containerId);
             if (!container) return;
             
-            // Update pending count
+            // Update pending count (main card)
             var pendingEl = container.querySelector('.pending-count');
             if (pendingEl) {
                 pendingEl.textContent = metrics.pendingCount || 0;
                 pendingEl.className = 'pending-count' + (metrics.pendingCount > 10 ? ' go-orange' : '');
             }
             
-            // Update average time
+            // Update pending count (summary row)
+            var summaryPendingEl = container.querySelector('.summary-pending-count');
+            if (summaryPendingEl) {
+                summaryPendingEl.textContent = metrics.pendingCount || 0;
+            }
+            
+            // Update average time (main card)
             var avgTimeEl = container.querySelector('.avg-time');
             if (avgTimeEl) {
                 avgTimeEl.textContent = (metrics.averageApprovalTimeHours || 0).toFixed(1);
             }
             
-            // Update approval rate
+            // Update average time (summary row)
+            var summaryAvgTimeEl = container.querySelector('.summary-avg-time');
+            if (summaryAvgTimeEl) {
+                summaryAvgTimeEl.textContent = (metrics.averageApprovalTimeHours || 0).toFixed(1);
+            }
+            
+            // Update approval rate (main card)
             var approvalRateEl = container.querySelector('.approval-rate');
             if (approvalRateEl) {
                 var rate = metrics.approvalRate || 0;
@@ -263,7 +275,13 @@
                 }
             }
             
-            // Update overdue count
+            // Update approval rate (summary row)
+            var summaryApprovalRateEl = container.querySelector('.summary-approval-rate');
+            if (summaryApprovalRateEl) {
+                summaryApprovalRateEl.textContent = (metrics.approvalRate || 0).toFixed(1);
+            }
+            
+            // Update overdue count (main card)
             var overdueEl = container.querySelector('.overdue-count');
             if (overdueEl) {
                 overdueEl.textContent = metrics.overdueCount || 0;
@@ -271,6 +289,19 @@
                 if (overdueParent) {
                     overdueParent.className = 'mb-1 ' + (metrics.overdueCount > 0 ? 'go-red' : 'go-gray');
                 }
+            }
+            
+            // Update overdue count (summary row)
+            var summaryOverdueEl = container.querySelector('.summary-overdue-count');
+            if (summaryOverdueEl) {
+                summaryOverdueEl.textContent = metrics.overdueCount || 0;
+            }
+            
+            // Update overdue icon color (summary row)
+            var summaryOverdueIcon = container.querySelector('.summary-overdue-icon');
+            if (summaryOverdueIcon) {
+                summaryOverdueIcon.className = 'fas fa-circle summary-overdue-icon mr-2 ' + 
+                    (metrics.overdueCount > 0 ? 'go-red' : 'go-gray');
             }
             
             // Update recent activity

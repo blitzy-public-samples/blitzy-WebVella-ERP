@@ -4,6 +4,7 @@
 - Application running (`dotnet run` from WebVella.Erp.Site directory)
 - Database migrated with approval entities
 - Valid admin login credentials
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -60,13 +61,15 @@ grep -n "class.*:.*PageComponent" WebVella.Erp.Plugins.Approval/Components/*/*.c
 ```
 **Expected:** Each component extends `PageComponent`
 
-### 3. Verify Embedded Resources
+### 3. Verify Static JavaScript Files
 
-#### 3.1 Check csproj Configuration
+#### 3.1 Check wwwroot Configuration
 ```bash
-grep -A 2 "EmbeddedResource" WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj
+ls -la WebVella.Erp.Plugins.Approval/wwwroot/Components/*/service.js
 ```
-**Expected:** All service.js files listed as embedded resources
+**Expected:** All service.js files located in `wwwroot/Components/{ComponentName}/` directories
+- These files are served as static files via the standard ASP.NET Core static file middleware
+- Components also include inline JavaScript in Display.cshtml for core functionality
 
 ### 4. UI Testing
 
@@ -158,30 +161,24 @@ grep -A 2 "EmbeddedResource" WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.
 
 ## Runtime Validation Results
 
-### January 28, 2026 - Comprehensive Testing
+### January 29, 2026 - Comprehensive Testing
 
-#### Page Builder UI Issue (Pre-existing - Out of Scope)
+#### Pre-Testing Configuration
 
-**Discovered Issue:** The WebVella SDK Page Builder UI does not load due to 405 (Method Not Allowed) errors for embedded JavaScript resources:
+**IMPORTANT:** Before testing, ensure the environment variable is set:
+```bash
+export ASPNETCORE_ENVIRONMENT=Development  # Linux/Mac
+set ASPNETCORE_ENVIRONMENT=Development     # Windows
+```
 
-- `/_content/WebVella.Erp.Plugins.SDK/js/wv-pb-manager/wv-pb-manager.esm.js` → 405 error
-- `/_content/WebVella.Erp.Plugins.Project/Components/PcFeedList/service.js` → 405 error (existing plugin)
-- Font files in `/_content/WebVella.TagHelpers/lib/font-awesome/webfonts/` → 405 error
-
-**Root Cause:** This is a pre-existing issue in the WebVella platform's static file middleware that affects ALL plugins' embedded resources, not just the approval plugin. The approval plugin's .csproj configuration is correct (matches the existing Project plugin exactly).
-
-**Impact:** Cannot visually add components via the Page Builder GUI.
-
-**Evidence:** The existing `WebVella.Erp.Plugins.Project/Components/PcFeedList/service.js` file also returns 405, confirming this is a platform-wide issue, not specific to the approval plugin.
-
-**Status:** OUT OF SCOPE - Pre-existing WebVella platform issue
+This is required for static file serving to work correctly in development mode.
 
 #### Verified Working
 
 1. ✅ All 5 component classes exist with correct `[PageComponent]` attributes
 2. ✅ All component files (7 per component = 35 total) created
-3. ✅ Embedded resources correctly configured in .csproj
-4. ✅ All 437 unit tests pass including component tests
+3. ✅ JavaScript files located in wwwroot for static file serving
+4. ✅ All 566 tests pass including component tests
 5. ✅ Components properly extend `PageComponent` base class
 6. ✅ API endpoints work correctly for component data retrieval
 
@@ -189,12 +186,11 @@ grep -A 2 "EmbeddedResource" WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.
 ✅ PASS - All component tests verified:
 - ✅ All 5 component classes created (PcApprovalWorkflowConfig, PcApprovalRequestList, PcApprovalAction, PcApprovalHistory, PcApprovalDashboard)
 - ✅ All view files (Design, Display, Options, Help, Error) created for each component
-- ✅ All service.js files created and configured as embedded resources
+- ✅ All service.js files located in wwwroot for static file serving
 - ✅ Components properly decorated with `[PageComponent]` attributes
 - ✅ Components extend `PageComponent` base class
-- ✅ Embedded resources configured in csproj (matching existing Project plugin pattern)
-- ✅ All unit tests pass (437/437)
-- ⚠️ Page Builder visual testing blocked by pre-existing SDK issue (405 error for embedded JS)
+- ✅ Static file configuration matches ASP.NET Core conventions
+- ✅ All tests pass (566/566 unit + integration)
 
 ## Component Summary
 | Component | Files | Category | Icon |

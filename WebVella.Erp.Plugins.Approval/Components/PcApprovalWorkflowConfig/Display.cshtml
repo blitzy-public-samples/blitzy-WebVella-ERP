@@ -200,6 +200,212 @@
             </div>
         </div>
     </div>
+    
+    @* ================== STEPS CONFIGURATION MODAL ================== *@
+    <div class="modal fade" id="@(componentId)-steps-modal" tabindex="-1" role="dialog" 
+         aria-labelledby="@(componentId)-steps-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="@(componentId)-steps-modal-label">
+                        <i class="fas fa-list-ol mr-2"></i>Configure Steps for: <span id="@(componentId)-steps-workflow-name"></span>
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="@(componentId)-steps-workflow-id" value="">
+                    
+                    @* Add Step Button *@
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-success" 
+                                onclick="window.WvApprovalWorkflowConfig.openAddStepForm('@componentId')">
+                            <i class="fas fa-plus mr-1"></i>Add Step
+                        </button>
+                    </div>
+                    
+                    @* Steps List *@
+                    <div id="@(componentId)-steps-list" class="list-group">
+                        <div class="text-muted text-center py-3">Loading steps...</div>
+                    </div>
+                    
+                    @* Add/Edit Step Form (hidden by default) *@
+                    <div id="@(componentId)-step-form-container" class="mt-3" style="display: none;">
+                        <hr>
+                        <h6 id="@(componentId)-step-form-title">Add New Step</h6>
+                        <form id="@(componentId)-step-form" onsubmit="return window.WvApprovalWorkflowConfig.saveStep('@componentId', event)">
+                            <input type="hidden" id="@(componentId)-step-id" value="">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-step-name">Step Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-step-name" 
+                                               placeholder="e.g., Manager Approval" maxlength="256" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-step-approver-type">Approver Type <span class="text-danger">*</span></label>
+                                        <select class="form-control form-control-sm" id="@(componentId)-step-approver-type" required>
+                                            <option value="role">Role</option>
+                                            <option value="user">Specific User</option>
+                                            <option value="department_head">Department Head</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-step-timeout">Timeout (Hours)</label>
+                                        <input type="number" class="form-control form-control-sm" id="@(componentId)-step-timeout" 
+                                               placeholder="Optional" min="1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-step-approver-id">Approver ID (Role/User GUID)</label>
+                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-step-approver-id" 
+                                               placeholder="Leave empty for department_head type">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-step-order">Step Order <span class="text-danger">*</span></label>
+                                        <input type="number" class="form-control form-control-sm" id="@(componentId)-step-order" 
+                                               value="1" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group pt-4">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="@(componentId)-step-is-final">
+                                            <label class="custom-control-label" for="@(componentId)-step-is-final">Final Step</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save mr-1"></i>Save Step
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="window.WvApprovalWorkflowConfig.cancelStepForm('@componentId')">
+                                    <i class="fas fa-times mr-1"></i>Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @* ================== RULES CONFIGURATION MODAL ================== *@
+    <div class="modal fade" id="@(componentId)-rules-modal" tabindex="-1" role="dialog" 
+         aria-labelledby="@(componentId)-rules-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title" id="@(componentId)-rules-modal-label">
+                        <i class="fas fa-filter mr-2"></i>Configure Rules for: <span id="@(componentId)-rules-workflow-name"></span>
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="@(componentId)-rules-workflow-id" value="">
+                    
+                    @* Add Rule Button *@
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-sm btn-success" 
+                                onclick="window.WvApprovalWorkflowConfig.openAddRuleForm('@componentId')">
+                            <i class="fas fa-plus mr-1"></i>Add Rule
+                        </button>
+                    </div>
+                    
+                    @* Rules List *@
+                    <div id="@(componentId)-rules-list" class="list-group">
+                        <div class="text-muted text-center py-3">Loading rules...</div>
+                    </div>
+                    
+                    @* Add/Edit Rule Form (hidden by default) *@
+                    <div id="@(componentId)-rule-form-container" class="mt-3" style="display: none;">
+                        <hr>
+                        <h6 id="@(componentId)-rule-form-title">Add New Rule</h6>
+                        <form id="@(componentId)-rule-form" onsubmit="return window.WvApprovalWorkflowConfig.saveRule('@componentId', event)">
+                            <input type="hidden" id="@(componentId)-rule-id" value="">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-rule-name">Rule Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-rule-name" 
+                                               placeholder="e.g., High Value Purchase" maxlength="256" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-rule-field">Field Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-rule-field" 
+                                               placeholder="e.g., amount, total" maxlength="128" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-rule-operator">Operator <span class="text-danger">*</span></label>
+                                        <select class="form-control form-control-sm" id="@(componentId)-rule-operator" required>
+                                            <option value="eq">Equals (=)</option>
+                                            <option value="neq">Not Equals (!=)</option>
+                                            <option value="gt">Greater Than (&gt;)</option>
+                                            <option value="gte">Greater or Equal (&gt;=)</option>
+                                            <option value="lt">Less Than (&lt;)</option>
+                                            <option value="lte">Less or Equal (&lt;=)</option>
+                                            <option value="contains">Contains</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-rule-priority">Priority</label>
+                                        <input type="number" class="form-control form-control-sm" id="@(componentId)-rule-priority" 
+                                               value="0" min="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label for="@(componentId)-rule-value">Value <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-rule-value" 
+                                               placeholder="e.g., 1000" maxlength="1024" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save mr-1"></i>Save Rule
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="window.WvApprovalWorkflowConfig.cancelRuleForm('@componentId')">
+                                    <i class="fas fa-times mr-1"></i>Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @* ================== COMPONENT JAVASCRIPT ================== *@
@@ -311,12 +517,12 @@
                         '</button>' +
                         '<button type="button" class="btn btn-outline-info" ' +
                                 'title="Configure Steps" ' +
-                                'onclick="window.WvApprovalWorkflowConfig.configureSteps(\'' + workflow.id + '\')">' +
+                                'onclick="window.WvApprovalWorkflowConfig.configureSteps(\'' + componentId + '\', \'' + workflow.id + '\', \'' + escapeHtml(workflow.name).replace(/'/g, "\\'") + '\')">' +
                             '<i class="fas fa-list-ol"></i>' +
                         '</button>' +
-                        '<button type="button" class="btn btn-outline-secondary" ' +
+                        '<button type="button" class="btn btn-outline-primary" ' +
                                 'title="Configure Rules" ' +
-                                'onclick="window.WvApprovalWorkflowConfig.configureRules(\'' + workflow.id + '\')">' +
+                                'onclick="window.WvApprovalWorkflowConfig.configureRules(\'' + componentId + '\', \'' + workflow.id + '\', \'' + escapeHtml(workflow.name).replace(/'/g, "\\'") + '\')">' +
                             '<i class="fas fa-filter"></i>' +
                         '</button>' +
                         '<button type="button" class="btn btn-outline-danger" ' +
@@ -542,23 +748,412 @@
     };
     
     /**
-     * Navigate to step configuration page
+     * Open the steps configuration modal
+     * @@param {string} componentId - The unique component instance ID
      * @@param {string} workflowId - The workflow ID
+     * @@param {string} workflowName - The workflow name
      */
-    window.WvApprovalWorkflowConfig.configureSteps = function(workflowId) {
-        // Navigate to step configuration page or open step config modal
-        toastr.info('Opening step configuration for workflow: ' + workflowId);
-        // Future: window.location.href = '/approval/workflow/' + workflowId + '/steps';
+    window.WvApprovalWorkflowConfig.configureSteps = function(componentId, workflowId, workflowName) {
+        // Store workflow ID and name in modal
+        document.getElementById(componentId + '-steps-workflow-id').value = workflowId;
+        document.getElementById(componentId + '-steps-workflow-name').textContent = workflowName;
+        
+        // Hide step form and reset
+        document.getElementById(componentId + '-step-form-container').style.display = 'none';
+        document.getElementById(componentId + '-step-form').reset();
+        
+        // Load steps
+        loadSteps(componentId, workflowId);
+        
+        // Show modal
+        $('#' + componentId + '-steps-modal').modal('show');
     };
     
     /**
-     * Navigate to rule configuration page
-     * @@param {string} workflowId - The workflow ID
+     * Load steps for a workflow
      */
-    window.WvApprovalWorkflowConfig.configureRules = function(workflowId) {
-        // Navigate to rule configuration page or open rule config modal
-        toastr.info('Opening rule configuration for workflow: ' + workflowId);
-        // Future: window.location.href = '/approval/workflow/' + workflowId + '/rules';
+    function loadSteps(componentId, workflowId) {
+        var listContainer = document.getElementById(componentId + '-steps-list');
+        listContainer.innerHTML = '<div class="text-muted text-center py-3">Loading steps...</div>';
+        
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId + '/steps',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.object) {
+                    renderStepsList(componentId, response.object);
+                } else {
+                    listContainer.innerHTML = '<div class="alert alert-warning mb-0">' + (response.message || 'Failed to load steps') + '</div>';
+                }
+            },
+            error: function() {
+                listContainer.innerHTML = '<div class="alert alert-danger mb-0">Error loading steps</div>';
+            }
+        });
+    }
+    
+    /**
+     * Render steps list
+     */
+    function renderStepsList(componentId, steps) {
+        var listContainer = document.getElementById(componentId + '-steps-list');
+        
+        if (!steps || steps.length === 0) {
+            listContainer.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle mr-2"></i>No steps configured. Click "Add Step" to create the first step.</div>';
+            return;
+        }
+        
+        var html = '';
+        steps.sort(function(a, b) { return a.step_order - b.step_order; });
+        
+        steps.forEach(function(step) {
+            html += '<div class="list-group-item d-flex justify-content-between align-items-center">' +
+                '<div>' +
+                    '<strong>#' + step.step_order + ' - ' + escapeHtml(step.name) + '</strong>' +
+                    '<br><small class="text-muted">' +
+                        'Type: ' + escapeHtml(step.approver_type) + 
+                        (step.timeout_hours ? ' | Timeout: ' + step.timeout_hours + 'h' : '') +
+                        (step.is_final ? ' | <span class="badge badge-primary">Final Step</span>' : '') +
+                    '</small>' +
+                '</div>' +
+                '<div class="btn-group btn-group-sm">' +
+                    '<button type="button" class="btn btn-outline-primary" title="Edit" ' +
+                        'onclick="window.WvApprovalWorkflowConfig.editStep(\'' + componentId + '\', ' + JSON.stringify(step).replace(/'/g, "\\'") + ')">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-outline-danger" title="Delete" ' +
+                        'onclick="window.WvApprovalWorkflowConfig.deleteStep(\'' + componentId + '\', \'' + step.id + '\')">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        });
+        
+        listContainer.innerHTML = html;
+    }
+    
+    /**
+     * Open the add step form
+     */
+    window.WvApprovalWorkflowConfig.openAddStepForm = function(componentId) {
+        document.getElementById(componentId + '-step-form').reset();
+        document.getElementById(componentId + '-step-id').value = '';
+        document.getElementById(componentId + '-step-form-title').textContent = 'Add New Step';
+        document.getElementById(componentId + '-step-order').value = '1';
+        document.getElementById(componentId + '-step-form-container').style.display = 'block';
+    };
+    
+    /**
+     * Edit an existing step
+     */
+    window.WvApprovalWorkflowConfig.editStep = function(componentId, step) {
+        document.getElementById(componentId + '-step-id').value = step.id;
+        document.getElementById(componentId + '-step-name').value = step.name || '';
+        document.getElementById(componentId + '-step-approver-type').value = step.approver_type || 'role';
+        document.getElementById(componentId + '-step-approver-id').value = step.approver_id || '';
+        document.getElementById(componentId + '-step-timeout').value = step.timeout_hours || '';
+        document.getElementById(componentId + '-step-order').value = step.step_order || 1;
+        document.getElementById(componentId + '-step-is-final').checked = step.is_final;
+        document.getElementById(componentId + '-step-form-title').textContent = 'Edit Step';
+        document.getElementById(componentId + '-step-form-container').style.display = 'block';
+    };
+    
+    /**
+     * Cancel step form
+     */
+    window.WvApprovalWorkflowConfig.cancelStepForm = function(componentId) {
+        document.getElementById(componentId + '-step-form-container').style.display = 'none';
+        document.getElementById(componentId + '-step-form').reset();
+    };
+    
+    /**
+     * Save step (create or update)
+     */
+    window.WvApprovalWorkflowConfig.saveStep = function(componentId, event) {
+        event.preventDefault();
+        
+        var workflowId = document.getElementById(componentId + '-steps-workflow-id').value;
+        var stepId = document.getElementById(componentId + '-step-id').value;
+        var approverId = document.getElementById(componentId + '-step-approver-id').value;
+        var timeout = document.getElementById(componentId + '-step-timeout').value;
+        
+        var stepData = {
+            name: document.getElementById(componentId + '-step-name').value,
+            approver_type: document.getElementById(componentId + '-step-approver-type').value,
+            approver_id: approverId ? approverId : null,
+            timeout_hours: timeout ? parseInt(timeout) : null,
+            step_order: parseInt(document.getElementById(componentId + '-step-order').value),
+            is_final: document.getElementById(componentId + '-step-is-final').checked
+        };
+        
+        var url = API_BASE_URL + '/' + workflowId + '/steps';
+        var method = 'POST';
+        
+        if (stepId) {
+            url += '/' + stepId;
+            method = 'PUT';
+        }
+        
+        $.ajax({
+            url: url,
+            type: method,
+            contentType: 'application/json',
+            data: JSON.stringify(stepData),
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(stepId ? 'Step updated successfully' : 'Step created successfully');
+                    window.WvApprovalWorkflowConfig.cancelStepForm(componentId);
+                    loadSteps(componentId, workflowId);
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'Error saving step');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'Error saving step';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+        
+        return false;
+    };
+    
+    /**
+     * Delete a step
+     */
+    window.WvApprovalWorkflowConfig.deleteStep = function(componentId, stepId) {
+        if (!confirm('Are you sure you want to delete this step?')) return;
+        
+        var workflowId = document.getElementById(componentId + '-steps-workflow-id').value;
+        
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId + '/steps/' + stepId,
+            type: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('Step deleted successfully');
+                    loadSteps(componentId, workflowId);
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'Error deleting step');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'Error deleting step';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+    };
+    
+    /**
+     * Open the rules configuration modal
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} workflowId - The workflow ID
+     * @@param {string} workflowName - The workflow name
+     */
+    window.WvApprovalWorkflowConfig.configureRules = function(componentId, workflowId, workflowName) {
+        // Store workflow ID and name in modal
+        document.getElementById(componentId + '-rules-workflow-id').value = workflowId;
+        document.getElementById(componentId + '-rules-workflow-name').textContent = workflowName;
+        
+        // Hide rule form and reset
+        document.getElementById(componentId + '-rule-form-container').style.display = 'none';
+        document.getElementById(componentId + '-rule-form').reset();
+        
+        // Load rules
+        loadRules(componentId, workflowId);
+        
+        // Show modal
+        $('#' + componentId + '-rules-modal').modal('show');
+    };
+    
+    /**
+     * Load rules for a workflow
+     */
+    function loadRules(componentId, workflowId) {
+        var listContainer = document.getElementById(componentId + '-rules-list');
+        listContainer.innerHTML = '<div class="text-muted text-center py-3">Loading rules...</div>';
+        
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId + '/rules',
+            type: 'GET',
+            success: function(response) {
+                if (response.success && response.object) {
+                    renderRulesList(componentId, response.object);
+                } else {
+                    listContainer.innerHTML = '<div class="alert alert-warning mb-0">' + (response.message || 'Failed to load rules') + '</div>';
+                }
+            },
+            error: function() {
+                listContainer.innerHTML = '<div class="alert alert-danger mb-0">Error loading rules</div>';
+            }
+        });
+    }
+    
+    /**
+     * Render rules list
+     */
+    function renderRulesList(componentId, rules) {
+        var listContainer = document.getElementById(componentId + '-rules-list');
+        
+        if (!rules || rules.length === 0) {
+            listContainer.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-info-circle mr-2"></i>No rules configured. Click "Add Rule" to create the first rule.</div>';
+            return;
+        }
+        
+        var operatorLabels = {
+            'eq': '=', 'neq': '!=', 'gt': '>', 'gte': '>=', 'lt': '<', 'lte': '<=', 'contains': 'contains'
+        };
+        
+        var html = '';
+        rules.sort(function(a, b) { return (b.priority || 0) - (a.priority || 0); });
+        
+        rules.forEach(function(rule) {
+            html += '<div class="list-group-item d-flex justify-content-between align-items-center">' +
+                '<div>' +
+                    '<strong>' + escapeHtml(rule.name) + '</strong>' +
+                    '<br><small class="text-muted">' +
+                        '<code>' + escapeHtml(rule.field_name) + '</code> ' + 
+                        (operatorLabels[rule.operator] || rule.operator) + 
+                        ' <code>' + escapeHtml(rule.value) + '</code>' +
+                        ' | Priority: ' + (rule.priority || 0) +
+                    '</small>' +
+                '</div>' +
+                '<div class="btn-group btn-group-sm">' +
+                    '<button type="button" class="btn btn-outline-primary" title="Edit" ' +
+                        'onclick="window.WvApprovalWorkflowConfig.editRule(\'' + componentId + '\', ' + JSON.stringify(rule).replace(/'/g, "\\'") + ')">' +
+                        '<i class="fas fa-edit"></i>' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-outline-danger" title="Delete" ' +
+                        'onclick="window.WvApprovalWorkflowConfig.deleteRule(\'' + componentId + '\', \'' + rule.id + '\')">' +
+                        '<i class="fas fa-trash"></i>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
+        });
+        
+        listContainer.innerHTML = html;
+    }
+    
+    /**
+     * Open the add rule form
+     */
+    window.WvApprovalWorkflowConfig.openAddRuleForm = function(componentId) {
+        document.getElementById(componentId + '-rule-form').reset();
+        document.getElementById(componentId + '-rule-id').value = '';
+        document.getElementById(componentId + '-rule-form-title').textContent = 'Add New Rule';
+        document.getElementById(componentId + '-rule-priority').value = '0';
+        document.getElementById(componentId + '-rule-form-container').style.display = 'block';
+    };
+    
+    /**
+     * Edit an existing rule
+     */
+    window.WvApprovalWorkflowConfig.editRule = function(componentId, rule) {
+        document.getElementById(componentId + '-rule-id').value = rule.id;
+        document.getElementById(componentId + '-rule-name').value = rule.name || '';
+        document.getElementById(componentId + '-rule-field').value = rule.field_name || '';
+        document.getElementById(componentId + '-rule-operator').value = rule.operator || 'eq';
+        document.getElementById(componentId + '-rule-value').value = rule.value || '';
+        document.getElementById(componentId + '-rule-priority').value = rule.priority || 0;
+        document.getElementById(componentId + '-rule-form-title').textContent = 'Edit Rule';
+        document.getElementById(componentId + '-rule-form-container').style.display = 'block';
+    };
+    
+    /**
+     * Cancel rule form
+     */
+    window.WvApprovalWorkflowConfig.cancelRuleForm = function(componentId) {
+        document.getElementById(componentId + '-rule-form-container').style.display = 'none';
+        document.getElementById(componentId + '-rule-form').reset();
+    };
+    
+    /**
+     * Save rule (create or update)
+     */
+    window.WvApprovalWorkflowConfig.saveRule = function(componentId, event) {
+        event.preventDefault();
+        
+        var workflowId = document.getElementById(componentId + '-rules-workflow-id').value;
+        var ruleId = document.getElementById(componentId + '-rule-id').value;
+        
+        var ruleData = {
+            name: document.getElementById(componentId + '-rule-name').value,
+            field_name: document.getElementById(componentId + '-rule-field').value,
+            operator: document.getElementById(componentId + '-rule-operator').value,
+            value: document.getElementById(componentId + '-rule-value').value,
+            priority: parseInt(document.getElementById(componentId + '-rule-priority').value) || 0
+        };
+        
+        var url = API_BASE_URL + '/' + workflowId + '/rules';
+        var method = 'POST';
+        
+        if (ruleId) {
+            url += '/' + ruleId;
+            method = 'PUT';
+        }
+        
+        $.ajax({
+            url: url,
+            type: method,
+            contentType: 'application/json',
+            data: JSON.stringify(ruleData),
+            success: function(response) {
+                if (response.success) {
+                    toastr.success(ruleId ? 'Rule updated successfully' : 'Rule created successfully');
+                    window.WvApprovalWorkflowConfig.cancelRuleForm(componentId);
+                    loadRules(componentId, workflowId);
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'Error saving rule');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'Error saving rule';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+        
+        return false;
+    };
+    
+    /**
+     * Delete a rule
+     */
+    window.WvApprovalWorkflowConfig.deleteRule = function(componentId, ruleId) {
+        if (!confirm('Are you sure you want to delete this rule?')) return;
+        
+        var workflowId = document.getElementById(componentId + '-rules-workflow-id').value;
+        
+        $.ajax({
+            url: API_BASE_URL + '/' + workflowId + '/rules/' + ruleId,
+            type: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    toastr.success('Rule deleted successfully');
+                    loadRules(componentId, workflowId);
+                    reloadWorkflows(componentId);
+                } else {
+                    toastr.error(response.message || 'Error deleting rule');
+                }
+            },
+            error: function(xhr) {
+                var errorMsg = 'Error deleting rule';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
     };
     
     /**

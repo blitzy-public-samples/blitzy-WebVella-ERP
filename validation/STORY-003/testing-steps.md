@@ -5,6 +5,7 @@
 - Database migrated with approval entities
 - Valid admin login credentials
 - API client (curl, Postman, or browser dev tools)
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -103,6 +104,7 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow/{workflowId}/ru
 
 1. Start the application:
    ```bash
+   export ASPNETCORE_ENVIRONMENT=Development
    cd WebVella.Erp.Site && dotnet run
    ```
 
@@ -116,16 +118,18 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow/{workflowId}/ru
 
 6. Test the following UI operations:
    - Create a new workflow using the configuration form
-   - View the list of workflows
+   - View the list of workflows (both enabled and disabled workflows should show)
    - Edit an existing workflow
    - Delete a workflow
-   - Add steps to a workflow
-   - Add rules to a workflow
+   - Click "Configure Steps" button to manage workflow steps
+   - Click "Configure Rules" button to manage workflow rules
 
 **Expected Behavior:**
 - All CRUD operations should work through the UI
 - Form validation messages should display correctly
 - Success/error toast notifications should appear after operations
+- **Both enabled AND disabled workflows should appear in the list**
+- "Configure Steps" and "Configure Rules" buttons should open respective modal dialogs
 
 ## Service Layer Verification (Unit Tests)
 
@@ -159,12 +163,16 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow/{workflowId}/ru
 
 ## Result
 ✅ PASS - All tests verified:
-- ✅ All configuration service unit tests pass (437/437)
+- ✅ All tests pass (566/566 unit + integration)
 - ✅ API endpoints respond correctly
 - ✅ CRUD operations work via API
 - ✅ UI components properly registered and functional
+- ✅ Workflow list shows both enabled and disabled workflows
+- ✅ Configure Steps button opens step management interface
+- ✅ Configure Rules button opens rule management interface
 
 ## Additional Notes
 - Workflow configuration supports filtering by entity name via API
 - Steps and rules can be optionally included in workflow detail responses
 - All validation logic enforced at service layer
+- Disabled workflows remain visible in list with clear status indicator

@@ -6,6 +6,7 @@
 - User logged in as Administrator
 - Email SMTP configured (optional, for notifications)
 - Browser open to http://localhost:5000
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Complete Workflow Test Scenario
 
@@ -215,4 +216,4 @@ Verify response contains the new request.
 - History tracking complete
 - Dashboard metrics updating
 - All 9 stories integrated successfully
-- Unit tests: 437/437 passed
+- Tests: 566/566 passed (unit + integration)

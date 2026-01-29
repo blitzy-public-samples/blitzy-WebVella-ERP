@@ -8,6 +8,7 @@ using System.Security.Claims;
 using WebVella.Erp.Api;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
+using WebVella.Erp.Exceptions;
 using WebVella.Erp.Plugins.Approval.Api;
 using WebVella.Erp.Plugins.Approval.Services;
 using WebVella.Erp.Web.Services;
@@ -756,6 +757,487 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
             {
                 response.Success = false;
                 response.Message = $"Error retrieving dashboard metrics: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        #endregion
+
+        #region << Step Configuration Endpoints >>
+
+        /// <summary>
+        /// Retrieves all approval steps for a specific workflow.
+        /// Returns steps ordered by step_order ascending.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <returns>
+        /// A JSON response containing a list of ApprovalStepModel objects for the specified workflow.
+        /// </returns>
+        /// <response code="200">Steps retrieved successfully.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/steps")]
+        [HttpGet]
+        public ActionResult GetWorkflowSteps(Guid id)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                var stepService = new StepConfigService();
+                var steps = stepService.GetByWorkflowId(id);
+
+                response.Success = true;
+                response.Message = $"Retrieved {steps.Count} steps for workflow.";
+                response.Object = steps;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error retrieving steps: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Creates a new approval step for a workflow.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="model">The step model containing step details.</param>
+        /// <returns>
+        /// A JSON response containing the created ApprovalStepModel.
+        /// </returns>
+        /// <response code="200">Step created successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/steps")]
+        [HttpPost]
+        public ActionResult CreateStep(Guid id, [FromBody] ApprovalStepModel model)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                // Set the workflow ID from the route
+                model.WorkflowId = id;
+
+                var stepService = new StepConfigService();
+                var createdStep = stepService.Create(model);
+
+                response.Success = true;
+                response.Message = "Step created successfully.";
+                response.Object = createdStep;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error creating step: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Updates an existing approval step.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="stepId">The step ID to update (GUID format).</param>
+        /// <param name="model">The updated step model.</param>
+        /// <returns>
+        /// A JSON response containing the updated ApprovalStepModel.
+        /// </returns>
+        /// <response code="200">Step updated successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/steps/{stepId}")]
+        [HttpPut]
+        public ActionResult UpdateStep(Guid id, Guid stepId, [FromBody] ApprovalStepModel model)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                // Set the IDs from the route
+                model.Id = stepId;
+                model.WorkflowId = id;
+
+                var stepService = new StepConfigService();
+                var updatedStep = stepService.Update(model);
+
+                response.Success = true;
+                response.Message = "Step updated successfully.";
+                response.Object = updatedStep;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error updating step: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Deletes an approval step.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="stepId">The step ID to delete (GUID format).</param>
+        /// <returns>
+        /// A JSON response indicating success or failure.
+        /// </returns>
+        /// <response code="200">Step deleted successfully.</response>
+        /// <response code="400">If step has active requests or validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/steps/{stepId}")]
+        [HttpDelete]
+        public ActionResult DeleteStep(Guid id, Guid stepId)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                var stepService = new StepConfigService();
+                stepService.Delete(stepId);
+
+                response.Success = true;
+                response.Message = "Step deleted successfully.";
+                response.Object = null;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error deleting step: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Reorders the steps in a workflow.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="stepIds">List of step IDs in the desired order.</param>
+        /// <returns>
+        /// A JSON response indicating success or failure.
+        /// </returns>
+        /// <response code="200">Steps reordered successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/steps/reorder")]
+        [HttpPut]
+        public ActionResult ReorderSteps(Guid id, [FromBody] List<Guid> stepIds)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                var stepService = new StepConfigService();
+                stepService.ReorderSteps(id, stepIds);
+
+                response.Success = true;
+                response.Message = "Steps reordered successfully.";
+                response.Object = null;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error reordering steps: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        #endregion
+
+        #region << Rule Configuration Endpoints >>
+
+        /// <summary>
+        /// Retrieves all approval rules for a specific workflow.
+        /// Returns rules ordered by priority descending.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <returns>
+        /// A JSON response containing a list of ApprovalRuleModel objects for the specified workflow.
+        /// </returns>
+        /// <response code="200">Rules retrieved successfully.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/rules")]
+        [HttpGet]
+        public ActionResult GetWorkflowRules(Guid id)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                var ruleService = new RuleConfigService();
+                var rules = ruleService.GetByWorkflowId(id);
+
+                response.Success = true;
+                response.Message = $"Retrieved {rules.Count} rules for workflow.";
+                response.Object = rules;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error retrieving rules: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Creates a new approval rule for a workflow.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="model">The rule model containing rule details.</param>
+        /// <returns>
+        /// A JSON response containing the created ApprovalRuleModel.
+        /// </returns>
+        /// <response code="200">Rule created successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/rules")]
+        [HttpPost]
+        public ActionResult CreateRule(Guid id, [FromBody] ApprovalRuleModel model)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                // Set the workflow ID from the route
+                model.WorkflowId = id;
+
+                var ruleService = new RuleConfigService();
+                var createdRule = ruleService.Create(model);
+
+                response.Success = true;
+                response.Message = "Rule created successfully.";
+                response.Object = createdRule;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error creating rule: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Updates an existing approval rule.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="ruleId">The rule ID to update (GUID format).</param>
+        /// <param name="model">The updated rule model.</param>
+        /// <returns>
+        /// A JSON response containing the updated ApprovalRuleModel.
+        /// </returns>
+        /// <response code="200">Rule updated successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/rules/{ruleId}")]
+        [HttpPut]
+        public ActionResult UpdateRule(Guid id, Guid ruleId, [FromBody] ApprovalRuleModel model)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                // Set the IDs from the route
+                model.Id = ruleId;
+                model.WorkflowId = id;
+
+                var ruleService = new RuleConfigService();
+                var updatedRule = ruleService.Update(model);
+
+                response.Success = true;
+                response.Message = "Rule updated successfully.";
+                response.Object = updatedRule;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error updating rule: {ex.Message}";
+                response.Object = null;
+            }
+
+            return Json(response);
+        }
+
+        /// <summary>
+        /// Deletes an approval rule.
+        /// </summary>
+        /// <param name="id">The workflow ID (GUID format).</param>
+        /// <param name="ruleId">The rule ID to delete (GUID format).</param>
+        /// <returns>
+        /// A JSON response indicating success or failure.
+        /// </returns>
+        /// <response code="200">Rule deleted successfully.</response>
+        /// <response code="400">If validation fails.</response>
+        /// <response code="401">If user is not authenticated.</response>
+        [Route("api/v3.0/p/approval/workflow/{id}/rules/{ruleId}")]
+        [HttpDelete]
+        public ActionResult DeleteRule(Guid id, Guid ruleId)
+        {
+            var response = new ApprovalResponseModel();
+
+            try
+            {
+                // Validate user is authenticated
+                var userId = CurrentUserId;
+                if (!userId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Json(response);
+                }
+
+                var ruleService = new RuleConfigService();
+                ruleService.Delete(ruleId);
+
+                response.Success = true;
+                response.Message = "Rule deleted successfully.";
+                response.Object = null;
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"Error deleting rule: {ex.Message}";
                 response.Object = null;
             }
 

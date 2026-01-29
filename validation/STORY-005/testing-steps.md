@@ -5,6 +5,7 @@
 - Database migrated with approval entities
 - At least one enabled workflow for target entity (purchase_order or expense_request)
 - Valid admin login credentials
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 

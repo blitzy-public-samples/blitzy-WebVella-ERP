@@ -38,21 +38,33 @@ curl -X PUT "http://localhost:5000/api/v3.0/p/approval/workflow/{id}" \
 
 ### 2. ApprovalRouteService - Rule Evaluation
 
-#### 2.1 Get Matching Workflow for Entity
-Test that the route service correctly identifies which workflow should handle a record:
+#### 2.1 Workflow Initiation via Entity Hooks
+Approval requests are created automatically via entity hooks when target entities are created.
+
+**Note:** There is no direct `/request/initiate` API endpoint. Approval requests are initiated through:
+1. **PurchaseOrderApproval hook** - Triggers when a `purchase_order` record is created
+2. **ExpenseRequestApproval hook** - Triggers when an `expense_request` record is created
+
+To test workflow initiation:
+1. Create a `purchase_order` or `expense_request` record via the normal entity API or UI
+2. Verify an `approval_request` record is automatically created
+3. Check that the correct workflow was matched based on rule evaluation
 
 ```bash
-# Via API - initiate workflow for a record
-curl -X POST "http://localhost:5000/api/v3.0/p/approval/request/initiate" \
+# Create a purchase order (this will trigger approval workflow)
+curl -X POST "http://localhost:5000/api/v3.0/en_US/record/purchase_order" \
   -H "Cookie: .AspNetCore.Cookies=YOUR_SESSION_COOKIE" \
   -H "RequestVerificationToken: YOUR_CSRF_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "source_entity_name": "purchase_order",
-    "source_record_id": "guid-of-record"
+    "amount": 5000,
+    "description": "Test purchase order"
   }'
 ```
-**Expected Result:** Approval request created if matching workflow exists
+**Expected Result:** 
+- Purchase order record created
+- Approval request automatically created via hook
+- Workflow matched based on configured rules
 
 ### 3. ApprovalRequestService - Request Lifecycle
 
@@ -168,7 +180,7 @@ curl -X GET "http://localhost:5000/api/v3.0/p/approval/request/{id}/history" \
 
 ## Result
 ✅ PASS - Service layer verified:
-- ✅ All service layer unit tests pass (437/437)
+- ✅ All tests pass (566/566 unit + integration)
 - ✅ State machine logic correct (pending → approved/rejected)
 - ✅ Multi-step workflow progression works
 - ✅ History audit trail recorded for all actions

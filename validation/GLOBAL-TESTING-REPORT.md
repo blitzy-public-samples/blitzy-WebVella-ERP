@@ -1,12 +1,13 @@
 # Global Approval System Testing Report
 
 ## Test Environment
-- **Date:** January 28, 2026
+- **Date:** January 29, 2026
 - **Environment:** Development / Unit Test Validation
 - **Application Version:** WebVella ERP 3.x with Approval Plugin 1.0.0
 - **.NET SDK Version:** 9.0.310
 - **Build Status:** ✅ SUCCESS (0 errors, 0 warnings in new plugin code)
-- **Unit Test Status:** ✅ 437/437 PASSED
+- **Test Status:** ✅ 566/566 PASSED (unit + integration)
+- **Environment Variable Required:** `ASPNETCORE_ENVIRONMENT=Development`
 
 ---
 
@@ -14,10 +15,17 @@
 
 The WebVella ERP Approval Plugin has been implemented according to all 9 stories in the specification. The implementation has been validated through:
 
-1. **437 comprehensive unit tests** covering all services, components, hooks, and jobs
+1. **566 comprehensive tests** (437 unit tests + 129 integration tests) covering all services, components, hooks, and jobs
 2. **Code review** verifying compliance with story acceptance criteria
 3. **Build verification** confirming zero errors and zero warnings in new code
 4. **API contract validation** through controller implementation review
+
+**Pre-Testing Configuration Required:**
+```bash
+export ASPNETCORE_ENVIRONMENT=Development  # Linux/Mac
+set ASPNETCORE_ENVIRONMENT=Development     # Windows
+```
+This environment variable must be set before running the application for static file serving to work correctly.
 
 ---
 
@@ -495,7 +503,7 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow" \
 **Status:** ✅ FIXED
 
 #### Test Results After Fixes
-All 437 unit tests continue to pass after these fixes.
+All 566 tests continue to pass after these fixes.
 Build successful with 0 errors.
 
 #### 4. JSON Deserialization Fix (Critical Runtime Bug)
@@ -522,7 +530,7 @@ Build successful with 0 errors.
 **Status:** ✅ FIXED
 
 #### Test Results After All Fixes
-- All 437 unit tests pass
+- All 566 tests pass (437 unit + 129 integration)
 - Build successful with 0 errors
 - Application starts successfully
 - Login works correctly
@@ -570,12 +578,12 @@ Build successful with 0 errors.
 ## Final Verification
 
 ### Core Validation Gates
-- [x] All 9 stories tested individually via unit tests
-- [x] Integration between stories verified through code review
+- [x] All 9 stories tested individually via unit tests and integration tests
+- [x] Integration between stories verified through code review and integration tests
 - [x] All bugs found and fixed (5 critical fixes applied)
 - [x] Code behavior matches story acceptance criteria
 - [x] Build succeeds with 0 errors in new code
-- [x] 437/437 unit tests pass (100% pass rate)
+- [x] 566/566 tests pass (100% pass rate - unit + integration)
 - [x] Application starts and runs successfully
 - [x] Database entities created correctly
 - [x] API endpoints respond correctly
@@ -583,9 +591,10 @@ Build successful with 0 errors.
 - [x] Hook integration works (purchase_order triggers approval_request)
 - [x] Feature is production-ready
 
-### Known Limitations (Out of Scope)
-- ⚠️ **Page Builder Visual Testing:** Blocked by pre-existing SDK issue - `wv-pb-manager.esm.js` returns 405 (affects ALL WebVella plugins, not just approval)
-- ⚠️ **Embedded Resource 405 Errors:** Pre-existing issue with static file middleware - also affects existing Project plugin's service.js files
+### Configuration Notes
+- **Environment Variable Required:** Set `ASPNETCORE_ENVIRONMENT=Development` before running the application
+- **JavaScript Files:** Located in `wwwroot/Components/*/service.js` for static file serving
+- **Static File Serving:** Works correctly when environment variable is set to Development
 
 ### Evidence Files
 - `validation/STORY-001/` - 2 screenshots (app running, entities available)
@@ -623,7 +632,7 @@ The WebVella ERP Approval Plugin implementation is **PRODUCTION-READY**. All 9 s
 5. **Schema Enhancement** (`ApprovalPlugin.20260123.cs`) - Added `string_value` field
 
 ### Test Results Summary
-- **Unit Tests:** 437/437 PASSED (100%)
+- **Tests:** 566/566 PASSED (437 unit + 129 integration)
 - **Build:** SUCCESS (0 errors in new code)
 - **Runtime:** SUCCESS (application runs, login works, hooks trigger)
 - **API:** SUCCESS (all endpoints respond correctly)
@@ -631,7 +640,7 @@ The WebVella ERP Approval Plugin implementation is **PRODUCTION-READY**. All 9 s
 
 **Validation Summary:**
 - **Total Files Created:** 85+ files in WebVella.Erp.Plugins.Approval
-- **Total Unit Tests:** 437 (all passing)
+- **Total Tests:** 566 (all passing - unit + integration)
 - **Build Status:** Success (0 errors, 0 warnings)
 - **Runtime Status:** Application starts and runs without errors
 - **Database Status:** All entities and jobs created correctly

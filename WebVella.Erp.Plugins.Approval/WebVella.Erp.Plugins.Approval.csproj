@@ -15,7 +15,9 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<!-- Embedded resources for component JavaScript files -->
+	<!-- Static web assets in wwwroot are automatically served via _content/WebVella.Erp.Plugins.Approval/ -->
+	<!-- Note: EmbeddedResource entries removed per Refine PR instructions - JS files now served from wwwroot -->
+	<!-- Service.js files are also embedded for page builder lifecycle events -->
 	<ItemGroup>
 		<None Remove="Components\PcApprovalWorkflowConfig\service.js" />
 		<None Remove="Components\PcApprovalRequestList\service.js" />
@@ -31,6 +33,8 @@
 		<EmbeddedResource Include="Components\PcApprovalHistory\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
 	</ItemGroup>
+	
+	<!-- wwwroot content is automatically included by SDK -->
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.10" />

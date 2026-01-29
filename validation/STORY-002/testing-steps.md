@@ -5,6 +5,7 @@
 - PostgreSQL database available and configured
 - Database migration completed on first startup
 - Browser open to http://localhost:5000
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -53,7 +54,8 @@
    - `name` (Text, Required)
    - `field_name` (Text, Required)
    - `operator` (Select: eq/neq/gt/gte/lt/lte/contains)
-   - `value` (Text, Required)
+   - `threshold_value` (Number/Decimal, Required for numeric comparisons)
+   - `string_value` (Text, Required for string comparisons)
    - `priority` (Number, Default: 0)
 
 ### 5. Verify approval_request Entity Fields
@@ -117,4 +119,4 @@ AND table_name LIKE 'approval%';
 - Fields correctly configured with types and constraints
 - Relationships established between entities
 - Default values fixed for required text fields
-- Unit tests: 437/437 passed
+- Tests: 566/566 passed (unit + integration)

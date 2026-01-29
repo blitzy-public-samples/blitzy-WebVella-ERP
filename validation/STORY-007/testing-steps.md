@@ -5,6 +5,7 @@
 - Database migrated with approval entities
 - Valid admin login credentials
 - API client (curl, Postman, or browser dev tools)
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -204,9 +205,9 @@ curl -X POST "http://localhost:5000/api/v3.0/p/approval/workflow" \
 cat WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | head -50
 ```
 **Expected Attributes:**
-- `[Authorize]`
-- `[Route("api/v3.0/p/approval")]`
-- Correct HTTP method attributes on actions
+- `[Authorize]` on controller class
+- `[Route("api/v3.0/p/approval/...")]` on each action method
+- Correct HTTP method attributes (`[HttpGet]`, `[HttpPost]`, etc.) on actions
 
 ### 7. API Bug Fix Applied
 
@@ -229,13 +230,13 @@ cat WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs | head -50
 ## Result
 ✅ PASS - REST API verified:
 - ✅ All 12+ endpoints implemented
-- ✅ Proper authorization (`[Authorize]` attribute)
-- ✅ Correct route patterns (`/api/v3.0/p/approval/...`)
+- ✅ Proper authorization (`[Authorize]` attribute on controller)
+- ✅ Correct route patterns (`/api/v3.0/p/approval/...` on methods)
 - ✅ ResponseModel envelope used consistently
 - ✅ Error handling with appropriate status codes
 - ✅ CSRF protection via RequestVerificationToken
 - ✅ EQL bug fixed in WorkflowConfigService
-- ✅ All unit tests pass
+- ✅ All tests pass (566/566 unit + integration)
 
 ## API Endpoint Summary
 | Method | Endpoint | Purpose |

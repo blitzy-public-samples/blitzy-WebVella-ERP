@@ -77,13 +77,14 @@ namespace WebVella.Erp.Plugins.Approval.Components
         {
             /// <summary>
             /// Gets or sets whether to show inactive (disabled) workflows in the list.
+            /// When true (default), all workflows are displayed regardless of status.
             /// When false, only enabled workflows are displayed.
             /// </summary>
             /// <value>
-            /// True to include disabled workflows in the display; false (default) to show only active workflows.
+            /// True (default) to include disabled workflows in the display; false to show only active workflows.
             /// </value>
             [JsonProperty(PropertyName = "show_inactive")]
-            public bool ShowInactive { get; set; } = false;
+            public bool ShowInactive { get; set; } = true;
 
             /// <summary>
             /// Gets or sets the number of workflows to display per page.
@@ -206,10 +207,10 @@ namespace WebVella.Erp.Plugins.Approval.Components
                             // Instantiate the workflow configuration service
                             var workflowService = new WorkflowConfigService();
 
-                            // Load all workflows, respecting the ShowInactive option
-                            // When ShowInactive is true, GetAll returns all workflows
+                            // Load workflows, respecting the ShowInactive option
+                            // When ShowInactive is true (default), GetAll returns all workflows including disabled
                             // When ShowInactive is false, GetAll returns only enabled workflows
-                            var workflows = workflowService.GetAll(!options.ShowInactive ? false : true);
+                            var workflows = workflowService.GetAll(options.ShowInactive);
 
                             // Apply entity filter if specified in options
                             if (!string.IsNullOrWhiteSpace(options.FilterByEntity))

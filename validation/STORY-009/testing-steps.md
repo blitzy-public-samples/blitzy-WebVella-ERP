@@ -5,6 +5,7 @@
 - Database migrated with approval entities
 - Valid admin login credentials with Manager role
 - Some approval request data for meaningful metrics
+- **Set environment variable before testing:** `export ASPNETCORE_ENVIRONMENT=Development` (Linux/Mac) or `set ASPNETCORE_ENVIRONMENT=Development` (Windows)
 
 ## Steps to Test
 
@@ -204,8 +205,8 @@ grep -n "setInterval\|refresh" \
   - recent_activity
 - ✅ API endpoint functional
 - ✅ Role-based access control implemented
-- ✅ Auto-refresh logic in service.js
-- ✅ All unit tests pass (437/437)
+- ✅ Auto-refresh logic refreshes ALL metrics (not just top 5)
+- ✅ All tests pass (566/566 unit + integration)
 - ✅ UI dashboard functional through Page Builder
 
 ## Dashboard Metrics Summary
