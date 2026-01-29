@@ -45,7 +45,7 @@
             <div class="card h-100">
                 <div class="card-body text-center">
                     <div class="mb-2">
-                        <i class="fas fa-hourglass-half fa-2x @(pendingCount > 0 ? "go-orange" : "go-gray")"></i>
+                        <i class="fas fa-hourglass-half fa-2x pending-icon @(pendingCount > 0 ? "go-orange" : "go-gray")"></i>
                     </div>
                     <h3 class="mb-1">
                         <span class="pending-count @(pendingCount > 10 ? "go-orange" : "")">@pendingCount</span>
@@ -75,9 +75,9 @@
             <div class="card h-100">
                 <div class="card-body text-center">
                     <div class="mb-2">
-                        <i class="fas fa-percentage fa-2x @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")"></i>
+                        <i class="fas fa-percentage fa-2x approval-rate-icon @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")"></i>
                     </div>
-                    <h3 class="mb-1 @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")">
+                    <h3 class="mb-1 approval-rate-heading @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")">
                         <span class="approval-rate">@approvalRate.ToString("F1")</span><small>%</small>
                     </h3>
                     <div class="text-muted small">Approval Rate</div>
@@ -90,21 +90,18 @@
     <wv-row class="mb-3">
         @* Overdue Count Card *@
         <wv-column width="6">
-            <div class="card h-100 @(overdueCount > 0 ? "border-danger" : "")">
+            <div class="card h-100 overdue-card @(overdueCount > 0 ? "border-danger" : "")">
                 <div class="card-body text-center">
                     <div class="mb-2">
-                        <i class="fas fa-exclamation-triangle fa-2x @(overdueCount > 0 ? "go-red" : "go-gray")"></i>
+                        <i class="fas fa-exclamation-triangle fa-2x overdue-icon @(overdueCount > 0 ? "go-red" : "go-gray")"></i>
                     </div>
-                    <h3 class="mb-1 @(overdueCount > 0 ? "go-red" : "go-gray")">
+                    <h3 class="mb-1 overdue-heading @(overdueCount > 0 ? "go-red" : "go-gray")">
                         <span class="overdue-count">@overdueCount</span>
                     </h3>
                     <div class="text-muted small">Overdue / Escalated</div>
-                    @if (overdueCount > 0)
-                    {
-                        <div class="mt-2">
-                            <span class="badge badge-danger">Requires Attention</span>
-                        </div>
-                    }
+                    <div class="mt-2 overdue-badge" style="@(overdueCount > 0 ? "" : "display:none")">
+                        <span class="badge badge-danger">Requires Attention</span>
+                    </div>
                 </div>
             </div>
         </wv-column>
@@ -242,75 +239,123 @@
             var container = document.getElementById(containerId);
             if (!container) return;
             
-            // Update pending count (main card)
+            var pendingCount = metrics.pendingCount || 0;
+            var avgTime = metrics.averageApprovalTimeHours || 0;
+            var rate = metrics.approvalRate || 0;
+            var overdueCount = metrics.overdueCount || 0;
+            var recentCount = metrics.recentActivityCount || 0;
+            
+            // Update pending count (main card value)
             var pendingEl = container.querySelector('.pending-count');
             if (pendingEl) {
-                pendingEl.textContent = metrics.pendingCount || 0;
-                pendingEl.className = 'pending-count' + (metrics.pendingCount > 10 ? ' go-orange' : '');
+                pendingEl.textContent = pendingCount;
+                pendingEl.className = 'pending-count' + (pendingCount > 10 ? ' go-orange' : '');
+            }
+            
+            // Update pending icon (main card)
+            var pendingIcon = container.querySelector('.pending-icon');
+            if (pendingIcon) {
+                pendingIcon.className = 'fas fa-hourglass-half fa-2x pending-icon ' + 
+                    (pendingCount > 0 ? 'go-orange' : 'go-gray');
             }
             
             // Update pending count (summary row)
             var summaryPendingEl = container.querySelector('.summary-pending-count');
             if (summaryPendingEl) {
-                summaryPendingEl.textContent = metrics.pendingCount || 0;
+                summaryPendingEl.textContent = pendingCount;
             }
             
             // Update average time (main card)
             var avgTimeEl = container.querySelector('.avg-time');
             if (avgTimeEl) {
-                avgTimeEl.textContent = (metrics.averageApprovalTimeHours || 0).toFixed(1);
+                avgTimeEl.textContent = avgTime.toFixed(1);
             }
             
             // Update average time (summary row)
             var summaryAvgTimeEl = container.querySelector('.summary-avg-time');
             if (summaryAvgTimeEl) {
-                summaryAvgTimeEl.textContent = (metrics.averageApprovalTimeHours || 0).toFixed(1);
+                summaryAvgTimeEl.textContent = avgTime.toFixed(1);
             }
             
-            // Update approval rate (main card)
+            // Update approval rate (main card value)
             var approvalRateEl = container.querySelector('.approval-rate');
             if (approvalRateEl) {
-                var rate = metrics.approvalRate || 0;
                 approvalRateEl.textContent = rate.toFixed(1);
-                var rateParent = approvalRateEl.parentElement;
-                if (rateParent) {
-                    rateParent.className = 'mb-1 ' + (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
-                }
+            }
+            
+            // Update approval rate icon (main card)
+            var rateIcon = container.querySelector('.approval-rate-icon');
+            if (rateIcon) {
+                rateIcon.className = 'fas fa-percentage fa-2x approval-rate-icon ' + 
+                    (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
+            }
+            
+            // Update approval rate heading (main card)
+            var rateHeading = container.querySelector('.approval-rate-heading');
+            if (rateHeading) {
+                rateHeading.className = 'mb-1 approval-rate-heading ' + 
+                    (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
             }
             
             // Update approval rate (summary row)
             var summaryApprovalRateEl = container.querySelector('.summary-approval-rate');
             if (summaryApprovalRateEl) {
-                summaryApprovalRateEl.textContent = (metrics.approvalRate || 0).toFixed(1);
+                summaryApprovalRateEl.textContent = rate.toFixed(1);
             }
             
-            // Update overdue count (main card)
+            // Update overdue count (main card value)
             var overdueEl = container.querySelector('.overdue-count');
             if (overdueEl) {
-                overdueEl.textContent = metrics.overdueCount || 0;
-                var overdueParent = overdueEl.parentElement;
-                if (overdueParent) {
-                    overdueParent.className = 'mb-1 ' + (metrics.overdueCount > 0 ? 'go-red' : 'go-gray');
+                overdueEl.textContent = overdueCount;
+            }
+            
+            // Update overdue icon (main card)
+            var overdueIcon = container.querySelector('.overdue-icon');
+            if (overdueIcon) {
+                overdueIcon.className = 'fas fa-exclamation-triangle fa-2x overdue-icon ' + 
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
+            }
+            
+            // Update overdue heading (main card)
+            var overdueHeading = container.querySelector('.overdue-heading');
+            if (overdueHeading) {
+                overdueHeading.className = 'mb-1 overdue-heading ' + 
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
+            }
+            
+            // Update overdue card border
+            var overdueCard = container.querySelector('.overdue-card');
+            if (overdueCard) {
+                if (overdueCount > 0) {
+                    overdueCard.classList.add('border-danger');
+                } else {
+                    overdueCard.classList.remove('border-danger');
                 }
+            }
+            
+            // Update overdue badge visibility
+            var overdueBadge = container.querySelector('.overdue-badge');
+            if (overdueBadge) {
+                overdueBadge.style.display = overdueCount > 0 ? '' : 'none';
             }
             
             // Update overdue count (summary row)
             var summaryOverdueEl = container.querySelector('.summary-overdue-count');
             if (summaryOverdueEl) {
-                summaryOverdueEl.textContent = metrics.overdueCount || 0;
+                summaryOverdueEl.textContent = overdueCount;
             }
             
             // Update overdue icon color (summary row)
             var summaryOverdueIcon = container.querySelector('.summary-overdue-icon');
             if (summaryOverdueIcon) {
                 summaryOverdueIcon.className = 'fas fa-circle summary-overdue-icon mr-2 ' + 
-                    (metrics.overdueCount > 0 ? 'go-red' : 'go-gray');
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
             }
             
             // Update recent activity
             var recentEl = container.querySelector('.recent-activity');
             if (recentEl) {
-                recentEl.textContent = metrics.recentActivityCount || 0;
+                recentEl.textContent = recentCount;
             }
             
             // Update last updated timestamp

@@ -207,10 +207,10 @@ namespace WebVella.Erp.Plugins.Approval.Components
                             // Instantiate the workflow configuration service
                             var workflowService = new WorkflowConfigService();
 
-                            // Load workflows, respecting the ShowInactive option
-                            // When ShowInactive is true (default), GetAll returns all workflows including disabled
-                            // When ShowInactive is false, GetAll returns only enabled workflows
-                            var workflows = workflowService.GetAll(options.ShowInactive);
+                            // ALWAYS load ALL workflows (enabled + disabled) for the admin configuration view
+                            // This ensures disabled workflows remain visible so administrators can re-enable them
+                            // The ShowInactive option can be used for filtering in the UI layer if needed
+                            var workflows = workflowService.GetAll(true);
 
                             // Apply entity filter if specified in options
                             if (!string.IsNullOrWhiteSpace(options.FilterByEntity))

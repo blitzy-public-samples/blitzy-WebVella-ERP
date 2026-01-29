@@ -39,12 +39,24 @@
             <h5 class="card-title mb-0">
                 <i class="fas fa-cogs mr-2"></i>Approval Workflow Configuration
             </h5>
-            <button type="button" class="btn btn-sm btn-success" 
-                    data-toggle="modal" 
-                    data-target="#@(componentId)-workflow-modal"
-                    onclick="window.WvApprovalWorkflowConfig.openCreateModal('@componentId')">
-                <i class="fas fa-plus mr-1"></i>Add Workflow
-            </button>
+            <div class="d-flex align-items-center">
+                @* Status Filter Dropdown *@
+                <div class="mr-2">
+                    <select id="@(componentId)-status-filter" class="form-control form-control-sm" 
+                            onchange="window.WvApprovalWorkflowConfig.filterByStatus('@componentId', this.value)"
+                            style="min-width: 130px;">
+                        <option value="all" selected>All Workflows</option>
+                        <option value="enabled">Enabled Only</option>
+                        <option value="disabled">Disabled Only</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-success" 
+                        data-toggle="modal" 
+                        data-target="#@(componentId)-workflow-modal"
+                        onclick="window.WvApprovalWorkflowConfig.openCreateModal('@componentId')">
+                    <i class="fas fa-plus mr-1"></i>Add Workflow
+                </button>
+            </div>
         </div>
         
         <div class="card-body p-0">
@@ -442,11 +454,34 @@
             workflows = [];
         }
         
-        // Store workflows in container for later access
+        // Store ALL workflows in container (never filtered from server)
         container._workflows = workflows;
+        container._currentFilter = 'all';
         
-        // Render the workflow table
+        // Render the workflow table with all workflows
         renderWorkflowTable(componentId, workflows);
+    };
+    
+    /**
+     * Filter workflows by status (all, enabled, disabled)
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} filterValue - 'all', 'enabled', or 'disabled'
+     */
+    window.WvApprovalWorkflowConfig.filterByStatus = function(componentId, filterValue) {
+        var container = document.getElementById(componentId);
+        if (!container) return;
+        
+        var workflows = container._workflows || [];
+        container._currentFilter = filterValue;
+        
+        var filteredWorkflows = workflows;
+        if (filterValue === 'enabled') {
+            filteredWorkflows = workflows.filter(function(w) { return w.is_enabled === true; });
+        } else if (filterValue === 'disabled') {
+            filteredWorkflows = workflows.filter(function(w) { return w.is_enabled === false; });
+        }
+        
+        renderWorkflowTable(componentId, filteredWorkflows);
     };
     
     /**
@@ -522,10 +557,10 @@
                                 'onclick="window.WvApprovalWorkflowConfig.configureSteps(\'' + componentId + '\', \'' + workflow.id + '\', \'' + escapeHtml(workflow.name).replace(/'/g, "\\'") + '\')">' +
                             '<i class="fas fa-list-ol"></i>' +
                         '</button>' +
-                        '<button type="button" class="btn btn-outline-primary" ' +
+                        '<button type="button" class="btn btn-outline-secondary" ' +
                                 'title="Configure Rules" ' +
                                 'onclick="window.WvApprovalWorkflowConfig.configureRules(\'' + componentId + '\', \'' + workflow.id + '\', \'' + escapeHtml(workflow.name).replace(/'/g, "\\'") + '\')">' +
-                            '<i class="fas fa-filter"></i>' +
+                            '<i class="fas fa-sliders-h"></i>' +
                         '</button>' +
                         '<button type="button" class="btn btn-outline-danger" ' +
                                 'title="Delete Workflow" ' +
@@ -1169,8 +1204,22 @@
             success: function(response) {
                 if (response.success && response.object) {
                     var container = document.getElementById(componentId);
-                    container._workflows = response.object;
-                    renderWorkflowTable(componentId, response.object);
+                    var workflows = response.object;
+                    
+                    // Store ALL workflows (server returns all workflows including disabled)
+                    container._workflows = workflows;
+                    
+                    // Re-apply the current filter
+                    var currentFilter = container._currentFilter || 'all';
+                    var filteredWorkflows = workflows;
+                    
+                    if (currentFilter === 'enabled') {
+                        filteredWorkflows = workflows.filter(function(w) { return w.is_enabled === true; });
+                    } else if (currentFilter === 'disabled') {
+                        filteredWorkflows = workflows.filter(function(w) { return w.is_enabled === false; });
+                    }
+                    
+                    renderWorkflowTable(componentId, filteredWorkflows);
                 } else {
                     toastr.error('Failed to reload workflows');
                 }

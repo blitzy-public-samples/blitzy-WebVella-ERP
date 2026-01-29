@@ -605,18 +605,44 @@
      * @param {string} workflowId - The ID of the workflow.
      */
     function navigateToStepsConfig(workflowId) {
-        // Navigate to steps configuration - URL pattern may vary based on application routing
-        window.location.href = '/approval/workflow/' + workflowId + '/steps';
+        // This function is now handled by openStepsModal via the global WvApprovalWorkflowConfig namespace
+        // Directly trigger the openStepsModal function with workflow ID
+        if (window.WvApprovalWorkflowConfig && window.WvApprovalWorkflowConfig.openStepsModalDirect) {
+            window.WvApprovalWorkflowConfig.openStepsModalDirect(workflowId);
+        } else {
+            console.warn('[ApprovalWorkflowConfig] openStepsModalDirect not available, finding container...');
+            // Try to find any registered component container and open the modal
+            for (var containerId in componentStates) {
+                if (componentStates.hasOwnProperty(containerId)) {
+                    openStepsModal(containerId, workflowId);
+                    return;
+                }
+            }
+            console.error('[ApprovalWorkflowConfig] No container found for steps configuration');
+        }
     }
 
     /**
-     * Navigates to the rules configuration page for a workflow.
+     * Opens the rules configuration modal for a workflow.
      * 
      * @param {string} workflowId - The ID of the workflow.
      */
     function navigateToRulesConfig(workflowId) {
-        // Navigate to rules configuration - URL pattern may vary based on application routing
-        window.location.href = '/approval/workflow/' + workflowId + '/rules';
+        // This function is now handled by openRulesModal via the global WvApprovalWorkflowConfig namespace
+        // Directly trigger the openRulesModal function with workflow ID
+        if (window.WvApprovalWorkflowConfig && window.WvApprovalWorkflowConfig.openRulesModalDirect) {
+            window.WvApprovalWorkflowConfig.openRulesModalDirect(workflowId);
+        } else {
+            console.warn('[ApprovalWorkflowConfig] openRulesModalDirect not available, finding container...');
+            // Try to find any registered component container and open the modal
+            for (var containerId in componentStates) {
+                if (componentStates.hasOwnProperty(containerId)) {
+                    openRulesModal(containerId, workflowId);
+                    return;
+                }
+            }
+            console.error('[ApprovalWorkflowConfig] No container found for rules configuration');
+        }
     }
 
     /**
@@ -637,10 +663,540 @@
         return text.replace(/[&<>"']/g, function (m) { return map[m]; });
     }
 
+    /**
+     * Filters workflows by status (all/enabled/disabled).
+     * 
+     * @param {string} containerId - The unique ID of the container element.
+     * @param {string} filter - Filter value: 'all', 'enabled', or 'disabled'.
+     */
+    function filterByStatus(containerId, filter) {
+        var state = componentStates[containerId];
+        if (!state || !state.allWorkflows) return;
+        
+        state.currentFilter = filter;
+        
+        if (filter === 'all') {
+            state.workflows = state.allWorkflows.slice();
+        } else if (filter === 'enabled') {
+            state.workflows = state.allWorkflows.filter(function(w) { return w.isEnabled === true; });
+        } else if (filter === 'disabled') {
+            state.workflows = state.allWorkflows.filter(function(w) { return w.isEnabled === false; });
+        }
+        
+        state.currentPage = 1;
+        renderWorkflowTable(containerId);
+    }
+
+    /**
+     * Opens the steps configuration modal for a workflow.
+     * 
+     * @param {string} containerId - The unique ID of the container element.
+     * @param {string} workflowId - The workflow ID.
+     */
+    function openStepsModal(containerId, workflowId) {
+        var state = componentStates[containerId];
+        if (!state) return;
+        
+        var $modal = $('#' + containerId + '-steps-modal');
+        if (!$modal.length) {
+            console.error('[ApprovalWorkflowConfig] Steps modal not found');
+            return;
+        }
+        
+        // Find workflow name
+        var workflow = state.workflows.find(function(w) { return w.id === workflowId; }) ||
+                       (state.allWorkflows && state.allWorkflows.find(function(w) { return w.id === workflowId; }));
+        
+        // Set workflow info
+        $('#' + containerId + '-steps-workflow-id').val(workflowId);
+        $('#' + containerId + '-steps-workflow-name').text(workflow ? workflow.name : 'Workflow');
+        
+        // Load steps for this workflow
+        loadSteps(containerId, workflowId);
+        
+        // Hide the add/edit form
+        $('#' + containerId + '-step-form-container').hide();
+        
+        // Show modal
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = new bootstrap.Modal($modal[0]);
+            modal.show();
+        } else {
+            $modal.modal('show');
+        }
+    }
+
+    /**
+     * Opens the rules configuration modal for a workflow.
+     * 
+     * @param {string} containerId - The unique ID of the container element.
+     * @param {string} workflowId - The workflow ID.
+     */
+    function openRulesModal(containerId, workflowId) {
+        var state = componentStates[containerId];
+        if (!state) return;
+        
+        var $modal = $('#' + containerId + '-rules-modal');
+        if (!$modal.length) {
+            console.error('[ApprovalWorkflowConfig] Rules modal not found');
+            return;
+        }
+        
+        // Find workflow name
+        var workflow = state.workflows.find(function(w) { return w.id === workflowId; }) ||
+                       (state.allWorkflows && state.allWorkflows.find(function(w) { return w.id === workflowId; }));
+        
+        // Set workflow info
+        $('#' + containerId + '-rules-workflow-id').val(workflowId);
+        $('#' + containerId + '-rules-workflow-name').text(workflow ? workflow.name : 'Workflow');
+        
+        // Load rules for this workflow
+        loadRules(containerId, workflowId);
+        
+        // Hide the add/edit form
+        $('#' + containerId + '-rule-form-container').hide();
+        
+        // Show modal
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = new bootstrap.Modal($modal[0]);
+            modal.show();
+        } else {
+            $modal.modal('show');
+        }
+    }
+
+    /**
+     * Loads steps for a workflow.
+     * 
+     * @param {string} containerId - The unique ID of the container element.
+     * @param {string} workflowId - The workflow ID.
+     */
+    function loadSteps(containerId, workflowId) {
+        var $stepsList = $('#' + containerId + '-steps-list');
+        $stepsList.html('<div class="text-muted text-center py-3">Loading steps...</div>');
+        
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/steps',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    renderStepsList(containerId, response.object || []);
+                } else {
+                    $stepsList.html('<div class="text-danger text-center py-3">' + (response.message || 'Failed to load steps') + '</div>');
+                }
+            },
+            error: function() {
+                $stepsList.html('<div class="text-danger text-center py-3">Error loading steps</div>');
+            }
+        });
+    }
+
+    /**
+     * Renders the steps list.
+     */
+    function renderStepsList(containerId, steps) {
+        var $stepsList = $('#' + containerId + '-steps-list');
+        $stepsList.empty();
+        
+        if (!steps || steps.length === 0) {
+            $stepsList.html('<div class="text-muted text-center py-3">No steps configured yet. Click "Add Step" to create one.</div>');
+            return;
+        }
+        
+        steps.sort(function(a, b) { return (a.stepOrder || 0) - (b.stepOrder || 0); });
+        
+        steps.forEach(function(step) {
+            var finalBadge = step.isFinal ? '<span class="badge bg-success ml-2">Final</span>' : '';
+            var item = '<div class="list-group-item d-flex justify-content-between align-items-center" data-step-id="' + step.id + '">' +
+                '<div>' +
+                    '<strong>#' + step.stepOrder + ' - ' + escapeHtml(step.name) + '</strong>' + finalBadge +
+                    '<br><small class="text-muted">Approver: ' + step.approverType + (step.timeoutHours ? ', Timeout: ' + step.timeoutHours + 'h' : '') + '</small>' +
+                '</div>' +
+                '<div class="btn-group btn-group-sm">' +
+                    '<button type="button" class="btn btn-outline-primary" onclick="window.WvApprovalWorkflowConfig.editStep(\'' + containerId + '\', \'' + step.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger" onclick="window.WvApprovalWorkflowConfig.deleteStep(\'' + containerId + '\', \'' + step.id + '\')" title="Delete"><i class="fas fa-trash"></i></button>' +
+                '</div>' +
+            '</div>';
+            $stepsList.append(item);
+        });
+    }
+
+    /**
+     * Loads rules for a workflow.
+     */
+    function loadRules(containerId, workflowId) {
+        var $rulesList = $('#' + containerId + '-rules-list');
+        $rulesList.html('<div class="text-muted text-center py-3">Loading rules...</div>');
+        
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/rules',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    renderRulesList(containerId, response.object || []);
+                } else {
+                    $rulesList.html('<div class="text-danger text-center py-3">' + (response.message || 'Failed to load rules') + '</div>');
+                }
+            },
+            error: function() {
+                $rulesList.html('<div class="text-danger text-center py-3">Error loading rules</div>');
+            }
+        });
+    }
+
+    /**
+     * Renders the rules list.
+     */
+    function renderRulesList(containerId, rules) {
+        var $rulesList = $('#' + containerId + '-rules-list');
+        $rulesList.empty();
+        
+        if (!rules || rules.length === 0) {
+            $rulesList.html('<div class="text-muted text-center py-3">No rules configured yet. Click "Add Rule" to create one.</div>');
+            return;
+        }
+        
+        rules.sort(function(a, b) { return (b.priority || 0) - (a.priority || 0); });
+        
+        rules.forEach(function(rule) {
+            var item = '<div class="list-group-item d-flex justify-content-between align-items-center" data-rule-id="' + rule.id + '">' +
+                '<div>' +
+                    '<strong>' + escapeHtml(rule.name) + '</strong>' +
+                    '<br><small class="text-muted">' + escapeHtml(rule.fieldName) + ' ' + rule.operator + ' "' + escapeHtml(rule.value) + '" (Priority: ' + (rule.priority || 0) + ')</small>' +
+                '</div>' +
+                '<div class="btn-group btn-group-sm">' +
+                    '<button type="button" class="btn btn-outline-primary" onclick="window.WvApprovalWorkflowConfig.editRule(\'' + containerId + '\', \'' + rule.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger" onclick="window.WvApprovalWorkflowConfig.deleteRule(\'' + containerId + '\', \'' + rule.id + '\')" title="Delete"><i class="fas fa-trash"></i></button>' +
+                '</div>' +
+            '</div>';
+            $rulesList.append(item);
+        });
+    }
+
+    /**
+     * Confirms delete of a workflow.
+     */
+    function confirmDelete(containerId) {
+        var $modal = $('#' + containerId + '-delete-modal');
+        var workflowId = $('#' + containerId + '-delete-workflow-id').val();
+        if (workflowId) {
+            deleteWorkflow(containerId, workflowId);
+        }
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = bootstrap.Modal.getInstance($modal[0]);
+            if (modal) modal.hide();
+        } else {
+            $modal.modal('hide');
+        }
+    }
+
+    /**
+     * Opens the add step form.
+     */
+    function openAddStepForm(containerId) {
+        // Clear form
+        $('#' + containerId + '-step-id').val('');
+        $('#' + containerId + '-step-name').val('');
+        $('#' + containerId + '-step-approver-type').val('role');
+        $('#' + containerId + '-step-approver-id').val('');
+        $('#' + containerId + '-step-timeout').val('');
+        $('#' + containerId + '-step-order').val('1');
+        $('#' + containerId + '-step-is-final').prop('checked', false);
+        
+        $('#' + containerId + '-step-form-title').text('Add New Step');
+        $('#' + containerId + '-step-form-container').slideDown();
+    }
+
+    /**
+     * Opens the edit step form.
+     */
+    function editStep(containerId, stepId) {
+        var workflowId = $('#' + containerId + '-steps-workflow-id').val();
+        
+        // Fetch step data
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/steps/' + stepId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success && response.object) {
+                    var step = response.object;
+                    $('#' + containerId + '-step-id').val(step.id);
+                    $('#' + containerId + '-step-name').val(step.name);
+                    $('#' + containerId + '-step-approver-type').val(step.approverType);
+                    $('#' + containerId + '-step-approver-id').val(step.approverId || '');
+                    $('#' + containerId + '-step-timeout').val(step.timeoutHours || '');
+                    $('#' + containerId + '-step-order').val(step.stepOrder);
+                    $('#' + containerId + '-step-is-final').prop('checked', step.isFinal === true);
+                    
+                    $('#' + containerId + '-step-form-title').text('Edit Step');
+                    $('#' + containerId + '-step-form-container').slideDown();
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error('Failed to load step data');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error loading step data');
+            }
+        });
+    }
+
+    /**
+     * Saves a step (create or update).
+     */
+    function saveStep(containerId, event) {
+        if (event) event.preventDefault();
+        
+        var workflowId = $('#' + containerId + '-steps-workflow-id').val();
+        var stepId = $('#' + containerId + '-step-id').val();
+        
+        var stepData = {
+            name: $('#' + containerId + '-step-name').val(),
+            approverType: $('#' + containerId + '-step-approver-type').val(),
+            approverId: $('#' + containerId + '-step-approver-id').val() || null,
+            timeoutHours: parseInt($('#' + containerId + '-step-timeout').val()) || null,
+            stepOrder: parseInt($('#' + containerId + '-step-order').val()) || 1,
+            isFinal: $('#' + containerId + '-step-is-final').is(':checked')
+        };
+        
+        var isUpdate = !!stepId;
+        var url = isUpdate 
+            ? API_BASE + '/workflow/' + workflowId + '/steps/' + stepId 
+            : API_BASE + '/workflow/' + workflowId + '/steps';
+        
+        $.ajax({
+            url: url,
+            type: isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(stepData),
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(isUpdate ? 'Step updated' : 'Step created');
+                    cancelStepForm(containerId);
+                    loadSteps(containerId, workflowId);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(response.message || 'Failed to save step');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error saving step');
+            }
+        });
+        
+        return false;
+    }
+
+    /**
+     * Cancels the step form.
+     */
+    function cancelStepForm(containerId) {
+        $('#' + containerId + '-step-form-container').slideUp();
+    }
+
+    /**
+     * Deletes a step.
+     */
+    function deleteStep(containerId, stepId) {
+        if (!confirm('Are you sure you want to delete this step?')) return;
+        
+        var workflowId = $('#' + containerId + '-steps-workflow-id').val();
+        
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/steps/' + stepId,
+            type: 'DELETE',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    if (typeof toastr !== 'undefined') toastr.success('Step deleted');
+                    loadSteps(containerId, workflowId);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(response.message || 'Failed to delete step');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error deleting step');
+            }
+        });
+    }
+
+    /**
+     * Opens the add rule form.
+     */
+    function openAddRuleForm(containerId) {
+        // Clear form
+        $('#' + containerId + '-rule-id').val('');
+        $('#' + containerId + '-rule-name').val('');
+        $('#' + containerId + '-rule-field-name').val('');
+        $('#' + containerId + '-rule-operator').val('eq');
+        $('#' + containerId + '-rule-value').val('');
+        $('#' + containerId + '-rule-priority').val('0');
+        
+        $('#' + containerId + '-rule-form-title').text('Add New Rule');
+        $('#' + containerId + '-rule-form-container').slideDown();
+    }
+
+    /**
+     * Opens the edit rule form.
+     */
+    function editRule(containerId, ruleId) {
+        var workflowId = $('#' + containerId + '-rules-workflow-id').val();
+        
+        // Fetch rule data
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/rules/' + ruleId,
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success && response.object) {
+                    var rule = response.object;
+                    $('#' + containerId + '-rule-id').val(rule.id);
+                    $('#' + containerId + '-rule-name').val(rule.name);
+                    $('#' + containerId + '-rule-field-name').val(rule.fieldName);
+                    $('#' + containerId + '-rule-operator').val(rule.operator);
+                    $('#' + containerId + '-rule-value').val(rule.value);
+                    $('#' + containerId + '-rule-priority').val(rule.priority || 0);
+                    
+                    $('#' + containerId + '-rule-form-title').text('Edit Rule');
+                    $('#' + containerId + '-rule-form-container').slideDown();
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error('Failed to load rule data');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error loading rule data');
+            }
+        });
+    }
+
+    /**
+     * Saves a rule (create or update).
+     */
+    function saveRule(containerId, event) {
+        if (event) event.preventDefault();
+        
+        var workflowId = $('#' + containerId + '-rules-workflow-id').val();
+        var ruleId = $('#' + containerId + '-rule-id').val();
+        
+        var ruleData = {
+            name: $('#' + containerId + '-rule-name').val(),
+            fieldName: $('#' + containerId + '-rule-field-name').val(),
+            operator: $('#' + containerId + '-rule-operator').val(),
+            value: $('#' + containerId + '-rule-value').val(),
+            priority: parseInt($('#' + containerId + '-rule-priority').val()) || 0
+        };
+        
+        var isUpdate = !!ruleId;
+        var url = isUpdate 
+            ? API_BASE + '/workflow/' + workflowId + '/rules/' + ruleId 
+            : API_BASE + '/workflow/' + workflowId + '/rules';
+        
+        $.ajax({
+            url: url,
+            type: isUpdate ? 'PUT' : 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(ruleData),
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    if (typeof toastr !== 'undefined') toastr.success(isUpdate ? 'Rule updated' : 'Rule created');
+                    cancelRuleForm(containerId);
+                    loadRules(containerId, workflowId);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(response.message || 'Failed to save rule');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error saving rule');
+            }
+        });
+        
+        return false;
+    }
+
+    /**
+     * Cancels the rule form.
+     */
+    function cancelRuleForm(containerId) {
+        $('#' + containerId + '-rule-form-container').slideUp();
+    }
+
+    /**
+     * Deletes a rule.
+     */
+    function deleteRule(containerId, ruleId) {
+        if (!confirm('Are you sure you want to delete this rule?')) return;
+        
+        var workflowId = $('#' + containerId + '-rules-workflow-id').val();
+        
+        $.ajax({
+            url: API_BASE + '/workflow/' + workflowId + '/rules/' + ruleId,
+            type: 'DELETE',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success) {
+                    if (typeof toastr !== 'undefined') toastr.success('Rule deleted');
+                    loadRules(containerId, workflowId);
+                } else {
+                    if (typeof toastr !== 'undefined') toastr.error(response.message || 'Failed to delete rule');
+                }
+            },
+            error: function() {
+                if (typeof toastr !== 'undefined') toastr.error('Error deleting rule');
+            }
+        });
+    }
+
     // Expose functions globally for external access
     window.initApprovalWorkflowConfig = initApprovalWorkflowConfig;
     window.loadApprovalWorkflows = loadWorkflows;
     window.refreshApprovalWorkflowConfig = loadWorkflows;
+    
+    // Create global namespace for component functions
+    window.WvApprovalWorkflowConfig = {
+        init: initApprovalWorkflowConfig,
+        loadWorkflows: loadWorkflows,
+        filterByStatus: filterByStatus,
+        openCreateModal: openCreateModal,
+        openEditModal: openEditModal,
+        openDeleteModal: openDeleteModal,
+        saveWorkflow: saveWorkflow,
+        confirmDelete: confirmDelete,
+        openStepsModal: openStepsModal,
+        openRulesModal: openRulesModal,
+        openStepsModalDirect: function(workflowId) {
+            // Find first container and open modal
+            for (var containerId in componentStates) {
+                if (componentStates.hasOwnProperty(containerId)) {
+                    openStepsModal(containerId, workflowId);
+                    return;
+                }
+            }
+        },
+        openRulesModalDirect: function(workflowId) {
+            // Find first container and open modal
+            for (var containerId in componentStates) {
+                if (componentStates.hasOwnProperty(containerId)) {
+                    openRulesModal(containerId, workflowId);
+                    return;
+                }
+            }
+        },
+        loadSteps: loadSteps,
+        loadRules: loadRules,
+        openAddStepForm: openAddStepForm,
+        editStep: editStep,
+        saveStep: saveStep,
+        cancelStepForm: cancelStepForm,
+        deleteStep: deleteStep,
+        openAddRuleForm: openAddRuleForm,
+        editRule: editRule,
+        saveRule: saveRule,
+        cancelRuleForm: cancelRuleForm,
+        deleteRule: deleteRule
+    };
 
     /**
      * DOM Ready Handler

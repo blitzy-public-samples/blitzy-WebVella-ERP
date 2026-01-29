@@ -175,21 +175,89 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
         /// <summary>
         /// Gets the count of overdue or escalated approval requests.
+        /// Counts both explicitly escalated/expired requests AND pending requests that have exceeded their step timeout.
         /// </summary>
         /// <returns>Count of overdue/escalated requests.</returns>
         private int GetOverdueCount()
         {
             try
             {
-                // Query for escalated or expired status
-                var eqlParams = new List<EqlParameter>
+                int count = 0;
+
+                // Count requests with escalated or expired status
+                var statusParams = new List<EqlParameter>
                 {
                     new EqlParameter("escalated", "escalated"),
                     new EqlParameter("expired", "expired")
                 };
-                var eql = "SELECT id FROM approval_request WHERE status = @escalated OR status = @expired";
-                var records = new EqlCommand(eql, eqlParams).Execute();
-                return records?.Count ?? 0;
+                var statusEql = "SELECT id FROM approval_request WHERE status = @escalated OR status = @expired";
+                var statusRecords = new EqlCommand(statusEql, statusParams).Execute();
+                count += statusRecords?.Count ?? 0;
+
+                // Also count pending requests that have exceeded their step timeout
+                // This requires checking approval_request.requested_on + approval_step.timeout_hours < now
+                var pendingParams = new List<EqlParameter>
+                {
+                    new EqlParameter("status", "pending")
+                };
+                var pendingEql = "SELECT id, requested_on, current_step_id FROM approval_request WHERE status = @status";
+                var pendingRecords = new EqlCommand(pendingEql, pendingParams).Execute();
+
+                if (pendingRecords != null && pendingRecords.Any())
+                {
+                    var now = DateTime.UtcNow;
+                    var stepIds = pendingRecords
+                        .Where(r => r["current_step_id"] != null)
+                        .Select(r => (Guid)r["current_step_id"])
+                        .Distinct()
+                        .ToList();
+
+                    // Get timeout_hours for all relevant steps
+                    var stepTimeouts = new Dictionary<Guid, decimal?>();
+                    foreach (var stepId in stepIds)
+                    {
+                        try
+                        {
+                            var stepParams = new List<EqlParameter>
+                            {
+                                new EqlParameter("step_id", stepId)
+                            };
+                            var stepEql = "SELECT id, timeout_hours FROM approval_step WHERE id = @step_id";
+                            var stepRecords = new EqlCommand(stepEql, stepParams).Execute();
+                            if (stepRecords != null && stepRecords.Any())
+                            {
+                                var timeoutValue = stepRecords.First()["timeout_hours"];
+                                stepTimeouts[stepId] = timeoutValue as decimal?;
+                            }
+                        }
+                        catch
+                        {
+                            // Skip if step not found
+                        }
+                    }
+
+                    // Count pending requests that have exceeded their timeout
+                    foreach (var record in pendingRecords)
+                    {
+                        var requestedOn = record["requested_on"] as DateTime?;
+                        var currentStepId = record["current_step_id"] as Guid?;
+
+                        if (requestedOn.HasValue && currentStepId.HasValue && stepTimeouts.ContainsKey(currentStepId.Value))
+                        {
+                            var timeoutHours = stepTimeouts[currentStepId.Value];
+                            if (timeoutHours.HasValue && timeoutHours.Value > 0)
+                            {
+                                var deadline = requestedOn.Value.AddHours((double)timeoutHours.Value);
+                                if (now > deadline)
+                                {
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                return count;
             }
             catch (Exception)
             {
