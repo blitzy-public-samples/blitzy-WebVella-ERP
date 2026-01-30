@@ -146,7 +146,7 @@
     };
 }
 
-<div class="pc-approval-history" data-request-id="@requestId.ToString()">
+<div class="pc-approval-history" data-approval-history-component data-request-id="@requestId.ToString()">
     @if (!string.IsNullOrWhiteSpace(queryError))
     {
         <div class="alert alert-warning" role="alert">

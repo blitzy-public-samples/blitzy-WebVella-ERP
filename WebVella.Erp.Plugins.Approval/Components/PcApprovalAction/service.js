@@ -825,7 +825,177 @@
         //     }
         // });
 
+        //////////////////////////////////////////////////////////////////////////////////
+        // Auto-initialization for components with data-approval-action-component attribute
+        //////////////////////////////////////////////////////////////////////////////////
+        $('[data-approval-action-component]').each(function () {
+            var $container = $(this);
+            var requestId = $container.data('request-id');
+            
+            if (requestId && requestId !== '00000000-0000-0000-0000-000000000000') {
+                // Load request data via API if not already loaded server-side
+                var $detailsSection = $container.find('.approval-request-details');
+                if ($detailsSection.length === 0) {
+                    window.WvApprovalAction.loadApprovalRequest(requestId, $container);
+                }
+            }
+        });
+
     });
+
+    /**
+     * Loads approval request data from the REST API.
+     * 
+     * @param {string} requestId - The GUID of the approval request.
+     * @param {jQuery} $container - Optional jQuery container to update with loaded data.
+     * @param {function} callback - Optional callback function(success, data/error).
+     * @returns {jQuery.Promise} AJAX promise object.
+     */
+    window.WvApprovalAction.loadApprovalRequest = function (requestId, $container, callback) {
+        if (!requestId) {
+            var error = 'Request ID is required to load approval request';
+            console.error('[ApprovalAction] ' + error);
+            if (typeof callback === 'function') {
+                callback(false, error);
+            }
+            return $.Deferred().reject(error).promise();
+        }
+
+        var url = '/api/v3.0/p/approval/request/' + encodeURIComponent(requestId);
+
+        return $.ajax({
+            url: url,
+            type: 'GET',
+            dataType: 'json',
+            contentType: 'application/json'
+        })
+        .done(function (response) {
+            if (response && (response.success || response.Success)) {
+                var data = response.object || response.Object || response;
+                
+                // Render the request details if container provided
+                if ($container && $container.length) {
+                    renderRequestDetails($container, data);
+                }
+                
+                if (typeof callback === 'function') {
+                    callback(true, data);
+                }
+            } else {
+                var errorMsg = (response && (response.message || response.Message)) ? (response.message || response.Message) : 'Failed to load approval request';
+                console.error('[ApprovalAction] API Error: ' + errorMsg);
+                if (typeof callback === 'function') {
+                    callback(false, errorMsg);
+                }
+            }
+        })
+        .fail(function (jqXHR, textStatus, errorThrown) {
+            var errorMsg = 'AJAX Error: ' + textStatus + ' - ' + errorThrown;
+            console.error('[ApprovalAction] ' + errorMsg);
+            
+            showNotification('error', 'Failed to load approval request');
+            
+            if (typeof callback === 'function') {
+                callback(false, errorMsg);
+            }
+        });
+    };
+
+    /**
+     * Renders approval request details in a container.
+     * 
+     * @param {jQuery} $container - The jQuery container element.
+     * @param {object} data - The approval request data object.
+     */
+    function renderRequestDetails($container, data) {
+        if (!$container || !$container.length) {
+            return;
+        }
+
+        // Check if details section already exists, if so update it
+        var $detailsSection = $container.find('.approval-request-details');
+        
+        var workflowName = data.workflow_name || data.workflowName || 'N/A';
+        var stepName = data.step_name || data.stepName || 'N/A';
+        var stepOrder = data.step_order || data.stepOrder || '1';
+        var sourceEntity = data.source_entity_name || data.sourceEntityName || 'N/A';
+        var status = data.status || 'unknown';
+        var requestedOn = data.requested_on || data.requestedOn;
+        
+        // Format date if available
+        var formattedDate = 'N/A';
+        if (requestedOn) {
+            try {
+                var date = new Date(requestedOn);
+                if (!isNaN(date.getTime())) {
+                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    var day = ('0' + date.getDate()).slice(-2);
+                    var month = months[date.getMonth()];
+                    var year = date.getFullYear();
+                    var hours = ('0' + date.getHours()).slice(-2);
+                    var minutes = ('0' + date.getMinutes()).slice(-2);
+                    formattedDate = day + ' ' + month + ' ' + year + ' ' + hours + ':' + minutes;
+                }
+            } catch (e) {
+                console.warn('[ApprovalAction] Failed to format date:', e);
+            }
+        }
+
+        var detailsHtml = '<div class="approval-request-details card mb-3">' +
+            '<div class="card-header bg-light">' +
+                '<h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Approval Request Details</h6>' +
+            '</div>' +
+            '<div class="card-body">' +
+                '<div class="row">' +
+                    '<div class="col-md-6">' +
+                        '<dl class="row mb-0">' +
+                            '<dt class="col-sm-5">Workflow:</dt>' +
+                            '<dd class="col-sm-7">' + escapeHtml(workflowName) + '</dd>' +
+                            '<dt class="col-sm-5">Current Step:</dt>' +
+                            '<dd class="col-sm-7"><span class="badge bg-primary">Step ' + escapeHtml(stepOrder) + '</span> ' + escapeHtml(stepName) + '</dd>' +
+                            '<dt class="col-sm-5">Status:</dt>' +
+                            '<dd class="col-sm-7"><span class="badge bg-warning text-dark">' + escapeHtml(status.toUpperCase()) + '</span></dd>' +
+                        '</dl>' +
+                    '</div>' +
+                    '<div class="col-md-6">' +
+                        '<dl class="row mb-0">' +
+                            '<dt class="col-sm-5">Source Entity:</dt>' +
+                            '<dd class="col-sm-7"><code>' + escapeHtml(sourceEntity) + '</code></dd>' +
+                            '<dt class="col-sm-5">Requested On:</dt>' +
+                            '<dd class="col-sm-7">' + formattedDate + '</dd>' +
+                        '</dl>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+
+        if ($detailsSection.length) {
+            $detailsSection.replaceWith(detailsHtml);
+        } else {
+            // Insert before action buttons
+            var $btnGroup = $container.find('.btn-group');
+            if ($btnGroup.length) {
+                $(detailsHtml).insertBefore($btnGroup);
+            } else {
+                $container.prepend(detailsHtml);
+            }
+        }
+    }
+
+    /**
+     * Escapes HTML entities to prevent XSS attacks.
+     * 
+     * @param {string} text - The text to escape.
+     * @returns {string} Escaped text safe for HTML insertion.
+     */
+    function escapeHtml(text) {
+        if (!text) {
+            return '';
+        }
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
     //////////////////////////////////////////////////////////////////////////////////
     /// Your code is above

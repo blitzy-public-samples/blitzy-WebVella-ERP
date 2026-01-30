@@ -189,7 +189,19 @@
 		
 		$tbody.empty();
 		
-		var requests = data && data.requests ? data.requests : (data && Array.isArray(data) ? data : []);
+		// API returns paginated response with Items array - handle multiple possible property names
+		var requests = [];
+		if (data) {
+			if (data.Items && Array.isArray(data.Items)) {
+				requests = data.Items;
+			} else if (data.items && Array.isArray(data.items)) {
+				requests = data.items;
+			} else if (data.requests && Array.isArray(data.requests)) {
+				requests = data.requests;
+			} else if (Array.isArray(data)) {
+				requests = data;
+			}
+		}
 		
 		if (requests.length === 0) {
 			renderEmptyState($container, "No approval requests found matching your criteria.");
@@ -258,7 +270,13 @@
 			return;
 		}
 		
-		var total = data && data.totalCount !== undefined ? data.totalCount : (data && data.total_count !== undefined ? data.total_count : 0);
+		// Handle multiple possible property names for total count (API returns TotalCount)
+		var total = 0;
+		if (data) {
+			if (data.TotalCount !== undefined) total = data.TotalCount;
+			else if (data.totalCount !== undefined) total = data.totalCount;
+			else if (data.total_count !== undefined) total = data.total_count;
+		}
 		var pageSize = currentFilters.pageSize;
 		totalPages = Math.ceil(total / pageSize) || 1;
 		

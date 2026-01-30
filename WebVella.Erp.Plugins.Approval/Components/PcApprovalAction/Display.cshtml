@@ -17,6 +17,8 @@
     var options = (PcApprovalAction.PcApprovalActionOptions)ViewBag.Options;
     var requestId = ViewBag.RequestId != null ? (Guid)ViewBag.RequestId : Guid.Empty;
     var request = ViewBag.Request as EntityRecord;
+    var step = ViewBag.Step as EntityRecord;
+    var workflow = ViewBag.Workflow as EntityRecord;
     var canApprove = ViewBag.CanApprove != null ? (bool)ViewBag.CanApprove : false;
     var delegateUsers = ViewBag.DelegateUsers as List<EntityRecord> ?? new List<EntityRecord>();
     
@@ -36,9 +38,16 @@
     var approveModalId = $"approveModal_{uniqueId}";
     var rejectModalId = $"rejectModal_{uniqueId}";
     var delegateModalId = $"delegateModal_{uniqueId}";
+    
+    // Extract request details for display
+    var workflowName = workflow != null && workflow["name"] != null ? workflow["name"].ToString() : "N/A";
+    var stepName = step != null && step["name"] != null ? step["name"].ToString() : "N/A";
+    var stepOrder = step != null && step["step_order"] != null ? step["step_order"].ToString() : "1";
+    var sourceEntity = request != null && request["source_entity_name"] != null ? request["source_entity_name"].ToString() : "N/A";
+    var requestedOn = request != null && request["requested_on"] != null ? ((DateTime)request["requested_on"]).ToString("dd MMM yyyy HH:mm") : "N/A";
 }
 
-<div class="approval-actions" data-request-id="@requestId">
+<div class="approval-actions" data-approval-action-component data-request-id="@requestId">
     @if (requestId == Guid.Empty)
     {
         <!-- No request ID configured or found -->
@@ -86,6 +95,45 @@
     }
     else
     {
+        <!-- Display request details section -->
+        @if (request != null)
+        {
+            <div class="approval-request-details card mb-3">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Approval Request Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Workflow:</dt>
+                                <dd class="col-sm-7">@workflowName</dd>
+                                
+                                <dt class="col-sm-5">Current Step:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-primary">Step @stepOrder</span> @stepName
+                                </dd>
+                                
+                                <dt class="col-sm-5">Status:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge bg-warning text-dark">@status.ToUpper()</span>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Source Entity:</dt>
+                                <dd class="col-sm-7"><code>@sourceEntity</code></dd>
+                                
+                                <dt class="col-sm-5">Requested On:</dt>
+                                <dd class="col-sm-7">@requestedOn</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        
         <!-- Render action buttons for pending requests when user can approve -->
         <div class="btn-group" role="group" aria-label="Approval Actions">
             @if (options.ShowApprove)
