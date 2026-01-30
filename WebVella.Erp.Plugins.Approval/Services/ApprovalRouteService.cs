@@ -111,27 +111,25 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 var rulesResult = new EqlCommand(rulesEql, rulesParams).Execute();
 
                 // If workflow has no rules, it matches by default (no conditions to fail)
+                // Per STORY-004: "No rules means always applies"
                 if (rulesResult == null || !rulesResult.Any())
                 {
                     return MapToWorkflowModel(workflowRecord);
                 }
 
-                // Evaluate all rules - all rules must match for workflow to apply
-                bool allRulesMatch = true;
+                // Evaluate rules - per STORY-004, if ANY rule matches, workflow applies (OR logic)
+                // This allows threshold rules like "amount > 1000 OR amount > 5000" to work correctly
                 foreach (var ruleRecord in rulesResult)
                 {
                     var rule = MapToRuleModel(ruleRecord);
-                    if (!EvaluateRule(record, rule))
+                    if (EvaluateRule(record, rule))
                     {
-                        allRulesMatch = false;
-                        break;
+                        // At least one rule matches - workflow applies
+                        return MapToWorkflowModel(workflowRecord);
                     }
                 }
 
-                if (allRulesMatch)
-                {
-                    return MapToWorkflowModel(workflowRecord);
-                }
+                // No rules matched for this workflow - continue to next workflow
             }
 
             // No workflow matched

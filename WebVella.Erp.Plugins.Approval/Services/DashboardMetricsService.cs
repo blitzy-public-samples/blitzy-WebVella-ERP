@@ -101,7 +101,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 {
                     new EqlParameter("status", "approved")
                 };
-                var eql = "SELECT id, requested_on, completed_on FROM approval_request WHERE status = @status AND completed_on IS NOT NULL";
+                // Note: Removed "IS NOT NULL" check from EQL as it may not be supported.
+                // Null checking is done in C# code below.
+                var eql = "SELECT id, requested_on, completed_on FROM approval_request WHERE status = @status";
                 var records = new EqlCommand(eql, eqlParams).Execute();
 
                 if (records == null || !records.Any())
@@ -112,8 +114,25 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 foreach (var record in records)
                 {
-                    var requestedOn = record["requested_on"] as DateTime?;
-                    var completedOn = record["completed_on"] as DateTime?;
+                    DateTime? requestedOn = null;
+                    DateTime? completedOn = null;
+                    
+                    // Handle different possible types from EQL result
+                    if (record["requested_on"] != null)
+                    {
+                        if (record["requested_on"] is DateTime dt)
+                            requestedOn = dt;
+                        else if (DateTime.TryParse(record["requested_on"].ToString(), out DateTime parsed))
+                            requestedOn = parsed;
+                    }
+                    
+                    if (record["completed_on"] != null)
+                    {
+                        if (record["completed_on"] is DateTime dt)
+                            completedOn = dt;
+                        else if (DateTime.TryParse(record["completed_on"].ToString(), out DateTime parsed))
+                            completedOn = parsed;
+                    }
 
                     if (requestedOn.HasValue && completedOn.HasValue)
                     {
@@ -239,8 +258,26 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     // Count pending requests that have exceeded their timeout
                     foreach (var record in pendingRecords)
                     {
-                        var requestedOn = record["requested_on"] as DateTime?;
-                        var currentStepId = record["current_step_id"] as Guid?;
+                        DateTime? requestedOn = null;
+                        Guid? currentStepId = null;
+                        
+                        // Handle DateTime parsing
+                        if (record["requested_on"] != null)
+                        {
+                            if (record["requested_on"] is DateTime dt)
+                                requestedOn = dt;
+                            else if (DateTime.TryParse(record["requested_on"].ToString(), out DateTime parsed))
+                                requestedOn = parsed;
+                        }
+                        
+                        // Handle Guid parsing
+                        if (record["current_step_id"] != null)
+                        {
+                            if (record["current_step_id"] is Guid g)
+                                currentStepId = g;
+                            else if (Guid.TryParse(record["current_step_id"].ToString(), out Guid parsedGuid))
+                                currentStepId = parsedGuid;
+                        }
 
                         if (requestedOn.HasValue && currentStepId.HasValue && stepTimeouts.ContainsKey(currentStepId.Value))
                         {

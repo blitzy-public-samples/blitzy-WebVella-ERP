@@ -91,8 +91,15 @@
                         <select name="status" class="form-control form-control-sm w-100">
                             @foreach (var statusOption in statusOptions)
                             {
-                                var isSelected = statusOption.Value == options.StatusFilter;
-                                <option value="@statusOption.Value" selected="@isSelected">@statusOption.Label</option>
+                                var isSelected = statusOption.Value == (options.StatusFilter ?? "");
+                                if (isSelected)
+                                {
+                                    <option value="@statusOption.Value" selected>@statusOption.Label</option>
+                                }
+                                else
+                                {
+                                    <option value="@statusOption.Value">@statusOption.Label</option>
+                                }
                             }
                         </select>
                     </div>

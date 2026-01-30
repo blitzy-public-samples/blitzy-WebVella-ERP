@@ -43,7 +43,7 @@
     var workflowName = workflow != null && workflow["name"] != null ? workflow["name"].ToString() : "N/A";
     var stepName = step != null && step["name"] != null ? step["name"].ToString() : "N/A";
     var stepOrder = step != null && step["step_order"] != null ? step["step_order"].ToString() : "1";
-    var sourceEntity = request != null && request["source_entity_name"] != null ? request["source_entity_name"].ToString() : "N/A";
+    var sourceEntity = request != null && request["source_entity"] != null ? request["source_entity"].ToString() : "N/A";
     var requestedOn = request != null && request["requested_on"] != null ? ((DateTime)request["requested_on"]).ToString("dd MMM yyyy HH:mm") : "N/A";
 }
 

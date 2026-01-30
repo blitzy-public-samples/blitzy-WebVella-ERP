@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
@@ -166,10 +167,26 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 // Skip data loading for Options and Help modes as they don't need it
                 if (context.Mode != ComponentMode.Options && context.Mode != ComponentMode.Help)
                 {
-                    // Resolve the request ID from the data source binding
+                    // Resolve the request ID from the data source binding or query parameter
                     Guid requestId = Guid.Empty;
                     
-                    if (!string.IsNullOrWhiteSpace(options.RequestId))
+                    // First, try to get request ID from query parameter
+                    HttpContext httpContext = null;
+                    if (ErpRequestContext.PageContext != null)
+                    {
+                        httpContext = ErpRequestContext.PageContext.HttpContext;
+                        if (httpContext?.Request?.Query != null)
+                        {
+                            var requestIdParam = httpContext.Request.Query["requestId"].FirstOrDefault();
+                            if (!string.IsNullOrEmpty(requestIdParam) && Guid.TryParse(requestIdParam, out Guid parsedId))
+                            {
+                                requestId = parsedId;
+                            }
+                        }
+                    }
+                    
+                    // If not in query params, try the options
+                    if (requestId == Guid.Empty && !string.IsNullOrWhiteSpace(options.RequestId))
                     {
                         // Try to get the value from data source binding (e.g., {{Record.id}})
                         var requestIdValue = context.DataModel.GetPropertyValueByDataSource(options.RequestId);

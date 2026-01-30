@@ -63,7 +63,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
             /// Valid values: "pending", "approved", "rejected", "escalated", "expired", or empty for all.
             /// </summary>
             [JsonProperty(PropertyName = "status_filter")]
-            public string StatusFilter { get; set; } = "pending";
+            public string StatusFilter { get; set; } = "";
 
             /// <summary>
             /// Gets or sets the page size for pagination.
@@ -150,7 +150,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 #region << Data Loading for Display Mode >>
                 if (context.Mode != ComponentMode.Options && context.Mode != ComponentMode.Help)
                 {
-                    // Get the current page number from query string (default to 1)
+                    // Get query parameters for filtering and pagination
                     int currentPageNumber = 1;
                     HttpContext httpContext = null;
                     if (ErpRequestContext.PageContext != null)
@@ -158,10 +158,20 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         httpContext = ErpRequestContext.PageContext.HttpContext;
                         if (httpContext?.Request?.Query != null)
                         {
-                            var pageParam = httpContext.Request.Query["page"].FirstOrDefault();
+                            var query = httpContext.Request.Query;
+                            
+                            // Get page number from query string
+                            var pageParam = query["page"].FirstOrDefault();
                             if (!string.IsNullOrEmpty(pageParam) && int.TryParse(pageParam, out int parsedPage))
                             {
                                 currentPageNumber = Math.Max(1, parsedPage);
+                            }
+                            
+                            // Override StatusFilter from query string if present
+                            var statusParam = query["status"].FirstOrDefault();
+                            if (statusParam != null) // null means not present, empty string means "All Statuses"
+                            {
+                                options.StatusFilter = statusParam;
                             }
                         }
                     }
@@ -235,22 +245,8 @@ namespace WebVella.Erp.Plugins.Approval.Components
                             ? " WHERE " + string.Join(" AND ", whereConditions)
                             : "";
 
-                        // First, get total count for pagination
-                        string countEql = $"SELECT COUNT(*) AS count FROM approval_request{whereClause}";
-                        var countResult = new EqlCommand(countEql, eqlParams).Execute();
-                        if (countResult.Any())
-                        {
-                            var countRecord = countResult.First();
-                            if (countRecord.Properties.ContainsKey("count") && countRecord["count"] != null)
-                            {
-                                totalCount = Convert.ToInt32(countRecord["count"]);
-                            }
-                        }
-
-                        // Calculate pagination
-                        int skipCount = (currentPageNumber - 1) * options.PageSize;
-
                         // Build the main query with pagination
+                        // Note: EQL automatically adds ___total_count___ when using PAGE/PAGESIZE
                         string eqlCommand = $"SELECT * FROM approval_request{whereClause} ORDER BY requested_on DESC PAGE {currentPageNumber} PAGESIZE {options.PageSize}";
 
                         // Execute the query
@@ -258,6 +254,18 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         if (eqlResult != null && eqlResult.Any())
                         {
                             records = eqlResult.ToList();
+                            
+                            // Get total count from the first record (EQL adds ___total_count___ automatically)
+                            var firstRecord = records.First();
+                            if (firstRecord.Properties.ContainsKey("___total_count___") && firstRecord["___total_count___"] != null)
+                            {
+                                totalCount = Convert.ToInt32(firstRecord["___total_count___"]);
+                            }
+                            else
+                            {
+                                // Fallback: just use the count of returned records
+                                totalCount = records.Count;
+                            }
                         }
                     }
 
