@@ -55,7 +55,7 @@
     // Define grid columns for the approval request list
     var gridColumns = new List<WvGridColumnMeta>
     {
-        new WvGridColumnMeta { Name = "action", Label = "", Width = "50px" },
+        new WvGridColumnMeta { Name = "action", Label = "Actions", Width = "120px" },
         new WvGridColumnMeta { Name = "workflow_name", Label = "Workflow", Width = "" },
         new WvGridColumnMeta { Name = "source_entity", Label = "Source Entity", Width = "150px" },
         new WvGridColumnMeta { Name = "status", Label = "Status", Width = "100px" },
@@ -196,11 +196,27 @@
                     : "N/A";
                 
                 <wv-grid-row>
-                    @* Action Column - View Details Link *@
-                    <wv-grid-column width="50px" class="text-center">
-                        <a href="@siteRootUrl/approval/request/@recordId" class="btn btn-sm btn-outline-primary" title="View Request Details">
-                            <i class="fas fa-eye"></i>
-                        </a>
+                    @* Action Column - View and Inline Action Buttons *@
+                    <wv-grid-column width="120px" class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            @* View button - always shown *@
+                            <a href="@siteRootUrl/approval/request/@recordId" class="btn btn-sm btn-outline-primary" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if (status == "pending")
+                            {
+                                @* Approve button - shown only for pending requests *@
+                                <button type="button" class="btn btn-sm btn-success" 
+                                        onclick="openInlineApproveModal('@recordId')" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                @* Reject button - shown only for pending requests *@
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        onclick="openInlineRejectModal('@recordId')" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
+                        </div>
                     </wv-grid-column>
                     
                     @* Workflow Name Column *@
@@ -336,6 +352,83 @@
     }
 </div>
 
+@* Shared Approve Modal for Inline Actions *@
+<div class="modal fade" id="inlineApproveModal" tabindex="-1" aria-labelledby="inlineApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="inlineApproveModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>Approve Request
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inlineApproveRequestId" value="" />
+                <p class="text-muted mb-3">
+                    You are about to approve this request. This action will advance the request to the next approval step, 
+                    or mark it as fully approved if this is the final step.
+                </p>
+                <div class="mb-3">
+                    <label for="inlineApproveComments" class="form-label">Comments (Optional)</label>
+                    <textarea class="form-control" id="inlineApproveComments" rows="3" 
+                              placeholder="Enter any comments about your approval decision..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitInlineApprove()">
+                    <i class="fas fa-check me-1"></i>Confirm Approval
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Shared Reject Modal for Inline Actions *@
+<div class="modal fade" id="inlineRejectModal" tabindex="-1" aria-labelledby="inlineRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="inlineRejectModalLabel">
+                    <i class="fas fa-times-circle me-2"></i>Reject Request
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inlineRejectRequestId" value="" />
+                <p class="text-muted mb-3">
+                    You are about to reject this request. Please provide a reason for the rejection.
+                </p>
+                <div class="mb-3">
+                    <label for="inlineRejectReason" class="form-label">
+                        Reason for Rejection <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="inlineRejectReason" rows="3" 
+                              placeholder="Enter the reason for rejecting this request..." required></textarea>
+                    <div class="invalid-feedback">
+                        Please provide a reason for rejection.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="inlineRejectComments" class="form-label">Additional Comments (Optional)</label>
+                    <textarea class="form-control" id="inlineRejectComments" rows="2" 
+                              placeholder="Enter any additional comments..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitInlineReject()">
+                    <i class="fas fa-ban me-1"></i>Confirm Rejection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* Inline Styles for Component *@
 <style>
     .pc-approval-request-list .badge {
@@ -373,6 +466,165 @@
 
 @* Reference external service.js for page builder lifecycle events *@
 <script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/service.js"></script>
+
+@* Inline Action Scripts *@
+<script type="text/javascript">
+    /**
+     * Opens the approve modal and sets the request ID
+     */
+    function openInlineApproveModal(requestId) {
+        document.getElementById('inlineApproveRequestId').value = requestId;
+        document.getElementById('inlineApproveComments').value = '';
+        
+        var modalElement = document.getElementById('inlineApproveModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalElement).modal('show');
+        }
+    }
+    
+    /**
+     * Opens the reject modal and sets the request ID
+     */
+    function openInlineRejectModal(requestId) {
+        document.getElementById('inlineRejectRequestId').value = requestId;
+        document.getElementById('inlineRejectReason').value = '';
+        document.getElementById('inlineRejectReason').classList.remove('is-invalid');
+        document.getElementById('inlineRejectComments').value = '';
+        
+        var modalElement = document.getElementById('inlineRejectModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalElement).modal('show');
+        }
+    }
+    
+    /**
+     * Submits the inline approve action
+     */
+    function submitInlineApprove() {
+        var requestId = document.getElementById('inlineApproveRequestId').value;
+        var comments = document.getElementById('inlineApproveComments').value.trim();
+        
+        if (!requestId) {
+            console.error('No request ID found for approval');
+            return;
+        }
+        
+        performInlineAction(
+            '/api/v3.0/p/approval/request/' + requestId + '/approve',
+            { comments: comments },
+            'inlineApproveModal',
+            'Request approved successfully!'
+        );
+    }
+    
+    /**
+     * Submits the inline reject action
+     */
+    function submitInlineReject() {
+        var requestId = document.getElementById('inlineRejectRequestId').value;
+        var reasonField = document.getElementById('inlineRejectReason');
+        var reason = reasonField.value.trim();
+        var comments = document.getElementById('inlineRejectComments').value.trim();
+        
+        if (!requestId) {
+            console.error('No request ID found for rejection');
+            return;
+        }
+        
+        // Validate required reason field
+        if (!reason) {
+            reasonField.classList.add('is-invalid');
+            reasonField.focus();
+            return;
+        }
+        reasonField.classList.remove('is-invalid');
+        
+        performInlineAction(
+            '/api/v3.0/p/approval/request/' + requestId + '/reject',
+            { reason: reason, comments: comments },
+            'inlineRejectModal',
+            'Request rejected.'
+        );
+    }
+    
+    /**
+     * Performs an inline approval/rejection action via AJAX
+     */
+    function performInlineAction(url, data, modalId, successMessage) {
+        var btn = document.querySelector('#' + modalId + ' .modal-footer .btn-success, #' + modalId + ' .modal-footer .btn-danger');
+        var originalHtml = btn ? btn.innerHTML : '';
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+        }
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) {
+                    throw new Error(err.message || 'An error occurred');
+                });
+            }
+            return response.json();
+        })
+        .then(function(result) {
+            // Close the modal
+            var modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                    $(modalElement).modal('hide');
+                }
+            }
+            
+            // Show success message
+            if (typeof toastr !== 'undefined') {
+                toastr.success(successMessage);
+            } else {
+                alert(successMessage);
+            }
+            
+            // Refresh the page to show updated status
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(function(error) {
+            console.error('Inline action error:', error);
+            
+            // Show error message
+            if (typeof toastr !== 'undefined') {
+                toastr.error(error.message || 'An error occurred while processing your request.');
+            } else {
+                alert('Error: ' + (error.message || 'An error occurred while processing your request.'));
+            }
+            
+            // Re-enable the button
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    }
+</script>
 
 @* Auto-refresh Script Integration *@
 @if (options.AutoRefresh)

@@ -146,88 +146,42 @@
     };
 }
 
+@* 
+    Timeline container - populated via AJAX from GET /api/v3.0/p/approval/request/{id}/history
+    The service.js auto-initializes elements with data-approval-history-component attribute
+    and loads history data from the REST API endpoint per AC13 requirements.
+*@
 <div class="pc-approval-history" data-approval-history-component data-request-id="@requestId.ToString()">
-    @if (!string.IsNullOrWhiteSpace(queryError))
+    @if (requestId == Guid.Empty)
     {
-        <div class="alert alert-warning" role="alert">
-            <i class="fas fa-exclamation-triangle mr-2"></i>
-            Unable to load history: @queryError
-        </div>
-    }
-    else if (historyRecords.Count == 0)
-    {
+        @* No request ID - show static message *@
         <div class="card">
             <div class="card-body text-center py-5">
                 <i class="fas fa-history fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">No History Available</h5>
-                <p class="text-muted mb-0">
-                    @if (requestId == Guid.Empty)
-                    {
-                        <text>No approval request specified.</text>
-                    }
-                    else
-                    {
-                        <text>No actions have been recorded for this approval request yet.</text>
-                    }
-                </p>
+                <p class="text-muted mb-0">No approval request specified.</p>
             </div>
         </div>
     }
     else
     {
-        <div class="approval-timeline">
-            @foreach (var record in historyRecords)
-            {
-                var action = record["action"] as string ?? "unknown";
-                var performedBy = record["performed_by"] != null ? (Guid)record["performed_by"] : Guid.Empty;
-                var performedOn = record["performed_on"];
-                var comments = record["comments"] as string;
-                
-                var iconClass = GetActionIcon(action);
-                var colorClass = GetActionColor(action);
-                var actionText = GetActionDisplayText(action);
-                var userName = GetUserDisplayName(performedBy);
-                var formattedDate = FormatDateTime(performedOn);
-                
-                <div class="timeline-item mb-3">
-                    <div class="d-flex">
-                        <div class="timeline-badge bg-@colorClass text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
-                            <i class="@iconClass"></i>
-                        </div>
-                        <div class="timeline-content ml-3 flex-grow-1">
-                            <div class="card border-@colorClass">
-                                <div class="card-header bg-@colorClass text-white py-2 px-3">
-                                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                        <strong>@actionText</strong>
-                                        <small class="opacity-75">
-                                            <i class="fas fa-clock mr-1"></i>@formattedDate
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="card-body py-2 px-3">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-user text-muted mr-2"></i>
-                                        <span class="font-weight-medium">@userName</span>
-                                    </div>
-                                    @if (!string.IsNullOrWhiteSpace(comments))
-                                    {
-                                        <div class="timeline-comments mt-2 pt-2 border-top">
-                                            <div class="d-flex">
-                                                <i class="fas fa-comment text-muted mr-2 mt-1"></i>
-                                                <p class="mb-0 text-muted small">@comments</p>
-                                            </div>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @if (record != historyRecords[historyRecords.Count - 1])
-                    {
-                        <div class="timeline-connector" style="width: 2px; height: 20px; background-color: #dee2e6; margin-left: 19px;"></div>
-                    }
-                </div>
-            }
+        @* 
+            Loading state placeholder - will be replaced by service.js renderTimeline()
+            when data is loaded via GET /api/v3.0/p/approval/request/{requestId}/history
+        *@
+        <div id="approval-timeline-container" class="approval-timeline-ajax-container">
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">Loading approval history...</p>
+            </div>
+        </div>
+        
+        @* Refresh button for manual reload *@
+        <div class="mt-2 text-end">
+            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                    data-refresh-approval-history data-target=".pc-approval-history[data-request-id='@requestId.ToString()']">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
         </div>
     }
 </div>

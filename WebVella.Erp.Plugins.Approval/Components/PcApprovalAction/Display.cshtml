@@ -193,7 +193,8 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>Cancel
                         </button>
-                        <button type="button" class="btn btn-success confirm-approve" data-request-id="@requestId" data-modal-id="@approveModalId">
+                        <button type="button" class="btn btn-success confirm-approve" 
+                                onclick="approveAction('@requestId', '@approveModalId')">
                             <i class="fas fa-check me-1"></i>Confirm Approval
                         </button>
                     </div>
@@ -238,7 +239,8 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>Cancel
                         </button>
-                        <button type="button" class="btn btn-danger confirm-reject" data-request-id="@requestId" data-modal-id="@rejectModalId">
+                        <button type="button" class="btn btn-danger confirm-reject" 
+                                onclick="rejectAction('@requestId', '@rejectModalId')">
                             <i class="fas fa-ban me-1"></i>Confirm Rejection
                         </button>
                     </div>
@@ -299,7 +301,8 @@
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>Cancel
                         </button>
-                        <button type="button" class="btn btn-primary confirm-delegate" data-request-id="@requestId" data-modal-id="@delegateModalId">
+                        <button type="button" class="btn btn-primary confirm-delegate" 
+                                onclick="delegateAction('@requestId', '@delegateModalId')">
                             <i class="fas fa-paper-plane me-1"></i>Confirm Delegation
                         </button>
                     </div>
@@ -311,174 +314,160 @@
     <!-- Reference external service.js for page builder lifecycle events -->
     <script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalAction/service.js"></script>
     
-    <!-- Inline script to initialize service.js functionality -->
+    <!-- Inline script with action functions for onclick handlers -->
     <script>
-        (function () {
-            'use strict';
+        /**
+         * Approve action - called when Confirm Approval button is clicked
+         * Gets comments from modal textarea and calls API
+         */
+        function approveAction(requestId, modalId) {
+            var commentsTextarea = document.querySelector('#' + modalId + '_comments');
+            var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+            
+            // Call the performApprovalAction function
+            performApprovalAction(
+                '/api/v3.0/p/approval/request/' + requestId + '/approve',
+                { comments: comments },
+                modalId,
+                'Request approved successfully!'
+            );
+        }
 
-            // Wait for DOM and service.js to be ready
-            document.addEventListener('DOMContentLoaded', function () {
-                // Find the approval actions container for this component instance
-                var container = document.querySelector('[data-request-id="@requestId"]');
-                if (!container) return;
+        /**
+         * Reject action - called when Confirm Rejection button is clicked
+         * Gets reason (required) and comments from modal fields
+         */
+        function rejectAction(requestId, modalId) {
+            var reasonTextarea = document.querySelector('#' + modalId + '_reason');
+            var commentsTextarea = document.querySelector('#' + modalId + '_comments');
+            var reason = reasonTextarea ? reasonTextarea.value.trim() : '';
+            var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+            
+            // Validate required reason field
+            if (!reason) {
+                reasonTextarea.classList.add('is-invalid');
+                reasonTextarea.focus();
+                return;
+            }
+            reasonTextarea.classList.remove('is-invalid');
+            
+            // Call the performApprovalAction function
+            performApprovalAction(
+                '/api/v3.0/p/approval/request/' + requestId + '/reject',
+                { reason: reason, comments: comments },
+                modalId,
+                'Request rejected.'
+            );
+        }
 
-                var requestId = '@requestId';
+        /**
+         * Delegate action - called when Confirm Delegation button is clicked
+         * Gets delegate user (required) and comments from modal fields
+         */
+        function delegateAction(requestId, modalId) {
+            var userSelect = document.querySelector('#' + modalId + '_user');
+            var commentsTextarea = document.querySelector('#' + modalId + '_comments');
+            var delegateToUserId = userSelect ? userSelect.value : '';
+            var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
+            
+            // Validate required user selection
+            if (!delegateToUserId) {
+                userSelect.classList.add('is-invalid');
+                userSelect.focus();
+                return;
+            }
+            userSelect.classList.remove('is-invalid');
+            
+            // Call the performApprovalAction function
+            performApprovalAction(
+                '/api/v3.0/p/approval/request/' + requestId + '/delegate',
+                { delegateToUserId: delegateToUserId, comments: comments },
+                modalId,
+                'Request delegated successfully!'
+            );
+        }
 
-                // Bind Approve confirmation button
-                var approveBtn = document.querySelector('#@approveModalId .confirm-approve');
-                if (approveBtn) {
-                    approveBtn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        var commentsTextarea = document.querySelector('#@(approveModalId)_comments');
-                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
-                        
-                        // Call the global approveRequest function from service.js
-                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.approveRequest === 'function') {
-                            window.WvApprovalAction.approveRequest(requestId, comments, '@approveModalId');
-                        } else {
-                            // Fallback inline AJAX call
-                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/approve', 
-                                { comments: comments }, '@approveModalId', 'Request approved successfully!');
-                        }
+        /**
+         * Performs an approval action via AJAX POST request.
+         * Handles loading state, success/error responses, and modal closing.
+         */
+        function performApprovalAction(url, data, modalId, successMessage) {
+            var btn = document.querySelector('#' + modalId + ' button[class*="confirm-"]');
+            var originalText = btn ? btn.innerHTML : '';
+            
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+            }
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    return response.json().then(function(err) {
+                        throw new Error(err.message || 'An error occurred');
                     });
                 }
-
-                // Bind Reject confirmation button
-                var rejectBtn = document.querySelector('#@rejectModalId .confirm-reject');
-                if (rejectBtn) {
-                    rejectBtn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        var reasonTextarea = document.querySelector('#@(rejectModalId)_reason');
-                        var commentsTextarea = document.querySelector('#@(rejectModalId)_comments');
-                        var reason = reasonTextarea ? reasonTextarea.value.trim() : '';
-                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
-                        
-                        // Validate required reason field
-                        if (!reason) {
-                            reasonTextarea.classList.add('is-invalid');
-                            reasonTextarea.focus();
-                            return;
-                        }
-                        reasonTextarea.classList.remove('is-invalid');
-                        
-                        // Call the global rejectRequest function from service.js
-                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.rejectRequest === 'function') {
-                            window.WvApprovalAction.rejectRequest(requestId, reason, comments, '@rejectModalId');
-                        } else {
-                            // Fallback inline AJAX call
-                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/reject', 
-                                { reason: reason, comments: comments }, '@rejectModalId', 'Request rejected.');
-                        }
-                    });
+                return response.json();
+            })
+            .then(function(result) {
+                // Close the modal
+                var modalElement = document.getElementById(modalId);
+                if (modalElement) {
+                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
                 }
-
-                // Bind Delegate confirmation button
-                var delegateBtn = document.querySelector('#@delegateModalId .confirm-delegate');
-                if (delegateBtn) {
-                    delegateBtn.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        var userSelect = document.querySelector('#@(delegateModalId)_user');
-                        var commentsTextarea = document.querySelector('#@(delegateModalId)_comments');
-                        var delegateToUserId = userSelect ? userSelect.value : '';
-                        var comments = commentsTextarea ? commentsTextarea.value.trim() : '';
-                        
-                        // Validate required user selection
-                        if (!delegateToUserId) {
-                            userSelect.classList.add('is-invalid');
-                            userSelect.focus();
-                            return;
-                        }
-                        userSelect.classList.remove('is-invalid');
-                        
-                        // Call the global delegateRequest function from service.js
-                        if (typeof window.WvApprovalAction !== 'undefined' && typeof window.WvApprovalAction.delegateRequest === 'function') {
-                            window.WvApprovalAction.delegateRequest(requestId, delegateToUserId, comments, '@delegateModalId');
-                        } else {
-                            // Fallback inline AJAX call
-                            performApprovalAction('/api/v3.0/p/approval/request/' + requestId + '/delegate', 
-                                { delegateToUserId: delegateToUserId, comments: comments }, '@delegateModalId', 'Request delegated successfully!');
-                        }
-                    });
+                
+                // Show success message using toastr if available
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(successMessage);
+                } else {
+                    alert(successMessage);
                 }
+                
+                // Refresh the page to show updated status
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            })
+            .catch(function(error) {
+                console.error('Approval action error:', error);
+                
+                // Show error message
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(error.message || 'An error occurred while processing your request.');
+                } else {
+                    alert('Error: ' + (error.message || 'An error occurred while processing your request.'));
+                }
+                
+                // Re-enable the button
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            });
+        }
 
-                // Clear validation state when modal is hidden
-                var modals = document.querySelectorAll('.modal');
-                modals.forEach(function(modal) {
-                    modal.addEventListener('hidden.bs.modal', function() {
-                        var invalidElements = modal.querySelectorAll('.is-invalid');
-                        invalidElements.forEach(function(el) {
-                            el.classList.remove('is-invalid');
-                        });
+        // Clear validation state when modal is hidden
+        document.addEventListener('DOMContentLoaded', function() {
+            var modals = document.querySelectorAll('.modal');
+            modals.forEach(function(modal) {
+                modal.addEventListener('hidden.bs.modal', function() {
+                    var invalidElements = modal.querySelectorAll('.is-invalid');
+                    invalidElements.forEach(function(el) {
+                        el.classList.remove('is-invalid');
                     });
                 });
             });
-
-            // Fallback AJAX function if service.js is not loaded
-            function performApprovalAction(url, data, modalId, successMessage) {
-                var btn = document.querySelector('#' + modalId + ' button[class*="confirm-"]');
-                var originalText = btn ? btn.innerHTML : '';
-                
-                if (btn) {
-                    btn.disabled = true;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
-                }
-
-                fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(function(response) {
-                    if (!response.ok) {
-                        return response.json().then(function(err) {
-                            throw new Error(err.message || 'An error occurred');
-                        });
-                    }
-                    return response.json();
-                })
-                .then(function(result) {
-                    // Close the modal
-                    var modalElement = document.getElementById(modalId);
-                    if (modalElement) {
-                        var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        }
-                    }
-                    
-                    // Show success message using toastr if available
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success(successMessage);
-                    } else {
-                        alert(successMessage);
-                    }
-                    
-                    // Refresh the page to show updated status
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1000);
-                })
-                .catch(function(error) {
-                    console.error('Approval action error:', error);
-                    
-                    // Show error message
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error(error.message || 'An error occurred while processing your request.');
-                    } else {
-                        alert('Error: ' + (error.message || 'An error occurred while processing your request.'));
-                    }
-                    
-                    // Re-enable the button
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                    }
-                });
-            }
-        })();
+        });
     </script>
 }
 
