@@ -104,26 +104,8 @@
                         </select>
                     </div>
                     
-                    @* Date From Filter *@
-                    <div class="col-md-2 mb-2 mb-md-0">
-                        <label class="small text-muted d-block">From Date</label>
-                        <input type="date" name="date_from" class="form-control form-control-sm w-100" />
-                    </div>
-                    
-                    @* Date To Filter *@
-                    <div class="col-md-2 mb-2 mb-md-0">
-                        <label class="small text-muted d-block">To Date</label>
-                        <input type="date" name="date_to" class="form-control form-control-sm w-100" />
-                    </div>
-                    
-                    @* Search Input *@
-                    <div class="col-md-3 mb-2 mb-md-0">
-                        <label class="small text-muted d-block">Search</label>
-                        <input type="text" name="search" class="form-control form-control-sm w-100" placeholder="Search requests..." />
-                    </div>
-                    
                     @* Filter Buttons *@
-                    <div class="col-md-3 mb-2 mb-md-0">
+                    <div class="col-md-6 mb-2 mb-md-0">
                         <label class="small text-muted d-block">&nbsp;</label>
                         <button type="submit" class="btn btn-primary btn-sm mr-1">
                             <i class="fas fa-filter"></i> Filter
@@ -353,14 +335,16 @@
 </div>
 
 @* Shared Approve Modal for Inline Actions *@
-<div class="modal fade" id="inlineApproveModal" tabindex="-1" aria-labelledby="inlineApproveModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="inlineApproveModal" tabindex="-1" role="dialog" aria-labelledby="inlineApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="inlineApproveModalLabel">
-                    <i class="fas fa-check-circle me-2"></i>Approve Request
+                    <i class="fas fa-check-circle mr-2"></i>Approve Request
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="inlineApproveRequestId" value="" />
@@ -368,18 +352,18 @@
                     You are about to approve this request. This action will advance the request to the next approval step, 
                     or mark it as fully approved if this is the final step.
                 </p>
-                <div class="mb-3">
-                    <label for="inlineApproveComments" class="form-label">Comments (Optional)</label>
+                <div class="form-group">
+                    <label for="inlineApproveComments">Comments (Optional)</label>
                     <textarea class="form-control" id="inlineApproveComments" rows="3" 
                               placeholder="Enter any comments about your approval decision..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancel
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-success" onclick="submitInlineApprove()">
-                    <i class="fas fa-check me-1"></i>Confirm Approval
+                    <i class="fas fa-check mr-1"></i>Confirm Approval
                 </button>
             </div>
         </div>
@@ -387,22 +371,24 @@
 </div>
 
 @* Shared Reject Modal for Inline Actions *@
-<div class="modal fade" id="inlineRejectModal" tabindex="-1" aria-labelledby="inlineRejectModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="inlineRejectModal" tabindex="-1" role="dialog" aria-labelledby="inlineRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="inlineRejectModalLabel">
-                    <i class="fas fa-times-circle me-2"></i>Reject Request
+                    <i class="fas fa-times-circle mr-2"></i>Reject Request
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="inlineRejectRequestId" value="" />
                 <p class="text-muted mb-3">
                     You are about to reject this request. Please provide a reason for the rejection.
                 </p>
-                <div class="mb-3">
-                    <label for="inlineRejectReason" class="form-label">
+                <div class="form-group">
+                    <label for="inlineRejectReason">
                         Reason for Rejection <span class="text-danger">*</span>
                     </label>
                     <textarea class="form-control" id="inlineRejectReason" rows="3" 
@@ -411,18 +397,18 @@
                         Please provide a reason for rejection.
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="inlineRejectComments" class="form-label">Additional Comments (Optional)</label>
+                <div class="form-group">
+                    <label for="inlineRejectComments">Additional Comments (Optional)</label>
                     <textarea class="form-control" id="inlineRejectComments" rows="2" 
                               placeholder="Enter any additional comments..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>Cancel
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-danger" onclick="submitInlineReject()">
-                    <i class="fas fa-ban me-1"></i>Confirm Rejection
+                    <i class="fas fa-ban mr-1"></i>Confirm Rejection
                 </button>
             </div>
         </div>
@@ -562,7 +548,7 @@
         
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
         }
         
         fetch(url, {

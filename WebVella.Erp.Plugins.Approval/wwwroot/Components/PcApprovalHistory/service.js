@@ -226,8 +226,8 @@
 
 			timelineHtml += '<div class="timeline-item d-flex mb-3">';
 			
-			// Timeline dot/icon
-			timelineHtml += '<div class="timeline-icon me-3">';
+			// Timeline dot/icon (Bootstrap 4: use mr-3 instead of me-3)
+			timelineHtml += '<div class="timeline-icon mr-3">';
 			timelineHtml += '<div class="rounded-circle d-flex align-items-center justify-content-center ' + bgColorClass + '" style="width: 40px; height: 40px;">';
 			timelineHtml += '<i class="fas ' + iconClass + ' text-white"></i>';
 			timelineHtml += '</div>';
@@ -237,20 +237,24 @@
 			timelineHtml += '<div class="timeline-content flex-grow-1">';
 			timelineHtml += '<div class="d-flex justify-content-between align-items-start">';
 			timelineHtml += '<div>';
-			timelineHtml += '<span class="fw-bold ' + colorClass + '">' + actionLabel + '</span>';
+			// Bootstrap 4: use font-weight-bold instead of fw-bold
+			timelineHtml += '<span class="font-weight-bold ' + colorClass + '">' + actionLabel + '</span>';
 			if (stepName) {
-				timelineHtml += '<span class="text-muted ms-2">(' + stepName + ')</span>';
+				// Bootstrap 4: use ml-2 instead of ms-2
+				timelineHtml += '<span class="text-muted ml-2">(' + stepName + ')</span>';
 			}
 			timelineHtml += '</div>';
 			timelineHtml += '<small class="text-muted">' + timestamp + '</small>';
 			timelineHtml += '</div>';
 			timelineHtml += '<div class="text-secondary mb-1">';
-			timelineHtml += '<i class="fas fa-user me-1"></i>' + userName;
+			// Bootstrap 4: use mr-1 instead of me-1
+			timelineHtml += '<i class="fas fa-user mr-1"></i>' + userName;
 			timelineHtml += '</div>';
 			
 			if (comments) {
 				timelineHtml += '<div class="timeline-comments mt-2 p-2 bg-light rounded">';
-				timelineHtml += '<i class="fas fa-comment me-1 text-muted"></i>';
+				// Bootstrap 4: use mr-1 instead of me-1
+				timelineHtml += '<i class="fas fa-comment mr-1 text-muted"></i>';
 				timelineHtml += '<span class="text-secondary">' + comments + '</span>';
 				timelineHtml += '</div>';
 			}
@@ -259,8 +263,9 @@
 			timelineHtml += '</div>'; // .timeline-item
 
 			// Add connecting line between items (except last item)
+			// Bootstrap 4: use ml-3 instead of ms-3
 			if (i < historyData.length - 1) {
-				timelineHtml += '<div class="timeline-connector ms-3 mb-3" style="border-left: 2px solid #dee2e6; height: 20px; margin-left: 19px;"></div>';
+				timelineHtml += '<div class="timeline-connector ml-3 mb-3" style="border-left: 2px solid #dee2e6; height: 20px; margin-left: 19px;"></div>';
 			}
 		}
 

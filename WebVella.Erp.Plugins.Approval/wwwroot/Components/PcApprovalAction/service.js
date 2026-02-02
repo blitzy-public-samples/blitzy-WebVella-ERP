@@ -8,7 +8,7 @@
  * 
  * Dependencies:
  * - jQuery (for AJAX and DOM manipulation)
- * - Bootstrap 5 (for modal handling)
+ * - Bootstrap 4 (for modal handling)
  * - toastr (optional, for toast notifications - falls back to alert if unavailable)
  */
 'use strict';
@@ -246,29 +246,31 @@
      * @returns {string} The modal HTML string.
      */
     function createApproveModalHtml() {
-        return '<div class="modal fade" id="' + MODAL_IDS.approve + '" tabindex="-1" aria-labelledby="' + MODAL_IDS.approve + '-label" aria-hidden="true">' +
-            '<div class="modal-dialog modal-dialog-centered">' +
+        return '<div class="modal fade" id="' + MODAL_IDS.approve + '" tabindex="-1" role="dialog" aria-labelledby="' + MODAL_IDS.approve + '-label" aria-hidden="true">' +
+            '<div class="modal-dialog modal-dialog-centered" role="document">' +
                 '<div class="modal-content">' +
                     '<div class="modal-header bg-success text-white">' +
                         '<h5 class="modal-title" id="' + MODAL_IDS.approve + '-label">' +
-                            '<i class="fas fa-check-circle me-2"></i>Approve Request' +
+                            '<i class="fas fa-check-circle mr-2"></i>Approve Request' +
                         '</h5>' +
-                        '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                        '<button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">' +
+                            '<span aria-hidden="true">&times;</span>' +
+                        '</button>' +
                     '</div>' +
                     '<div class="modal-body">' +
                         '<p>Are you sure you want to approve this request?</p>' +
-                        '<div class="mb-3">' +
-                            '<label for="approve-comments" class="form-label">Comments (optional)</label>' +
+                        '<div class="form-group">' +
+                            '<label for="approve-comments">Comments (optional)</label>' +
                             '<textarea class="form-control approval-comments" id="approve-comments" rows="3" ' +
                                 'placeholder="Enter any comments for this approval..."></textarea>' +
                         '</div>' +
                     '</div>' +
                     '<div class="modal-footer">' +
-                        '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">' +
-                            '<i class="fas fa-times me-1"></i>Cancel' +
+                        '<button type="button" class="btn btn-secondary" data-dismiss="modal">' +
+                            '<i class="fas fa-times mr-1"></i>Cancel' +
                         '</button>' +
                         '<button type="button" class="btn btn-success confirm-approve">' +
-                            '<i class="fas fa-check me-1"></i>Approve' +
+                            '<i class="fas fa-check mr-1"></i>Approve' +
                         '</button>' +
                     '</div>' +
                 '</div>' +
@@ -282,35 +284,37 @@
      * @returns {string} The modal HTML string.
      */
     function createRejectModalHtml() {
-        return '<div class="modal fade" id="' + MODAL_IDS.reject + '" tabindex="-1" aria-labelledby="' + MODAL_IDS.reject + '-label" aria-hidden="true">' +
-            '<div class="modal-dialog modal-dialog-centered">' +
+        return '<div class="modal fade" id="' + MODAL_IDS.reject + '" tabindex="-1" role="dialog" aria-labelledby="' + MODAL_IDS.reject + '-label" aria-hidden="true">' +
+            '<div class="modal-dialog modal-dialog-centered" role="document">' +
                 '<div class="modal-content">' +
                     '<div class="modal-header bg-danger text-white">' +
                         '<h5 class="modal-title" id="' + MODAL_IDS.reject + '-label">' +
-                            '<i class="fas fa-times-circle me-2"></i>Reject Request' +
+                            '<i class="fas fa-times-circle mr-2"></i>Reject Request' +
                         '</h5>' +
-                        '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                        '<button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">' +
+                            '<span aria-hidden="true">&times;</span>' +
+                        '</button>' +
                     '</div>' +
                     '<div class="modal-body">' +
                         '<p>Please provide a reason for rejecting this request.</p>' +
-                        '<div class="mb-3">' +
-                            '<label for="reject-reason" class="form-label">Reason <span class="text-danger">*</span></label>' +
+                        '<div class="form-group">' +
+                            '<label for="reject-reason">Reason <span class="text-danger">*</span></label>' +
                             '<textarea class="form-control rejection-reason" id="reject-reason" rows="2" required ' +
                                 'placeholder="Enter the reason for rejection (required)..."></textarea>' +
                             '<div class="invalid-feedback">Reason is required for rejection.</div>' +
                         '</div>' +
-                        '<div class="mb-3">' +
-                            '<label for="reject-comments" class="form-label">Additional Comments (optional)</label>' +
+                        '<div class="form-group">' +
+                            '<label for="reject-comments">Additional Comments (optional)</label>' +
                             '<textarea class="form-control rejection-comments" id="reject-comments" rows="2" ' +
                                 'placeholder="Enter any additional comments..."></textarea>' +
                         '</div>' +
                     '</div>' +
                     '<div class="modal-footer">' +
-                        '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">' +
-                            '<i class="fas fa-times me-1"></i>Cancel' +
+                        '<button type="button" class="btn btn-secondary" data-dismiss="modal">' +
+                            '<i class="fas fa-times mr-1"></i>Cancel' +
                         '</button>' +
                         '<button type="button" class="btn btn-danger confirm-reject">' +
-                            '<i class="fas fa-ban me-1"></i>Reject' +
+                            '<i class="fas fa-times mr-1"></i>Reject' +
                         '</button>' +
                     '</div>' +
                 '</div>' +
@@ -324,36 +328,38 @@
      * @returns {string} The modal HTML string.
      */
     function createDelegateModalHtml() {
-        return '<div class="modal fade" id="' + MODAL_IDS.delegate + '" tabindex="-1" aria-labelledby="' + MODAL_IDS.delegate + '-label" aria-hidden="true">' +
-            '<div class="modal-dialog modal-dialog-centered">' +
+        return '<div class="modal fade" id="' + MODAL_IDS.delegate + '" tabindex="-1" role="dialog" aria-labelledby="' + MODAL_IDS.delegate + '-label" aria-hidden="true">' +
+            '<div class="modal-dialog modal-dialog-centered" role="document">' +
                 '<div class="modal-content">' +
                     '<div class="modal-header bg-info text-white">' +
                         '<h5 class="modal-title" id="' + MODAL_IDS.delegate + '-label">' +
-                            '<i class="fas fa-share me-2"></i>Delegate Request' +
+                            '<i class="fas fa-share mr-2"></i>Delegate Request' +
                         '</h5>' +
-                        '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>' +
+                        '<button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">' +
+                            '<span aria-hidden="true">&times;</span>' +
+                        '</button>' +
                     '</div>' +
                     '<div class="modal-body">' +
                         '<p>Select a user to delegate this approval request to.</p>' +
-                        '<div class="mb-3">' +
-                            '<label for="delegate-user" class="form-label">Delegate To <span class="text-danger">*</span></label>' +
-                            '<select class="form-select delegate-user-select" id="delegate-user" required>' +
+                        '<div class="form-group">' +
+                            '<label for="delegate-user">Delegate To <span class="text-danger">*</span></label>' +
+                            '<select class="form-control delegate-user-select" id="delegate-user" required>' +
                                 '<option value="">-- Select User --</option>' +
                             '</select>' +
                             '<div class="invalid-feedback">Please select a user to delegate to.</div>' +
                         '</div>' +
-                        '<div class="mb-3">' +
-                            '<label for="delegate-comments" class="form-label">Instructions/Comments (optional)</label>' +
+                        '<div class="form-group">' +
+                            '<label for="delegate-comments">Instructions/Comments (optional)</label>' +
                             '<textarea class="form-control delegation-comments" id="delegate-comments" rows="3" ' +
                                 'placeholder="Enter any instructions or comments for the delegate..."></textarea>' +
                         '</div>' +
                     '</div>' +
                     '<div class="modal-footer">' +
-                        '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">' +
-                            '<i class="fas fa-times me-1"></i>Cancel' +
+                        '<button type="button" class="btn btn-secondary" data-dismiss="modal">' +
+                            '<i class="fas fa-times mr-1"></i>Cancel' +
                         '</button>' +
                         '<button type="button" class="btn btn-info confirm-delegate">' +
-                            '<i class="fas fa-paper-plane me-1"></i>Delegate' +
+                            '<i class="fas fa-share mr-1"></i>Delegate' +
                         '</button>' +
                     '</div>' +
                 '</div>' +
@@ -486,7 +492,8 @@
     }
 
     /**
-     * Shows a Bootstrap 5 modal by its ID.
+     * Shows a Bootstrap modal by its ID.
+     * Supports both Bootstrap 4 (via jQuery) and Bootstrap 5 (via native API).
      * 
      * @param {string} modalId - The ID of the modal to show.
      */
@@ -511,7 +518,8 @@
     }
 
     /**
-     * Closes a Bootstrap 5 modal by its ID.
+     * Closes a Bootstrap modal by its ID.
+     * Supports both Bootstrap 4 (via jQuery) and Bootstrap 5 (via native API).
      * 
      * @param {string} modalId - The ID of the modal to close.
      */
@@ -609,7 +617,7 @@
         // Show loading state on button
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
         }
 
         // Perform AJAX request using jQuery
@@ -714,6 +722,38 @@
             }
         }
     }
+
+    // Wire up approve action - called from inline onclick handlers
+    window.approveAction = function(requestId, modalId) {
+        var comments = $('#' + modalId).find('textarea[name="approve-comments"]').val();
+        window.WvApprovalAction.approveRequest(requestId, comments || '');
+    };
+
+    // Wire up reject action - called from inline onclick handlers
+    window.rejectAction = function(requestId, modalId) {
+        var reason = $('#' + modalId).find('textarea[name="reject-reason"]').val();
+        var comments = $('#' + modalId).find('textarea[name="reject-comments"]').val();
+        
+        if (!reason || reason.trim() === '') {
+            alert('Rejection reason is required');
+            return;
+        }
+        
+        window.WvApprovalAction.rejectRequest(requestId, comments || '', reason);
+    };
+
+    // Wire up delegate action - called from inline onclick handlers
+    window.delegateAction = function(requestId, modalId) {
+        var delegateUserId = $('#' + modalId).find('select[name="delegate-user"]').val();
+        var comments = $('#' + modalId).find('textarea[name="delegate-comments"]').val();
+        
+        if (!delegateUserId) {
+            alert('Please select a user to delegate to');
+            return;
+        }
+        
+        window.WvApprovalAction.delegateRequest(requestId, delegateUserId, comments || '');
+    };
 
     /**
      * DOM Ready Handler

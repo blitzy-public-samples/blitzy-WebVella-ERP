@@ -721,6 +721,11 @@
 				refreshList($(this));
 			});
 		},
+		loadRequests: function () {
+			$(".pc-approval-request-list").each(function () {
+				loadApprovalRequests($(this));
+			});
+		},
 		startAutoRefresh: function (interval) {
 			$(".pc-approval-request-list").each(function () {
 				startAutoRefresh($(this), interval);
@@ -744,7 +749,136 @@
 			$(".pc-approval-request-list").each(function () {
 				goToPage($(this), page);
 			});
+		},
+		/**
+		 * Approve request inline via AJAX
+		 * @param {string} requestId - The request ID to approve
+		 * @param {string} comments - Optional approval comments
+		 */
+		approveInline: function (requestId, comments) {
+			var url = API_BASE_URL + "/request/" + requestId + "/approve";
+			
+			$.ajax({
+				url: url,
+				type: "POST",
+				contentType: "application/json",
+				data: JSON.stringify({ comments: comments || "" }),
+				success: function (response) {
+					// Close any open modal (Bootstrap 4 compatible)
+					$('#approveModal').modal('hide');
+					$('#inlineApproveModal').modal('hide');
+					
+					showToast("Request approved successfully", "success");
+					
+					// Refresh the list
+					$(".pc-approval-request-list").each(function () {
+						loadApprovalRequests($(this));
+					});
+				},
+				error: function (xhr, status, error) {
+					var errorMessage = "Error approving request";
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMessage = xhr.responseJSON.message;
+					} else if (error) {
+						errorMessage = "Error approving request: " + error;
+					}
+					showToast(errorMessage, "error");
+				}
+			});
+		},
+		/**
+		 * Reject request inline via AJAX
+		 * @param {string} requestId - The request ID to reject
+		 * @param {string} reason - Required rejection reason
+		 * @param {string} comments - Optional additional comments
+		 */
+		rejectInline: function (requestId, reason, comments) {
+			var url = API_BASE_URL + "/request/" + requestId + "/reject";
+			
+			$.ajax({
+				url: url,
+				type: "POST",
+				contentType: "application/json",
+				data: JSON.stringify({ 
+					reason: reason || "",
+					comments: comments || ""
+				}),
+				success: function (response) {
+					// Close any open modal (Bootstrap 4 compatible)
+					$('#rejectModal').modal('hide');
+					$('#inlineRejectModal').modal('hide');
+					
+					showToast("Request rejected successfully", "success");
+					
+					// Refresh the list
+					$(".pc-approval-request-list").each(function () {
+						loadApprovalRequests($(this));
+					});
+				},
+				error: function (xhr, status, error) {
+					var errorMessage = "Error rejecting request";
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMessage = xhr.responseJSON.message;
+					} else if (error) {
+						errorMessage = "Error rejecting request: " + error;
+					}
+					showToast(errorMessage, "error");
+				}
+			});
 		}
+	};
+
+	// Create alias for approvalRequestList (alternative namespace)
+	window.approvalRequestList = window.PcApprovalRequestList;
+
+	/// Global window functions for inline modal actions (Bootstrap 4 compatible)
+	///////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Opens the approve modal and sets the request ID
+	 * @param {string} requestId - The request ID to approve
+	 */
+	window.openApproveModal = function (requestId) {
+		$('#approve-request-id').val(requestId);
+		$('#approve-comments').val('');
+		$('#approveModal').modal('show');
+	};
+
+	/**
+	 * Confirms the approve action from the modal
+	 */
+	window.confirmApprove = function () {
+		var requestId = $('#approve-request-id').val();
+		var comments = $('#approve-comments').val();
+		
+		window.approvalRequestList.approveInline(requestId, comments);
+	};
+
+	/**
+	 * Opens the reject modal and sets the request ID
+	 * @param {string} requestId - The request ID to reject
+	 */
+	window.openRejectModal = function (requestId) {
+		$('#reject-request-id').val(requestId);
+		$('#reject-reason').val('');
+		$('#reject-comments').val('');
+		$('#rejectModal').modal('show');
+	};
+
+	/**
+	 * Confirms the reject action from the modal
+	 */
+	window.confirmReject = function () {
+		var requestId = $('#reject-request-id').val();
+		var reason = $('#reject-reason').val();
+		var comments = $('#reject-comments').val();
+		
+		if (!reason || reason.trim() === '') {
+			alert('Rejection reason is required');
+			return;
+		}
+		
+		window.approvalRequestList.rejectInline(requestId, reason, comments);
 	};
 
 })(window, jQuery);

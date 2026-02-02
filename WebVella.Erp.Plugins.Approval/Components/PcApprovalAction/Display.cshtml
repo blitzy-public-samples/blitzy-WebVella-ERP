@@ -52,7 +52,7 @@
     {
         <!-- No request ID configured or found -->
         <div class="alert alert-warning" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
+            <i class="fas fa-exclamation-triangle mr-2"></i>
             No approval request is currently associated with this component.
         </div>
     }
@@ -63,23 +63,23 @@
             @switch (status)
             {
                 case "approved":
-                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <i class="fas fa-check-circle text-success mr-2"></i>
                     <span>This request has been <strong>approved</strong>.</span>
                     break;
                 case "rejected":
-                    <i class="fas fa-times-circle text-danger me-2"></i>
+                    <i class="fas fa-times-circle text-danger mr-2"></i>
                     <span>This request has been <strong>rejected</strong>.</span>
                     break;
                 case "escalated":
-                    <i class="fas fa-level-up-alt text-warning me-2"></i>
+                    <i class="fas fa-level-up-alt text-warning mr-2"></i>
                     <span>This request has been <strong>escalated</strong>.</span>
                     break;
                 case "expired":
-                    <i class="fas fa-clock text-secondary me-2"></i>
+                    <i class="fas fa-clock text-secondary mr-2"></i>
                     <span>This request has <strong>expired</strong>.</span>
                     break;
                 default:
-                    <i class="fas fa-info-circle me-2"></i>
+                    <i class="fas fa-info-circle mr-2"></i>
                     <span>Status: <strong>@status</strong></span>
                     break;
             }
@@ -89,7 +89,7 @@
     {
         <!-- User is not authorized to approve this request -->
         <div class="alert alert-secondary" role="alert">
-            <i class="fas fa-lock me-2"></i>
+            <i class="fas fa-lock mr-2"></i>
             You are not authorized to approve, reject, or delegate this request.
         </div>
     }
@@ -100,7 +100,7 @@
         {
             <div class="approval-request-details card mb-3">
                 <div class="card-header bg-light">
-                    <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Approval Request Details</h6>
+                    <h6 class="mb-0"><i class="fas fa-file-alt mr-2"></i>Approval Request Details</h6>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -111,12 +111,12 @@
                                 
                                 <dt class="col-sm-5">Current Step:</dt>
                                 <dd class="col-sm-7">
-                                    <span class="badge bg-primary">Step @stepOrder</span> @stepName
+                                    <span class="badge badge-primary">Step @stepOrder</span> @stepName
                                 </dd>
                                 
                                 <dt class="col-sm-5">Status:</dt>
                                 <dd class="col-sm-7">
-                                    <span class="badge bg-warning text-dark">@status.ToUpper()</span>
+                                    <span class="badge badge-warning text-dark">@status.ToUpper()</span>
                                 </dd>
                             </dl>
                         </div>
@@ -139,25 +139,25 @@
             @if (options.ShowApprove)
             {
                 <button type="button" class="btn btn-success btn-approve" 
-                        data-bs-toggle="modal" data-bs-target="#@approveModalId"
+                        data-toggle="modal" data-target="#@approveModalId"
                         title="Approve this request">
-                    <i class="fas fa-check me-1"></i> Approve
+                    <i class="fas fa-check mr-1"></i> Approve
                 </button>
             }
             @if (options.ShowReject)
             {
                 <button type="button" class="btn btn-danger btn-reject" 
-                        data-bs-toggle="modal" data-bs-target="#@rejectModalId"
+                        data-toggle="modal" data-target="#@rejectModalId"
                         title="Reject this request">
-                    <i class="fas fa-times me-1"></i> Reject
+                    <i class="fas fa-times mr-1"></i> Reject
                 </button>
             }
             @if (options.ShowDelegate)
             {
                 <button type="button" class="btn btn-primary btn-delegate" 
-                        data-bs-toggle="modal" data-bs-target="#@delegateModalId"
+                        data-toggle="modal" data-target="#@delegateModalId"
                         title="Delegate this request to another user">
-                    <i class="fas fa-share me-1"></i> Delegate
+                    <i class="fas fa-share mr-1"></i> Delegate
                 </button>
             }
         </div>
@@ -169,33 +169,35 @@
     <!-- Bootstrap Modal for Approve Action -->
     @if (options.ShowApprove)
     {
-        <div class="modal fade" id="@approveModalId" tabindex="-1" aria-labelledby="@(approveModalId)Label" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="@approveModalId" tabindex="-1" role="dialog" aria-labelledby="@(approveModalId)Label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header bg-success text-white">
                         <h5 class="modal-title" id="@(approveModalId)Label">
-                            <i class="fas fa-check-circle me-2"></i>Approve Request
+                            <i class="fas fa-check-circle mr-2"></i>Approve Request
                         </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <p class="text-muted mb-3">
                             You are about to approve this request. This action will advance the request to the next approval step, 
                             or mark it as fully approved if this is the final step.
                         </p>
-                        <div class="mb-3">
-                            <label for="@(approveModalId)_comments" class="form-label">Comments (Optional)</label>
-                            <textarea class="form-control approve-comments" id="@(approveModalId)_comments" 
+                        <div class="form-group">
+                            <label for="@(approveModalId)_comments">Comments (Optional)</label>
+                            <textarea class="form-control approve-comments" id="@(approveModalId)_comments" name="approve-comments"
                                       rows="3" placeholder="Enter any comments about your approval decision..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Cancel
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
                         </button>
                         <button type="button" class="btn btn-success confirm-approve" 
                                 onclick="approveAction('@requestId', '@approveModalId')">
-                            <i class="fas fa-check me-1"></i>Confirm Approval
+                            <i class="fas fa-check mr-1"></i>Confirm Approval
                         </button>
                     </div>
                 </div>
@@ -206,42 +208,44 @@
     <!-- Bootstrap Modal for Reject Action -->
     @if (options.ShowReject)
     {
-        <div class="modal fade" id="@rejectModalId" tabindex="-1" aria-labelledby="@(rejectModalId)Label" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="@rejectModalId" tabindex="-1" role="dialog" aria-labelledby="@(rejectModalId)Label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header bg-danger text-white">
                         <h5 class="modal-title" id="@(rejectModalId)Label">
-                            <i class="fas fa-times-circle me-2"></i>Reject Request
+                            <i class="fas fa-times-circle mr-2"></i>Reject Request
                         </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <p class="text-muted mb-3">
                             You are about to reject this request. Please provide a reason for the rejection.
                         </p>
-                        <div class="mb-3">
-                            <label for="@(rejectModalId)_reason" class="form-label">
+                        <div class="form-group">
+                            <label for="@(rejectModalId)_reason">
                                 Reason for Rejection <span class="text-danger">*</span>
                             </label>
-                            <textarea class="form-control reject-reason" id="@(rejectModalId)_reason" 
+                            <textarea class="form-control reject-reason" id="@(rejectModalId)_reason" name="reject-reason"
                                       rows="3" placeholder="Enter the reason for rejecting this request..." required></textarea>
                             <div class="invalid-feedback">
                                 Please provide a reason for rejection.
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="@(rejectModalId)_comments" class="form-label">Additional Comments (Optional)</label>
-                            <textarea class="form-control reject-comments" id="@(rejectModalId)_comments" 
+                        <div class="form-group">
+                            <label for="@(rejectModalId)_comments">Additional Comments (Optional)</label>
+                            <textarea class="form-control reject-comments" id="@(rejectModalId)_comments" name="reject-comments"
                                       rows="2" placeholder="Enter any additional comments..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Cancel
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
                         </button>
                         <button type="button" class="btn btn-danger confirm-reject" 
                                 onclick="rejectAction('@requestId', '@rejectModalId')">
-                            <i class="fas fa-ban me-1"></i>Confirm Rejection
+                            <i class="fas fa-times mr-1"></i>Confirm Rejection
                         </button>
                     </div>
                 </div>
@@ -252,25 +256,27 @@
     <!-- Bootstrap Modal for Delegate Action -->
     @if (options.ShowDelegate)
     {
-        <div class="modal fade" id="@delegateModalId" tabindex="-1" aria-labelledby="@(delegateModalId)Label" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="@delegateModalId" tabindex="-1" role="dialog" aria-labelledby="@(delegateModalId)Label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="@(delegateModalId)Label">
-                            <i class="fas fa-share me-2"></i>Delegate Request
+                            <i class="fas fa-share mr-2"></i>Delegate Request
                         </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div class="modal-body">
                         <p class="text-muted mb-3">
                             Delegate this approval request to another user. The selected user will be responsible 
                             for reviewing and taking action on this request.
                         </p>
-                        <div class="mb-3">
-                            <label for="@(delegateModalId)_user" class="form-label">
+                        <div class="form-group">
+                            <label for="@(delegateModalId)_user">
                                 Delegate To <span class="text-danger">*</span>
                             </label>
-                            <select class="form-select delegate-user" id="@(delegateModalId)_user" required>
+                            <select class="form-control delegate-user" id="@(delegateModalId)_user" name="delegate-user" required>
                                 <option value="">-- Select a user --</option>
                                 @foreach (var user in delegateUsers)
                                 {
@@ -291,19 +297,19 @@
                                 Please select a user to delegate to.
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="@(delegateModalId)_comments" class="form-label">Comments (Optional)</label>
-                            <textarea class="form-control delegate-comments" id="@(delegateModalId)_comments" 
+                        <div class="form-group">
+                            <label for="@(delegateModalId)_comments">Comments (Optional)</label>
+                            <textarea class="form-control delegate-comments" id="@(delegateModalId)_comments" name="delegate-comments"
                                       rows="3" placeholder="Enter any comments or instructions for the delegate..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Cancel
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
                         </button>
                         <button type="button" class="btn btn-primary confirm-delegate" 
                                 onclick="delegateAction('@requestId', '@delegateModalId')">
-                            <i class="fas fa-paper-plane me-1"></i>Confirm Delegation
+                            <i class="fas fa-share mr-1"></i>Confirm Delegation
                         </button>
                     </div>
                 </div>
@@ -397,7 +403,7 @@
             
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
             }
 
             fetch(url, {
@@ -417,13 +423,10 @@
                 return response.json();
             })
             .then(function(result) {
-                // Close the modal
-                var modalElement = document.getElementById(modalId);
-                if (modalElement) {
-                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
+                // Close the modal (Bootstrap 4 uses jQuery)
+                var modalElement = $('#' + modalId);
+                if (modalElement.length) {
+                    modalElement.modal('hide');
                 }
                 
                 // Show success message using toastr if available
@@ -456,16 +459,10 @@
             });
         }
 
-        // Clear validation state when modal is hidden
-        document.addEventListener('DOMContentLoaded', function() {
-            var modals = document.querySelectorAll('.modal');
-            modals.forEach(function(modal) {
-                modal.addEventListener('hidden.bs.modal', function() {
-                    var invalidElements = modal.querySelectorAll('.is-invalid');
-                    invalidElements.forEach(function(el) {
-                        el.classList.remove('is-invalid');
-                    });
-                });
+        // Clear validation state when modal is hidden (Bootstrap 4 jQuery events)
+        $(document).ready(function() {
+            $('.modal').on('hidden.bs.modal', function() {
+                $(this).find('.is-invalid').removeClass('is-invalid');
             });
         });
     </script>

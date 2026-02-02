@@ -32,6 +32,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		private const string NOTIFICATION_ENTITY_NAME = "approval_notification";
 
 		/// <summary>
+		/// Entity name for the Mail plugin's email queue.
+		/// Used for direct email integration with WebVella.Erp.Plugins.Mail.
+		/// </summary>
+		private const string EMAIL_ENTITY_NAME = "email";
+
+		/// <summary>
 		/// Entity name for approval request records.
 		/// </summary>
 		private const string REQUEST_ENTITY_NAME = "approval_request";
@@ -70,6 +76,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		/// Notification status for failed delivery.
 		/// </summary>
 		private const string STATUS_FAILED = "failed";
+
+		/// <summary>
+		/// Normal email priority for the Mail plugin.
+		/// </summary>
+		private const int PRIORITY_NORMAL = 3;
 
 		#endregion
 
@@ -454,7 +465,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		}
 
 		/// <summary>
-		/// Creates a notification record in the notification queue.
+		/// Creates a notification record by sending an email through the Mail plugin.
+		/// Uses the Mail plugin's email entity for direct email integration.
 		/// </summary>
 		/// <param name="requestId">The related approval request ID.</param>
 		/// <param name="recipientUserId">The recipient user ID.</param>
@@ -462,7 +474,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		/// <param name="notificationType">The type of notification.</param>
 		/// <param name="subject">The notification subject.</param>
 		/// <param name="body">The notification body content.</param>
-		/// <returns>The unique identifier of the created notification record.</returns>
+		/// <returns>The unique identifier of the created email record.</returns>
 		private Guid CreateNotificationRecord(
 			Guid requestId,
 			Guid recipientUserId,
@@ -473,30 +485,72 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		{
 			try
 			{
-				var notificationId = Guid.NewGuid();
+				var emailId = Guid.NewGuid();
 
-				var record = new EntityRecord();
-				record["id"] = notificationId;
-				record["request_id"] = requestId;
-				record["recipient_user_id"] = recipientUserId;
-				record["recipient_email"] = recipientEmail ?? string.Empty;
-				record["notification_type"] = notificationType;
-				record["subject"] = subject;
-				record["body"] = body;
-				record["status"] = STATUS_PENDING;
-				record["created_on"] = DateTime.UtcNow;
-
-				var response = RecMan.CreateRecord(NOTIFICATION_ENTITY_NAME, record);
-				if (!response.Success)
+				// Get the default SMTP service ID
+				var serviceId = GetDefaultSmtpServiceId();
+				if (serviceId == Guid.Empty)
 				{
-					throw new Exception($"Failed to create notification record: {response.Message}");
+					throw new Exception("No default SMTP service configured. Please configure an SMTP service in the Mail plugin settings.");
 				}
 
-				return notificationId;
+				// Format recipients as JSON array as required by Mail plugin
+				var recipientsJson = $"[{{\n  \"email\": \"{recipientEmail}\"\n}}]";
+
+				// Convert plain text body to HTML
+				var htmlBody = $"<html><body><pre style=\"font-family: Arial, sans-serif; white-space: pre-wrap;\">{System.Net.WebUtility.HtmlEncode(body)}</pre></body></html>";
+
+				var record = new EntityRecord();
+				record["id"] = emailId;
+				record["service_id"] = serviceId;
+				record["recipients"] = recipientsJson;
+				record["subject"] = subject;
+				record["content_html"] = htmlBody;
+				record["status"] = STATUS_PENDING;
+				record["scheduled_on"] = DateTime.UtcNow;
+				record["priority"] = PRIORITY_NORMAL;
+
+				var response = RecMan.CreateRecord(EMAIL_ENTITY_NAME, record);
+				if (!response.Success)
+				{
+					throw new Exception($"Failed to create email record: {response.Message}");
+				}
+
+				return emailId;
 			}
 			catch (Exception ex)
 			{
-				throw new Exception($"Error creating notification record: {ex.Message}", ex);
+				throw new Exception($"Error creating email notification record: {ex.Message}", ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets the default SMTP service ID from the Mail plugin configuration.
+		/// </summary>
+		/// <returns>The default SMTP service ID, or Guid.Empty if not configured.</returns>
+		private Guid GetDefaultSmtpServiceId()
+		{
+			try
+			{
+				var eqlCommand = "SELECT id FROM smtp_service WHERE is_default = @is_default";
+				var eqlParams = new List<EqlParameter>
+				{
+					new EqlParameter("is_default", true)
+				};
+
+				var result = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+				if (result == null || !result.Any())
+				{
+					return Guid.Empty;
+				}
+
+				return (Guid)result[0]["id"];
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Error retrieving default SMTP service: {ex.Message}");
+				return Guid.Empty;
 			}
 		}
 
