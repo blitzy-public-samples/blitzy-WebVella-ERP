@@ -27,11 +27,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		#region Constants
 
 		/// <summary>
-		/// Entity name for approval notification queue records.
-		/// </summary>
-		private const string NOTIFICATION_ENTITY_NAME = "approval_notification";
-
-		/// <summary>
 		/// Entity name for the Mail plugin's email queue.
 		/// Used for direct email integration with WebVella.Erp.Plugins.Mail.
 		/// </summary>
@@ -63,24 +58,24 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		private const string NOTIFICATION_TYPE_ESCALATION = "escalation";
 
 		/// <summary>
-		/// Notification status for pending delivery.
+		/// Email status for pending delivery (matches email entity schema: 0=Pending).
 		/// </summary>
-		private const string STATUS_PENDING = "pending";
+		private const int STATUS_PENDING = 0;
 
 		/// <summary>
-		/// Notification status for sent/delivered.
+		/// Email status for sent/delivered (matches email entity schema: 1=Sent).
 		/// </summary>
-		private const string STATUS_SENT = "sent";
+		private const int STATUS_SENT = 1;
 
 		/// <summary>
-		/// Notification status for failed delivery.
+		/// Email status for aborted/failed delivery (matches email entity schema: 2=Aborted).
 		/// </summary>
-		private const string STATUS_FAILED = "failed";
+		private const int STATUS_ABORTED = 2;
 
 		/// <summary>
-		/// Normal email priority for the Mail plugin.
+		/// Normal email priority for the Mail plugin (matches email entity schema: 1=Normal).
 		/// </summary>
-		private const int PRIORITY_NORMAL = 3;
+		private const int PRIORITY_NORMAL = 1;
 
 		#endregion
 
@@ -322,17 +317,17 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		/// - recipient_email: Email address for delivery
 		/// - notification_type: Type of notification (request, completed, escalation)
 		/// - subject: Email subject line
-		/// - body: Email body content
-		/// - status: Current status (pending, sent, failed)
-		/// - created_on: Timestamp of creation
+		/// - content_html: Email body content
+		/// - status: Current status (0=Pending, 1=Sent, 2=Aborted)
+		/// - scheduled_on: Timestamp of creation
 		/// </remarks>
 		public List<EntityRecord> GetPendingNotifications()
 		{
 			try
 			{
-				var eqlCommand = @"SELECT * FROM approval_notification 
+				var eqlCommand = @"SELECT * FROM email 
                                    WHERE status = @status 
-                                   ORDER BY created_on ASC";
+                                   ORDER BY scheduled_on ASC";
 
 				var eqlParams = new List<EqlParameter>
 				{
@@ -357,14 +352,15 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		}
 
 		/// <summary>
-		/// Marks a notification as sent after successful delivery.
-		/// Updates the notification status to prevent duplicate sends and records the delivery timestamp.
+		/// Marks an email notification as sent after successful delivery.
+		/// Updates the email status to prevent duplicate sends and records the delivery timestamp.
 		/// </summary>
-		/// <param name="notificationId">The unique identifier of the notification to mark as sent.</param>
-		/// <exception cref="Exception">Thrown when the notification cannot be found or update fails.</exception>
+		/// <param name="notificationId">The unique identifier of the email to mark as sent.</param>
+		/// <exception cref="Exception">Thrown when the email cannot be found or update fails.</exception>
 		/// <remarks>
-		/// This method should be called after successful email delivery to update the notification status.
+		/// This method should be called after successful email delivery to update the email status.
 		/// It records the sent_on timestamp for audit and tracking purposes.
+		/// Note: The Mail plugin's background job typically handles this automatically.
 		/// </remarks>
 		public void MarkNotificationSent(Guid notificationId)
 		{
@@ -380,25 +376,28 @@ namespace WebVella.Erp.Plugins.Approval.Services
 				updateRecord["status"] = STATUS_SENT;
 				updateRecord["sent_on"] = DateTime.UtcNow;
 
-				var response = RecMan.UpdateRecord(NOTIFICATION_ENTITY_NAME, updateRecord);
+				var response = RecMan.UpdateRecord(EMAIL_ENTITY_NAME, updateRecord);
 				if (!response.Success)
 				{
-					throw new Exception($"Failed to mark notification as sent: {response.Message}");
+					throw new Exception($"Failed to mark email as sent: {response.Message}");
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new Exception($"Error marking notification '{notificationId}' as sent: {ex.Message}", ex);
+				throw new Exception($"Error marking email '{notificationId}' as sent: {ex.Message}", ex);
 			}
 		}
 
 		/// <summary>
-		/// Marks a notification as failed after delivery failure.
-		/// Updates the notification status and records the error message for troubleshooting.
+		/// Marks an email notification as aborted after delivery failure.
+		/// Updates the email status and records the error message for troubleshooting.
 		/// </summary>
-		/// <param name="notificationId">The unique identifier of the notification that failed.</param>
+		/// <param name="notificationId">The unique identifier of the email that failed.</param>
 		/// <param name="errorMessage">The error message describing the failure reason.</param>
-		/// <exception cref="Exception">Thrown when the notification cannot be found or update fails.</exception>
+		/// <exception cref="Exception">Thrown when the email cannot be found or update fails.</exception>
+		/// <remarks>
+		/// Note: The Mail plugin's background job typically handles this automatically.
+		/// </remarks>
 		public void MarkNotificationFailed(Guid notificationId, string errorMessage)
 		{
 			if (notificationId == Guid.Empty)
@@ -410,19 +409,19 @@ namespace WebVella.Erp.Plugins.Approval.Services
 			{
 				var updateRecord = new EntityRecord();
 				updateRecord["id"] = notificationId;
-				updateRecord["status"] = STATUS_FAILED;
-				updateRecord["error_message"] = errorMessage ?? "Unknown error";
+				updateRecord["status"] = STATUS_ABORTED;
+				updateRecord["server_error"] = errorMessage ?? "Unknown error";
 				updateRecord["sent_on"] = DateTime.UtcNow;
 
-				var response = RecMan.UpdateRecord(NOTIFICATION_ENTITY_NAME, updateRecord);
+				var response = RecMan.UpdateRecord(EMAIL_ENTITY_NAME, updateRecord);
 				if (!response.Success)
 				{
-					throw new Exception($"Failed to mark notification as failed: {response.Message}");
+					throw new Exception($"Failed to mark email as aborted: {response.Message}");
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new Exception($"Error marking notification '{notificationId}' as failed: {ex.Message}", ex);
+				throw new Exception($"Error marking email '{notificationId}' as aborted: {ex.Message}", ex);
 			}
 		}
 

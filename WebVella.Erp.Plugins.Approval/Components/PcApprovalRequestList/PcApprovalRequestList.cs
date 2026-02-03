@@ -12,6 +12,7 @@ using WebVella.Erp.Exceptions;
 using WebVella.Erp.Web;
 using WebVella.Erp.Web.Models;
 using WebVella.Erp.Web.Services;
+using WebVella.Erp.Plugins.Approval.Services;
 
 namespace WebVella.Erp.Plugins.Approval.Components
 {
@@ -85,6 +86,13 @@ namespace WebVella.Erp.Plugins.Approval.Components
             /// </summary>
             [JsonProperty(PropertyName = "auto_refresh")]
             public bool AutoRefresh { get; set; } = false;
+
+            /// <summary>
+            /// Gets or sets the detail page URL template.
+            /// Use {id} as placeholder for request ID. Example: /c/approval/action?requestId={id}
+            /// </summary>
+            [JsonProperty(PropertyName = "detail_page_url")]
+            public string DetailPageUrl { get; set; } = "";
         }
 
         /// <summary>
@@ -174,6 +182,28 @@ namespace WebVella.Erp.Plugins.Approval.Components
                                 options.StatusFilter = statusParam;
                             }
                         }
+                    }
+
+                    // Authorization check: enforce ShowMyRequestsOnly for non-manager users
+                    var currentUser = SecurityContext.CurrentUser;
+                    bool isAuthorizedToViewAll = false;
+                    
+                    if (currentUser != null)
+                    {
+                        // Check if user has Manager or Administrator role which grants access to view all requests
+                        isAuthorizedToViewAll = currentUser.Roles?.Any(r => 
+                            r.Name != null && (
+                                r.Name.Equals("manager", StringComparison.OrdinalIgnoreCase) ||
+                                r.Name.Equals("administrator", StringComparison.OrdinalIgnoreCase) ||
+                                r.Name.Equals("admin", StringComparison.OrdinalIgnoreCase)
+                            )
+                        ) ?? false;
+                    }
+                    
+                    // If user is NOT authorized to view all, enforce ShowMyRequestsOnly
+                    if (!isAuthorizedToViewAll && currentUser != null)
+                    {
+                        options.ShowMyRequestsOnly = true;
                     }
 
                     // Set the site root URL for link generation
@@ -360,15 +390,26 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 }
             }
 
-            // Load workflows in batch
+            // Load workflows in batch using parameterized OR conditions (EQL compatibility)
             var workflows = new Dictionary<Guid, EntityRecord>();
             if (workflowIds.Any())
             {
-                var workflowIdsStr = string.Join(",", workflowIds.Select(id => $"'{id}'"));
-                var workflowEql = $"SELECT id, name FROM approval_workflow WHERE id IN ({workflowIdsStr})";
                 try
                 {
-                    var workflowResult = new EqlCommand(workflowEql).Execute();
+                    // Build OR conditions with parameterized queries for EQL compatibility
+                    var workflowParams = new List<EqlParameter>();
+                    var workflowConditions = new List<string>();
+                    int wfIndex = 0;
+                    foreach (var wfId in workflowIds)
+                    {
+                        var paramName = $"wfId{wfIndex}";
+                        workflowConditions.Add($"id = @{paramName}");
+                        workflowParams.Add(new EqlParameter(paramName, wfId));
+                        wfIndex++;
+                    }
+                    var workflowEql = $"SELECT id, name FROM approval_workflow WHERE ({string.Join(" OR ", workflowConditions)})";
+                    
+                    var workflowResult = new EqlCommand(workflowEql, workflowParams).Execute();
                     foreach (var wf in workflowResult)
                     {
                         if (wf.Properties.ContainsKey("id") && wf["id"] != null)
@@ -383,15 +424,26 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 }
             }
 
-            // Load steps in batch
+            // Load steps in batch using parameterized OR conditions (EQL compatibility)
             var steps = new Dictionary<Guid, EntityRecord>();
             if (stepIds.Any())
             {
-                var stepIdsStr = string.Join(",", stepIds.Select(id => $"'{id}'"));
-                var stepEql = $"SELECT id, name FROM approval_step WHERE id IN ({stepIdsStr})";
                 try
                 {
-                    var stepResult = new EqlCommand(stepEql).Execute();
+                    // Build OR conditions with parameterized queries for EQL compatibility
+                    var stepParams = new List<EqlParameter>();
+                    var stepConditions = new List<string>();
+                    int stIndex = 0;
+                    foreach (var stId in stepIds)
+                    {
+                        var paramName = $"stId{stIndex}";
+                        stepConditions.Add($"id = @{paramName}");
+                        stepParams.Add(new EqlParameter(paramName, stId));
+                        stIndex++;
+                    }
+                    var stepEql = $"SELECT id, name FROM approval_step WHERE ({string.Join(" OR ", stepConditions)})";
+                    
+                    var stepResult = new EqlCommand(stepEql, stepParams).Execute();
                     foreach (var step in stepResult)
                     {
                         if (step.Properties.ContainsKey("id") && step["id"] != null)
@@ -406,15 +458,26 @@ namespace WebVella.Erp.Plugins.Approval.Components
                 }
             }
 
-            // Load users in batch
+            // Load users in batch using parameterized OR conditions (EQL compatibility)
             var users = new Dictionary<Guid, EntityRecord>();
             if (userIds.Any())
             {
-                var userIdsStr = string.Join(",", userIds.Select(id => $"'{id}'"));
-                var userEql = $"SELECT id, username, email FROM user WHERE id IN ({userIdsStr})";
                 try
                 {
-                    var userResult = new EqlCommand(userEql).Execute();
+                    // Build OR conditions with parameterized queries for EQL compatibility
+                    var userParams = new List<EqlParameter>();
+                    var userConditions = new List<string>();
+                    int usrIndex = 0;
+                    foreach (var usrId in userIds)
+                    {
+                        var paramName = $"usrId{usrIndex}";
+                        userConditions.Add($"id = @{paramName}");
+                        userParams.Add(new EqlParameter(paramName, usrId));
+                        usrIndex++;
+                    }
+                    var userEql = $"SELECT id, username, email FROM user WHERE ({string.Join(" OR ", userConditions)})";
+                    
+                    var userResult = new EqlCommand(userEql, userParams).Execute();
                     foreach (var user in userResult)
                     {
                         if (user.Properties.ContainsKey("id") && user["id"] != null)

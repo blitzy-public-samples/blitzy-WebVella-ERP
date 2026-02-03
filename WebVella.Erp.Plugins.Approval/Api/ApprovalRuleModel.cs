@@ -126,5 +126,33 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// </summary>
         [JsonProperty(PropertyName = "next_step_id")]
         public Guid? NextStepId { get; set; }
+
+        /// <summary>
+        /// Convenience property that provides a unified string value for the rule condition.
+        /// When getting, returns StringValue if set, otherwise ThresholdValue as string.
+        /// When setting, stores in StringValue and attempts to parse as decimal into ThresholdValue.
+        /// This allows the UI to work with a single 'value' field while the backend stores both.
+        /// </summary>
+        [JsonProperty(PropertyName = "value")]
+        public string Value
+        {
+            get
+            {
+                // Return StringValue if set, otherwise convert ThresholdValue to string
+                if (!string.IsNullOrEmpty(StringValue))
+                    return StringValue;
+                return ThresholdValue.ToString();
+            }
+            set
+            {
+                // Store the value in StringValue
+                StringValue = value;
+                // Also attempt to parse as decimal for ThresholdValue
+                if (!string.IsNullOrEmpty(value) && decimal.TryParse(value, out decimal parsedValue))
+                {
+                    ThresholdValue = parsedValue;
+                }
+            }
+        }
     }
 }

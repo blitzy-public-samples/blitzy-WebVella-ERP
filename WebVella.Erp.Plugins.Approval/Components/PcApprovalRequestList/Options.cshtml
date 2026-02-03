@@ -103,6 +103,18 @@
     </wv-column>
 </wv-row>
 
+@* Navigation Configuration Row *@
+<wv-row>
+    <wv-column span="12">
+        <wv-field-text 
+            name="detail_page_url" 
+            value="@options.DetailPageUrl" 
+            label-text="Detail Page URL Template"
+            description="Use {id} as placeholder for request ID. Example: /c/approval/action?requestId={id}. Leave empty to hide the View button.">
+        </wv-field-text>
+    </wv-column>
+</wv-row>
+
 @* Help Information *@
 <div class="alert alert-info p-2 mt-3">
     <small>
@@ -112,6 +124,7 @@
             <li><strong>Status Filter:</strong> Use "Pending" to show requests awaiting approval, or "All Statuses" for a complete view.</li>
             <li><strong>Filter to My Requests:</strong> Useful for approvers who want to see only their assigned requests.</li>
             <li><strong>Auto Refresh:</strong> Recommended for dashboards to keep the request list current.</li>
+            <li><strong>Detail Page URL:</strong> Configure navigation to a detail page. Use <code>{id}</code> as a placeholder for the request ID (e.g., <code>/c/approval/action?requestId={id}</code>). Leave empty to hide the View button.</li>
         </ul>
     </small>
 </div>

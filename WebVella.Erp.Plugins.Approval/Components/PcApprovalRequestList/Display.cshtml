@@ -104,15 +104,12 @@
                         </select>
                     </div>
                     
-                    @* Filter Buttons *@
+                    @* Filter Button *@
                     <div class="col-md-6 mb-2 mb-md-0">
                         <label class="small text-muted d-block">&nbsp;</label>
-                        <button type="submit" class="btn btn-primary btn-sm mr-1">
+                        <button type="submit" class="btn btn-primary btn-sm">
                             <i class="fas fa-filter"></i> Filter
                         </button>
-                        <a href="?" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-times"></i> Clear
-                        </a>
                     </div>
                 </div>
             </form>
@@ -177,14 +174,23 @@
                     ? record["current_step_name"].ToString() 
                     : "N/A";
                 
+                // Generate detail page URL dynamically from options
+                var detailPageUrl = !string.IsNullOrWhiteSpace(options.DetailPageUrl) 
+                    ? options.DetailPageUrl.Replace("{id}", recordId) 
+                    : "";
+                var showViewButton = !string.IsNullOrWhiteSpace(detailPageUrl);
+                
                 <wv-grid-row>
                     @* Action Column - View and Inline Action Buttons *@
                     <wv-grid-column width="120px" class="text-center">
                         <div class="btn-group btn-group-sm" role="group">
-                            @* View button - always shown *@
-                            <a href="@siteRootUrl/approval/request/@recordId" class="btn btn-sm btn-outline-primary" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            @* View button - only shown if detail page URL is configured *@
+                            @if (showViewButton)
+                            {
+                                <a href="@detailPageUrl" class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
                             @if (status == "pending")
                             {
                                 @* Approve button - shown only for pending requests *@

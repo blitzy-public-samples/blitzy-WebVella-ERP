@@ -277,9 +277,14 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="@(componentId)-step-approver-id">Approver ID (Role/User GUID)</label>
-                                        <input type="text" class="form-control form-control-sm" id="@(componentId)-step-approver-id" 
-                                               placeholder="Leave empty for department_head type">
+                                        <label for="@(componentId)-step-approver-id">Approver (Role/User)</label>
+                                        <select class="form-control form-control-sm" id="@(componentId)-step-approver-id">
+                                            <option value="">-- Select Approver --</option>
+                                            @* Options will be populated dynamically via JavaScript *@
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Select a role or user. Leave empty for department_head type.
+                                        </small>
                                     </div>
                                 </div>
                                 <div class="col-md-3">
@@ -460,7 +465,82 @@
         
         // Render the workflow table with all workflows
         renderWorkflowTable(componentId, workflows);
+        
+        // Set up approver type change handler for dynamic dropdown population
+        var approverTypeSelect = document.getElementById(componentId + '-step-approver-type');
+        if (approverTypeSelect) {
+            approverTypeSelect.addEventListener('change', function() {
+                loadApproverOptions(componentId, this.value);
+            });
+        }
+        
+        // Load initial approver options (roles by default)
+        loadApproverOptions(componentId, 'role');
     };
+    
+    /**
+     * Load roles and users into the approver dropdown based on approver type
+     * @@param {string} componentId - The unique component instance ID
+     * @@param {string} approverType - The approver type ('role', 'user', or 'department_head')
+     */
+    function loadApproverOptions(componentId, approverType) {
+        var approverSelect = document.getElementById(componentId + '-step-approver-id');
+        if (!approverSelect) return;
+        
+        // Clear current options and add default empty option
+        approverSelect.innerHTML = '<option value="">-- Select Approver --</option>';
+        
+        // Department head type doesn't need approver selection
+        if (approverType === 'department_head') {
+            approverSelect.disabled = true;
+            approverSelect.innerHTML = '<option value="">Not required for Department Head</option>';
+            return;
+        }
+        
+        approverSelect.disabled = false;
+        
+        if (approverType === 'role') {
+            // Load roles from API
+            $.ajax({
+                url: '/api/v3.0/en_US/meta/role/list',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.object) {
+                        var roles = response.object;
+                        roles.forEach(function(role) {
+                            var option = document.createElement('option');
+                            option.value = role.id;
+                            option.textContent = 'Role: ' + role.name;
+                            approverSelect.appendChild(option);
+                        });
+                    }
+                },
+                error: function() {
+                    console.error('Failed to load roles');
+                }
+            });
+        } else if (approverType === 'user') {
+            // Load users from API
+            $.ajax({
+                url: '/api/v3.0/en_US/user/list',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.object) {
+                        var users = response.object;
+                        users.forEach(function(user) {
+                            var option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = 'User: ' + (user.username || user.email || user.id);
+                            approverSelect.appendChild(option);
+                        });
+                    }
+                },
+                error: function() {
+                    console.error('Failed to load users');
+                }
+            });
+        }
+    }
     
     /**
      * Filter workflows by status (all, enabled, disabled)
@@ -882,6 +962,10 @@
         document.getElementById(componentId + '-step-form-title').textContent = 'Add New Step';
         document.getElementById(componentId + '-step-order').value = '1';
         document.getElementById(componentId + '-step-form-container').style.display = 'block';
+        
+        // Load approver options for the default type (role)
+        var approverType = document.getElementById(componentId + '-step-approver-type').value || 'role';
+        loadApproverOptions(componentId, approverType);
     };
     
     /**
@@ -891,12 +975,51 @@
         document.getElementById(componentId + '-step-id').value = step.id;
         document.getElementById(componentId + '-step-name').value = step.name || '';
         document.getElementById(componentId + '-step-approver-type').value = step.approver_type || 'role';
-        document.getElementById(componentId + '-step-approver-id').value = step.approver_id || '';
         document.getElementById(componentId + '-step-timeout').value = step.timeout_hours || '';
         document.getElementById(componentId + '-step-order').value = step.step_order || 1;
         document.getElementById(componentId + '-step-is-final').checked = step.is_final;
         document.getElementById(componentId + '-step-form-title').textContent = 'Edit Step';
         document.getElementById(componentId + '-step-form-container').style.display = 'block';
+        
+        // Load approver options for the step's type, then set the selected value
+        var approverType = step.approver_type || 'role';
+        var approverSelect = document.getElementById(componentId + '-step-approver-id');
+        var currentApproverId = step.approver_id || '';
+        
+        // Clear and reload options, then set value after options load
+        approverSelect.innerHTML = '<option value="">Loading...</option>';
+        
+        if (approverType === 'department_head') {
+            approverSelect.disabled = true;
+            approverSelect.innerHTML = '<option value="">Not required for Department Head</option>';
+        } else {
+            approverSelect.disabled = false;
+            var apiUrl = approverType === 'role' ? '/api/v3.0/en_US/meta/role/list' : '/api/v3.0/en_US/user/list';
+            
+            $.ajax({
+                url: apiUrl,
+                type: 'GET',
+                success: function(response) {
+                    approverSelect.innerHTML = '<option value="">-- Select Approver --</option>';
+                    if (response.success && response.object) {
+                        var items = response.object;
+                        items.forEach(function(item) {
+                            var option = document.createElement('option');
+                            option.value = item.id;
+                            option.textContent = (approverType === 'role' ? 'Role: ' : 'User: ') + (item.name || item.username || item.email || item.id);
+                            if (item.id === currentApproverId) {
+                                option.selected = true;
+                            }
+                            approverSelect.appendChild(option);
+                        });
+                    }
+                },
+                error: function() {
+                    approverSelect.innerHTML = '<option value="">-- Select Approver --</option>';
+                    console.error('Failed to load approver options');
+                }
+            });
+        }
     };
     
     /**
