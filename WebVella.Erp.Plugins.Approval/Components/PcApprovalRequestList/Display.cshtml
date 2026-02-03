@@ -578,12 +578,18 @@
             var modalElement = document.getElementById(modalId);
             if (modalElement) {
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                    var modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    var modalInstance;
+                    // Check if getInstance method exists (Bootstrap 5.1.0+)
+                    if (typeof bootstrap.Modal.getInstance === 'function') {
+                        modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    }
+                    // If no existing instance, create a new one
                     if (!modalInstance) {
                         modalInstance = new bootstrap.Modal(modalElement);
                     }
                     modalInstance.hide();
-                } else if (typeof $ !== 'undefined' && $.fn.modal) {
+                } else if (typeof $ !== 'undefined') {
+                    // Fallback to jQuery if Bootstrap 5 is not available
                     $(modalElement).modal('hide');
                 }
             }
