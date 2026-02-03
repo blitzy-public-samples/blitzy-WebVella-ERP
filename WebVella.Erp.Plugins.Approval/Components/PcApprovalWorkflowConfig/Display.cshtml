@@ -500,13 +500,14 @@
         approverSelect.disabled = false;
         
         if (approverType === 'role') {
-            // Load roles from API
+            // Load roles from API using correct WebVella record API pattern
             $.ajax({
-                url: '/api/v3.0/en_US/meta/role/list',
+                url: '/api/v3/en_US/record/role/list',
                 type: 'GET',
+                data: { fields: 'id,name' },
                 success: function(response) {
-                    if (response.success && response.object) {
-                        var roles = response.object;
+                    if (response.success && response.object && response.object.data) {
+                        var roles = response.object.data;
                         roles.forEach(function(role) {
                             var option = document.createElement('option');
                             option.value = role.id;
@@ -520,13 +521,14 @@
                 }
             });
         } else if (approverType === 'user') {
-            // Load users from API
+            // Load users from API using correct WebVella record API pattern
             $.ajax({
-                url: '/api/v3.0/en_US/user/list',
+                url: '/api/v3/en_US/record/user/list',
                 type: 'GET',
+                data: { fields: 'id,username,email' },
                 success: function(response) {
-                    if (response.success && response.object) {
-                        var users = response.object;
+                    if (response.success && response.object && response.object.data) {
+                        var users = response.object.data;
                         users.forEach(function(user) {
                             var option = document.createElement('option');
                             option.value = user.id;
@@ -994,15 +996,18 @@
             approverSelect.innerHTML = '<option value="">Not required for Department Head</option>';
         } else {
             approverSelect.disabled = false;
-            var apiUrl = approverType === 'role' ? '/api/v3.0/en_US/meta/role/list' : '/api/v3.0/en_US/user/list';
+            // Use correct WebVella record API pattern
+            var apiUrl = approverType === 'role' ? '/api/v3/en_US/record/role/list' : '/api/v3/en_US/record/user/list';
+            var fieldsParam = approverType === 'role' ? 'id,name' : 'id,username,email';
             
             $.ajax({
                 url: apiUrl,
                 type: 'GET',
+                data: { fields: fieldsParam },
                 success: function(response) {
                     approverSelect.innerHTML = '<option value="">-- Select Approver --</option>';
-                    if (response.success && response.object) {
-                        var items = response.object;
+                    if (response.success && response.object && response.object.data) {
+                        var items = response.object.data;
                         items.forEach(function(item) {
                             var option = document.createElement('option');
                             option.value = item.id;

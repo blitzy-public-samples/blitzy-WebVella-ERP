@@ -1009,6 +1009,11 @@
      * Loads roles and users into the approver dropdown.
      * Issue 4: Enhance UX by dynamically populating the approver dropdown
      * instead of requiring users to manually type GUIDs.
+     * 
+     * Uses correct WebVella record API endpoints:
+     * - Role endpoint: /api/v3/en_US/record/role/list GET
+     * - User endpoint: /api/v3/en_US/record/user/list GET
+     * - Response data is in response.object.data
      */
     function loadApproverOptions(containerId) {
         var $select = $('#' + containerId + '-step-approver-id');
@@ -1017,14 +1022,15 @@
         // Clear existing options except the placeholder
         $select.find('option:not(:first)').remove();
         
-        // Load roles from API
+        // Load roles from API using correct WebVella record API pattern
         $.ajax({
-            url: '/api/v3.0/en_US/meta/role/list',
+            url: '/api/v3/en_US/record/role/list',
             type: 'GET',
+            data: { fields: 'id,name' },
             dataType: 'json',
             success: function(response) {
-                if (response && response.success && response.object) {
-                    var roles = response.object;
+                if (response && response.success && response.object && response.object.data) {
+                    var roles = response.object.data;
                     
                     // Add role optgroup
                     var $roleGroup = $('<optgroup label="Roles"></optgroup>');
@@ -1056,14 +1062,15 @@
             }
         });
         
-        // Load users from API
+        // Load users from API using correct WebVella record API pattern
         $.ajax({
-            url: '/api/v3.0/en_US/user/list',
+            url: '/api/v3/en_US/record/user/list',
             type: 'GET',
+            data: { fields: 'id,username,email' },
             dataType: 'json',
             success: function(response) {
-                if (response && response.success && response.object) {
-                    var users = response.object;
+                if (response && response.success && response.object && response.object.data) {
+                    var users = response.object.data;
                     
                     // Add user optgroup
                     var $userGroup = $('<optgroup label="Users"></optgroup>');

@@ -233,15 +233,23 @@ namespace WebVella.Erp.Plugins.Approval.Components
                                 totalCount = records.Count;
                             }
 
-                            // Apply user filter if ShowMyRequestsOnly is enabled
+                            // Apply approver filter if ShowMyRequestsOnly is enabled
+                            // Filters to show only requests where current user is authorized to approve
+                            // per STORY-008 AC7: "displays only requests awaiting current user's action"
                             if (options.ShowMyRequestsOnly && SecurityContext.CurrentUser != null)
                             {
                                 var currentUserId = SecurityContext.CurrentUser.Id;
+                                var routeService = new ApprovalRouteService();
                                 records = records.Where(r =>
-                                    r.Properties.ContainsKey("requested_by") &&
-                                    r["requested_by"] != null &&
-                                    (Guid)r["requested_by"] == currentUserId
-                                ).ToList();
+                                {
+                                    if (!r.Properties.ContainsKey("current_step_id") || r["current_step_id"] == null)
+                                        return false;
+                                    var stepId = (Guid)r["current_step_id"];
+                                    if (stepId == Guid.Empty)
+                                        return false;
+                                    try { return routeService.IsUserAuthorizedApprover(currentUserId, stepId); }
+                                    catch { return false; }
+                                }).ToList();
                                 totalCount = records.Count;
                             }
 
@@ -263,38 +271,67 @@ namespace WebVella.Erp.Plugins.Approval.Components
                             eqlParams.Add(new EqlParameter("statusFilter", options.StatusFilter));
                         }
 
-                        // Build user filter condition
-                        if (options.ShowMyRequestsOnly && SecurityContext.CurrentUser != null)
-                        {
-                            whereConditions.Add("requested_by = @currentUserId");
-                            eqlParams.Add(new EqlParameter("currentUserId", SecurityContext.CurrentUser.Id));
-                        }
-
                         // Build WHERE clause
                         string whereClause = whereConditions.Any()
                             ? " WHERE " + string.Join(" AND ", whereConditions)
                             : "";
 
-                        // Build the main query with pagination
-                        // Note: EQL automatically adds ___total_count___ when using PAGE/PAGESIZE
-                        string eqlCommand = $"SELECT * FROM approval_request{whereClause} ORDER BY requested_on DESC PAGE {currentPageNumber} PAGESIZE {options.PageSize}";
-
-                        // Execute the query
-                        var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
-                        if (eqlResult != null && eqlResult.Any())
+                        // When ShowMyRequestsOnly is enabled, we need to filter in memory using IsUserAuthorizedApprover
+                        // because EQL doesn't support complex authorization checks
+                        // Per STORY-008 AC7: "displays only requests awaiting current user's action"
+                        if (options.ShowMyRequestsOnly && SecurityContext.CurrentUser != null)
                         {
-                            records = eqlResult.ToList();
+                            var currentUserId = SecurityContext.CurrentUser.Id;
+                            var routeService = new ApprovalRouteService();
                             
-                            // Get total count from the first record (EQL adds ___total_count___ automatically)
-                            var firstRecord = records.First();
-                            if (firstRecord.Properties.ContainsKey("___total_count___") && firstRecord["___total_count___"] != null)
+                            // Load ALL matching records first (no pagination in EQL)
+                            string eqlCommand = $"SELECT * FROM approval_request{whereClause} ORDER BY requested_on DESC";
+                            var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+                            
+                            if (eqlResult != null && eqlResult.Any())
                             {
-                                totalCount = Convert.ToInt32(firstRecord["___total_count___"]);
-                            }
-                            else
-                            {
-                                // Fallback: just use the count of returned records
+                                // Filter in memory using IsUserAuthorizedApprover
+                                records = eqlResult.Where(r =>
+                                {
+                                    if (!r.Properties.ContainsKey("current_step_id") || r["current_step_id"] == null)
+                                        return false;
+                                    var stepId = (Guid)r["current_step_id"];
+                                    if (stepId == Guid.Empty)
+                                        return false;
+                                    try { return routeService.IsUserAuthorizedApprover(currentUserId, stepId); }
+                                    catch { return false; }
+                                }).ToList();
+                                
                                 totalCount = records.Count;
+                                
+                                // Apply pagination after filtering
+                                int skipCount = (currentPageNumber - 1) * options.PageSize;
+                                records = records.Skip(skipCount).Take(options.PageSize).ToList();
+                            }
+                        }
+                        else
+                        {
+                            // Build the main query with pagination
+                            // Note: EQL automatically adds ___total_count___ when using PAGE/PAGESIZE
+                            string eqlCommand = $"SELECT * FROM approval_request{whereClause} ORDER BY requested_on DESC PAGE {currentPageNumber} PAGESIZE {options.PageSize}";
+
+                            // Execute the query
+                            var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+                            if (eqlResult != null && eqlResult.Any())
+                            {
+                                records = eqlResult.ToList();
+                                
+                                // Get total count from the first record (EQL adds ___total_count___ automatically)
+                                var firstRecord = records.First();
+                                if (firstRecord.Properties.ContainsKey("___total_count___") && firstRecord["___total_count___"] != null)
+                                {
+                                    totalCount = Convert.ToInt32(firstRecord["___total_count___"]);
+                                }
+                                else
+                                {
+                                    // Fallback: just use the count of returned records
+                                    totalCount = records.Count;
+                                }
                             }
                         }
                     }
