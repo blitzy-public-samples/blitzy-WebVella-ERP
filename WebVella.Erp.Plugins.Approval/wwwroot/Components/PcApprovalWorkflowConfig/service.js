@@ -905,6 +905,9 @@
         $('#' + containerId + '-step-order').val('1');
         $('#' + containerId + '-step-is-final').prop('checked', false);
         
+        // Load approver options dynamically (Issue 4 enhancement)
+        loadApproverOptions(containerId);
+        
         $('#' + containerId + '-step-form-title').text('Add New Step');
         $('#' + containerId + '-step-form-container').slideDown();
     }
@@ -914,6 +917,9 @@
      */
     function editStep(containerId, stepId) {
         var workflowId = $('#' + containerId + '-steps-workflow-id').val();
+        
+        // Load approver options dynamically (Issue 4 enhancement)
+        loadApproverOptions(containerId);
         
         // Fetch step data
         $.ajax({
@@ -926,7 +932,10 @@
                     $('#' + containerId + '-step-id').val(step.id);
                     $('#' + containerId + '-step-name').val(step.name);
                     $('#' + containerId + '-step-approver-type').val(step.approverType);
-                    $('#' + containerId + '-step-approver-id').val(step.approverId || '');
+                    // Set approver ID after a short delay to allow options to load
+                    setTimeout(function() {
+                        $('#' + containerId + '-step-approver-id').val(step.approverId || '');
+                    }, 300);
                     $('#' + containerId + '-step-timeout').val(step.timeoutHours || '');
                     $('#' + containerId + '-step-order').val(step.stepOrder);
                     $('#' + containerId + '-step-is-final').prop('checked', step.isFinal === true);
@@ -997,6 +1006,97 @@
     }
 
     /**
+     * Loads roles and users into the approver dropdown.
+     * Issue 4: Enhance UX by dynamically populating the approver dropdown
+     * instead of requiring users to manually type GUIDs.
+     */
+    function loadApproverOptions(containerId) {
+        var $select = $('#' + containerId + '-step-approver-id');
+        var currentValue = $select.val();
+        
+        // Clear existing options except the placeholder
+        $select.find('option:not(:first)').remove();
+        
+        // Load roles from API
+        $.ajax({
+            url: '/api/v3.0/en_US/meta/role/list',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success && response.object) {
+                    var roles = response.object;
+                    
+                    // Add role optgroup
+                    var $roleGroup = $('<optgroup label="Roles"></optgroup>');
+                    
+                    if (Array.isArray(roles)) {
+                        roles.forEach(function(role) {
+                            if (role && role.id) {
+                                $roleGroup.append(
+                                    $('<option></option>')
+                                        .val(role.id)
+                                        .text('Role: ' + (role.name || 'Unnamed'))
+                                );
+                            }
+                        });
+                    }
+                    
+                    if ($roleGroup.children().length > 0) {
+                        $select.append($roleGroup);
+                    }
+                    
+                    // Restore previous value if it was set
+                    if (currentValue) {
+                        $select.val(currentValue);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.warn('[ApprovalWorkflowConfig] Failed to load roles:', error);
+            }
+        });
+        
+        // Load users from API
+        $.ajax({
+            url: '/api/v3.0/en_US/user/list',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response && response.success && response.object) {
+                    var users = response.object;
+                    
+                    // Add user optgroup
+                    var $userGroup = $('<optgroup label="Users"></optgroup>');
+                    
+                    if (Array.isArray(users)) {
+                        users.forEach(function(user) {
+                            if (user && user.id) {
+                                $userGroup.append(
+                                    $('<option></option>')
+                                        .val(user.id)
+                                        .text('User: ' + (user.username || user.email || 'Unnamed'))
+                                );
+                            }
+                        });
+                    }
+                    
+                    if ($userGroup.children().length > 0) {
+                        $select.append($userGroup);
+                    }
+                    
+                    // Restore previous value if it was set
+                    if (currentValue) {
+                        $select.val(currentValue);
+                    }
+                }
+            },
+            error: function(xhr, status, error) {
+                console.warn('[ApprovalWorkflowConfig] Failed to load users:', error);
+            }
+        });
+    }
+
+    /**
      * Deletes a step.
      */
     function deleteStep(containerId, stepId) {
@@ -1029,7 +1129,7 @@
         // Clear form
         $('#' + containerId + '-rule-id').val('');
         $('#' + containerId + '-rule-name').val('');
-        $('#' + containerId + '-rule-field-name').val('');
+        $('#' + containerId + '-rule-field').val('');
         $('#' + containerId + '-rule-operator').val('eq');
         $('#' + containerId + '-rule-value').val('');
         $('#' + containerId + '-rule-priority').val('0');
@@ -1054,7 +1154,8 @@
                     var rule = response.object;
                     $('#' + containerId + '-rule-id').val(rule.id);
                     $('#' + containerId + '-rule-name').val(rule.name);
-                    $('#' + containerId + '-rule-field-name').val(rule.fieldName);
+                    // Use snake_case property name (field_name) from API
+                    $('#' + containerId + '-rule-field').val(rule.field_name || rule.fieldName);
                     $('#' + containerId + '-rule-operator').val(rule.operator);
                     $('#' + containerId + '-rule-value').val(rule.value);
                     $('#' + containerId + '-rule-priority').val(rule.priority || 0);
@@ -1080,9 +1181,10 @@
         var workflowId = $('#' + containerId + '-rules-workflow-id').val();
         var ruleId = $('#' + containerId + '-rule-id').val();
         
+        // Use snake_case property names to match API model (JsonProperty)
         var ruleData = {
             name: $('#' + containerId + '-rule-name').val(),
-            fieldName: $('#' + containerId + '-rule-field-name').val(),
+            field_name: $('#' + containerId + '-rule-field').val(),
             operator: $('#' + containerId + '-rule-operator').val(),
             value: $('#' + containerId + '-rule-value').val(),
             priority: parseInt($('#' + containerId + '-rule-priority').val()) || 0
