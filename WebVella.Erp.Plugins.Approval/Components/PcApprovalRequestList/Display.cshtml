@@ -348,7 +348,7 @@
                 <h5 class="modal-title" id="inlineApproveModalLabel">
                     <i class="fas fa-check-circle mr-2"></i>Approve Request
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -365,7 +365,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
                     <i class="fas fa-times mr-1"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-success" onclick="submitInlineApprove()">
@@ -384,7 +384,7 @@
                 <h5 class="modal-title" id="inlineRejectModalLabel">
                     <i class="fas fa-times-circle mr-2"></i>Reject Request
                 </h5>
-                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
@@ -410,7 +410,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
                     <i class="fas fa-times mr-1"></i>Cancel
                 </button>
                 <button type="button" class="btn btn-danger" onclick="submitInlineReject()">
@@ -470,7 +470,7 @@
         
         var modalElement = document.getElementById('inlineApproveModal');
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            var modal = new bootstrap.Modal(modalElement);
             modal.show();
         } else if (typeof $ !== 'undefined' && $.fn.modal) {
             $(modalElement).modal('show');
@@ -488,7 +488,7 @@
         
         var modalElement = document.getElementById('inlineRejectModal');
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            var modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            var modal = new bootstrap.Modal(modalElement);
             modal.show();
         } else if (typeof $ !== 'undefined' && $.fn.modal) {
             $(modalElement).modal('show');
@@ -579,9 +579,10 @@
             if (modalElement) {
                 if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                     var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                    if (modalInstance) {
-                        modalInstance.hide();
+                    if (!modalInstance) {
+                        modalInstance = new bootstrap.Modal(modalElement);
                     }
+                    modalInstance.hide();
                 } else if (typeof $ !== 'undefined' && $.fn.modal) {
                     $(modalElement).modal('hide');
                 }
