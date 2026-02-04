@@ -14,7 +14,7 @@ using WebVella.Erp.Plugins.Approval.Services;
 using WebVella.Erp.Web;
 using WebVella.Erp.Web.Models;
 using WebVella.Erp.Web.Services;
-using WebVella.Erp.Web.Utils;
+using WebVella.Erp.Plugins.Approval.Utils;
 
 namespace WebVella.Erp.Plugins.Approval.Components
 {
@@ -250,7 +250,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         TotalPages = totalPages,
                         PageSize = pageSize
                     };
-                    ViewBag.SiteRootUrl = UrlUtils.FullyQualifiedApplicationPath(httpContext);
+                    ViewBag.SiteRootUrl = ApprovalUtils.FullyQualifiedApplicationPath(httpContext);
 
                     // Load workflows for filter dropdown
                     ViewBag.Workflows = LoadWorkflows();
