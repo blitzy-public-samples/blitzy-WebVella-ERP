@@ -639,7 +639,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 }
                 
                 var eql = $@"SELECT id, request_id, step_id, action, performed_by, performed_on, comments,
-                           $$user_performed_by.username, $$user_performed_by.first_name, $$user_performed_by.last_name
+                           $user_1n_history_performed_by.username, $user_1n_history_performed_by.first_name, $user_1n_history_performed_by.last_name
                            FROM approval_history{whereClause}
                            ORDER BY performed_on DESC";
                 
@@ -684,10 +684,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
                                 item.PerformedById = parsed;
                         }
                         
-                        // Build performer name from user details
-                        var firstName = record["$$user_performed_by.first_name"]?.ToString() ?? "";
-                        var lastName = record["$$user_performed_by.last_name"]?.ToString() ?? "";
-                        var username = record["$$user_performed_by.username"]?.ToString() ?? "";
+                        // Build performer name from user details (via user_1n_history_performed_by relation)
+                        var firstName = record["$user_1n_history_performed_by.first_name"]?.ToString() ?? "";
+                        var lastName = record["$user_1n_history_performed_by.last_name"]?.ToString() ?? "";
+                        var username = record["$user_1n_history_performed_by.username"]?.ToString() ?? "";
                         
                         if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
                         {
