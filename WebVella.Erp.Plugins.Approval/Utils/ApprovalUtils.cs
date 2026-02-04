@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Plugins.Approval.Model;
 
@@ -626,6 +627,25 @@ namespace WebVella.Erp.Plugins.Approval.Utils
             baseUrl = baseUrl.TrimEnd('/');
 
             return $"{baseUrl}/approval/requests/{requestId}";
+        }
+
+        /// <summary>
+        /// Gets the fully qualified application path from the HTTP context.
+        /// </summary>
+        /// <param name="context">The current HTTP context.</param>
+        /// <returns>The fully qualified application path (e.g., "https://example.com").</returns>
+        public static string FullyQualifiedApplicationPath(HttpContext context)
+        {
+            // Return empty string if context is null
+            if (context == null)
+            {
+                return string.Empty;
+            }
+
+            // Format the fully qualified website URL
+            return string.Format("{0}://{1}",
+                                context.Request.Scheme,
+                                context.Request.Host);
         }
 
         #endregion
