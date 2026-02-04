@@ -1,0 +1,225 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalAction PageComponent
+    
+    Renders approval action buttons (Approve, Reject, Delegate) with a Bootstrap modal dialog
+    for entering comments. Buttons are conditionally displayed based on:
+    - Component options configuration (ShowApproveButton, ShowRejectButton, ShowDelegateButton)
+    - User authorization (CanApprove from ViewBag)
+    - Request status (only shown for pending requests)
+    
+    ViewBag Data Expected:
+    - Options: PcApprovalActionOptions component configuration
+    - Node: PageBodyNode for component rendering
+    - ComponentMeta: Component metadata from library
+    - RequestContext: ErpRequestContext
+    - AppContext: ErpAppContext
+    - ComponentContext: PageComponentContext
+    - CurrentUser: Current authenticated user
+    - CurrentUserJson: JSON serialized current user
+    - CanApprove: Boolean indicating if current user can perform actions
+    - RequestId: Guid of the approval request
+    - RequestStatus: Current status of the request
+    - RequestJson: JSON serialized request data
+    - Request: EntityRecord of the approval request
+*@
+
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+
+@using WebVella.Erp.Web
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Web.Services
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Model
+@using System
+
+@{
+    // Cast ViewBag data to strongly-typed variables
+    var options = ViewBag.Options as PcApprovalAction.PcApprovalActionOptions ?? new PcApprovalAction.PcApprovalActionOptions();
+    var node = ViewBag.Node as PageBodyNode;
+    var erpRequest = ViewBag.RequestContext as ErpRequestContext;
+    var componentContext = ViewBag.ComponentContext as PageComponentContext;
+    var currentUser = ViewBag.CurrentUser;
+    var currentUserJson = ViewBag.CurrentUserJson as string ?? "{}";
+    
+    // Request data
+    var canApprove = ViewBag.CanApprove as bool? ?? false;
+    var requestId = ViewBag.RequestId as Guid?;
+    var requestStatus = ViewBag.RequestStatus as string ?? "";
+    var requestJson = ViewBag.RequestJson as string ?? "{}";
+    var request = ViewBag.Request as EntityRecord;
+    
+    // Check if request is in pending status
+    var isPending = string.Equals(requestStatus, "pending", StringComparison.OrdinalIgnoreCase);
+    var canPerformActions = canApprove && isPending;
+    
+    // Generate unique component ID for DOM elements
+    var componentId = node != null ? $"pc-approval-action-{node.Id}" : $"pc-approval-action-{Guid.NewGuid():N}";
+    var modalId = $"approval-action-modal-{node?.Id ?? Guid.NewGuid()}";
+    var delegateModalId = $"approval-delegate-modal-{node?.Id ?? Guid.NewGuid()}";
+    
+    // API base URL for approval actions
+    var apiBaseUrl = "/api/v3.0/p/approval";
+}
+
+<div id="@componentId" class="pc-approval-action-container" 
+     data-request-id="@requestId" 
+     data-api-base-url="@apiBaseUrl"
+     data-current-user-json="@Html.Raw(System.Web.HttpUtility.HtmlEncode(currentUserJson))"
+     data-request-json="@Html.Raw(System.Web.HttpUtility.HtmlEncode(requestJson))">
+    
+    @if (requestId.HasValue && requestId.Value != Guid.Empty)
+    {
+        @if (canPerformActions)
+        {
+            <div class="btn-group approval-action-buttons" role="group" aria-label="Approval Actions">
+                @if (options.ShowApproveButton)
+                {
+                    <button type="button" 
+                            class="btn btn-success approval-action-approve-btn"
+                            data-request-id="@requestId"
+                            data-requires-comment="@options.RequireCommentsOnApprove.ToString().ToLowerInvariant()"
+                            data-modal-id="@modalId"
+                            title="Approve this request">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                }
+                @if (options.ShowRejectButton)
+                {
+                    <button type="button" 
+                            class="btn btn-danger approval-action-reject-btn"
+                            data-request-id="@requestId"
+                            data-modal-id="@modalId"
+                            title="Reject this request">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                }
+                @if (options.ShowDelegateButton)
+                {
+                    <button type="button" 
+                            class="btn btn-secondary approval-action-delegate-btn"
+                            data-request-id="@requestId"
+                            data-requires-comment="@options.RequireCommentsOnDelegate.ToString().ToLowerInvariant()"
+                            data-modal-id="@delegateModalId"
+                            title="Delegate this request to another user">
+                        <i class="fas fa-user-plus"></i> Delegate
+                    </button>
+                }
+            </div>
+        }
+        else if (!canApprove && isPending)
+        {
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> You are not authorized to approve this request.
+            </div>
+        }
+        else if (!isPending)
+        {
+            <div class="alert alert-secondary mb-0">
+                <i class="fas fa-check-circle"></i> 
+                This request has been 
+                <strong>@(string.IsNullOrEmpty(requestStatus) ? "processed" : requestStatus)</strong>.
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-warning mb-0">
+            <i class="fas fa-exclamation-triangle"></i> No approval request selected.
+        </div>
+    }
+</div>
+
+@* Comment Modal for Approve/Reject Actions *@
+<div class="modal fade" id="@modalId" tabindex="-1" role="dialog" aria-labelledby="@(modalId)-label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="@(modalId)-label">
+                    <span class="approval-action-modal-title">Confirm Action</span>
+                </h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="approval-action-form">
+                    <input type="hidden" name="action_type" class="approval-action-type" value="" />
+                    <input type="hidden" name="request_id" value="@requestId" />
+                    <div class="form-group">
+                        <label for="@(modalId)-comments">Comments</label>
+                        <textarea class="form-control approval-comments" 
+                                  id="@(modalId)-comments" 
+                                  name="comments" 
+                                  rows="4" 
+                                  placeholder="Enter your comments (optional for approval, required for rejection)..."></textarea>
+                        <small class="form-text text-muted approval-comments-hint">
+                            <span class="approve-hint d-none">Comments are @(options.RequireCommentsOnApprove ? "required" : "optional") for approval.</span>
+                            <span class="reject-hint d-none">Comments are required for rejection.</span>
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary approval-action-submit-btn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <span class="btn-text">Submit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Delegate Modal for selecting delegate user *@
+<div class="modal fade" id="@delegateModalId" tabindex="-1" role="dialog" aria-labelledby="@(delegateModalId)-label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="@(delegateModalId)-label">
+                    <i class="fas fa-user-plus"></i> Delegate Request
+                </h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form class="approval-delegate-form">
+                    <input type="hidden" name="request_id" value="@requestId" />
+                    <div class="form-group">
+                        <label for="@(delegateModalId)-user">Delegate To <span class="text-danger">*</span></label>
+                        <select class="form-control approval-delegate-user-select" 
+                                id="@(delegateModalId)-user" 
+                                name="delegate_to_user_id" 
+                                required>
+                            <option value="">-- Select User --</option>
+                            @* Users will be loaded dynamically via JavaScript *@
+                        </select>
+                        <small class="form-text text-muted">Select the user to delegate this approval request to.</small>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="@(delegateModalId)-comments">Comments</label>
+                        <textarea class="form-control approval-delegate-comments" 
+                                  id="@(delegateModalId)-comments" 
+                                  name="comments" 
+                                  rows="3" 
+                                  placeholder="Enter delegation reason or notes..."></textarea>
+                        <small class="form-text text-muted">
+                            Comments are @(options.RequireCommentsOnDelegate ? "required" : "optional") for delegation.
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary approval-delegate-submit-btn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <span class="btn-text">Delegate</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,111 @@
+@*
+    Options.cshtml - Component options editor view for PcApprovalAction PageComponent
+    
+    Provides the configuration UI in the WebVella page builder for setting up:
+    - request_id: DataSource path binding for the approval request ID
+    - show_approve_button: Toggle approve button visibility
+    - show_reject_button: Toggle reject button visibility
+    - show_delegate_button: Toggle delegate button visibility
+    - require_comments_on_approve: Whether comments are required for approval
+    - require_comments_on_delegate: Whether comments are required for delegation
+    
+    ViewBag Data Expected:
+    - Options: PcApprovalActionOptions component configuration
+    - Node: PageBodyNode for component rendering
+    - RequestContext: ErpRequestContext with page information
+*@
+
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.TagHelpers.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+
+@{
+    var options = (PcApprovalAction.PcApprovalActionOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+
+<wv-row>
+    <wv-column span="12">
+        <wv-field-datasource 
+            name="request_id" 
+            value="@options.RequestId" 
+            label-text="Request ID" 
+            page-id="@erpRequest.Page.Id"
+            description="Data source binding for the approval request ID (e.g., {{Record.id}})">
+        </wv-field-datasource>
+    </wv-column>
+</wv-row>
+
+<wv-row class="mt-3">
+    <wv-column span="12">
+        <h6 class="text-muted">Button Visibility</h6>
+    </wv-column>
+</wv-row>
+
+<wv-row>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_approve_button" 
+            value="@options.ShowApproveButton" 
+            label-text="Show Approve Button"
+            description="Display the approve button">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_reject_button" 
+            value="@options.ShowRejectButton" 
+            label-text="Show Reject Button"
+            description="Display the reject button">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_delegate_button" 
+            value="@options.ShowDelegateButton" 
+            label-text="Show Delegate Button"
+            description="Display the delegate button">
+        </wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+<wv-row class="mt-3">
+    <wv-column span="12">
+        <h6 class="text-muted">Comment Requirements</h6>
+    </wv-column>
+</wv-row>
+
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox 
+            name="require_comments_on_approve" 
+            value="@options.RequireCommentsOnApprove" 
+            label-text="Require Comments on Approve"
+            description="Require the user to enter comments when approving a request">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-checkbox 
+            name="require_comments_on_delegate" 
+            value="@options.RequireCommentsOnDelegate" 
+            label-text="Require Comments on Delegate"
+            description="Require the user to enter comments when delegating a request">
+        </wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+<wv-row class="mt-3">
+    <wv-column span="12">
+        <div class="alert alert-info small mb-0">
+            <i class="fas fa-info-circle"></i>
+            <strong>Note:</strong> Comments are always required when rejecting a request.
+        </div>
+    </wv-column>
+</wv-row>
