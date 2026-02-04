@@ -188,23 +188,30 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// Gets the count of pending approval requests where the specified user is an authorized approver.
         /// Queries approval_request with status='pending' and filters by user authorization on the current step.
         /// </summary>
-        /// <param name="userId">The user ID to check authorization for.</param>
+        /// <param name="userId">The user ID to check authorization for. If null, returns 0.</param>
         /// <returns>
         /// Count of pending approval requests where the user is authorized to approve.
-        /// Returns 0 if no pending requests exist or if an error occurs.
+        /// Returns 0 if userId is null, no pending requests exist, or if an error occurs.
         /// </returns>
         /// <remarks>
         /// This method:
-        /// 1. Queries all pending approval requests
-        /// 2. For each request, checks if the user is an authorized approver via IsUserAuthorizedApprover
-        /// 3. Returns the count of requests where the user can take action
+        /// 1. Returns 0 immediately if userId is null (requires authenticated user)
+        /// 2. Queries all pending approval requests
+        /// 3. For each request, checks if the user is an authorized approver via IsUserAuthorizedApprover
+        /// 4. Returns the count of requests where the user can take action
         /// 
         /// Uses ApprovalRouteService.GetApproversForStep() to resolve authorized approvers for each step.
         /// </remarks>
-        public int GetPendingCount(Guid userId)
+        public int GetPendingCount(Guid? userId)
         {
             try
             {
+                // If no user is specified, return 0 (user must be authenticated to see pending approvals)
+                if (!userId.HasValue)
+                {
+                    return 0;
+                }
+
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter(FIELD_STATUS, ApprovalStatus.Pending.ToString().ToLowerInvariant())
@@ -222,7 +229,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 int authorizedCount = 0;
                 foreach (var request in result)
                 {
-                    if (IsUserAuthorizedApprover(userId, request))
+                    if (IsUserAuthorizedApprover(userId.Value, request))
                     {
                         authorizedCount++;
                     }
@@ -376,25 +383,32 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// Gets the count of overdue approval requests where the specified user is an authorized approver.
         /// A request is considered overdue when it has been pending longer than the step's SLA hours.
         /// </summary>
-        /// <param name="userId">The user ID to check authorization for.</param>
+        /// <param name="userId">The user ID to check authorization for. If null, returns 0.</param>
         /// <returns>
         /// Count of overdue pending approval requests where the user is authorized to approve.
-        /// Returns 0 if no overdue requests exist or if an error occurs.
+        /// Returns 0 if userId is null, no overdue requests exist, or if an error occurs.
         /// </returns>
         /// <remarks>
         /// This method:
-        /// 1. Queries all pending approval requests
-        /// 2. For each request, checks if the user is authorized via IsUserAuthorizedApprover
-        /// 3. For authorized requests, checks if created_on + sla_hours has been exceeded
-        /// 4. Returns count of both authorized AND overdue requests
+        /// 1. Returns 0 immediately if userId is null (requires authenticated user)
+        /// 2. Queries all pending approval requests
+        /// 3. For each request, checks if the user is authorized via IsUserAuthorizedApprover
+        /// 4. For authorized requests, checks if created_on + sla_hours has been exceeded
+        /// 5. Returns count of both authorized AND overdue requests
         /// 
         /// The SLA hours are read from the approval_step entity for each request's current step.
         /// If step configuration is unavailable, a default of 24 hours is used.
         /// </remarks>
-        public int GetOverdueCount(Guid userId)
+        public int GetOverdueCount(Guid? userId)
         {
             try
             {
+                // If no user is specified, return 0 (user must be authenticated to see overdue approvals)
+                if (!userId.HasValue)
+                {
+                    return 0;
+                }
+
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter(FIELD_STATUS, ApprovalStatus.Pending.ToString().ToLowerInvariant())
@@ -414,7 +428,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 foreach (var request in requests)
                 {
                     // Check user authorization first
-                    if (IsUserAuthorizedApprover(userId, request))
+                    if (IsUserAuthorizedApprover(userId.Value, request))
                     {
                         // Then check if overdue
                         if (IsRequestOverdue(request))
@@ -722,7 +736,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// "Today" is defined as the UTC calendar date from 00:00:00 to 23:59:59.
         /// This metric is used for the dashboard's "Approved Today" card display.
         /// </remarks>
-        private int GetApprovedTodayCount()
+        public int GetApprovedTodayCount()
         {
             try
             {
@@ -763,7 +777,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// "Today" is defined as the UTC calendar date from 00:00:00 to 23:59:59.
         /// This metric is used for the dashboard's "Rejected Today" card display.
         /// </remarks>
-        private int GetRejectedTodayCount()
+        public int GetRejectedTodayCount()
         {
             try
             {
