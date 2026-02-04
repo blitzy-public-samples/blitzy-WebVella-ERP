@@ -1,0 +1,771 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.TagHelpers.Models;
+@using Newtonsoft.Json;
+@{
+    /* ==============================================================================
+     * Display.cshtml - PcApprovalWorkflowConfig Main Runtime Display View
+     * 
+     * This view provides the admin workflow configuration interface showing:
+     * - Workflow list with name, entity_name, is_active fields
+     * - Nested panels for step and rule configuration with CRUD operations
+     * - Add/edit/delete approval steps with step_order, approver_type, approver_id, sla_hours
+     * - Rule configuration with rule_type, field_name, operator, value, action
+     * ============================================================================== */
+
+    // Extract component options from ViewBag
+    var options = ViewBag.Options;
+    var workflows = ViewBag.Workflows as List<EntityRecord> ?? new List<EntityRecord>();
+    var workflowsJson = ViewBag.WorkflowsJson as string ?? "[]";
+    var approverTypesJson = ViewBag.ApproverTypesJson as string ?? "[]";
+    var ruleOperatorsJson = ViewBag.RuleOperatorsJson as string ?? "[]";
+    var currentUser = ViewBag.CurrentUser;
+    var currentUserJson = ViewBag.CurrentUserJson as string ?? "{}";
+    var siteRootUrl = ViewBag.SiteRootUrl as string ?? "";
+    var componentContext = ViewBag.ComponentContext;
+
+    // Generate unique IDs for modals and form elements
+    var componentId = Guid.NewGuid().ToString("N");
+    var workflowModalId = $"workflow-modal-{componentId}";
+    var stepModalId = $"step-modal-{componentId}";
+    var ruleModalId = $"rule-modal-{componentId}";
+    var deleteConfirmModalId = $"delete-confirm-modal-{componentId}";
+}
+
+<div class="pc-approval-workflow-config" id="wf-config-@componentId" 
+     data-workflows='@workflowsJson'
+     data-approver-types='@approverTypesJson'
+     data-rule-operators='@ruleOperatorsJson'
+     data-current-user='@currentUserJson'
+     data-site-root='@siteRootUrl'>
+
+    <!-- ========================================================================== -->
+    <!-- WORKFLOW LIST SECTION -->
+    <!-- ========================================================================== -->
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-sitemap mr-2"></i>Approval Workflows
+            </h5>
+            <button type="button" class="btn btn-sm btn-primary" 
+                    data-toggle="modal" data-target="#@workflowModalId"
+                    onclick="ApprovalWorkflowConfig.openWorkflowModal(null, '@componentId')">
+                <i class="fas fa-plus mr-1"></i>New Workflow
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col" style="width: 30%;">Name</th>
+                            <th scope="col" style="width: 25%;">Entity</th>
+                            <th scope="col" style="width: 15%;" class="text-center">Status</th>
+                            <th scope="col" style="width: 15%;" class="text-center">Steps</th>
+                            <th scope="col" style="width: 15%;" class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="workflow-list-@componentId">
+                        @if (workflows.Count == 0)
+                        {
+                            <tr class="no-workflows-row">
+                                <td colspan="5">
+                                    <div class="alert alert-info m-3 text-center">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        No workflows configured. Click "New Workflow" to create your first approval workflow.
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var workflow in workflows)
+                            {
+                                var workflowId = workflow["id"]?.ToString() ?? "";
+                                var workflowName = workflow["name"]?.ToString() ?? "";
+                                var entityName = workflow["entity_name"]?.ToString() ?? "";
+                                var isActive = workflow["is_active"] != null && (bool)workflow["is_active"];
+                                var stepCount = workflow["$approval_step_approval_workflow"]?.ToString() ?? "0";
+                                <tr data-workflow-id="@workflowId" class="workflow-row">
+                                    <td>
+                                        <a href="javascript:void(0)" 
+                                           onclick="ApprovalWorkflowConfig.selectWorkflow('@workflowId', '@componentId')"
+                                           class="workflow-name-link font-weight-bold">
+                                            @workflowName
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <code class="text-muted">@entityName</code>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (isActive)
+                                        {
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check mr-1"></i>Active
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">
+                                                <i class="fas fa-pause mr-1"></i>Inactive
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-info">@stepCount steps</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    title="Edit Workflow"
+                                                    onclick="ApprovalWorkflowConfig.openWorkflowModal('@workflowId', '@componentId')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    title="Configure Steps"
+                                                    onclick="ApprovalWorkflowConfig.selectWorkflow('@workflowId', '@componentId')">
+                                                <i class="fas fa-list-ol"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    title="Delete Workflow"
+                                                    onclick="ApprovalWorkflowConfig.confirmDelete('workflow', '@workflowId', '@componentId')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- STEPS PANEL (shown when workflow selected) -->
+    <!-- ========================================================================== -->
+    <div class="card mb-3 steps-panel" id="steps-panel-@componentId" style="display: none;">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-list-ol mr-2"></i>
+                Workflow Steps: <span class="selected-workflow-name text-primary"></span>
+            </h5>
+            <div>
+                <button type="button" class="btn btn-sm btn-secondary mr-2"
+                        onclick="ApprovalWorkflowConfig.closeStepsPanel('@componentId')">
+                    <i class="fas fa-times mr-1"></i>Close
+                </button>
+                <button type="button" class="btn btn-sm btn-primary"
+                        onclick="ApprovalWorkflowConfig.openStepModal(null, '@componentId')">
+                    <i class="fas fa-plus mr-1"></i>Add Step
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="accordion" id="steps-accordion-@componentId">
+                <!-- Steps will be dynamically loaded here -->
+            </div>
+            <div class="no-steps-message text-center p-4" style="display: none;">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    No steps configured for this workflow. Click "Add Step" to create approval steps.
+                </div>
+            </div>
+            <!-- Loading spinner -->
+            <div class="steps-loading text-center p-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading steps...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- RULES PANEL (shown when step selected) -->
+    <!-- ========================================================================== -->
+    <div class="card mb-3 rules-panel" id="rules-panel-@componentId" style="display: none;">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-filter mr-2"></i>
+                Step Rules: <span class="selected-step-name text-primary"></span>
+            </h5>
+            <div>
+                <button type="button" class="btn btn-sm btn-secondary mr-2"
+                        onclick="ApprovalWorkflowConfig.closeRulesPanel('@componentId')">
+                    <i class="fas fa-times mr-1"></i>Close
+                </button>
+                <button type="button" class="btn btn-sm btn-primary"
+                        onclick="ApprovalWorkflowConfig.openRuleModal(null, '@componentId')">
+                    <i class="fas fa-plus mr-1"></i>Add Rule
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Rule Type</th>
+                            <th scope="col">Field Name</th>
+                            <th scope="col">Operator</th>
+                            <th scope="col">Value</th>
+                            <th scope="col">Action</th>
+                            <th scope="col" class="text-center" style="width: 100px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rules-list-@componentId">
+                        <!-- Rules will be dynamically loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="no-rules-message text-center p-4" style="display: none;">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    No rules configured for this step. Click "Add Rule" to create conditional rules.
+                </div>
+            </div>
+            <!-- Loading spinner -->
+            <div class="rules-loading text-center p-4" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading rules...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- WORKFLOW EDIT MODAL -->
+    <!-- ========================================================================== -->
+    <div class="modal fade" id="@workflowModalId" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-sitemap mr-2"></i>
+                        <span class="modal-title-text">New Workflow</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="workflow-form-@componentId" onsubmit="return ApprovalWorkflowConfig.saveWorkflow('@componentId');">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="workflow-id-@componentId" value="">
+
+                        <wv-row>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="workflow-name-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Workflow Name
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="workflow-name-@componentId" 
+                                           name="name" 
+                                           required 
+                                           placeholder="Enter workflow name"
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        A unique name for this approval workflow
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="workflow-entity-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Entity Name
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="workflow-entity-@componentId" 
+                                           name="entity_name" 
+                                           required 
+                                           placeholder="e.g., purchase_order"
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        The entity this workflow applies to (e.g., purchase_order, invoice)
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+
+                        <wv-row>
+                            <wv-column span="12">
+                                <div class="form-group">
+                                    <div class="custom-control custom-checkbox">
+                                        <input type="checkbox" class="custom-control-input" 
+                                               id="workflow-active-@componentId" 
+                                               name="is_active"
+                                               checked>
+                                        <label class="custom-control-label" for="workflow-active-@componentId">
+                                            <strong>Active</strong> - Enable this workflow for processing approval requests
+                                        </label>
+                                    </div>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>Save Workflow
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- STEP EDIT MODAL -->
+    <!-- ========================================================================== -->
+    <div class="modal fade" id="@stepModalId" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-list-ol mr-2"></i>
+                        <span class="modal-title-text">New Step</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="step-form-@componentId" onsubmit="return ApprovalWorkflowConfig.saveStep('@componentId');">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="step-id-@componentId" value="">
+                        <input type="hidden" name="workflow_id" id="step-workflow-id-@componentId" value="">
+
+                        <wv-row>
+                            <wv-column span="4">
+                                <div class="form-group">
+                                    <label for="step-order-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Step Order
+                                    </label>
+                                    <input type="number" class="form-control" 
+                                           id="step-order-@componentId" 
+                                           name="step_order" 
+                                           required 
+                                           min="1"
+                                           value="1">
+                                    <small class="form-text text-muted">
+                                        Order in which this step is executed
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="8">
+                                <div class="form-group">
+                                    <label for="step-name-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Step Name
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="step-name-@componentId" 
+                                           name="name" 
+                                           required 
+                                           placeholder="e.g., Manager Approval"
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        A descriptive name for this approval step
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+
+                        <wv-row>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="step-approver-type-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Approver Type
+                                    </label>
+                                    <select class="form-control" 
+                                            id="step-approver-type-@componentId" 
+                                            name="approver_type" 
+                                            required
+                                            onchange="ApprovalWorkflowConfig.onApproverTypeChange('@componentId')">
+                                        <option value="">-- Select Approver Type --</option>
+                                        <option value="User">User - Specific user</option>
+                                        <option value="Role">Role - Any user with role</option>
+                                        <option value="Manager">Manager - Requester's manager</option>
+                                        <option value="Custom">Custom - Custom resolver</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        How the approver for this step is determined
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="6">
+                                <div class="form-group" id="approver-id-group-@componentId">
+                                    <label for="step-approver-id-@componentId" class="control-label">
+                                        Approver ID
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="step-approver-id-@componentId" 
+                                           name="approver_id" 
+                                           placeholder="User or Role GUID">
+                                    <small class="form-text text-muted">
+                                        GUID of the user or role (required for User/Role types)
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+
+                        <wv-row>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="step-sla-hours-@componentId" class="control-label">
+                                        SLA Hours
+                                    </label>
+                                    <input type="number" class="form-control" 
+                                           id="step-sla-hours-@componentId" 
+                                           name="sla_hours" 
+                                           min="0"
+                                           value="24"
+                                           placeholder="24">
+                                    <small class="form-text text-muted">
+                                        Maximum hours allowed for this step (0 = no limit)
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label class="control-label">Step Settings</label>
+                                    <div class="custom-control custom-checkbox mt-2">
+                                        <input type="checkbox" class="custom-control-input" 
+                                               id="step-can-delegate-@componentId" 
+                                               name="can_delegate"
+                                               checked>
+                                        <label class="custom-control-label" for="step-can-delegate-@componentId">
+                                            Allow delegation
+                                        </label>
+                                    </div>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>Save Step
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- RULE EDIT MODAL -->
+    <!-- ========================================================================== -->
+    <div class="modal fade" id="@ruleModalId" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-filter mr-2"></i>
+                        <span class="modal-title-text">New Rule</span>
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="rule-form-@componentId" onsubmit="return ApprovalWorkflowConfig.saveRule('@componentId');">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="rule-id-@componentId" value="">
+                        <input type="hidden" name="step_id" id="rule-step-id-@componentId" value="">
+
+                        <wv-row>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="rule-type-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Rule Type
+                                    </label>
+                                    <select class="form-control" 
+                                            id="rule-type-@componentId" 
+                                            name="rule_type" 
+                                            required>
+                                        <option value="">-- Select Rule Type --</option>
+                                        <option value="condition">Condition - Field-based condition</option>
+                                        <option value="skip">Skip - Skip this step if true</option>
+                                        <option value="route">Route - Alternative routing</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Type of rule behavior
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="rule-field-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Field Name
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="rule-field-@componentId" 
+                                           name="field_name" 
+                                           required
+                                           placeholder="e.g., amount, status"
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        The entity field to evaluate
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+
+                        <wv-row>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="rule-operator-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Operator
+                                    </label>
+                                    <select class="form-control" 
+                                            id="rule-operator-@componentId" 
+                                            name="operator" 
+                                            required>
+                                        <option value="">-- Select Operator --</option>
+                                        <option value="Equals">Equals</option>
+                                        <option value="NotEquals">Not Equals</option>
+                                        <option value="GreaterThan">Greater Than</option>
+                                        <option value="LessThan">Less Than</option>
+                                        <option value="Contains">Contains</option>
+                                        <option value="StartsWith">Starts With</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Comparison operator
+                                    </small>
+                                </div>
+                            </wv-column>
+                            <wv-column span="6">
+                                <div class="form-group">
+                                    <label for="rule-value-@componentId" class="control-label">
+                                        <span class="go-red">*</span> Value
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="rule-value-@componentId" 
+                                           name="value" 
+                                           required
+                                           placeholder="Comparison value"
+                                           maxlength="500">
+                                    <small class="form-text text-muted">
+                                        The value to compare against
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+
+                        <wv-row>
+                            <wv-column span="12">
+                                <div class="form-group">
+                                    <label for="rule-action-@componentId" class="control-label">
+                                        Action
+                                    </label>
+                                    <input type="text" class="form-control" 
+                                           id="rule-action-@componentId" 
+                                           name="action" 
+                                           placeholder="Optional: action to take when rule matches"
+                                           maxlength="500">
+                                    <small class="form-text text-muted">
+                                        Additional action configuration (e.g., target step GUID for routing)
+                                    </small>
+                                </div>
+                            </wv-column>
+                        </wv-row>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                            <i class="fas fa-times mr-1"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>Save Rule
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- DELETE CONFIRMATION MODAL -->
+    <!-- ========================================================================== -->
+    <div class="modal fade" id="@deleteConfirmModalId" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Confirm Delete
+                    </h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="delete-type-@componentId" value="">
+                    <input type="hidden" id="delete-id-@componentId" value="">
+                    <p class="mb-0 delete-confirm-message">
+                        Are you sure you want to delete this item? This action cannot be undone.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" 
+                            onclick="ApprovalWorkflowConfig.executeDelete('@componentId')">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- STEP TEMPLATE (for dynamic rendering) -->
+<!-- ========================================================================== -->
+<template id="step-template-@componentId">
+    <div class="card step-card" data-step-id="">
+        <div class="card-header p-2" id="">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <span class="step-order-badge badge badge-primary mr-2"></span>
+                    <h6 class="mb-0 step-name"></h6>
+                </div>
+                <div class="step-actions">
+                    <span class="badge badge-light mr-2 step-approver-info">
+                        <i class="fas fa-user mr-1"></i>
+                        <span class="approver-type"></span>
+                    </span>
+                    <span class="badge badge-warning mr-2 step-sla-info">
+                        <i class="fas fa-clock mr-1"></i>
+                        <span class="sla-hours"></span>h SLA
+                    </span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-info btn-sm" 
+                                title="Configure Rules"
+                                onclick="">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" 
+                                title="Edit Step"
+                                onclick="">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                title="Delete Step"
+                                onclick="">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- ========================================================================== -->
+<!-- RULE ROW TEMPLATE (for dynamic rendering) -->
+<!-- ========================================================================== -->
+<template id="rule-template-@componentId">
+    <tr class="rule-row" data-rule-id="">
+        <td class="rule-type"></td>
+        <td><code class="rule-field"></code></td>
+        <td><span class="badge badge-secondary rule-operator"></span></td>
+        <td class="rule-value"></td>
+        <td class="rule-action"></td>
+        <td class="text-center">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary btn-sm" 
+                        title="Edit Rule"
+                        onclick="">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" 
+                        title="Delete Rule"
+                        onclick="">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+</template>
+
+<!-- ========================================================================== -->
+<!-- COMPONENT STYLES -->
+<!-- ========================================================================== -->
+<style>
+    .pc-approval-workflow-config .workflow-name-link {
+        text-decoration: none;
+    }
+    .pc-approval-workflow-config .workflow-name-link:hover {
+        text-decoration: underline;
+    }
+    .pc-approval-workflow-config .workflow-row.selected {
+        background-color: #e3f2fd !important;
+    }
+    .pc-approval-workflow-config .step-card {
+        margin-bottom: 0.5rem;
+        border-left: 4px solid #007bff;
+    }
+    .pc-approval-workflow-config .step-card:last-child {
+        margin-bottom: 0;
+    }
+    .pc-approval-workflow-config .step-card.selected {
+        border-left-color: #28a745;
+        background-color: #e8f5e9;
+    }
+    .pc-approval-workflow-config .rule-row.selected {
+        background-color: #fff3cd !important;
+    }
+    .pc-approval-workflow-config .go-red {
+        color: #dc3545;
+    }
+    .pc-approval-workflow-config .modal-title-text {
+        font-weight: 600;
+    }
+    .pc-approval-workflow-config .step-order-badge {
+        font-size: 1rem;
+        min-width: 28px;
+    }
+    .pc-approval-workflow-config .steps-accordion .card-header {
+        cursor: pointer;
+        transition: background-color 0.15s ease-in-out;
+    }
+    .pc-approval-workflow-config .steps-accordion .card-header:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+
+<!-- ========================================================================== -->
+<!-- COMPONENT SCRIPT -->
+<!-- ========================================================================== -->
+<script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalWorkflowConfig/service.js"></script>
+<script>
+(function() {
+    // Initialize component-specific data
+    var componentId = '@componentId';
+    var container = document.getElementById('wf-config-' + componentId);
+    
+    if (container && typeof ApprovalWorkflowConfig !== 'undefined') {
+        // Component data is stored in data attributes for access by service.js
+        ApprovalWorkflowConfig.init(componentId, {
+            workflows: @Html.Raw(workflowsJson),
+            approverTypes: @Html.Raw(approverTypesJson),
+            ruleOperators: @Html.Raw(ruleOperatorsJson),
+            currentUser: @Html.Raw(currentUserJson),
+            siteRootUrl: '@siteRootUrl',
+            workflowModalId: '@workflowModalId',
+            stepModalId: '@stepModalId',
+            ruleModalId: '@ruleModalId',
+            deleteConfirmModalId: '@deleteConfirmModalId'
+        });
+    }
+})();
+</script>
