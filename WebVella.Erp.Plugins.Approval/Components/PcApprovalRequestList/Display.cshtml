@@ -26,8 +26,10 @@
 @addTagHelper *, WebVella.Erp.Web
 @addTagHelper *, WebVella.TagHelpers
 
+@using WebVella.Erp.Web
 @using WebVella.Erp.Web.Utils
 @using WebVella.Erp.Web.Models
+@using WebVella.Erp.Web.Services
 @using WebVella.Erp.Api.Models
 @using WebVella.Erp.Plugins.Approval.Components
 @using WebVella.Erp.Plugins.Approval.Model
@@ -382,26 +384,26 @@
                     
                     <!-- Page Numbers -->
                     @{
-                        var startPage = Math.Max(1, currentPage - 2);
-                        var endPage = Math.Min(totalPages, currentPage + 2);
+                        var startPageNum = Math.Max(1, currentPage - 2);
+                        var endPageNum = Math.Min(totalPages, currentPage + 2);
                         
                         // Ensure we always show 5 pages if possible
-                        if (endPage - startPage < 4)
+                        if (endPageNum - startPageNum < 4)
                         {
-                            if (startPage == 1)
+                            if (startPageNum == 1)
                             {
-                                endPage = Math.Min(totalPages, startPage + 4);
+                                endPageNum = Math.Min(totalPages, startPageNum + 4);
                             }
-                            else if (endPage == totalPages)
+                            else if (endPageNum == totalPages)
                             {
-                                startPage = Math.Max(1, endPage - 4);
+                                startPageNum = Math.Max(1, endPageNum - 4);
                             }
                         }
                         
-                        for (var page = startPage; page <= endPage; page++)
+                        for (var pageNum = startPageNum; pageNum <= endPageNum; pageNum++)
                         {
-                            <li class="page-item @(page == currentPage ? "active" : "")">
-                                <a class="page-link" href="#" onclick="@(componentId)_goToPage(@page); return false;">@page</a>
+                            <li class="page-item @(pageNum == currentPage ? "active" : "")">
+                                <a class="page-link" href="#" onclick="@(componentId)_goToPage(@pageNum); return false;">@pageNum</a>
                             </li>
                         }
                     }
