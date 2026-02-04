@@ -203,8 +203,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                                         catch (Exception notifyEx)
                                         {
                                             // Log notification failure but continue processing
-                                            new Log().Create(LogType.Warning, LOG_SOURCE,
-                                                $"Failed to send escalation notification for request {requestId} to user {targetUserId}: {notifyEx.Message}");
+                                            new Log().Create(LogType.Error, LOG_SOURCE,
+                                                $"Failed to send escalation notification for request {requestId} to user {targetUserId}", notifyEx);
                                         }
                                     }
                                 }
@@ -298,8 +298,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             }
             catch (Exception ex)
             {
-                new Log().Create(LogType.Warning, LOG_SOURCE,
-                    $"Error retrieving step {stepId}: {ex.Message}");
+                new Log().Create(LogType.Error, LOG_SOURCE,
+                    $"Error retrieving step {stepId}", ex);
                 return null;
             }
         }
@@ -419,8 +419,8 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                          $"Errors: {errorCount}, " +
                          $"Duration: {duration.TotalSeconds:F2}s";
 
-            var logType = errorCount > 0 ? LogType.Warning : LogType.Info;
-            new Log().Create(logType, LOG_SOURCE, message);
+            var logType = errorCount > 0 ? LogType.Error : LogType.Info;
+            new Log().Create(logType, LOG_SOURCE, message, string.Empty);
         }
 
         #endregion
