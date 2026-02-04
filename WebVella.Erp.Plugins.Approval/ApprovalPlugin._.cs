@@ -91,11 +91,11 @@ namespace WebVella.Erp.Plugins.Approval
 									currentPluginSettings.Version = patchVersion;
 									Patch20240101(entMan, relMan, recMan);
 								}
-								catch (ValidationException ex)
+								catch (ValidationException)
 								{
 									// Preserve validation exception details for debugging
-									var exception = ex;
-									throw ex;
+									// Re-throw to maintain stack trace
+									throw;
 								}
 								catch (Exception)
 								{
@@ -112,11 +112,11 @@ namespace WebVella.Erp.Plugins.Approval
 						// Commit all changes atomically
 						connection.CommitTransaction();
 					}
-					catch (ValidationException ex)
+					catch (ValidationException)
 					{
 						// Roll back on validation errors to maintain data integrity
 						connection.RollbackTransaction();
-						throw ex;
+						throw;
 					}
 					catch (Exception)
 					{
