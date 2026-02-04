@@ -425,7 +425,10 @@ namespace WebVella.Erp.Web.Services
 			new SitemapAreaGroupRepository(connectionString).Insert(id, areaId, name, label, lblTr, weight, renderRoles, transaction);
 
 			Guid? appId = new SitemapAreaRepository(connectionString).GetAppIdByAreaId(areaId, transaction);
-			ClearAppCache(appId.Value);
+			if (appId.HasValue)
+			{
+				ClearAppCache(appId.Value);
+			}
 		}
 
 		/// <summary>
@@ -451,7 +454,10 @@ namespace WebVella.Erp.Web.Services
 			new SitemapAreaGroupRepository(connectionString).Update(id, areaId, name, label, lblTr, weight, renderRoles, transaction);
 
 			Guid? appId = new SitemapAreaRepository(connectionString).GetAppIdByAreaId(areaId, transaction);
-			ClearAppCache(appId.Value);
+			if (appId.HasValue)
+			{
+				ClearAppCache(appId.Value);
+			}
 		}
 
 		/// <summary>
@@ -515,7 +521,10 @@ namespace WebVella.Erp.Web.Services
 						entityId, weight, accessRoles, entityListPages, entityCreatePages, entityDetailsPages, entityManagePages, transaction,parentId);
 
 			Guid? appId = new SitemapAreaRepository(connectionString).GetAppIdByAreaId(areaId, transaction);
-			ClearAppCache(appId.Value);
+			if (appId.HasValue)
+			{
+				ClearAppCache(appId.Value);
+			}
 		}
 
 		/// <summary>
@@ -561,7 +570,10 @@ namespace WebVella.Erp.Web.Services
 						entityId, weight, accessRoles, entityListPages, entityCreatePages, entityDetailsPages, entityManagePages, transaction,parentId);
 
 			Guid? appId = new SitemapAreaRepository(connectionString).GetAppIdByAreaId(areaId, transaction);
-			ClearAppCache(appId.Value);
+			if (appId.HasValue)
+			{
+				ClearAppCache(appId.Value);
+			}
 		}
 
 		/// <summary>

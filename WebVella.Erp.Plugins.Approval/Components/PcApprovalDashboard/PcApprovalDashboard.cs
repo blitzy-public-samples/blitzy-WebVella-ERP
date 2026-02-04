@@ -130,8 +130,8 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         {
                             if (int.TryParse(httpContext.Request.Query["days"], out days) && days > 0)
                             {
-                                fromDate = DateTime.UtcNow.AddDays(-days);
-                                toDate = DateTime.UtcNow;
+                                fromDate = DateTime.Today.AddDays(-days);
+                                toDate = DateTime.Today.AddDays(1);
                             }
                         }
                         // Check for custom date range
