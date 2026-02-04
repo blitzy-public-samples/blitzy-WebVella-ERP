@@ -364,7 +364,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
                     LogType.Info,
                     LOG_SOURCE,
                     $"[WARNING] {message}",
-                    null
+                    (string)null
                 );
             }
             catch
