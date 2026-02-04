@@ -14,21 +14,161 @@ namespace WebVella.Erp.Plugins.Approval.Services
     /// overdue requests count, total active workflows, and recent activity feed for the manager dashboard display.
     /// </summary>
     /// <remarks>
-    /// This service is used by PcApprovalDashboard component to render real-time metric cards.
+    /// This service is used by PcApprovalDashboard component and ApprovalController to render real-time metric cards.
+    /// 
+    /// Key metrics provided:
+    /// - PendingCount: Number of approval requests awaiting action by the specified user
+    /// - OverdueCount: Number of pending requests that have exceeded their SLA timeout
+    /// - AverageApprovalTimeHours: Mean time from request creation to completion
+    /// - ApprovalRate: Percentage of approved vs total completed requests
+    /// - TotalActiveWorkflows: Count of enabled workflow configurations
+    /// - RecentActivity: Latest approval actions for activity feed display
+    /// 
     /// All methods include error handling to gracefully return default values when entities
     /// don't exist or queries fail, ensuring the dashboard remains functional during initial setup.
+    /// 
+    /// The service uses ApprovalRouteService to determine user authorization for steps,
+    /// enabling user-specific filtering of pending and overdue counts.
     /// </remarks>
     public class DashboardMetricsService : BaseService
     {
+        #region Constants
+
+        /// <summary>
+        /// Entity name for approval requests.
+        /// </summary>
+        private const string ENTITY_REQUEST = "approval_request";
+
+        /// <summary>
+        /// Entity name for approval history.
+        /// </summary>
+        private const string ENTITY_HISTORY = "approval_history";
+
+        /// <summary>
+        /// Entity name for approval workflows.
+        /// </summary>
+        private const string ENTITY_WORKFLOW = "approval_workflow";
+
+        /// <summary>
+        /// Entity name for approval steps.
+        /// </summary>
+        private const string ENTITY_STEP = "approval_step";
+
+        /// <summary>
+        /// Field name for record ID.
+        /// </summary>
+        private const string FIELD_ID = "id";
+
+        /// <summary>
+        /// Field name for status.
+        /// </summary>
+        private const string FIELD_STATUS = "status";
+
+        /// <summary>
+        /// Field name for created_on timestamp.
+        /// </summary>
+        private const string FIELD_CREATED_ON = "created_on";
+
+        /// <summary>
+        /// Field name for completed_on timestamp.
+        /// </summary>
+        private const string FIELD_COMPLETED_ON = "completed_on";
+
+        /// <summary>
+        /// Field name for current step ID.
+        /// </summary>
+        private const string FIELD_CURRENT_STEP_ID = "current_step_id";
+
+        /// <summary>
+        /// Field name for is_active flag.
+        /// </summary>
+        private const string FIELD_IS_ACTIVE = "is_active";
+
+        /// <summary>
+        /// Field name for action_type in history.
+        /// </summary>
+        private const string FIELD_ACTION_TYPE = "action_type";
+
+        /// <summary>
+        /// Field name for performed_on timestamp.
+        /// </summary>
+        private const string FIELD_PERFORMED_ON = "performed_on";
+
+        /// <summary>
+        /// Field name for performed_by user ID.
+        /// </summary>
+        private const string FIELD_PERFORMED_BY = "performed_by";
+
+        /// <summary>
+        /// Field name for request_id foreign key.
+        /// </summary>
+        private const string FIELD_REQUEST_ID = "request_id";
+
+        /// <summary>
+        /// Field name for comments.
+        /// </summary>
+        private const string FIELD_COMMENTS = "comments";
+
+        /// <summary>
+        /// Field name for SLA hours on approval_step.
+        /// </summary>
+        private const string FIELD_SLA_HOURS = "sla_hours";
+
+        /// <summary>
+        /// Default SLA timeout in hours when step configuration is unavailable.
+        /// </summary>
+        private const int DEFAULT_SLA_HOURS = 24;
+
+        #endregion
+
+        #region Private Fields
+
+        /// <summary>
+        /// Route service for determining user authorization on approval steps.
+        /// Used by IsUserAuthorizedApprover to check if a user can act on a pending request.
+        /// </summary>
+        private readonly ApprovalRouteService _routeService;
+
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Initializes a new instance of the DashboardMetricsService class.
+        /// Creates the internal ApprovalRouteService instance for authorization checks.
+        /// </summary>
+        public DashboardMetricsService()
+        {
+            _routeService = new ApprovalRouteService();
+        }
+
+        #endregion
+
+        #region Public Methods
+
         /// <summary>
         /// Gets comprehensive dashboard metrics aggregated for a specific user within a date range.
         /// Assembles all individual metrics into a single DashboardMetricsModel response.
         /// </summary>
-        /// <param name="userId">The user ID for user-specific metrics (pending/overdue counts). Pass null for global metrics.</param>
+        /// <param name="userId">The user ID for user-specific metrics (pending/overdue counts).</param>
         /// <param name="fromDate">Start date for time-based metrics (average approval time, approval rate).</param>
         /// <param name="toDate">End date for time-based metrics.</param>
-        /// <returns>DashboardMetricsModel containing all aggregated metrics.</returns>
-        public DashboardMetricsModel GetDashboardMetrics(Guid? userId, DateTime fromDate, DateTime toDate)
+        /// <returns>
+        /// DashboardMetricsModel containing all aggregated metrics including:
+        /// - PendingCount: Requests awaiting action by the specified user
+        /// - OverdueCount: Requests past their SLA deadline
+        /// - AverageApprovalTimeHours: Mean completion time in hours
+        /// - ApprovalRate: Percentage of approved requests
+        /// - TotalActiveWorkflows: Count of active workflow configurations
+        /// - ApprovedTodayCount: Number of approvals today
+        /// - RejectedTodayCount: Number of rejections today
+        /// </returns>
+        /// <remarks>
+        /// This method aggregates all individual metric calculations into a single response object.
+        /// Each individual metric method handles its own error conditions and returns safe default values.
+        /// The date range parameters are stored in the response for reference by consuming components.
+        /// </remarks>
+        public DashboardMetricsModel GetDashboardMetrics(Guid userId, DateTime fromDate, DateTime toDate)
         {
             return new DashboardMetricsModel
             {
@@ -45,56 +185,224 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Gets the count of pending approval requests for a specific user or all users.
-        /// When a userId is provided, counts only requests where the user is an authorized approver.
+        /// Gets the count of pending approval requests where the specified user is an authorized approver.
+        /// Queries approval_request with status='pending' and filters by user authorization on the current step.
         /// </summary>
-        /// <param name="userId">Optional user ID to filter by authorized approver. Pass null for total pending count.</param>
-        /// <returns>Count of pending approval requests.</returns>
-        public int GetPendingCount(Guid? userId)
+        /// <param name="userId">The user ID to check authorization for.</param>
+        /// <returns>
+        /// Count of pending approval requests where the user is authorized to approve.
+        /// Returns 0 if no pending requests exist or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// This method:
+        /// 1. Queries all pending approval requests
+        /// 2. For each request, checks if the user is an authorized approver via IsUserAuthorizedApprover
+        /// 3. Returns the count of requests where the user can take action
+        /// 
+        /// Uses ApprovalRouteService.GetApproversForStep() to resolve authorized approvers for each step.
+        /// </remarks>
+        public int GetPendingCount(Guid userId)
         {
             try
             {
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("status", ApprovalStatus.Pending.ToString().ToLowerInvariant())
+                    new EqlParameter(FIELD_STATUS, ApprovalStatus.Pending.ToString().ToLowerInvariant())
                 };
 
-                string eql = "SELECT id FROM approval_request WHERE status = @status";
+                string eql = $"SELECT {FIELD_ID}, {FIELD_CURRENT_STEP_ID} FROM {ENTITY_REQUEST} WHERE {FIELD_STATUS} = @{FIELD_STATUS}";
                 var result = new EqlCommand(eql, eqlParams).Execute();
 
-                if (result == null)
+                if (result == null || !result.Any())
                 {
                     return 0;
                 }
 
-                // If userId is provided, we would filter by authorized approvers
-                // For now, return total pending count as ApprovalRouteService is not yet available
-                return result.Count;
+                // Filter by user authorization on current step
+                int authorizedCount = 0;
+                foreach (var request in result)
+                {
+                    if (IsUserAuthorizedApprover(userId, request))
+                    {
+                        authorizedCount++;
+                    }
+                }
+
+                return authorizedCount;
             }
             catch (Exception)
             {
-                // Entity may not exist yet, return default value
+                // Entity may not exist yet during initial setup, return default value
                 return 0;
             }
         }
 
         /// <summary>
-        /// Gets the count of overdue approval requests based on SLA configuration.
-        /// An overdue request is one where the pending time exceeds the step's configured timeout.
+        /// Calculates the average approval time in hours for completed requests within a date range.
+        /// Considers both approved and rejected requests as "completed" for this calculation.
         /// </summary>
-        /// <param name="userId">Optional user ID to filter by authorized approver. Pass null for total overdue count.</param>
-        /// <returns>Count of overdue approval requests.</returns>
-        public int GetOverdueCount(Guid? userId)
+        /// <param name="fromDate">Start of the date range for filtering completed requests.</param>
+        /// <param name="toDate">End of the date range for filtering completed requests.</param>
+        /// <returns>
+        /// Average approval time in hours, rounded to 1 decimal place.
+        /// Returns 0.0 if no completed requests exist within the date range or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// Calculation formula:
+        /// 1. Query all requests with status = approved OR rejected within the date range
+        /// 2. For each request, calculate hours between created_on and completed_on
+        /// 3. Return the arithmetic mean of all durations
+        /// 
+        /// The completed_on field is expected to be set when the request reaches a terminal status.
+        /// If completed_on is not available, the calculation uses DateTime.UtcNow as a fallback.
+        /// </remarks>
+        public double GetAverageApprovalTime(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                var statusApproved = ApprovalStatus.Approved.ToString().ToLowerInvariant();
+                var statusRejected = ApprovalStatus.Rejected.ToString().ToLowerInvariant();
+
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("from_date", fromDate),
+                    new EqlParameter("to_date", toDate),
+                    new EqlParameter("status_approved", statusApproved),
+                    new EqlParameter("status_rejected", statusRejected)
+                };
+
+                // Get completed requests within date range
+                string eql = $@"SELECT {FIELD_ID}, {FIELD_CREATED_ON}, {FIELD_COMPLETED_ON} FROM {ENTITY_REQUEST} 
+                               WHERE ({FIELD_STATUS} = @status_approved OR {FIELD_STATUS} = @status_rejected)
+                               AND {FIELD_CREATED_ON} >= @from_date AND {FIELD_CREATED_ON} <= @to_date";
+                var requests = new EqlCommand(eql, eqlParams).Execute();
+
+                if (requests == null || !requests.Any())
+                {
+                    return 0.0;
+                }
+
+                double totalHours = 0;
+                int validCount = 0;
+
+                foreach (var request in requests)
+                {
+                    double hours = CalculateApprovalTimeHours(request);
+                    if (hours > 0)
+                    {
+                        totalHours += hours;
+                        validCount++;
+                    }
+                }
+
+                if (validCount == 0)
+                {
+                    return 0.0;
+                }
+
+                return Math.Round(totalHours / validCount, 1);
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during initial setup, return default value
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Calculates the approval rate as a percentage of approved vs total completed requests within a date range.
+        /// Uses approval_history records to count approved and rejected actions.
+        /// </summary>
+        /// <param name="fromDate">Start of the date range for filtering history records.</param>
+        /// <param name="toDate">End of the date range for filtering history records.</param>
+        /// <returns>
+        /// Approval rate as a percentage (0-100), rounded to 1 decimal place.
+        /// Returns 0.0 if no completed requests exist within the date range or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// Calculation formula: (approved_count / (approved_count + rejected_count)) * 100
+        /// 
+        /// This method queries approval_history (not approval_request) to count actual approval/rejection
+        /// actions, providing an accurate view of decision patterns within the specified period.
+        /// 
+        /// Note: A single request may have multiple history entries if it was escalated or delegated,
+        /// so this measures action frequency rather than unique request outcomes.
+        /// </remarks>
+        public double GetApprovalRate(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                var actionApproved = ApprovalActionType.Approve.ToString().ToLowerInvariant();
+                var actionRejected = ApprovalActionType.Reject.ToString().ToLowerInvariant();
+
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("from_date", fromDate),
+                    new EqlParameter("to_date", toDate),
+                    new EqlParameter("action_approved", actionApproved),
+                    new EqlParameter("action_rejected", actionRejected)
+                };
+
+                // Count approved actions within date range
+                string approvedEql = $@"SELECT {FIELD_ID} FROM {ENTITY_HISTORY} 
+                                       WHERE {FIELD_ACTION_TYPE} = @action_approved 
+                                       AND {FIELD_PERFORMED_ON} >= @from_date AND {FIELD_PERFORMED_ON} <= @to_date";
+                var approvedResult = new EqlCommand(approvedEql, eqlParams).Execute();
+                int approvedCount = approvedResult?.Count ?? 0;
+
+                // Count rejected actions within date range
+                string rejectedEql = $@"SELECT {FIELD_ID} FROM {ENTITY_HISTORY} 
+                                       WHERE {FIELD_ACTION_TYPE} = @action_rejected 
+                                       AND {FIELD_PERFORMED_ON} >= @from_date AND {FIELD_PERFORMED_ON} <= @to_date";
+                var rejectedResult = new EqlCommand(rejectedEql, eqlParams).Execute();
+                int rejectedCount = rejectedResult?.Count ?? 0;
+
+                int totalDecisions = approvedCount + rejectedCount;
+                if (totalDecisions == 0)
+                {
+                    return 0.0;
+                }
+
+                return Math.Round((double)approvedCount / totalDecisions * 100, 1);
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during initial setup, return default value
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of overdue approval requests where the specified user is an authorized approver.
+        /// A request is considered overdue when it has been pending longer than the step's SLA hours.
+        /// </summary>
+        /// <param name="userId">The user ID to check authorization for.</param>
+        /// <returns>
+        /// Count of overdue pending approval requests where the user is authorized to approve.
+        /// Returns 0 if no overdue requests exist or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// This method:
+        /// 1. Queries all pending approval requests
+        /// 2. For each request, checks if the user is authorized via IsUserAuthorizedApprover
+        /// 3. For authorized requests, checks if created_on + sla_hours has been exceeded
+        /// 4. Returns count of both authorized AND overdue requests
+        /// 
+        /// The SLA hours are read from the approval_step entity for each request's current step.
+        /// If step configuration is unavailable, a default of 24 hours is used.
+        /// </remarks>
+        public int GetOverdueCount(Guid userId)
         {
             try
             {
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("status", ApprovalStatus.Pending.ToString().ToLowerInvariant())
+                    new EqlParameter(FIELD_STATUS, ApprovalStatus.Pending.ToString().ToLowerInvariant())
                 };
 
-                // Get all pending requests and check against step timeout
-                string eql = "SELECT id, created_on, current_step_id FROM approval_request WHERE status = @status";
+                // Get all pending requests with their creation time and current step
+                string eql = $@"SELECT {FIELD_ID}, {FIELD_CREATED_ON}, {FIELD_CURRENT_STEP_ID} 
+                               FROM {ENTITY_REQUEST} WHERE {FIELD_STATUS} = @{FIELD_STATUS}";
                 var requests = new EqlCommand(eql, eqlParams).Execute();
 
                 if (requests == null || !requests.Any())
@@ -105,9 +413,14 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 int overdueCount = 0;
                 foreach (var request in requests)
                 {
-                    if (IsRequestOverdue(request))
+                    // Check user authorization first
+                    if (IsUserAuthorizedApprover(userId, request))
                     {
-                        overdueCount++;
+                        // Then check if overdue
+                        if (IsRequestOverdue(request))
+                        {
+                            overdueCount++;
+                        }
                     }
                 }
 
@@ -115,322 +428,366 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // Entity may not exist yet, return default value
+                // Entity may not exist yet during initial setup, return default value
                 return 0;
             }
         }
 
         /// <summary>
-        /// Calculates the average approval time in hours for completed requests within a date range.
-        /// Considers both approved and rejected requests as "completed" for this calculation.
+        /// Gets the count of active approval workflows in the system.
+        /// An active workflow has is_active = true and is available for processing new requests.
         /// </summary>
-        /// <param name="fromDate">Start of the date range.</param>
-        /// <param name="toDate">End of the date range.</param>
-        /// <returns>Average approval time in hours, rounded to 1 decimal place. Returns 0 if no data.</returns>
-        public double GetAverageApprovalTime(DateTime fromDate, DateTime toDate)
-        {
-            try
-            {
-                var eqlParams = new List<EqlParameter>
-                {
-                    new EqlParameter("from_date", fromDate),
-                    new EqlParameter("to_date", toDate),
-                    new EqlParameter("status_approved", ApprovalStatus.Approved.ToString().ToLowerInvariant()),
-                    new EqlParameter("status_rejected", ApprovalStatus.Rejected.ToString().ToLowerInvariant())
-                };
-
-                // Get completed requests within date range
-                string eql = @"SELECT id, created_on, completed_on FROM approval_request 
-                              WHERE (status = @status_approved OR status = @status_rejected)
-                              AND created_on >= @from_date AND created_on <= @to_date";
-                var requests = new EqlCommand(eql, eqlParams).Execute();
-
-                if (requests == null || !requests.Any())
-                {
-                    return 0;
-                }
-
-                double totalHours = 0;
-                int count = 0;
-
-                foreach (var request in requests)
-                {
-                    double hours = CalculateApprovalTimeHours(request);
-                    if (hours > 0)
-                    {
-                        totalHours += hours;
-                        count++;
-                    }
-                }
-
-                if (count == 0)
-                {
-                    return 0;
-                }
-
-                return Math.Round(totalHours / count, 1);
-            }
-            catch (Exception)
-            {
-                // Entity may not exist yet, return default value
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Calculates the approval rate (percentage of approved vs rejected) within a date range.
-        /// Formula: (approved / (approved + rejected)) * 100
-        /// </summary>
-        /// <param name="fromDate">Start of the date range.</param>
-        /// <param name="toDate">End of the date range.</param>
-        /// <returns>Approval rate as a percentage (0-100). Returns 0 if no completed requests.</returns>
-        public double GetApprovalRate(DateTime fromDate, DateTime toDate)
-        {
-            try
-            {
-                var eqlParams = new List<EqlParameter>
-                {
-                    new EqlParameter("from_date", fromDate),
-                    new EqlParameter("to_date", toDate),
-                    new EqlParameter("action_approved", "approved"),
-                    new EqlParameter("action_rejected", "rejected")
-                };
-
-                // Count approved actions
-                string approvedEql = @"SELECT id FROM approval_history 
-                                       WHERE action_type = @action_approved 
-                                       AND performed_on >= @from_date AND performed_on <= @to_date";
-                var approvedResult = new EqlCommand(approvedEql, eqlParams).Execute();
-                int approvedCount = approvedResult?.Count ?? 0;
-
-                // Count rejected actions
-                string rejectedEql = @"SELECT id FROM approval_history 
-                                       WHERE action_type = @action_rejected 
-                                       AND performed_on >= @from_date AND performed_on <= @to_date";
-                var rejectedResult = new EqlCommand(rejectedEql, eqlParams).Execute();
-                int rejectedCount = rejectedResult?.Count ?? 0;
-
-                int total = approvedCount + rejectedCount;
-                if (total == 0)
-                {
-                    return 0;
-                }
-
-                return Math.Round((double)approvedCount / total * 100, 1);
-            }
-            catch (Exception)
-            {
-                // Entity may not exist yet, return default value
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Gets the count of active workflows in the system.
-        /// </summary>
-        /// <returns>Count of active approval workflows.</returns>
+        /// <returns>
+        /// Count of active approval workflows.
+        /// Returns 0 if no workflows exist or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// This is a simple count query against the approval_workflow entity.
+        /// Used to display the total number of configured and enabled workflows on the dashboard.
+        /// </remarks>
         public int GetTotalActiveWorkflows()
         {
             try
             {
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("is_active", true)
+                    new EqlParameter(FIELD_IS_ACTIVE, true)
                 };
 
-                string eql = "SELECT id FROM approval_workflow WHERE is_active = @is_active";
+                string eql = $"SELECT {FIELD_ID} FROM {ENTITY_WORKFLOW} WHERE {FIELD_IS_ACTIVE} = @{FIELD_IS_ACTIVE}";
                 var result = new EqlCommand(eql, eqlParams).Execute();
 
                 return result?.Count ?? 0;
             }
             catch (Exception)
             {
-                // Entity may not exist yet, return default value
+                // Entity may not exist yet during initial setup, return default value
                 return 0;
             }
         }
 
         /// <summary>
-        /// Gets the count of requests approved today.
-        /// </summary>
-        /// <returns>Count of approvals performed today.</returns>
-        public int GetApprovedTodayCount()
-        {
-            try
-            {
-                var today = DateTime.UtcNow.Date;
-                var tomorrow = today.AddDays(1);
-
-                var eqlParams = new List<EqlParameter>
-                {
-                    new EqlParameter("from_date", today),
-                    new EqlParameter("to_date", tomorrow),
-                    new EqlParameter("action_type", "approved")
-                };
-
-                string eql = @"SELECT id FROM approval_history 
-                              WHERE action_type = @action_type 
-                              AND performed_on >= @from_date AND performed_on < @to_date";
-                var result = new EqlCommand(eql, eqlParams).Execute();
-
-                return result?.Count ?? 0;
-            }
-            catch (Exception)
-            {
-                // Entity may not exist yet, return default value
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Gets the count of requests rejected today.
-        /// </summary>
-        /// <returns>Count of rejections performed today.</returns>
-        public int GetRejectedTodayCount()
-        {
-            try
-            {
-                var today = DateTime.UtcNow.Date;
-                var tomorrow = today.AddDays(1);
-
-                var eqlParams = new List<EqlParameter>
-                {
-                    new EqlParameter("from_date", today),
-                    new EqlParameter("to_date", tomorrow),
-                    new EqlParameter("action_type", "rejected")
-                };
-
-                string eql = @"SELECT id FROM approval_history 
-                              WHERE action_type = @action_type 
-                              AND performed_on >= @from_date AND performed_on < @to_date";
-                var result = new EqlCommand(eql, eqlParams).Execute();
-
-                return result?.Count ?? 0;
-            }
-            catch (Exception)
-            {
-                // Entity may not exist yet, return default value
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Gets recent approval activity for display in the dashboard.
+        /// Gets recent approval activity records for display in the dashboard activity feed.
+        /// Returns the most recent approval history entries ordered by timestamp descending.
         /// </summary>
         /// <param name="count">Maximum number of activity records to return. Default is 5.</param>
-        /// <returns>List of recent approval history records ordered by most recent first.</returns>
+        /// <returns>
+        /// List of EntityRecord objects containing recent approval history data including:
+        /// - id: History record ID
+        /// - request_id: Associated approval request ID
+        /// - action_type: Type of action (approve, reject, delegate, etc.)
+        /// - performed_by: User ID who performed the action
+        /// - performed_on: Timestamp of the action
+        /// - comments: Optional comments associated with the action
+        /// 
+        /// Returns empty list if no history exists or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// This method provides data for the activity feed panel on the manager dashboard.
+        /// The results are ordered by performed_on descending to show most recent activity first.
+        /// Pagination is applied using EQL PAGE/PAGESIZE syntax to limit the result set.
+        /// </remarks>
         public List<EntityRecord> GetRecentActivity(int count = 5)
         {
             try
             {
+                // Ensure count is within reasonable bounds
+                if (count <= 0)
+                {
+                    count = 5;
+                }
+                if (count > 100)
+                {
+                    count = 100;
+                }
+
                 var eqlParams = new List<EqlParameter>();
 
-                string eql = $"SELECT id, request_id, action_type, performed_by, performed_on, comments FROM approval_history ORDER BY performed_on DESC PAGE 1 PAGESIZE {count}";
+                string eql = $@"SELECT {FIELD_ID}, {FIELD_REQUEST_ID}, {FIELD_ACTION_TYPE}, 
+                               {FIELD_PERFORMED_BY}, {FIELD_PERFORMED_ON}, {FIELD_COMMENTS} 
+                               FROM {ENTITY_HISTORY} 
+                               ORDER BY {FIELD_PERFORMED_ON} DESC 
+                               PAGE 1 PAGESIZE {count}";
                 var result = new EqlCommand(eql, eqlParams).Execute();
 
                 return result?.ToList() ?? new List<EntityRecord>();
             }
             catch (Exception)
             {
-                // Entity may not exist yet, return empty list
+                // Entity may not exist yet during initial setup, return empty list
                 return new List<EntityRecord>();
             }
         }
 
+        #endregion
+
         #region Private Helper Methods
 
         /// <summary>
-        /// Checks if a pending request has exceeded its SLA timeout.
+        /// Checks if a user is authorized to act as an approver for a specific approval request.
+        /// Uses ApprovalRouteService to resolve the list of authorized approvers for the request's current step.
         /// </summary>
-        /// <param name="request">The approval request record to check.</param>
-        /// <returns>True if the request is overdue, false otherwise.</returns>
-        private bool IsRequestOverdue(EntityRecord request)
+        /// <param name="userId">The user ID to check authorization for.</param>
+        /// <param name="request">The approval request EntityRecord to check against.</param>
+        /// <returns>
+        /// True if the user is in the list of authorized approvers for the request's current step.
+        /// Returns false if the request has no current step, step lookup fails, or user is not authorized.
+        /// </returns>
+        /// <remarks>
+        /// Authorization is determined by:
+        /// 1. Getting the current_step_id from the request
+        /// 2. Calling ApprovalRouteService.GetApproversForStep() to get authorized user IDs
+        /// 3. Checking if the specified userId is in the returned list
+        /// 
+        /// This method is used by GetPendingCount and GetOverdueCount to filter requests
+        /// to only those the specified user can act upon.
+        /// </remarks>
+        private bool IsUserAuthorizedApprover(Guid userId, EntityRecord request)
         {
             try
             {
-                if (request == null || !request.Properties.ContainsKey("created_on"))
+                if (request == null)
                 {
                     return false;
                 }
 
-                var createdOn = (DateTime)request["created_on"];
-                var currentStepId = request.Properties.ContainsKey("current_step_id") ? request["current_step_id"] as Guid? : null;
-
-                // Default timeout of 24 hours if step configuration not available
-                int timeoutHours = 24;
-
-                if (currentStepId.HasValue)
+                // Get current step ID from request
+                if (!request.Properties.ContainsKey(FIELD_CURRENT_STEP_ID))
                 {
-                    try
-                    {
-                        var stepParams = new List<EqlParameter>
-                        {
-                            new EqlParameter("id", currentStepId.Value)
-                        };
-                        string stepEql = "SELECT sla_hours FROM approval_step WHERE id = @id";
-                        var stepResult = new EqlCommand(stepEql, stepParams).Execute();
-
-                        if (stepResult != null && stepResult.Any())
-                        {
-                            var step = stepResult.First();
-                            if (step.Properties.ContainsKey("sla_hours") && step["sla_hours"] != null)
-                            {
-                                timeoutHours = Convert.ToInt32(step["sla_hours"]);
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Use default timeout if step query fails
-                    }
+                    return false;
                 }
 
-                var dueDate = createdOn.AddHours(timeoutHours);
-                return DateTime.UtcNow > dueDate;
+                var currentStepId = request[FIELD_CURRENT_STEP_ID] as Guid?;
+                if (!currentStepId.HasValue)
+                {
+                    return false;
+                }
+
+                // Get authorized approvers for this step using ApprovalRouteService
+                List<Guid> authorizedApprovers = _routeService.GetApproversForStep(currentStepId.Value);
+
+                // Check if user is in the list of authorized approvers
+                return authorizedApprovers != null && authorizedApprovers.Contains(userId);
             }
-            catch
+            catch (Exception)
             {
+                // If authorization check fails, default to not authorized
                 return false;
             }
         }
 
         /// <summary>
         /// Calculates the time in hours from request creation to completion.
+        /// Used by GetAverageApprovalTime to compute individual request durations.
         /// </summary>
-        /// <param name="request">The completed approval request record.</param>
-        /// <returns>Hours between creation and completion. Returns 0 if calculation fails.</returns>
+        /// <param name="request">The completed approval request EntityRecord.</param>
+        /// <returns>
+        /// Hours between created_on and completed_on timestamps.
+        /// Returns 0.0 if either timestamp is missing or invalid.
+        /// </returns>
+        /// <remarks>
+        /// The method expects the request to have:
+        /// - created_on: DateTime when the request was created
+        /// - completed_on: DateTime when the request reached terminal status
+        /// 
+        /// If completed_on is not set (for edge cases), DateTime.UtcNow is used as a fallback
+        /// to provide an estimated duration for requests in progress.
+        /// </remarks>
         private double CalculateApprovalTimeHours(EntityRecord request)
         {
             try
             {
                 if (request == null)
                 {
-                    return 0;
+                    return 0.0;
                 }
 
-                if (!request.Properties.ContainsKey("created_on") || request["created_on"] == null)
+                // Check for created_on field
+                if (!request.Properties.ContainsKey(FIELD_CREATED_ON) || request[FIELD_CREATED_ON] == null)
                 {
-                    return 0;
+                    return 0.0;
                 }
 
-                var createdOn = (DateTime)request["created_on"];
+                var createdOn = (DateTime)request[FIELD_CREATED_ON];
                 DateTime completedOn;
 
-                if (request.Properties.ContainsKey("completed_on") && request["completed_on"] != null)
+                // Check for completed_on field
+                if (request.Properties.ContainsKey(FIELD_COMPLETED_ON) && request[FIELD_COMPLETED_ON] != null)
                 {
-                    completedOn = (DateTime)request["completed_on"];
+                    completedOn = (DateTime)request[FIELD_COMPLETED_ON];
                 }
                 else
                 {
-                    // If completed_on is not set, use current time for estimation
+                    // Fallback to current time if completed_on is not set
                     completedOn = DateTime.UtcNow;
                 }
 
+                // Calculate duration
                 var duration = completedOn - createdOn;
-                return duration.TotalHours;
+
+                // Return positive hours only
+                return duration.TotalHours > 0 ? duration.TotalHours : 0.0;
             }
-            catch
+            catch (Exception)
             {
+                return 0.0;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a pending approval request has exceeded its SLA timeout.
+        /// Compares the request's created_on timestamp plus SLA hours against the current time.
+        /// </summary>
+        /// <param name="request">The pending approval request EntityRecord to check.</param>
+        /// <returns>
+        /// True if the current time exceeds created_on + sla_hours.
+        /// Returns false if the request is not overdue, timestamps are missing, or check fails.
+        /// </returns>
+        /// <remarks>
+        /// SLA hours are retrieved from the approval_step entity based on the request's current_step_id.
+        /// If the step configuration cannot be retrieved, a default of 24 hours is used.
+        /// 
+        /// The formula is: IsOverdue = DateTime.UtcNow > (created_on + TimeSpan.FromHours(sla_hours))
+        /// </remarks>
+        private bool IsRequestOverdue(EntityRecord request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return false;
+                }
+
+                // Check for created_on field
+                if (!request.Properties.ContainsKey(FIELD_CREATED_ON) || request[FIELD_CREATED_ON] == null)
+                {
+                    return false;
+                }
+
+                var createdOn = (DateTime)request[FIELD_CREATED_ON];
+                var currentStepId = request.Properties.ContainsKey(FIELD_CURRENT_STEP_ID) 
+                    ? request[FIELD_CURRENT_STEP_ID] as Guid? 
+                    : null;
+
+                // Default timeout hours
+                int slaHours = DEFAULT_SLA_HOURS;
+
+                // Try to get SLA hours from the current step configuration
+                if (currentStepId.HasValue)
+                {
+                    try
+                    {
+                        var stepParams = new List<EqlParameter>
+                        {
+                            new EqlParameter(FIELD_ID, currentStepId.Value)
+                        };
+
+                        string stepEql = $"SELECT {FIELD_SLA_HOURS} FROM {ENTITY_STEP} WHERE {FIELD_ID} = @{FIELD_ID}";
+                        var stepResult = new EqlCommand(stepEql, stepParams).Execute();
+
+                        if (stepResult != null && stepResult.Any())
+                        {
+                            var step = stepResult.First();
+                            if (step.Properties.ContainsKey(FIELD_SLA_HOURS) && step[FIELD_SLA_HOURS] != null)
+                            {
+                                slaHours = Convert.ToInt32(step[FIELD_SLA_HOURS]);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Use default timeout if step query fails
+                    }
+                }
+
+                // Calculate due date and compare with current time
+                var dueDate = createdOn.AddHours(slaHours);
+                return DateTime.UtcNow > dueDate;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of approval requests that were approved today.
+        /// Queries approval_history for approve actions performed on the current calendar date (UTC).
+        /// </summary>
+        /// <returns>
+        /// Count of approval actions performed today.
+        /// Returns 0 if no approvals occurred today or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// "Today" is defined as the UTC calendar date from 00:00:00 to 23:59:59.
+        /// This metric is used for the dashboard's "Approved Today" card display.
+        /// </remarks>
+        private int GetApprovedTodayCount()
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+                var tomorrow = today.AddDays(1);
+                var actionApproved = ApprovalActionType.Approve.ToString().ToLowerInvariant();
+
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("from_date", today),
+                    new EqlParameter("to_date", tomorrow),
+                    new EqlParameter(FIELD_ACTION_TYPE, actionApproved)
+                };
+
+                string eql = $@"SELECT {FIELD_ID} FROM {ENTITY_HISTORY} 
+                               WHERE {FIELD_ACTION_TYPE} = @{FIELD_ACTION_TYPE} 
+                               AND {FIELD_PERFORMED_ON} >= @from_date AND {FIELD_PERFORMED_ON} < @to_date";
+                var result = new EqlCommand(eql, eqlParams).Execute();
+
+                return result?.Count ?? 0;
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during initial setup, return default value
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of approval requests that were rejected today.
+        /// Queries approval_history for reject actions performed on the current calendar date (UTC).
+        /// </summary>
+        /// <returns>
+        /// Count of rejection actions performed today.
+        /// Returns 0 if no rejections occurred today or if an error occurs.
+        /// </returns>
+        /// <remarks>
+        /// "Today" is defined as the UTC calendar date from 00:00:00 to 23:59:59.
+        /// This metric is used for the dashboard's "Rejected Today" card display.
+        /// </remarks>
+        private int GetRejectedTodayCount()
+        {
+            try
+            {
+                var today = DateTime.UtcNow.Date;
+                var tomorrow = today.AddDays(1);
+                var actionRejected = ApprovalActionType.Reject.ToString().ToLowerInvariant();
+
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("from_date", today),
+                    new EqlParameter("to_date", tomorrow),
+                    new EqlParameter(FIELD_ACTION_TYPE, actionRejected)
+                };
+
+                string eql = $@"SELECT {FIELD_ID} FROM {ENTITY_HISTORY} 
+                               WHERE {FIELD_ACTION_TYPE} = @{FIELD_ACTION_TYPE} 
+                               AND {FIELD_PERFORMED_ON} >= @from_date AND {FIELD_PERFORMED_ON} < @to_date";
+                var result = new EqlCommand(eql, eqlParams).Execute();
+
+                return result?.Count ?? 0;
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during initial setup, return default value
                 return 0;
             }
         }
