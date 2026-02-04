@@ -177,13 +177,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     new EqlParameter("user_id", userId)
                 };
                 // Query user's role assignments from the user_role relation
-                var eql = "SELECT id, $role_n_n_user.id FROM user WHERE id = @user_id";
+                var eql = "SELECT id, $user_role.id FROM user WHERE id = @user_id";
                 var userRecords = new EqlCommand(eql, eqlParams).Execute();
 
                 if (userRecords != null && userRecords.Any())
                 {
                     var user = userRecords.First();
-                    var roleData = user["$role_n_n_user"];
+                    var roleData = user["$user_role"];
                     if (roleData is List<EntityRecord> roleRecords)
                     {
                         foreach (var role in roleRecords)
@@ -217,7 +217,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 {
                     new EqlParameter("step_id", stepId)
                 };
-                var eql = "SELECT id, approver_type, approver_id, approver_role_id FROM approval_step WHERE id = @step_id";
+                var eql = "SELECT id, approver_type, approver_id FROM approval_step WHERE id = @step_id";
                 var stepRecords = new EqlCommand(eql, eqlParams).Execute();
 
                 if (stepRecords == null || !stepRecords.Any())
@@ -246,8 +246,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         break;
 
                     case "role":
-                        // Check if user's role matches approver_role_id
-                        var roleId = step["approver_role_id"];
+                        // Check if user's role matches approver_id (which stores role ID when approver_type is "role")
+                        var roleId = step["approver_id"];
                         if (roleId != null)
                         {
                             Guid approverRoleId;
@@ -685,9 +685,26 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         }
                         
                         // Build performer name from user details (via user_1n_history_performed_by relation)
-                        var firstName = record["$user_1n_history_performed_by.first_name"]?.ToString() ?? "";
-                        var lastName = record["$user_1n_history_performed_by.last_name"]?.ToString() ?? "";
-                        var username = record["$user_1n_history_performed_by.username"]?.ToString() ?? "";
+                        // The relation returns a List<EntityRecord> or EntityRecord - handle both cases
+                        var firstName = "";
+                        var lastName = "";
+                        var username = "";
+
+                        var userData = record["$user_1n_history_performed_by"];
+
+                        if (userData is List<EntityRecord> userRecords && userRecords.Any())
+                        {
+                            var userRecord = userRecords.First();
+                            firstName = userRecord["first_name"]?.ToString() ?? "";
+                            lastName = userRecord["last_name"]?.ToString() ?? "";
+                            username = userRecord["username"]?.ToString() ?? "";
+                        }
+                        else if (userData is EntityRecord singleUserRecord)
+                        {
+                            firstName = singleUserRecord["first_name"]?.ToString() ?? "";
+                            lastName = singleUserRecord["last_name"]?.ToString() ?? "";
+                            username = singleUserRecord["username"]?.ToString() ?? "";
+                        }
                         
                         if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
                         {

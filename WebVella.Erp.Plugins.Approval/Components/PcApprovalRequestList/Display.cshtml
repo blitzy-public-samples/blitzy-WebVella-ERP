@@ -280,14 +280,14 @@
             <ul class="pagination pagination-sm justify-content-center mb-0">
                 @* First Page Button *@
                 <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                    <a class="page-link" href="@currentPath?page=1@statusQueryParam" aria-label="First" title="First Page">
+                    <a class="page-link" href="@($"{currentPath}?page=1{statusQueryParam}")" aria-label="First" title="First Page">
                         <i class="fas fa-angle-double-left"></i>
                     </a>
                 </li>
                 
                 @* Previous Page Button *@
                 <li class="page-item @(!hasPreviousPage ? "disabled" : "")">
-                    <a class="page-link" href="@currentPath?page=@(currentPage - 1)@statusQueryParam" aria-label="Previous" title="Previous Page">
+                    <a class="page-link" href="@($"{currentPath}?page={currentPage - 1}{statusQueryParam}")" aria-label="Previous" title="Previous Page">
                         <i class="fas fa-angle-left"></i>
                     </a>
                 </li>
@@ -296,7 +296,7 @@
                 @if (showFirstEllipsis)
                 {
                     <li class="page-item">
-                        <a class="page-link" href="@currentPath?page=1@statusQueryParam">1</a>
+                        <a class="page-link" href="@($"{currentPath}?page=1{statusQueryParam}")">1</a>
                     </li>
                     <li class="page-item disabled">
                         <span class="page-link">...</span>
@@ -307,7 +307,7 @@
                 @foreach (var pageNum in visiblePages)
                 {
                     <li class="page-item @(pageNum == currentPage ? "active" : "")">
-                        <a class="page-link" href="@currentPath?page=@pageNum@statusQueryParam">@pageNum</a>
+                        <a class="page-link" href="@($"{currentPath}?page={pageNum}{statusQueryParam}")">@pageNum</a>
                     </li>
                 }
                 
@@ -318,20 +318,20 @@
                         <span class="page-link">...</span>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="@currentPath?page=@totalPages@statusQueryParam">@totalPages</a>
+                        <a class="page-link" href="@($"{currentPath}?page={totalPages}{statusQueryParam}")">@totalPages</a>
                     </li>
                 }
                 
                 @* Next Page Button *@
                 <li class="page-item @(!hasNextPage ? "disabled" : "")">
-                    <a class="page-link" href="@currentPath?page=@(currentPage + 1)@statusQueryParam" aria-label="Next" title="Next Page">
+                    <a class="page-link" href="@($"{currentPath}?page={currentPage + 1}{statusQueryParam}")" aria-label="Next" title="Next Page">
                         <i class="fas fa-angle-right"></i>
                     </a>
                 </li>
                 
                 @* Last Page Button *@
                 <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                    <a class="page-link" href="@currentPath?page=@totalPages@statusQueryParam" aria-label="Last" title="Last Page">
+                    <a class="page-link" href="@($"{currentPath}?page={totalPages}{statusQueryParam}")" aria-label="Last" title="Last Page">
                         <i class="fas fa-angle-double-right"></i>
                     </a>
                 </li>

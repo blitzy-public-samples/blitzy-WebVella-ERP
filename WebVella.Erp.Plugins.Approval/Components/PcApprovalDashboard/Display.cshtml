@@ -185,12 +185,6 @@
                                             </div>
                                             <small class="text-muted">@timeAgo</small>
                                         </div>
-                                        @if (activity.RequestId != Guid.Empty)
-                                        {
-                                            <a href="/approval/request/@activity.RequestId" class="btn btn-sm btn-outline-secondary" title="View Request">
-                                                <i class="fas fa-external-link-alt"></i>
-                                            </a>
-                                        }
                                     </li>
                                 }
                             </ul>
@@ -558,12 +552,8 @@
                         '<div class="flex-grow-1">' +
                         '<div class="small"><strong>' + (activity.performedByName || 'Unknown') + '</strong> ' +
                         '<span class="text-muted">' + (activity.actionType || 'performed action').toLowerCase() + '</span></div>' +
-                        '<small class="text-muted">' + timeAgo + '</small></div>';
-                    if (activity.requestId && activity.requestId !== '00000000-0000-0000-0000-000000000000') {
-                        listHtml += '<a href="/approval/request/' + activity.requestId + '" class="btn btn-sm btn-outline-secondary" title="View Request">' +
-                            '<i class="fas fa-external-link-alt"></i></a>';
-                    }
-                    listHtml += '</li>';
+                        '<small class="text-muted">' + timeAgo + '</small></div>' +
+                        '</li>';
                 });
                 listHtml += '</ul>';
                 listContainer.innerHTML = listHtml;
