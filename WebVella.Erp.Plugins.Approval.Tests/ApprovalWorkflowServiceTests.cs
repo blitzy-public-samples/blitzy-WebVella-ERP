@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on workflow lifecycle management validation and model properties
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class ApprovalWorkflowServiceTests
     {
         #region Workflow Lifecycle Tests

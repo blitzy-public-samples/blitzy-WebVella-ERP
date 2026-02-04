@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on validation rules, boundary conditions, and error scenarios
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class StepConfigServiceTests
     {
         #region ApprovalStepModel Tests

@@ -6,6 +6,28 @@
 @using WebVella.Erp.Web.Models;
 @using WebVella.Erp.Plugins.Approval.Components;
 @using WebVella.Erp.Plugins.Approval.Api;
+@using System.Collections.Generic;
+@functions {
+    /// <summary>
+    /// Converts a timestamp to a human-readable "time ago" string.
+    /// </summary>
+    public string GetTimeAgo(DateTime timestamp)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp;
+        
+        if (diff.TotalSeconds < 60)
+            return "just now";
+        if (diff.TotalMinutes < 60)
+            return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24)
+            return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7)
+            return $"{(int)diff.TotalDays}d ago";
+        
+        return timestamp.ToString("MMM dd");
+    }
+}
 @{
     // Cast ViewBag data to strongly typed models
     var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
@@ -16,25 +38,48 @@
     var avgTime = metrics?.AverageApprovalTimeHours ?? 0m;
     var approvalRate = metrics?.ApprovalRate ?? 0m;
     var overdueCount = metrics?.OverdueCount ?? 0;
-    var recentActivity = metrics?.RecentActivityCount ?? 0;
+    var recentActivityCount = metrics?.RecentActivityCount ?? 0;
+    var recentActivityList = metrics?.RecentActivity ?? new List<RecentActivityItem>();
     
     // Generate unique container ID for JavaScript targeting
     var containerId = "approval-dashboard-" + Guid.NewGuid().ToString("N").Substring(0, 8);
     
     // Get refresh interval from options (default 60 seconds)
     var refreshInterval = options?.RefreshIntervalSeconds ?? 60;
+    
+    // Get date filter state from ViewBag (Issue 1 support)
+    var filterDays = ViewBag.FilterDays as int? ?? 0;
+    var filterFromDate = ViewBag.FilterFromDate as string ?? "";
+    var filterToDate = ViewBag.FilterToDate as string ?? "";
 }
 
-<div id="@containerId" class="approval-dashboard-container">
+<div id="@containerId" class="approval-dashboard-container" data-filter-days="@filterDays" data-filter-from="@filterFromDate" data-filter-to="@filterToDate">
     @* Dashboard Header *@
     <wv-row class="mb-3">
-        <wv-column>
+        <wv-column width="6">
             <h5 class="mb-0">
                 <i class="fas fa-tachometer-alt mr-2"></i>Approval Dashboard
                 <small class="text-muted ml-2" id="@(containerId)-last-updated">
                     Last updated: @DateTime.UtcNow.ToString("HH:mm:ss") UTC
                 </small>
             </h5>
+        </wv-column>
+        <wv-column width="6">
+            @* Date Range Filter - Issue 1 Compliance (STORY-009 AC3) *@
+            <div class="date-filter-container d-flex align-items-center justify-content-end">
+                <div class="btn-group btn-group-sm mr-2" role="group" aria-label="Date filter presets">
+                    <button type="button" class="btn @(filterDays == 7 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="7">7d</button>
+                    <button type="button" class="btn @(filterDays == 30 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="30">30d</button>
+                    <button type="button" class="btn @(filterDays == 90 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="90">90d</button>
+                    <button type="button" class="btn @(filterDays == 0 && string.IsNullOrEmpty(filterFromDate) ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="0">All</button>
+                </div>
+                <div class="custom-date-filter d-flex align-items-center">
+                    <input type="date" class="form-control form-control-sm mr-1" id="@(containerId)-from-date" value="@filterFromDate" placeholder="From" style="width: 130px;">
+                    <span class="mr-1">to</span>
+                    <input type="date" class="form-control form-control-sm mr-1" id="@(containerId)-to-date" value="@filterToDate" placeholder="To" style="width: 130px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary apply-custom-date-btn">Apply</button>
+                </div>
+            </div>
         </wv-column>
     </wv-row>
 
@@ -106,17 +151,58 @@
             </div>
         </wv-column>
 
-        @* Recent Activity Card *@
+        @* Recent Activity Card - Issue 3 Compliance (STORY-009 Line 23: Last 5 approval actions) *@
         <wv-column width="6">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <div class="mb-2">
-                        <i class="fas fa-history fa-2x go-purple"></i>
+                <div class="card-header d-flex align-items-center">
+                    <i class="fas fa-history go-purple mr-2"></i>
+                    <span>Recent Activity</span>
+                    <span class="badge badge-secondary ml-auto">@recentActivityCount in 24h</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="recent-activity-list">
+                        @if (recentActivityList != null && recentActivityList.Count > 0)
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var activity in recentActivityList)
+                                {
+                                    var iconClass = activity.ActionType?.ToLower() switch
+                                    {
+                                        "approved" => "fa-check-circle go-green",
+                                        "rejected" => "fa-times-circle go-red",
+                                        "delegated" => "fa-share go-orange",
+                                        "escalated" => "fa-level-up-alt go-orange",
+                                        "submitted" => "fa-paper-plane go-light-blue",
+                                        _ => "fa-circle go-gray"
+                                    };
+                                    var timeAgo = GetTimeAgo(activity.PerformedOn);
+                                    <li class="list-group-item d-flex align-items-center py-2">
+                                        <i class="fas @iconClass mr-2"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="small">
+                                                <strong>@(activity.PerformedByName ?? "Unknown")</strong>
+                                                <span class="text-muted">@(activity.ActionType?.ToLower() ?? "performed action")</span>
+                                            </div>
+                                            <small class="text-muted">@timeAgo</small>
+                                        </div>
+                                        @if (activity.RequestId != Guid.Empty)
+                                        {
+                                            <a href="/approval/request/@activity.RequestId" class="btn btn-sm btn-outline-secondary" title="View Request">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                <small>No recent activity</small>
+                            </div>
+                        }
                     </div>
-                    <h3 class="mb-1">
-                        <span class="recent-activity">@recentActivity</span>
-                    </h3>
-                    <div class="text-muted small">Recent Activity (24h)</div>
                 </div>
             </div>
         </wv-column>
@@ -169,6 +255,37 @@
         var containerId = '@containerId';
         var refreshInterval = @refreshInterval;
         
+        // Helper function to get icon class for action type
+        function getActionIconClass(action) {
+            if (!action) return 'fa-circle go-gray';
+            switch (action.toLowerCase()) {
+                case 'approved': return 'fa-check-circle go-green';
+                case 'rejected': return 'fa-times-circle go-red';
+                case 'delegated': return 'fa-share go-orange';
+                case 'escalated': return 'fa-level-up-alt go-orange';
+                case 'submitted': return 'fa-paper-plane go-light-blue';
+                default: return 'fa-circle go-gray';
+            }
+        }
+        
+        // Helper function to format time ago
+        function getTimeAgo(timestamp) {
+            var now = new Date();
+            var diff = now - timestamp;
+            var seconds = Math.floor(diff / 1000);
+            var minutes = Math.floor(seconds / 60);
+            var hours = Math.floor(minutes / 60);
+            var days = Math.floor(hours / 24);
+            
+            if (seconds < 60) return 'just now';
+            if (minutes < 60) return minutes + 'm ago';
+            if (hours < 24) return hours + 'h ago';
+            if (days < 7) return days + 'd ago';
+            
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return months[timestamp.getMonth()] + ' ' + timestamp.getDate();
+        }
+        
         // Function to initialize dashboard auto-refresh
         function initApprovalDashboard(containerId, refreshIntervalSeconds) {
             var container = document.getElementById(containerId);
@@ -176,6 +293,9 @@
                 console.warn('Approval Dashboard container not found:', containerId);
                 return;
             }
+            
+            // Set up date filter button click handlers (Issue 1)
+            setupDateFilterHandlers(containerId);
             
             // Set up auto-refresh if interval is greater than 0
             if (refreshIntervalSeconds > 0) {
@@ -204,13 +324,80 @@
             }
         }
         
-        // Function to refresh dashboard metrics via AJAX
+        // Function to set up date filter handlers (Issue 1 - STORY-009 AC3)
+        function setupDateFilterHandlers(containerId) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Handle preset buttons (7d, 30d, 90d, All)
+            var presetButtons = container.querySelectorAll('.date-preset-btn');
+            presetButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var days = parseInt(this.dataset.days) || 0;
+                    applyDateFilter(containerId, days, '', '');
+                });
+            });
+            
+            // Handle custom date range apply button
+            var applyBtn = container.querySelector('.apply-custom-date-btn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function() {
+                    var fromDate = document.getElementById(containerId + '-from-date').value;
+                    var toDate = document.getElementById(containerId + '-to-date').value;
+                    applyDateFilter(containerId, 0, fromDate, toDate);
+                });
+            }
+        }
+        
+        // Function to apply date filter and reload page with new parameters
+        function applyDateFilter(containerId, days, fromDate, toDate) {
+            var url = new URL(window.location.href);
+            
+            // Clear existing filter params
+            url.searchParams.delete('days');
+            url.searchParams.delete('fromDate');
+            url.searchParams.delete('toDate');
+            
+            // Set new filter params
+            if (days > 0) {
+                url.searchParams.set('days', days);
+            } else if (fromDate || toDate) {
+                if (fromDate) url.searchParams.set('fromDate', fromDate);
+                if (toDate) url.searchParams.set('toDate', toDate);
+            }
+            
+            // Navigate to filtered URL
+            window.location.href = url.toString();
+        }
+        
+        // Function to build metrics API URL with current filter params (for auto-refresh)
+        function getMetricsApiUrl() {
+            var baseUrl = '/api/v3.0/p/approval/dashboard/metrics';
+            var currentUrl = new URL(window.location.href);
+            var params = new URLSearchParams();
+            
+            // Copy filter params from current URL to API call
+            if (currentUrl.searchParams.has('days')) {
+                params.set('days', currentUrl.searchParams.get('days'));
+            }
+            if (currentUrl.searchParams.has('fromDate')) {
+                params.set('fromDate', currentUrl.searchParams.get('fromDate'));
+            }
+            if (currentUrl.searchParams.has('toDate')) {
+                params.set('toDate', currentUrl.searchParams.get('toDate'));
+            }
+            
+            var queryString = params.toString();
+            return queryString ? baseUrl + '?' + queryString : baseUrl;
+        }
+        
+        // Function to refresh dashboard metrics via AJAX (maintains filter state)
         function refreshDashboardMetrics(containerId) {
             var container = document.getElementById(containerId);
             if (!container) return;
             
-            // Call the dashboard metrics API endpoint
-            fetch('/api/v3.0/p/approval/dashboard/metrics', {
+            // Call the dashboard metrics API endpoint with filter params
+            fetch(getMetricsApiUrl(), {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -352,10 +539,38 @@
                     (overdueCount > 0 ? 'go-red' : 'go-gray');
             }
             
-            // Update recent activity
-            var recentEl = container.querySelector('.recent-activity');
-            if (recentEl) {
-                recentEl.textContent = recentCount;
+            // Update recent activity count badge
+            var recentCountBadge = container.querySelector('.recent-activity-list').closest('.card').querySelector('.badge');
+            if (recentCountBadge) {
+                recentCountBadge.textContent = recentCount + ' in 24h';
+            }
+            
+            // Update recent activity list (Issue 3 - STORY-009 Line 23)
+            var recentActivityList = metrics.recentActivity || [];
+            var listContainer = container.querySelector('.recent-activity-list');
+            if (listContainer && recentActivityList.length > 0) {
+                var listHtml = '<ul class="list-group list-group-flush">';
+                recentActivityList.forEach(function(activity) {
+                    var iconClass = getActionIconClass(activity.actionType);
+                    var timeAgo = getTimeAgo(new Date(activity.performedOn));
+                    listHtml += '<li class="list-group-item d-flex align-items-center py-2">' +
+                        '<i class="fas ' + iconClass + ' mr-2"></i>' +
+                        '<div class="flex-grow-1">' +
+                        '<div class="small"><strong>' + (activity.performedByName || 'Unknown') + '</strong> ' +
+                        '<span class="text-muted">' + (activity.actionType || 'performed action').toLowerCase() + '</span></div>' +
+                        '<small class="text-muted">' + timeAgo + '</small></div>';
+                    if (activity.requestId && activity.requestId !== '00000000-0000-0000-0000-000000000000') {
+                        listHtml += '<a href="/approval/request/' + activity.requestId + '" class="btn btn-sm btn-outline-secondary" title="View Request">' +
+                            '<i class="fas fa-external-link-alt"></i></a>';
+                    }
+                    listHtml += '</li>';
+                });
+                listHtml += '</ul>';
+                listContainer.innerHTML = listHtml;
+            } else if (listContainer && recentActivityList.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-muted py-3">' +
+                    '<i class="fas fa-inbox fa-2x mb-2 d-block"></i>' +
+                    '<small>No recent activity</small></div>';
             }
             
             // Update last updated timestamp

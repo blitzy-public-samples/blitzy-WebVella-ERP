@@ -15,6 +15,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - ProcessPatches() method exists
     /// - SetSchedulePlans() method registers 3 jobs
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story001_PluginInfrastructureTests
     {
         [Fact]

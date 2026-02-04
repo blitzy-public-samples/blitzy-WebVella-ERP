@@ -21,6 +21,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - History endpoint
     /// - Dashboard metrics endpoint
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story007_ApiEndpointsTests
     {
         #region Controller Structure Tests

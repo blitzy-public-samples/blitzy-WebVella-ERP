@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on state machine transitions, validation rules, and error scenarios
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class ApprovalRequestServiceTests
     {
         #region ApprovalRequestModel Tests

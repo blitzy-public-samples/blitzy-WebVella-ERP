@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on rule evaluation logic, operator validation, and routing scenarios
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class ApprovalRouteServiceTests
     {
         // Define local constants for rule operators

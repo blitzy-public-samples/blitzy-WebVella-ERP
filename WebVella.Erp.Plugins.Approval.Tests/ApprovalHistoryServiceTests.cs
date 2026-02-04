@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on model validation, action types, and error scenarios
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class ApprovalHistoryServiceTests
     {
         // Define local constants matching expected history action values

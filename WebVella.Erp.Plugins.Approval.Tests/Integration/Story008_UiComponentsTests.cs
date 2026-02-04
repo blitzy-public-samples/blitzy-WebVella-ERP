@@ -19,6 +19,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - All components have [PageComponent] attribute
     /// - All components have required view files (Display, Design, Options, Help, Error)
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story008_UiComponentsTests
     {
         #region PcApprovalWorkflowConfig Tests

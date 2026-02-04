@@ -17,6 +17,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - ApprovalRequestService for request lifecycle (Create, Approve, Reject, Delegate)
     /// - ApprovalHistoryService for audit trail
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story004_ServiceLayerTests
     {
         #region ApprovalWorkflowService Tests

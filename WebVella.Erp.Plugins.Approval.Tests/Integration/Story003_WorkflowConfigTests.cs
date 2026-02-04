@@ -18,6 +18,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - Validation logic for required fields
     /// - Enable/disable workflow functionality
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story003_WorkflowConfigTests
     {
         #region WorkflowConfigService Tests

@@ -14,6 +14,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - All fields exist with correct types
     /// - All relations created
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story002_EntitySchemaTests
     {
         #region ApprovalWorkflowModel Tests

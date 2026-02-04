@@ -16,6 +16,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - ApprovalRequest hook validates pre-create and logs post-update
     /// - Hooks decorated with [HookAttachment] attribute
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story005_HooksIntegrationTests
     {
         #region ApprovalRequest Hook Tests

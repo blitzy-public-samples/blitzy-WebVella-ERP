@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on notification scenarios, timing calculations, and model handling
     /// that can be verified without email service connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class ApprovalNotificationServiceTests
     {
         #region Notification Scenario Tests

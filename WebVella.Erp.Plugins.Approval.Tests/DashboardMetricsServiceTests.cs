@@ -11,6 +11,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on model validation, metrics calculations, and boundary conditions
     /// that can be verified without database connectivity.
     /// </summary>
+    [Trait("Category", "Unit")]
     public class DashboardMetricsServiceTests
     {
         #region DashboardMetricsModel Tests

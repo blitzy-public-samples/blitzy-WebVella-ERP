@@ -117,10 +117,47 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         return await Task.FromResult<IViewComponentResult>(View("Error"));
                     }
 
-                    // Load dashboard metrics
+                    // Parse date filter parameters from query string for Issue 1 compliance
+                    DateTime fromDate = DateTime.MinValue;
+                    DateTime toDate = DateTime.MaxValue;
+                    int days = 0;
+                    
+                    var httpContext = ErpRequestContext?.PageContext?.HttpContext;
+                    if (httpContext != null)
+                    {
+                        // Check for preset days filter (7, 30, 90)
+                        if (httpContext.Request.Query.ContainsKey("days"))
+                        {
+                            if (int.TryParse(httpContext.Request.Query["days"], out days) && days > 0)
+                            {
+                                fromDate = DateTime.UtcNow.AddDays(-days);
+                                toDate = DateTime.UtcNow;
+                            }
+                        }
+                        // Check for custom date range
+                        else
+                        {
+                            if (httpContext.Request.Query.ContainsKey("fromDate"))
+                            {
+                                DateTime.TryParse(httpContext.Request.Query["fromDate"], out fromDate);
+                            }
+                            if (httpContext.Request.Query.ContainsKey("toDate"))
+                            {
+                                DateTime.TryParse(httpContext.Request.Query["toDate"], out toDate);
+                            }
+                        }
+                    }
+
+                    // Load dashboard metrics - Pass userId for Issue 2 compliance (STORY-009 AC4)
                     var metricsService = new DashboardMetricsService();
-                    var metrics = metricsService.GetDashboardMetrics();
+                    var userId = currentUser?.Id ?? Guid.Empty;
+                    var metrics = metricsService.GetDashboardMetrics(userId, fromDate, toDate);
                     ViewBag.Metrics = metrics;
+                    
+                    // Pass date filter state to view for Issue 1 UI support
+                    ViewBag.FilterDays = days;
+                    ViewBag.FilterFromDate = fromDate == DateTime.MinValue ? "" : fromDate.ToString("yyyy-MM-dd");
+                    ViewBag.FilterToDate = toDate == DateTime.MaxValue ? "" : toDate.ToString("yyyy-MM-dd");
                 }
 
                 switch (context.Mode)

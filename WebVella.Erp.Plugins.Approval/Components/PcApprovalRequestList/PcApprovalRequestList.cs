@@ -264,11 +264,14 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         var eqlParams = new List<EqlParameter>();
                         var whereConditions = new List<string>();
 
-                        // Build status filter condition
+                        // Build status filter condition - normalize to lowercase for case-insensitive matching
+                        // Issue 4 fix: Ensure consistent status value comparison (STORY-008 pagination)
                         if (!string.IsNullOrWhiteSpace(options.StatusFilter))
                         {
+                            // Normalize status filter to lowercase to match stored values
+                            var normalizedStatusFilter = options.StatusFilter.Trim().ToLowerInvariant();
                             whereConditions.Add("status = @statusFilter");
-                            eqlParams.Add(new EqlParameter("statusFilter", options.StatusFilter));
+                            eqlParams.Add(new EqlParameter("statusFilter", normalizedStatusFilter));
                         }
 
                         // Build WHERE clause

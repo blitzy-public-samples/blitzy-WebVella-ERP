@@ -22,6 +22,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     ///   5. Recent Activity Count
     /// - Manager/Administrator role authorization
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story009_DashboardTests
     {
         #region PcApprovalDashboard Tests

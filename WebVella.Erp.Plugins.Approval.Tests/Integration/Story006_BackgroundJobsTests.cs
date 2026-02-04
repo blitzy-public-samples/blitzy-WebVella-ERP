@@ -17,6 +17,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests.Integration
     /// - All jobs extend ErpJob base class
     /// - All jobs have [Job] attribute with unique GUID
     /// </summary>
+    [Trait("Category", "Integration")]
     public class Story006_BackgroundJobsTests
     {
         #region ProcessApprovalNotificationsJob Tests

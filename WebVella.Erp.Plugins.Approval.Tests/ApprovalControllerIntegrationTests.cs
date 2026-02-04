@@ -18,6 +18,7 @@ namespace WebVella.Erp.Plugins.Approval.Tests
     /// Tests focus on request validation, response structure, input handling,
     /// and API contract compliance without requiring full database connectivity.
     /// </summary>
+    [Trait("Category", "Integration")]
     public class ApprovalControllerIntegrationTests
     {
         #region << Workflow Endpoint Tests >>
