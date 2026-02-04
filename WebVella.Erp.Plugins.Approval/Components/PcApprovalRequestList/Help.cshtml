@@ -1,0 +1,171 @@
+@*
+    Help.cshtml - Documentation view for PcApprovalRequestList PageComponent
+    
+    This file provides static help documentation for administrators configuring
+    the Approval Request List component in the WebVella ERP page builder.
+    
+    Requirements: STORY-008 - UI component specifications
+*@
+
+<div class="pc-approval-request-list-help">
+    <h4><i class="fas fa-list-check me-2"></i>Approval Request List Component</h4>
+    
+    <hr />
+    
+    <h5>Purpose</h5>
+    <p>
+        The <strong>Approval Request List</strong> component displays pending approval requests 
+        for the current user or role. It provides a filterable, sortable, and paginated view 
+        of all approval requests that require action from the authenticated user.
+    </p>
+    
+    <hr />
+    
+    <h5>Configuration Options</h5>
+    
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 25%;">Option</th>
+                <th style="width: 75%;">Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Records</strong></td>
+                <td>
+                    The datasource for approval requests. This should be configured to point to 
+                    a datasource that retrieves records from the <code>approval_request</code> entity.
+                    The component will automatically filter records based on the current user's 
+                    authorization as an approver.
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Status Filter</strong></td>
+                <td>
+                    Filter requests by their current status. Options include:
+                    <ul class="mb-0">
+                        <li><em>All</em> - Show all requests regardless of status</li>
+                        <li><em>Pending</em> - Show only requests awaiting approval</li>
+                        <li><em>Approved</em> - Show approved requests</li>
+                        <li><em>Rejected</em> - Show rejected requests</li>
+                        <li><em>Escalated</em> - Show requests that have been escalated</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Page Size</strong></td>
+                <td>
+                    The number of records to display per page. Default is <code>10</code>. 
+                    Recommended values are between 10 and 50 for optimal performance and usability.
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Sort Column</strong></td>
+                <td>
+                    The default column to sort the list by. Options include:
+                    <ul class="mb-0">
+                        <li><code>created_on</code> - Sort by request creation date (default)</li>
+                        <li><code>due_date</code> - Sort by SLA due date</li>
+                        <li><code>status</code> - Sort by current status</li>
+                        <li><code>workflow_name</code> - Sort by workflow name</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Sort Direction</strong></td>
+                <td>
+                    The sort order for the selected column:
+                    <ul class="mb-0">
+                        <li><code>desc</code> - Descending order, newest/highest first (default)</li>
+                        <li><code>asc</code> - Ascending order, oldest/lowest first</li>
+                    </ul>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <hr />
+    
+    <h5>Status Indicators</h5>
+    <p>
+        The component uses color-coded badges to indicate the current status of each approval request:
+    </p>
+    
+    <table class="table table-sm table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 25%;">Status</th>
+                <th style="width: 25%;">Color</th>
+                <th style="width: 50%;">Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="badge bg-warning text-dark">Pending</span></td>
+                <td>Yellow</td>
+                <td>Request is awaiting approval action</td>
+            </tr>
+            <tr>
+                <td><span class="badge bg-success">Approved</span></td>
+                <td>Green</td>
+                <td>Request has been approved</td>
+            </tr>
+            <tr>
+                <td><span class="badge bg-danger">Rejected</span></td>
+                <td>Red</td>
+                <td>Request has been rejected</td>
+            </tr>
+            <tr>
+                <td><span class="badge bg-info">Escalated</span></td>
+                <td>Blue/Orange</td>
+                <td>Request has been escalated due to SLA breach or manual escalation</td>
+            </tr>
+            <tr>
+                <td><span class="badge bg-secondary">Cancelled</span></td>
+                <td>Gray</td>
+                <td>Request has been cancelled</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <hr />
+    
+    <h5>Example Usage</h5>
+    <p>
+        To add an Approval Request List to a page:
+    </p>
+    <ol>
+        <li>Navigate to the page in Design mode</li>
+        <li>Add a new component from the <strong>WebVella</strong> library</li>
+        <li>Select <strong>Approval Request List</strong></li>
+        <li>Configure the <strong>Records</strong> datasource to use an <code>approval_request</code> query</li>
+        <li>Set optional filters, pagination, and sorting preferences</li>
+        <li>Save the page and preview to verify the configuration</li>
+    </ol>
+    
+    <hr />
+    
+    <h5>Features</h5>
+    <ul>
+        <li><strong>Real-time Filtering:</strong> Filter requests by status, date range, and workflow</li>
+        <li><strong>Column Sorting:</strong> Click column headers to sort by that column</li>
+        <li><strong>Pagination:</strong> Navigate through large datasets efficiently</li>
+        <li><strong>Quick Actions:</strong> Direct links to view request details and take approval actions</li>
+        <li><strong>SLA Indicators:</strong> Visual cues for requests approaching or past their due dates</li>
+    </ul>
+    
+    <hr />
+    
+    <h5>Related Components</h5>
+    <ul>
+        <li><strong>Approval Action:</strong> Component for taking approve/reject/delegate actions</li>
+        <li><strong>Approval History:</strong> Component for viewing the audit trail of a request</li>
+        <li><strong>Approval Dashboard:</strong> Manager dashboard with approval metrics</li>
+        <li><strong>Approval Workflow Config:</strong> Admin component for configuring workflows</li>
+    </ul>
+</div>
+
+<script>
+    console.log("PcApprovalRequestList HELP view script loaded");
+</script>
