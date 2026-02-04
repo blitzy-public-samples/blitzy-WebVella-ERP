@@ -541,11 +541,11 @@ namespace WebVella.Erp.Plugins.Approval.Hooks
         {
             try
             {
-                var securityContext = SecurityContext.Current;
+                var currentUser = SecurityContext.CurrentUser;
                 
-                if (securityContext?.User != null)
+                if (currentUser != null)
                 {
-                    return securityContext.User.Id;
+                    return currentUser.Id;
                 }
 
                 return null;
