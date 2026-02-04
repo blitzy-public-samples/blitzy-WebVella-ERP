@@ -1,0 +1,29 @@
+@*
+    Design-time preview for PcApprovalWorkflowConfig component.
+    Displays a static placeholder in page-builder design mode without binding to live data.
+*@
+<div class="p-2">
+    <h4><i class="fas fa-sitemap"></i> Approval Workflow Configuration</h4>
+    <p class="text-muted mb-2">Design-time preview - workflow management will be available at runtime</p>
+    
+    @* Sample visual representation of workflow list structure *@
+    <div class="card border-secondary">
+        <div class="card-body p-2">
+            <div class="d-flex align-items-center mb-2">
+                <span class="badge badge-secondary mr-2">Sample</span>
+                <strong>Purchase Order Approval</strong>
+            </div>
+            <small class="text-muted">
+                <i class="fas fa-layer-group mr-1"></i> 3 Steps
+                <i class="fas fa-check-circle text-success ml-2 mr-1"></i> Active
+            </small>
+        </div>
+    </div>
+    
+    <p class="small text-muted mt-2 mb-0">
+        <i class="fas fa-info-circle mr-1"></i>
+        Configure approval workflows, steps, and routing rules.
+    </p>
+</div>
+@* WebComponents fail to load properly in design mode, so static text-only preview is used.
+   Probable reason: https://github.com/ionic-team/stencil/issues/793 *@
