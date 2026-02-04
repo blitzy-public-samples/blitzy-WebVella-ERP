@@ -1,0 +1,629 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalRequestList PageComponent
+    
+    Renders a filterable, sortable, paginated table of pending approval requests with:
+    - Status indicators (color-coded badges for Pending/Approved/Rejected/Escalated/Cancelled)
+    - Due dates and workflow names display
+    - Action links for viewing details
+    - Pagination and sorting support
+    
+    ViewBag Data Expected:
+    - Records: List<EntityRecord> of approval requests
+    - Options: PcApprovalRequestListOptions component configuration
+    - Pagination: Pagination metadata (TotalCount, CurrentPage, TotalPages, PageSize)
+    - Node: PageBodyNode for component rendering
+    - ComponentMeta: Component metadata from library
+    - RequestContext: ErpRequestContext
+    - AppContext: ErpAppContext
+    - ComponentContext: PageComponentContext
+    - CurrentUser: Current authenticated user
+    - SiteRootUrl: Site root URL for link generation
+    - Workflows: Available workflows for filter dropdown
+    - StatusOptions: Available status options for filter dropdown
+*@
+
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Model
+@using WebVella.TagHelpers.Models
+@using System.Collections.Generic
+@using System
+@using System.Linq
+
+@{
+    // Cast ViewBag data to strongly-typed variables
+    var options = ViewBag.Options as PcApprovalRequestList.PcApprovalRequestListOptions;
+    var records = ViewBag.Records as List<EntityRecord> ?? new List<EntityRecord>();
+    var pagination = ViewBag.Pagination as dynamic;
+    var node = ViewBag.Node as PageBodyNode;
+    var erpRequest = ViewBag.RequestContext as ErpRequestContext;
+    var componentContext = ViewBag.ComponentContext as PageComponentContext;
+    var siteRootUrl = ViewBag.SiteRootUrl as string ?? "";
+    var workflows = ViewBag.Workflows as List<EntityRecord> ?? new List<EntityRecord>();
+    var statusOptions = ViewBag.StatusOptions as List<SelectOption> ?? new List<SelectOption>();
+    
+    // Pagination values with defaults
+    var totalCount = pagination?.TotalCount ?? 0;
+    var currentPage = pagination?.CurrentPage ?? 1;
+    var totalPages = pagination?.TotalPages ?? 1;
+    var pageSize = options?.PageSize ?? 10;
+    
+    // Current filter values
+    var currentStatusFilter = options?.StatusFilter ?? "";
+    var currentSortColumn = options?.SortColumn ?? "created_on";
+    var currentSortDirection = options?.SortDirection ?? "desc";
+    
+    // Generate unique component ID for DOM elements
+    var componentId = $"pc-approval-request-list-{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+    
+    // Helper function to get badge class based on status
+    Func<string, string> GetStatusBadgeClass = (status) =>
+    {
+        return status?.ToLowerInvariant() switch
+        {
+            "pending" => "badge badge-warning",
+            "approved" => "badge badge-success",
+            "rejected" => "badge badge-danger",
+            "delegated" => "badge badge-info",
+            "escalated" => "badge badge-warning text-dark",
+            "cancelled" => "badge badge-secondary",
+            _ => "badge badge-secondary"
+        };
+    };
+    
+    // Helper function to get status display text
+    Func<string, string> GetStatusDisplayText = (status) =>
+    {
+        return status?.ToLowerInvariant() switch
+        {
+            "pending" => "Pending",
+            "approved" => "Approved",
+            "rejected" => "Rejected",
+            "delegated" => "Delegated",
+            "escalated" => "Escalated",
+            "cancelled" => "Cancelled",
+            _ => status ?? "Unknown"
+        };
+    };
+    
+    // Helper function to format dates
+    Func<object, string> FormatDateTime = (dateValue) =>
+    {
+        if (dateValue == null) return "-";
+        if (dateValue is DateTime dt)
+        {
+            return dt.ToString("yyyy-MM-dd HH:mm");
+        }
+        return dateValue.ToString();
+    };
+    
+    // Helper function to check if a date is overdue
+    Func<object, bool> IsOverdue = (dueDate) =>
+    {
+        if (dueDate == null) return false;
+        if (dueDate is DateTime dt)
+        {
+            return dt < DateTime.UtcNow;
+        }
+        return false;
+    };
+    
+    // Helper function to get sort indicator icon
+    Func<string, string> GetSortIcon = (columnName) =>
+    {
+        if (currentSortColumn != columnName) return "fas fa-sort text-muted";
+        return currentSortDirection == "asc" ? "fas fa-sort-up" : "fas fa-sort-down";
+    };
+}
+
+<!-- Approval Request List Component -->
+<div class="card approval-request-list-card" id="@componentId" data-component="PcApprovalRequestList">
+    <!-- Card Header -->
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-list-check me-2"></i>
+            Pending Approvals
+            @if (totalCount > 0)
+            {
+                <span class="badge badge-primary ms-2">@totalCount</span>
+            }
+        </h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="@(componentId)_refresh()">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    
+    <!-- Filter Row -->
+    <div class="card-body border-bottom py-3">
+        <form id="@(componentId)-filter-form" class="row g-3 align-items-end">
+            <!-- Status Filter -->
+            <div class="col-md-3">
+                <label for="@(componentId)-status-filter" class="form-label small fw-bold">Status</label>
+                <select id="@(componentId)-status-filter" 
+                        class="form-select form-select-sm" 
+                        name="statusFilter"
+                        data-filter="status">
+                    <option value="">All Statuses</option>
+                    <option value="pending" @(currentStatusFilter == "pending" ? "selected" : "")>Pending</option>
+                    <option value="approved" @(currentStatusFilter == "approved" ? "selected" : "")>Approved</option>
+                    <option value="rejected" @(currentStatusFilter == "rejected" ? "selected" : "")>Rejected</option>
+                    <option value="delegated" @(currentStatusFilter == "delegated" ? "selected" : "")>Delegated</option>
+                    <option value="escalated" @(currentStatusFilter == "escalated" ? "selected" : "")>Escalated</option>
+                    <option value="cancelled" @(currentStatusFilter == "cancelled" ? "selected" : "")>Cancelled</option>
+                </select>
+            </div>
+            
+            <!-- Workflow Filter -->
+            <div class="col-md-3">
+                <label for="@(componentId)-workflow-filter" class="form-label small fw-bold">Workflow</label>
+                <select id="@(componentId)-workflow-filter" 
+                        class="form-select form-select-sm" 
+                        name="workflowFilter"
+                        data-filter="workflow">
+                    <option value="">All Workflows</option>
+                    @foreach (var workflow in workflows)
+                    {
+                        var workflowId = workflow["id"]?.ToString() ?? "";
+                        var workflowName = workflow["name"]?.ToString() ?? "Unknown Workflow";
+                        <option value="@workflowId">@workflowName</option>
+                    }
+                </select>
+            </div>
+            
+            <!-- Date Range Filter - From -->
+            <div class="col-md-2">
+                <label for="@(componentId)-date-from" class="form-label small fw-bold">From Date</label>
+                <input type="date" 
+                       id="@(componentId)-date-from" 
+                       class="form-control form-control-sm" 
+                       name="dateFrom"
+                       data-filter="dateFrom" />
+            </div>
+            
+            <!-- Date Range Filter - To -->
+            <div class="col-md-2">
+                <label for="@(componentId)-date-to" class="form-label small fw-bold">To Date</label>
+                <input type="date" 
+                       id="@(componentId)-date-to" 
+                       class="form-control form-control-sm" 
+                       name="dateTo"
+                       data-filter="dateTo" />
+            </div>
+            
+            <!-- Filter Buttons -->
+            <div class="col-md-2">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="@(componentId)_applyFilters()">
+                        <i class="fas fa-filter"></i> Apply
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="@(componentId)_clearFilters()">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Table Body -->
+    <div class="card-body p-0">
+        @if (records.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0" id="@(componentId)-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="sortable-column" data-sort="id" onclick="@(componentId)_sort('id')">
+                                <span>ID</span>
+                                <i class="@GetSortIcon("id") ms-1"></i>
+                            </th>
+                            <th scope="col" class="sortable-column" data-sort="workflow_name" onclick="@(componentId)_sort('workflow_name')">
+                                <span>Workflow</span>
+                                <i class="@GetSortIcon("workflow_name") ms-1"></i>
+                            </th>
+                            <th scope="col" class="sortable-column" data-sort="entity_name" onclick="@(componentId)_sort('entity_name')">
+                                <span>Entity / Record</span>
+                                <i class="@GetSortIcon("entity_name") ms-1"></i>
+                            </th>
+                            <th scope="col" class="sortable-column" data-sort="status" onclick="@(componentId)_sort('status')">
+                                <span>Status</span>
+                                <i class="@GetSortIcon("status") ms-1"></i>
+                            </th>
+                            <th scope="col" class="sortable-column" data-sort="created_on" onclick="@(componentId)_sort('created_on')">
+                                <span>Created On</span>
+                                <i class="@GetSortIcon("created_on") ms-1"></i>
+                            </th>
+                            <th scope="col" class="sortable-column" data-sort="due_date" onclick="@(componentId)_sort('due_date')">
+                                <span>Due Date</span>
+                                <i class="@GetSortIcon("due_date") ms-1"></i>
+                            </th>
+                            <th scope="col" class="text-center" style="width: 120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in records)
+                        {
+                            var requestId = record["id"]?.ToString() ?? "";
+                            var shortId = requestId.Length >= 8 ? requestId.Substring(0, 8) + "..." : requestId;
+                            var workflowName = record["workflow_name"]?.ToString() ?? record["$approval_workflow.name"]?.ToString() ?? "N/A";
+                            var entityName = record["entity_name"]?.ToString() ?? "N/A";
+                            var recordId = record["record_id"]?.ToString() ?? "";
+                            var shortRecordId = recordId.Length >= 8 ? recordId.Substring(0, 8) + "..." : recordId;
+                            var status = record["status"]?.ToString() ?? "pending";
+                            var createdOn = record["created_on"];
+                            var dueDate = record["due_date"];
+                            var isOverdueRequest = IsOverdue(dueDate);
+                            var statusBadgeClass = GetStatusBadgeClass(status);
+                            var statusText = GetStatusDisplayText(status);
+                            
+                            <tr data-request-id="@requestId" class="@(isOverdueRequest && status == "pending" ? "table-danger" : "")">
+                                <td>
+                                    <code class="small" title="@requestId">@shortId</code>
+                                </td>
+                                <td>
+                                    <span class="fw-medium">@workflowName</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="text-primary">@entityName</span>
+                                        <code class="small text-muted" title="@recordId">@shortRecordId</code>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="@statusBadgeClass">
+                                        @if (status == "pending" && isOverdueRequest)
+                                        {
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                        }
+                                        @statusText
+                                    </span>
+                                    @if (status == "pending" && isOverdueRequest)
+                                    {
+                                        <small class="d-block text-danger mt-1">
+                                            <i class="fas fa-clock"></i> Overdue
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-nowrap">@FormatDateTime(createdOn)</span>
+                                </td>
+                                <td>
+                                    @if (dueDate != null)
+                                    {
+                                        <span class="text-nowrap @(isOverdueRequest ? "text-danger fw-bold" : "")">
+                                            @FormatDateTime(dueDate)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No deadline</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="@siteRootUrl/approval/requests/@requestId" 
+                                           class="btn btn-outline-primary btn-sm" 
+                                           title="View Details"
+                                           data-action="view">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (status?.ToLowerInvariant() == "pending")
+                                        {
+                                            <button type="button" 
+                                                    class="btn btn-outline-success btn-sm" 
+                                                    title="Quick Approve"
+                                                    onclick="@(componentId)_quickAction('@requestId', 'approve')"
+                                                    data-action="approve">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger btn-sm" 
+                                                    title="Quick Reject"
+                                                    onclick="@(componentId)_quickAction('@requestId', 'reject')"
+                                                    data-action="reject">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <!-- Empty State -->
+            <div class="alert alert-info m-3 text-center" role="alert">
+                <i class="fas fa-inbox fa-3x mb-3 d-block text-muted"></i>
+                <h5 class="alert-heading">No pending approval requests found</h5>
+                <p class="mb-0 text-muted">
+                    @if (!string.IsNullOrEmpty(currentStatusFilter))
+                    {
+                        <span>No requests match your current filters. Try adjusting the filter criteria.</span>
+                    }
+                    else
+                    {
+                        <span>There are no approval requests assigned to you at this time.</span>
+                    }
+                </p>
+            </div>
+        }
+    </div>
+    
+    <!-- Pagination Footer -->
+    @if (totalCount > 0 && totalPages > 1)
+    {
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <div class="text-muted small">
+                Showing @(((currentPage - 1) * pageSize) + 1) to @(Math.Min(currentPage * pageSize, totalCount)) of @totalCount requests
+            </div>
+            <nav aria-label="Approval request list pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <!-- First Page -->
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="#" onclick="@(componentId)_goToPage(1); return false;" aria-label="First">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    
+                    <!-- Previous Page -->
+                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" href="#" onclick="@(componentId)_goToPage(@(currentPage - 1)); return false;" aria-label="Previous">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    
+                    <!-- Page Numbers -->
+                    @{
+                        var startPage = Math.Max(1, currentPage - 2);
+                        var endPage = Math.Min(totalPages, currentPage + 2);
+                        
+                        // Ensure we always show 5 pages if possible
+                        if (endPage - startPage < 4)
+                        {
+                            if (startPage == 1)
+                            {
+                                endPage = Math.Min(totalPages, startPage + 4);
+                            }
+                            else if (endPage == totalPages)
+                            {
+                                startPage = Math.Max(1, endPage - 4);
+                            }
+                        }
+                        
+                        for (var page = startPage; page <= endPage; page++)
+                        {
+                            <li class="page-item @(page == currentPage ? "active" : "")">
+                                <a class="page-link" href="#" onclick="@(componentId)_goToPage(@page); return false;">@page</a>
+                            </li>
+                        }
+                    }
+                    
+                    <!-- Next Page -->
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="#" onclick="@(componentId)_goToPage(@(currentPage + 1)); return false;" aria-label="Next">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    
+                    <!-- Last Page -->
+                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                        <a class="page-link" href="#" onclick="@(componentId)_goToPage(@totalPages); return false;" aria-label="Last">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            <div class="d-flex align-items-center">
+                <label for="@(componentId)-page-size" class="me-2 small text-muted">Per page:</label>
+                <select id="@(componentId)-page-size" class="form-select form-select-sm" style="width: auto;" onchange="@(componentId)_changePageSize(this.value)">
+                    <option value="10" @(pageSize == 10 ? "selected" : "")>10</option>
+                    <option value="25" @(pageSize == 25 ? "selected" : "")>25</option>
+                    <option value="50" @(pageSize == 50 ? "selected" : "")>50</option>
+                    <option value="100" @(pageSize == 100 ? "selected" : "")>100</option>
+                </select>
+            </div>
+        </div>
+    }
+    else if (totalCount > 0)
+    {
+        <div class="card-footer bg-white text-muted small">
+            Showing @totalCount request@(totalCount == 1 ? "" : "s")
+        </div>
+    }
+</div>
+
+<!-- Custom Styles -->
+<style>
+    .approval-request-list-card .sortable-column {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+    
+    .approval-request-list-card .sortable-column:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+    
+    .approval-request-list-card .sortable-column i {
+        font-size: 0.75rem;
+    }
+    
+    .approval-request-list-card .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    .approval-request-list-card .table td {
+        vertical-align: middle;
+    }
+    
+    .approval-request-list-card .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .approval-request-list-card .table-danger {
+        background-color: rgba(220, 53, 69, 0.1) !important;
+    }
+    
+    .approval-request-list-card code {
+        background-color: rgba(0, 0, 0, 0.05);
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.25rem;
+    }
+</style>
+
+<!-- Component JavaScript -->
+<script src="/_content/WebVella.Erp.Plugins.Approval/js/approval-components/pc-approval-request-list-service.js"></script>
+<script>
+    // Component-specific JavaScript functions
+    (function() {
+        var componentId = '@componentId';
+        var siteRootUrl = '@siteRootUrl';
+        var apiBaseUrl = siteRootUrl + '/api/v3.0/p/approval';
+        var currentSort = '@currentSortColumn';
+        var currentSortDir = '@currentSortDirection';
+        var currentPage = @currentPage;
+        var pageSize = @pageSize;
+        
+        // Expose functions globally with component-specific names
+        window['@(componentId)_refresh'] = function() {
+            location.reload();
+        };
+        
+        window['@(componentId)_applyFilters'] = function() {
+            var form = document.getElementById(componentId + '-filter-form');
+            if (!form) return;
+            
+            var params = new URLSearchParams(window.location.search);
+            
+            // Get filter values
+            var statusFilter = document.getElementById(componentId + '-status-filter');
+            var workflowFilter = document.getElementById(componentId + '-workflow-filter');
+            var dateFrom = document.getElementById(componentId + '-date-from');
+            var dateTo = document.getElementById(componentId + '-date-to');
+            
+            // Update URL parameters
+            if (statusFilter && statusFilter.value) {
+                params.set('statusFilter', statusFilter.value);
+            } else {
+                params.delete('statusFilter');
+            }
+            
+            if (workflowFilter && workflowFilter.value) {
+                params.set('workflowFilter', workflowFilter.value);
+            } else {
+                params.delete('workflowFilter');
+            }
+            
+            if (dateFrom && dateFrom.value) {
+                params.set('dateFrom', dateFrom.value);
+            } else {
+                params.delete('dateFrom');
+            }
+            
+            if (dateTo && dateTo.value) {
+                params.set('dateTo', dateTo.value);
+            } else {
+                params.delete('dateTo');
+            }
+            
+            // Reset to first page when filtering
+            params.set('page', '1');
+            
+            // Navigate to filtered URL
+            window.location.search = params.toString();
+        };
+        
+        window['@(componentId)_clearFilters'] = function() {
+            var params = new URLSearchParams(window.location.search);
+            params.delete('statusFilter');
+            params.delete('workflowFilter');
+            params.delete('dateFrom');
+            params.delete('dateTo');
+            params.set('page', '1');
+            window.location.search = params.toString();
+        };
+        
+        window['@(componentId)_sort'] = function(column) {
+            var params = new URLSearchParams(window.location.search);
+            
+            // Toggle sort direction if clicking same column
+            if (currentSort === column) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortDir = 'asc';
+            }
+            
+            params.set('sortColumn', column);
+            params.set('sortDirection', currentSortDir);
+            params.set('page', '1');
+            
+            window.location.search = params.toString();
+        };
+        
+        window['@(componentId)_goToPage'] = function(page) {
+            if (page < 1 || page > @totalPages) return;
+            
+            var params = new URLSearchParams(window.location.search);
+            params.set('page', page.toString());
+            window.location.search = params.toString();
+        };
+        
+        window['@(componentId)_changePageSize'] = function(size) {
+            var params = new URLSearchParams(window.location.search);
+            params.set('pageSize', size);
+            params.set('page', '1');
+            window.location.search = params.toString();
+        };
+        
+        window['@(componentId)_quickAction'] = function(requestId, action) {
+            if (!confirm('Are you sure you want to ' + action + ' this request?')) {
+                return;
+            }
+            
+            var url = apiBaseUrl + '/requests/' + requestId + '/' + action;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    comments: 'Quick ' + action + ' from request list'
+                })
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Action failed');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Request ' + action + 'd successfully');
+                    }
+                    // Refresh the list
+                    window['@(componentId)_refresh']();
+                } else {
+                    throw new Error(data.message || 'Action failed');
+                }
+            })
+            .catch(function(error) {
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Error: ' + error.message);
+                } else {
+                    alert('Error: ' + error.message);
+                }
+            });
+        };
+    })();
+</script>
