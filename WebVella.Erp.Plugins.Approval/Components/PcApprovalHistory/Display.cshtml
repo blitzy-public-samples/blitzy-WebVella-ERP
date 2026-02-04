@@ -1,0 +1,206 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalHistory component
+    
+    Renders a chronological timeline of all approval actions (approvals, rejections, 
+    delegations, comments) with timestamps, performed-by user information, and comments.
+    
+    Part of the WebVella ERP Approval Plugin (STORY-008)
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using System
+@using System.Collections.Generic
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@{
+    var options = (PcApprovalHistory.PcApprovalHistoryOptions)ViewBag.Options;
+    var historyRecords = ViewBag.HistoryRecords as List<EntityRecord> ?? new List<EntityRecord>();
+    var isCompact = options.DisplayMode?.ToLower() == "compact";
+    
+    // Helper function to safely get property value from EntityRecord
+    Func<EntityRecord, string, object> GetSafeValue = (record, key) => {
+        try
+        {
+            if (record.Properties.ContainsKey(key))
+            {
+                return record.Properties[key];
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    };
+}
+
+<div class="approval-history-timeline @options.Class">
+    @if (historyRecords.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> @(string.IsNullOrWhiteSpace(options.EmptyText) ? "No history records found" : options.EmptyText)
+        </div>
+    }
+    else
+    {
+        <div class="timeline">
+            @foreach (var record in historyRecords)
+            {
+                var action = GetSafeValue(record, "action")?.ToString() ?? "";
+                var performedBy = GetSafeValue(record, "performed_by")?.ToString() ?? "Unknown";
+                var performedOn = GetSafeValue(record, "performed_on");
+                var comments = GetSafeValue(record, "comments")?.ToString() ?? "";
+                
+                // Determine icon and color based on action type
+                var iconClass = "fas fa-circle";
+                var badgeClass = "badge-secondary";
+                switch (action?.ToLower())
+                {
+                    case "approve":
+                    case "approved":
+                        iconClass = "fas fa-check-circle";
+                        badgeClass = "badge-success";
+                        break;
+                    case "reject":
+                    case "rejected":
+                        iconClass = "fas fa-times-circle";
+                        badgeClass = "badge-danger";
+                        break;
+                    case "delegate":
+                    case "delegated":
+                        iconClass = "fas fa-share";
+                        badgeClass = "badge-info";
+                        break;
+                    case "escalate":
+                    case "escalated":
+                        iconClass = "fas fa-exclamation-triangle";
+                        badgeClass = "badge-warning";
+                        break;
+                    case "comment":
+                        iconClass = "fas fa-comment";
+                        badgeClass = "badge-secondary";
+                        break;
+                    case "submit":
+                    case "submitted":
+                        iconClass = "fas fa-paper-plane";
+                        badgeClass = "badge-primary";
+                        break;
+                }
+                
+                <div class="timeline-item @(isCompact ? "compact" : "")">
+                    <div class="timeline-icon">
+                        <i class="@iconClass"></i>
+                    </div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            @if (options.ShowUserAvatars)
+                            {
+                                <span class="avatar-placeholder">
+                                    <i class="fas fa-user-circle"></i>
+                                </span>
+                            }
+                            <span class="badge @badgeClass">@action</span>
+                            <span class="performed-by">by @performedBy</span>
+                            @if (options.ShowTimestamps && performedOn != null)
+                            {
+                                <span class="timestamp text-muted">
+                                    @if (performedOn is DateTime dt)
+                                    {
+                                        @dt.ToString("MMM dd, yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        @performedOn.ToString()
+                                    }
+                                </span>
+                            }
+                        </div>
+                        @if (options.ShowComments && !string.IsNullOrWhiteSpace(comments))
+                        {
+                            <div class="timeline-body">
+                                <p class="comments">@comments</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .approval-history-timeline .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .approval-history-timeline .timeline::before {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .approval-history-timeline .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .approval-history-timeline .timeline-item.compact {
+        margin-bottom: 10px;
+    }
+    
+    .approval-history-timeline .timeline-icon {
+        position: absolute;
+        left: -25px;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+        background: #fff;
+    }
+    
+    .approval-history-timeline .timeline-icon i {
+        font-size: 16px;
+    }
+    
+    .approval-history-timeline .timeline-content {
+        background: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .approval-history-timeline .timeline-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .approval-history-timeline .timestamp {
+        font-size: 0.85em;
+        margin-left: auto;
+    }
+    
+    .approval-history-timeline .avatar-placeholder {
+        font-size: 24px;
+        color: #6c757d;
+    }
+    
+    .approval-history-timeline .timeline-body {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .approval-history-timeline .comments {
+        margin: 0;
+        font-style: italic;
+        color: #6c757d;
+    }
+</style>
