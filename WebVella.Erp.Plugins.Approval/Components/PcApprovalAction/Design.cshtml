@@ -1,0 +1,25 @@
+@*
+    Design-time preview for PcApprovalAction component.
+    Displays a static representation of the approval action buttons
+    during page builder design mode. Buttons are disabled as they
+    are non-functional in design mode.
+*@
+<div class="p-2">
+    <h4><i class="fas fa-check-circle"></i> Approval Actions</h4>
+    <p class="text-muted small mb-2">Design-time preview - buttons are disabled in design mode</p>
+    
+    <div class="btn-group" role="group" aria-label="Approval action buttons">
+        <button type="button" class="btn btn-sm btn-success disabled" disabled>
+            <i class="fas fa-check"></i> Approve
+        </button>
+        <button type="button" class="btn btn-sm btn-danger disabled" disabled>
+            <i class="fas fa-times"></i> Reject
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary disabled" disabled>
+            <i class="fas fa-share"></i> Delegate
+        </button>
+    </div>
+    
+    <p class="text-muted small mt-2 mb-0">Configure options to customize button visibility</p>
+</div>
+@* Design-time preview only - WebComponents and interactive features are not available during page design *@

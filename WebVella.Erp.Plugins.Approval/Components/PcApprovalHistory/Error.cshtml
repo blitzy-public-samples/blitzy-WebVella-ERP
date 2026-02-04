@@ -1,0 +1,17 @@
+@*
+    Error.cshtml - Error display view for PcApprovalHistory component
+    
+    Renders validation errors using WebVella wv-validation tag helper when 
+    the component encounters exceptions during data loading or processing.
+    
+    Part of the WebVella ERP Approval Plugin (STORY-008)
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Exceptions
+@{
+    var validation = (ValidationException)ViewBag.Error;
+}
+<wv-validation errors="@validation.ToErrorList()" message="@validation.Message"></wv-validation>

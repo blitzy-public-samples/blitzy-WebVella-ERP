@@ -1,0 +1,269 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalHistory component
+    
+    Renders a chronological timeline of all approval actions (approvals, rejections, 
+    delegations, escalations, comments) with timestamps, performed-by user information, 
+    and comments. Uses CSS classes from the centralized styles.css.
+    
+    Part of the WebVella ERP Approval Plugin (STORY-008)
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Model
+@using WebVella.Erp.Plugins.Approval.Components
+@{
+    // Retrieve component options from ViewBag
+    var options = (PcApprovalHistory.PcApprovalHistoryOptions)ViewBag.Options;
+    
+    // Retrieve history records, defaulting to empty list if null
+    var historyRecords = ViewBag.HistoryRecords as List<EntityRecord> ?? new List<EntityRecord>();
+    
+    // Determine if compact display mode is enabled
+    var isCompact = !string.IsNullOrWhiteSpace(options?.DisplayMode) && 
+                    options.DisplayMode.Equals("compact", StringComparison.OrdinalIgnoreCase);
+    
+    // Helper function to safely get property value from EntityRecord
+    // Returns null if the key doesn't exist or if an error occurs
+    Func<EntityRecord, string, object> GetSafeValue = (record, key) => {
+        try
+        {
+            if (record != null && record.Properties != null && record.Properties.ContainsKey(key))
+            {
+                return record.Properties[key];
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    };
+    
+    // Helper function to format DateTime for display
+    Func<object, string> FormatTimestamp = (value) => {
+        if (value == null) return "";
+        
+        if (value is DateTime dt)
+        {
+            return dt.ToString("MMM dd, yyyy HH:mm");
+        }
+        
+        if (DateTime.TryParse(value.ToString(), out DateTime parsedDt))
+        {
+            return parsedDt.ToString("MMM dd, yyyy HH:mm");
+        }
+        
+        return value.ToString();
+    };
+    
+    // Helper function to get CSS classes based on action type
+    // Returns tuple with (timelineItemClass, iconClass, badgeClass)
+    Func<string, (string itemClass, string iconClass, string badgeClass, string displayLabel)> GetActionStyles = (action) => {
+        var actionLower = (action ?? "").Trim().ToLower();
+        
+        switch (actionLower)
+        {
+            case "approve":
+            case "approved":
+            case "0": // ApprovalActionType.Approve enum value
+                return ("action-approved", "fas fa-check-circle text-success", "badge-approved", "Approved");
+            
+            case "reject":
+            case "rejected":
+            case "1": // ApprovalActionType.Reject enum value
+                return ("action-rejected", "fas fa-times-circle text-danger", "badge-rejected", "Rejected");
+            
+            case "delegate":
+            case "delegated":
+            case "2": // ApprovalActionType.Delegate enum value
+                return ("action-delegated", "fas fa-share text-info", "badge-delegated", "Delegated");
+            
+            case "escalate":
+            case "escalated":
+            case "3": // ApprovalActionType.Escalate enum value
+                return ("action-escalated", "fas fa-exclamation-triangle text-warning", "badge-escalated", "Escalated");
+            
+            case "comment":
+            case "4": // ApprovalActionType.Comment enum value
+                return ("action-comment", "fas fa-comment text-secondary", "badge-comment", "Comment");
+            
+            case "submit":
+            case "submitted":
+                return ("action-submitted", "fas fa-paper-plane text-primary", "badge-submitted", "Submitted");
+            
+            case "cancel":
+            case "cancelled":
+                return ("action-cancelled", "fas fa-ban text-muted", "badge-cancelled", "Cancelled");
+            
+            default:
+                return ("", "fas fa-circle text-secondary", "badge-secondary", action ?? "Unknown");
+        }
+    };
+    
+    // Helper to get user initials from name for avatar display
+    Func<string, string> GetInitials = (name) => {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        
+        var parts = name.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "?";
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        
+        return (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
+    };
+    
+    // Additional CSS class from options
+    var containerClass = !string.IsNullOrWhiteSpace(options?.Class) ? options.Class : "";
+    
+    // Empty state text
+    var emptyText = !string.IsNullOrWhiteSpace(options?.EmptyText) 
+        ? options.EmptyText 
+        : "No history records found";
+    
+    // Get display options with safe defaults
+    var showTimestamps = options?.ShowTimestamps ?? true;
+    var showComments = options?.ShowComments ?? true;
+    var showUserAvatars = options?.ShowUserAvatars ?? false;
+}
+
+@* Main container using the .pc-approval-history class from styles.css *@
+<div class="pc-approval-history @containerClass">
+    @if (historyRecords == null || historyRecords.Count == 0)
+    {
+        @* Empty state message when no history records are found *@
+        <div class="alert alert-info mb-0" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            @emptyText
+        </div>
+    }
+    else
+    {
+        @* Timeline container - uses CSS classes from styles.css *@
+        <div class="timeline">
+            @foreach (var record in historyRecords)
+            {
+                // Extract field values from the history record
+                var action = GetSafeValue(record, "action")?.ToString() ?? "";
+                var performedByName = GetSafeValue(record, "performed_by_name")?.ToString() ?? "";
+                var performedById = GetSafeValue(record, "performed_by")?.ToString() ?? "";
+                var performedOn = GetSafeValue(record, "performed_on");
+                var comments = GetSafeValue(record, "comments")?.ToString() ?? "";
+                var stepName = GetSafeValue(record, "step_name")?.ToString() ?? "";
+                var stepId = GetSafeValue(record, "step_id")?.ToString() ?? "";
+                
+                // If performed_by_name is empty, try to use performed_by or fallback
+                var displayName = !string.IsNullOrWhiteSpace(performedByName) 
+                    ? performedByName 
+                    : (!string.IsNullOrWhiteSpace(performedById) ? performedById : "Unknown User");
+                
+                // Get styling for the action type
+                var styles = GetActionStyles(action);
+                
+                @* Timeline item - uses action-specific CSS classes for dot color *@
+                <div class="timeline-item @styles.itemClass @(isCompact ? "compact" : "")">
+                    @* History card containing all content *@
+                    <div class="history-card">
+                        @* Header section with user info and action badge *@
+                        <div class="header">
+                            <div class="user-info">
+                                @if (showUserAvatars)
+                                {
+                                    @* User avatar with initials *@
+                                    <div class="avatar" title="@displayName">
+                                        @GetInitials(displayName)
+                                    </div>
+                                }
+                                <span class="user-name">@displayName</span>
+                            </div>
+                            <span class="action-badge @styles.badgeClass">
+                                <i class="@styles.iconClass me-1"></i>
+                                @styles.displayLabel
+                            </span>
+                        </div>
+                        
+                        @* Timestamp display *@
+                        @if (showTimestamps && performedOn != null)
+                        {
+                            <div class="timestamp">
+                                <i class="far fa-clock me-1"></i>
+                                @FormatTimestamp(performedOn)
+                            </div>
+                        }
+                        
+                        @* Comments section *@
+                        @if (showComments && !string.IsNullOrWhiteSpace(comments))
+                        {
+                            <div class="comment">
+                                <i class="fas fa-quote-left me-1 text-muted" style="font-size: 0.7em;"></i>
+                                @comments
+                            </div>
+                        }
+                        
+                        @* Step information if available *@
+                        @if (!string.IsNullOrWhiteSpace(stepName))
+                        {
+                            <div class="step-info">
+                                <i class="fas fa-tasks me-1"></i>
+                                Step: @stepName
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Additional inline styles for elements not covered by styles.css *@
+<style>
+    /* Compact mode adjustments */
+    .pc-approval-history .timeline-item.compact {
+        padding-bottom: 0.75rem;
+    }
+    
+    .pc-approval-history .timeline-item.compact .history-card {
+        padding: 0.5rem;
+    }
+    
+    .pc-approval-history .timeline-item.compact .comment {
+        margin-top: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Submitted action styling (not in base styles.css) */
+    .pc-approval-history .timeline-item.action-submitted::before {
+        background: #007bff;
+        box-shadow: 0 0 0 2px #cce5ff;
+    }
+    
+    .pc-approval-history .history-card .action-badge.badge-submitted {
+        background: #cce5ff;
+        color: #004085;
+    }
+    
+    /* Cancelled action styling (not in base styles.css) */
+    .pc-approval-history .timeline-item.action-cancelled::before {
+        background: #6c757d;
+        box-shadow: 0 0 0 2px #d6d8db;
+    }
+    
+    .pc-approval-history .history-card .action-badge.badge-cancelled {
+        background: #d6d8db;
+        color: #383d41;
+    }
+    
+    /* Ensure proper icon color rendering */
+    .pc-approval-history .action-badge i.text-success { color: #155724 !important; }
+    .pc-approval-history .action-badge i.text-danger { color: #721c24 !important; }
+    .pc-approval-history .action-badge i.text-info { color: #0c5460 !important; }
+    .pc-approval-history .action-badge i.text-warning { color: #856404 !important; }
+    .pc-approval-history .action-badge i.text-secondary { color: #495057 !important; }
+    .pc-approval-history .action-badge i.text-primary { color: #004085 !important; }
+    .pc-approval-history .action-badge i.text-muted { color: #383d41 !important; }
+</style>

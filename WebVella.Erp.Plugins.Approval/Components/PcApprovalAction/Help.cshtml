@@ -1,0 +1,71 @@
+@*
+    Help documentation view for the PcApprovalAction component.
+    Displays usage instructions and configuration guidance for the approval action buttons component
+    in the WebVella page builder help panel.
+*@
+
+<h5><i class="fas fa-check-circle"></i> Approval Action Component</h5>
+
+<p>
+    This component renders action buttons that allow authorized users to <strong>approve</strong>, <strong>reject</strong>, 
+    or <strong>delegate</strong> approval requests. When an action is performed, a modal dialog prompts for optional 
+    or required comments before submitting the action to the approval workflow system.
+</p>
+
+<h6>Features</h6>
+<ul>
+    <li><strong>Approve Button:</strong> Marks the request as approved and advances the workflow to the next step.</li>
+    <li><strong>Reject Button:</strong> Marks the request as rejected and ends the workflow. Comments are required.</li>
+    <li><strong>Delegate Button:</strong> Reassigns the approval request to another user for review.</li>
+    <li><strong>Comment Modal:</strong> Captures comments for audit trail when performing any action.</li>
+</ul>
+
+<h6>Configuration Options</h6>
+<table class="table table-sm table-bordered">
+    <thead>
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>request_id</code></td>
+            <td>The approval request identifier. Use datasource binding to dynamically retrieve the request ID from the page context (e.g., from URL parameters or record data).</td>
+        </tr>
+        <tr>
+            <td><code>show_approve_button</code></td>
+            <td>Toggle visibility of the Approve button. Default: <code>true</code></td>
+        </tr>
+        <tr>
+            <td><code>show_reject_button</code></td>
+            <td>Toggle visibility of the Reject button. Default: <code>true</code></td>
+        </tr>
+        <tr>
+            <td><code>show_delegate_button</code></td>
+            <td>Toggle visibility of the Delegate button. Default: <code>true</code></td>
+        </tr>
+        <tr>
+            <td><code>require_comments_on_approve</code></td>
+            <td>When enabled, requires the user to enter comments before approving. Default: <code>false</code></td>
+        </tr>
+    </tbody>
+</table>
+
+<h6>Authorization</h6>
+<p>
+    Action buttons are only displayed when the current user is authorized to act on the request. 
+    Authorization is determined by the workflow step configuration, which specifies allowed approvers 
+    by user, role, or manager relationship.
+</p>
+
+<h6>Status Requirements</h6>
+<p>
+    Actions can only be performed on requests with a <strong>Pending</strong> status. Requests that have 
+    already been approved, rejected, or cancelled will display the buttons in a disabled state.
+</p>
+
+
+<script>
+    console.log("PcApprovalAction HELP script loaded");
+</script>

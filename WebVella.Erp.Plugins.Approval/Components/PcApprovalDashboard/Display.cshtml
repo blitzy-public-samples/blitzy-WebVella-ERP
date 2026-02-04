@@ -1,0 +1,170 @@
+@*
+    Display.cshtml - Main Razor view for runtime display of PcApprovalDashboard component
+    Renders 5 real-time metric cards for approval workflow monitoring:
+    - Pending Approvals count
+    - Average Approval Time (hours)
+    - Approval Rate percentage
+    - Overdue Requests count
+    - Total Processed count
+    Uses DashboardMetricsModel from ViewBag.Metrics for data binding.
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Model
+@{
+    // Cast component options from ViewBag
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    
+    // Get metrics model from ViewBag, handle null gracefully
+    var metrics = ViewBag.Metrics as DashboardMetricsModel;
+    
+    // Extract metric values with null-safe defaults
+    var pendingCount = metrics?.PendingCount ?? 0;
+    var avgApprovalTime = metrics?.AverageApprovalTimeHours ?? 0m;
+    var approvalRate = metrics?.ApprovalRate ?? 0m;
+    var overdueCount = metrics?.OverdueCount ?? 0;
+    var approvedTodayCount = metrics?.ApprovedTodayCount ?? 0;
+    var rejectedTodayCount = metrics?.RejectedTodayCount ?? 0;
+    var totalProcessed = approvedTodayCount + rejectedTodayCount;
+    var totalActiveWorkflows = metrics?.TotalActiveWorkflows ?? 0;
+    
+    // Determine dynamic CSS classes based on metric values
+    // Approval rate color: green >= 80%, yellow >= 50%, red < 50%
+    var approvalRateColorClass = approvalRate >= 80m ? "go-green" : 
+                                  approvalRate >= 50m ? "go-orange" : "go-red";
+    var approvalRateBorderClass = approvalRate >= 80m ? "border-success" : 
+                                   approvalRate >= 50m ? "border-warning" : "border-danger";
+    
+    // Highlight overdue card if there are overdue requests
+    var overdueCardClass = overdueCount > 0 ? "border-danger bg-danger-subtle" : "border-secondary bg-light";
+    var overdueTextClass = overdueCount > 0 ? "go-red" : "go-gray";
+    
+    // Pending card warning state
+    var pendingCardClass = pendingCount > 0 ? "border-warning" : "border-secondary";
+    var pendingTextClass = pendingCount > 0 ? "go-orange" : "go-gray";
+}
+
+<div class="pc-approval-dashboard">
+    @* Main dashboard container with responsive grid layout *@
+    <wv-row no-gutters="false" class="mb-3">
+        @* Card 1: Pending Approvals *@
+        <wv-column span="12" span-sm="6" span-md="4" span-lg="2" class="mb-3">
+            <div class="card bg-light @pendingCardClass h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="mb-2">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <div class="metric-value h2 mb-1 @pendingTextClass">
+                        @pendingCount
+                    </div>
+                    <div class="metric-label text-muted small">
+                        Pending Approvals
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Card 2: Average Approval Time *@
+        <wv-column span="12" span-sm="6" span-md="4" span-lg="2" class="mb-3">
+            <div class="card bg-light border-info h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="mb-2">
+                        <i class="fas fa-hourglass-half fa-2x text-info"></i>
+                    </div>
+                    <div class="metric-value h2 mb-1 go-light-blue">
+                        @avgApprovalTime.ToString("F1")<small class="text-muted">h</small>
+                    </div>
+                    <div class="metric-label text-muted small">
+                        Avg. Approval Time
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Card 3: Approval Rate *@
+        <wv-column span="12" span-sm="6" span-md="4" span-lg="3" class="mb-3">
+            <div class="card bg-light @approvalRateBorderClass h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="mb-2">
+                        <i class="fas fa-percentage fa-2x @approvalRateColorClass"></i>
+                    </div>
+                    <div class="metric-value h2 mb-1 @approvalRateColorClass">
+                        @approvalRate.ToString("F1")<small class="text-muted">%</small>
+                    </div>
+                    <div class="metric-label text-muted small">
+                        Approval Rate
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Card 4: Overdue Requests *@
+        <wv-column span="12" span-sm="6" span-md="6" span-lg="2" class="mb-3">
+            <div class="card @overdueCardClass h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                    <div class="metric-value h2 mb-1 @overdueTextClass">
+                        @overdueCount
+                    </div>
+                    <div class="metric-label text-muted small">
+                        Overdue Requests
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Card 5: Total Processed (Today) *@
+        <wv-column span="12" span-sm="6" span-md="6" span-lg="3" class="mb-3">
+            <div class="card bg-light border-success h-100">
+                <div class="card-body text-center d-flex flex-column justify-content-center">
+                    <div class="mb-2">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <div class="metric-value h2 mb-1 go-green">
+                        @totalProcessed
+                    </div>
+                    <div class="metric-label text-muted small">
+                        Total Processed (Today)
+                    </div>
+                    @if (approvedTodayCount > 0 || rejectedTodayCount > 0)
+                    {
+                        <div class="metric-breakdown mt-1">
+                            <small class="text-success">
+                                <i class="fas fa-thumbs-up"></i> @approvedTodayCount
+                            </small>
+                            <small class="text-danger ml-2">
+                                <i class="fas fa-thumbs-down"></i> @rejectedTodayCount
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* Secondary metrics row showing active workflows *@
+    <wv-row no-gutters="false">
+        <wv-column span="12">
+            <div class="d-flex justify-content-end align-items-center text-muted small">
+                <span>
+                    <i class="fas fa-project-diagram mr-1"></i>
+                    Active Workflows: <strong>@totalActiveWorkflows</strong>
+                </span>
+                @if (options?.DaysBack > 0)
+                {
+                    <span class="ml-3">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        Last <strong>@options.DaysBack</strong> days
+                    </span>
+                }
+            </div>
+        </wv-column>
+    </wv-row>
+</div>

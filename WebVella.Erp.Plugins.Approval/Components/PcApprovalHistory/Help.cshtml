@@ -1,0 +1,36 @@
+@*
+    Help.cshtml - Help documentation view for PcApprovalHistory component
+    
+    Displays component usage documentation and help text for the page builder.
+    
+    Part of the WebVella ERP Approval Plugin (STORY-008)
+*@
+<h5>Approval History Component</h5>
+<p>Displays a chronological timeline of approval actions for a specific approval request.</p>
+
+<h6>Options:</h6>
+<ul>
+    <li><strong>Request ID</strong> - Datasource binding for the approval request ID whose history should be displayed.</li>
+    <li><strong>History Records</strong> - Optional pre-loaded history records datasource.</li>
+    <li><strong>Display Mode</strong> - Choose between "compact" or "detailed" timeline view.</li>
+    <li><strong>Max Records</strong> - Maximum number of history entries to show (0 for unlimited).</li>
+    <li><strong>Show Timestamps</strong> - Toggle visibility of date/time on each history entry.</li>
+    <li><strong>Show Comments</strong> - Toggle visibility of approval comments.</li>
+    <li><strong>Show User Avatars</strong> - Toggle visibility of user profile images.</li>
+    <li><strong>CSS Class</strong> - Additional CSS classes to apply to the component.</li>
+    <li><strong>Empty State Text</strong> - Custom message when no history records are found.</li>
+</ul>
+
+<h6>Action Types Displayed:</h6>
+<ul>
+    <li><span class="badge badge-success">Approve</span> - Request was approved</li>
+    <li><span class="badge badge-danger">Reject</span> - Request was rejected</li>
+    <li><span class="badge badge-info">Delegate</span> - Request was delegated to another approver</li>
+    <li><span class="badge badge-warning">Escalate</span> - Request was escalated</li>
+    <li><span class="badge badge-secondary">Comment</span> - A comment was added</li>
+    <li><span class="badge badge-primary">Submit</span> - Request was submitted for approval</li>
+</ul>
+
+<script>
+    console.log("PcApprovalHistory Help script loaded");
+</script>

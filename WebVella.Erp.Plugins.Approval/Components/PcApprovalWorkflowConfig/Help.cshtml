@@ -1,0 +1,287 @@
+@*
+    Help documentation view for PcApprovalWorkflowConfig component.
+    Displays in page-builder help panel to assist administrators with workflow configuration.
+*@
+
+<div class="pc-approval-workflow-config-help">
+    <!-- Overview Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-info-circle mr-1"></i> Overview
+        </h5>
+        <p>
+            The <strong>Approval Workflow Config</strong> component provides a comprehensive interface for 
+            administrators to create, configure, and manage approval workflows within the WebVella ERP system.
+        </p>
+        <p>
+            Use this component to define multi-step approval processes that can be triggered automatically 
+            when records are created or updated in specified entities.
+        </p>
+    </div>
+
+    <!-- Workflow Configuration Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-cogs mr-1"></i> Workflow Configuration
+        </h5>
+        <p>Each approval workflow requires the following properties:</p>
+        <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 25%;">Property</th>
+                    <th style="width: 20%;">Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>name</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>A descriptive name for the workflow (e.g., "Purchase Order Approval")</td>
+                </tr>
+                <tr>
+                    <td><code>entity_name</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>The target entity this workflow applies to (e.g., "purchase_order", "expense_report")</td>
+                </tr>
+                <tr>
+                    <td><code>is_active</code></td>
+                    <td><span class="badge badge-secondary">No</span></td>
+                    <td>Toggle to enable or disable the workflow. Defaults to <code>true</code>.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="alert alert-info small">
+            <i class="fa fa-lightbulb mr-1"></i>
+            <strong>Tip:</strong> Use meaningful workflow names that clearly describe the approval process 
+            to help administrators quickly identify the appropriate workflow.
+        </div>
+    </div>
+
+    <!-- Step Configuration Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-list-ol mr-1"></i> Step Configuration
+        </h5>
+        <p>
+            Workflows consist of one or more approval steps executed in sequence. 
+            Each step defines who can approve and optional time constraints.
+        </p>
+        <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 25%;">Property</th>
+                    <th style="width: 20%;">Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>step_order</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Numeric order of execution (1, 2, 3...). Lower numbers execute first.</td>
+                </tr>
+                <tr>
+                    <td><code>name</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Display name for the step (e.g., "Manager Review", "Finance Approval")</td>
+                </tr>
+                <tr>
+                    <td><code>approver_type</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Type of approver assignment (User, Role, Manager, Custom)</td>
+                </tr>
+                <tr>
+                    <td><code>approver_id</code></td>
+                    <td><span class="badge badge-warning">Conditional</span></td>
+                    <td>GUID of the specific user or role. Required for User and Role types.</td>
+                </tr>
+                <tr>
+                    <td><code>sla_hours</code></td>
+                    <td><span class="badge badge-secondary">No</span></td>
+                    <td>Hours allowed for approval before escalation. Leave empty for no deadline.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="alert alert-warning small">
+            <i class="fa fa-exclamation-triangle mr-1"></i>
+            <strong>Note:</strong> Ensure step orders are unique within a workflow. 
+            Duplicate step orders may cause unpredictable behavior.
+        </div>
+    </div>
+
+    <!-- Rule Configuration Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-filter mr-1"></i> Rule Configuration
+        </h5>
+        <p>
+            Rules allow conditional logic to be applied at each step, enabling dynamic workflow behavior 
+            based on record field values.
+        </p>
+        <table class="table table-sm table-bordered">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 25%;">Property</th>
+                    <th style="width: 20%;">Required</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>rule_type</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Type of rule evaluation (e.g., "Condition", "Skip", "Route")</td>
+                </tr>
+                <tr>
+                    <td><code>field_name</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Entity field name to evaluate (e.g., "amount", "department")</td>
+                </tr>
+                <tr>
+                    <td><code>operator</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Comparison operator (Equals, NotEquals, GreaterThan, LessThan, Contains, StartsWith)</td>
+                </tr>
+                <tr>
+                    <td><code>value</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Value to compare against. Use appropriate format for the field type.</td>
+                </tr>
+                <tr>
+                    <td><code>action</code></td>
+                    <td><span class="badge badge-danger">Yes</span></td>
+                    <td>Action when rule matches (e.g., "Proceed", "Skip", "Reassign")</td>
+                </tr>
+            </tbody>
+        </table>
+        <h6 class="mt-3">Example Rules:</h6>
+        <ul class="small">
+            <li><strong>Amount Threshold:</strong> If <code>amount</code> <code>GreaterThan</code> <code>10000</code>, require VP approval</li>
+            <li><strong>Department Routing:</strong> If <code>department</code> <code>Equals</code> <code>IT</code>, route to IT Manager</li>
+            <li><strong>Skip Condition:</strong> If <code>is_urgent</code> <code>Equals</code> <code>false</code>, skip expedited review step</li>
+        </ul>
+    </div>
+
+    <!-- Approver Types Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-users mr-1"></i> Approver Types
+        </h5>
+        <p>The following approver types determine how the system identifies the responsible approver:</p>
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1"><i class="fa fa-user text-primary mr-1"></i> User</h6>
+                        <p class="card-text small mb-0">
+                            Assigns approval to a specific user identified by <code>approver_id</code>. 
+                            Best for fixed approval responsibilities.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1"><i class="fa fa-users text-success mr-1"></i> Role</h6>
+                        <p class="card-text small mb-0">
+                            Any user with the specified role can approve. Use <code>approver_id</code> 
+                            to specify the role GUID.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1"><i class="fa fa-user-tie text-warning mr-1"></i> Manager</h6>
+                        <p class="card-text small mb-0">
+                            Automatically routes to the requester's manager based on organizational hierarchy. 
+                            No <code>approver_id</code> required.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="card h-100">
+                    <div class="card-body py-2">
+                        <h6 class="card-title mb-1"><i class="fa fa-code text-info mr-1"></i> Custom</h6>
+                        <p class="card-text small mb-0">
+                            Uses custom logic defined in hooks to determine the approver dynamically 
+                            based on business rules.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Best Practices Section -->
+    <div class="mb-4">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-star mr-1"></i> Best Practices
+        </h5>
+        <ul class="mb-0">
+            <li>
+                <strong>Keep workflows simple:</strong> Limit the number of steps to what is strictly necessary. 
+                Complex workflows can slow down operations and frustrate users.
+            </li>
+            <li>
+                <strong>Set appropriate SLAs:</strong> Define realistic SLA hours based on business requirements. 
+                Too short may cause unnecessary escalations; too long may delay processes.
+            </li>
+            <li>
+                <strong>Use Role-based approvers:</strong> Where possible, use Role instead of User to 
+                ensure continuity when personnel change.
+            </li>
+            <li>
+                <strong>Test workflows thoroughly:</strong> Before activating a workflow in production, 
+                test all paths including rule conditions and escalation scenarios.
+            </li>
+            <li>
+                <strong>Document your workflows:</strong> Maintain documentation describing each workflow's 
+                purpose, steps, and rules for future reference.
+            </li>
+            <li>
+                <strong>Review inactive workflows:</strong> Periodically review and clean up unused 
+                workflows to maintain system hygiene.
+            </li>
+        </ul>
+    </div>
+
+    <!-- Quick Reference Section -->
+    <div class="mb-2">
+        <h5 class="text-primary border-bottom pb-2">
+            <i class="fa fa-bookmark mr-1"></i> Quick Reference
+        </h5>
+        <div class="row small">
+            <div class="col-md-6">
+                <strong>Operators:</strong>
+                <ul class="mb-0 pl-3">
+                    <li><code>Equals</code> - Exact match</li>
+                    <li><code>NotEquals</code> - Not matching</li>
+                    <li><code>GreaterThan</code> - Numeric comparison</li>
+                    <li><code>LessThan</code> - Numeric comparison</li>
+                    <li><code>Contains</code> - Substring match</li>
+                    <li><code>StartsWith</code> - Prefix match</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <strong>Status Values:</strong>
+                <ul class="mb-0 pl-3">
+                    <li><code>Pending</code> - Awaiting approval</li>
+                    <li><code>Approved</code> - Request approved</li>
+                    <li><code>Rejected</code> - Request denied</li>
+                    <li><code>Delegated</code> - Reassigned</li>
+                    <li><code>Escalated</code> - SLA exceeded</li>
+                    <li><code>Cancelled</code> - Request cancelled</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('PcApprovalWorkflowConfig HELP script ran');
+</script>

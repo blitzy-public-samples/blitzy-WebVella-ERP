@@ -1,0 +1,37 @@
+@*
+    Help.cshtml - Help documentation view for PcApprovalDashboard component
+    Displays help information about the Approval Dashboard component when viewed in WebVella page designer Help mode.
+*@
+
+<div class="pc-approval-dashboard-help">
+    <h4>Approval Dashboard Component</h4>
+    <p>
+        The Approval Dashboard component displays real-time metrics and statistics for approval workflows in your WebVella ERP system.
+        It provides managers and administrators with a quick overview of approval activity and performance.
+    </p>
+
+    <h5>Metrics Displayed</h5>
+    <p>This dashboard displays the following 5 metric cards:</p>
+    <ul>
+        <li><strong>Pending Count</strong> - The total number of approval requests currently awaiting action.</li>
+        <li><strong>Average Approval Time</strong> - The average time (in hours) taken to process approval requests.</li>
+        <li><strong>Approval Rate</strong> - The percentage of requests that were approved versus rejected.</li>
+        <li><strong>Overdue Count</strong> - The number of approval requests that have exceeded their SLA deadline.</li>
+        <li><strong>Total Processed</strong> - The total number of approval requests that have been completed (approved, rejected, or cancelled).</li>
+    </ul>
+
+    <h5>Usage</h5>
+    <p>
+        Place this component on a manager or administrator dashboard page to provide visibility into approval workflow performance.
+        The metrics update in real-time based on data from the approval_request and approval_history entities.
+    </p>
+
+    <h5>Configuration</h5>
+    <p>
+        Use the Options panel to configure the dashboard title and any filtering options for the metrics displayed.
+    </p>
+</div>
+
+<script>
+    console.log("Approval Dashboard HELP script ran");
+</script>

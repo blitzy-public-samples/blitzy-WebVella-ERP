@@ -1,0 +1,115 @@
+@*
+    Options.cshtml - Component configuration options view for PcApprovalHistory
+    
+    This view provides the page-builder UI for configuring the PcApprovalHistory component.
+    It allows administrators to bind datasources for:
+    - Request ID: The approval request whose history should be displayed
+    - Display Mode: Compact or detailed timeline view
+    - Max Records: Maximum number of history entries to show
+    
+    Part of the WebVella ERP Approval Plugin (STORY-008)
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Web
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@{
+    // Cast ViewBag properties to their appropriate types for type-safe access
+    var options = (PcApprovalHistory.PcApprovalHistoryOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+
+@* Request ID Datasource Configuration *@
+<wv-row>
+    <wv-column span="6">
+        <wv-field-datasource 
+            name="request_id" 
+            value="@options.RequestId" 
+            label-text="Request ID" 
+            page-id="erpRequest.Page.Id"
+            placeholder="Select datasource for approval request ID">
+        </wv-field-datasource>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-datasource 
+            name="records" 
+            value="@options.Records" 
+            label-text="History Records" 
+            page-id="erpRequest.Page.Id"
+            placeholder="Optional: Pre-loaded history records">
+        </wv-field-datasource>
+    </wv-column>
+</wv-row>
+
+@* Display Configuration *@
+<wv-row>
+    <wv-column span="4">
+        <wv-field-text 
+            name="display_mode" 
+            value="@options.DisplayMode" 
+            label-text="Display Mode"
+            placeholder="compact or detailed">
+        </wv-field-text>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-number 
+            name="max_records" 
+            value="@options.MaxRecords" 
+            label-text="Max Records"
+            min="0"
+            placeholder="0 for unlimited">
+        </wv-field-number>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_timestamps" 
+            value="@options.ShowTimestamps" 
+            label-text="Show Timestamps"
+            text-true="display date/time">
+        </wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+@* Visual Options *@
+<wv-row>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_comments" 
+            value="@options.ShowComments" 
+            label-text="Show Comments"
+            text-true="display approval comments">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox 
+            name="show_user_avatars" 
+            value="@options.ShowUserAvatars" 
+            label-text="Show User Avatars"
+            text-true="display user profile images">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-text 
+            name="class" 
+            value="@options.Class" 
+            label-text="CSS Class"
+            placeholder="Additional CSS classes">
+        </wv-field-text>
+    </wv-column>
+</wv-row>
+
+@* Empty State Configuration *@
+<wv-row>
+    <wv-column span="12">
+        <wv-field-text 
+            name="empty_text" 
+            value="@options.EmptyText" 
+            label-text="Empty State Text"
+            placeholder="No history records found">
+        </wv-field-text>
+    </wv-column>
+</wv-row>
