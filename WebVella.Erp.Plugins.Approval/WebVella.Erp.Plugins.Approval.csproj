@@ -12,21 +12,29 @@
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<!-- Embedded resources will be added when component files are created by implementation agents -->
+	<ItemGroup Condition="Exists('Components\PcApprovalWorkflowConfig\service.js')">
 		<None Remove="Components\PcApprovalWorkflowConfig\service.js" />
-		<None Remove="Components\PcApprovalRequestList\service.js" />
-		<None Remove="Components\PcApprovalAction\service.js" />
-		<None Remove="Components\PcApprovalHistory\service.js" />
-		<None Remove="Components\PcApprovalDashboard\service.js" />
-		<None Remove="Theme\styles.css" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<EmbeddedResource Include="Components\PcApprovalWorkflowConfig\service.js" />
+	</ItemGroup>
+	<ItemGroup Condition="Exists('Components\PcApprovalRequestList\service.js')">
+		<None Remove="Components\PcApprovalRequestList\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalRequestList\service.js" />
+	</ItemGroup>
+	<ItemGroup Condition="Exists('Components\PcApprovalAction\service.js')">
+		<None Remove="Components\PcApprovalAction\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalAction\service.js" />
+	</ItemGroup>
+	<ItemGroup Condition="Exists('Components\PcApprovalHistory\service.js')">
+		<None Remove="Components\PcApprovalHistory\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalHistory\service.js" />
+	</ItemGroup>
+	<ItemGroup Condition="Exists('Components\PcApprovalDashboard\service.js')">
+		<None Remove="Components\PcApprovalDashboard\service.js" />
 		<EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
+	</ItemGroup>
+	<ItemGroup Condition="Exists('Theme\styles.css')">
+		<None Remove="Theme\styles.css" />
 		<EmbeddedResource Include="Theme\styles.css" />
 	</ItemGroup>
 
