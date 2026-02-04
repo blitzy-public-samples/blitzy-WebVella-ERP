@@ -1,0 +1,61 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.TagHelpers.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+	var options = (PcApprovalRequestList.PcApprovalRequestListOptions)ViewBag.Options;
+	var node = (PageBodyNode)ViewBag.Node;
+	var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+
+	// Status filter options for the status_filter dropdown
+	var statusFilterOptions = new List<WvSelectOption>
+	{
+		new WvSelectOption("", "All Statuses"),
+		new WvSelectOption("pending", "Pending"),
+		new WvSelectOption("approved", "Approved"),
+		new WvSelectOption("rejected", "Rejected"),
+		new WvSelectOption("escalated", "Escalated"),
+		new WvSelectOption("delegated", "Delegated"),
+		new WvSelectOption("cancelled", "Cancelled")
+	};
+
+	// Sort column options for the sort_column dropdown
+	var sortColumnOptions = new List<WvSelectOption>
+	{
+		new WvSelectOption("created_on", "Created On"),
+		new WvSelectOption("due_date", "Due Date"),
+		new WvSelectOption("status", "Status"),
+		new WvSelectOption("workflow_name", "Workflow Name"),
+		new WvSelectOption("entity_name", "Entity Name")
+	};
+
+	// Sort direction options for the sort_direction dropdown
+	var sortDirectionOptions = new List<WvSelectOption>
+	{
+		new WvSelectOption("asc", "Ascending"),
+		new WvSelectOption("desc", "Descending")
+	};
+}
+<wv-row>
+	<wv-column span="6">
+		<wv-field-datasource name="records" value="@options.Records" label-text="Approval Requests" page-id="erpRequest.Page.Id" description="Data source for approval request records"></wv-field-datasource>
+	</wv-column>
+	<wv-column span="6">
+		<wv-field-select name="status_filter" value="@options.StatusFilter" label-text="Status Filter" options="statusFilterOptions" description="Default status filter for the list"></wv-field-select>
+	</wv-column>
+</wv-row>
+<wv-row>
+	<wv-column span="4">
+		<wv-field-number name="page_size" value="@options.PageSize" label-text="Page Size" min="1" max="100" description="Number of records per page (1-100)"></wv-field-number>
+	</wv-column>
+	<wv-column span="4">
+		<wv-field-select name="sort_column" value="@options.SortColumn" label-text="Sort Column" options="sortColumnOptions" required="true" description="Default column for sorting"></wv-field-select>
+	</wv-column>
+	<wv-column span="4">
+		<wv-field-select name="sort_direction" value="@options.SortDirection" label-text="Sort Direction" options="sortDirectionOptions" required="true" description="Default sort direction"></wv-field-select>
+	</wv-column>
+</wv-row>
