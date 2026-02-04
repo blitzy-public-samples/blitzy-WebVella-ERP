@@ -1,0 +1,50 @@
+  Passed WebVella.Erp.Plugins.Approval.Tests.WorkflowConfigServiceTests.IsEnabled_DefaultsToTrue [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetWorkflow_WithNonExistentId_ReturnsNotFound [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_WithoutManagerRole_ReturnsForbidden [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequest_WithoutAuthentication_ReturnsUnauthorized [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetRequestHistory_WithEmptyGuid_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.WorkflowEndpoints_FollowRouteConvention(route: "api/v3.0/p/approval/workflow") [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.WorkflowEndpoints_FollowRouteConvention(route: "api/v3.0/p/approval/workflow/{id}") [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.DelegateRequest_WithNullModel_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.DelegateRequest_WithValidRequest_ReturnsUpdatedRequest [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.DeleteWorkflow_WithValidId_ReturnsSuccess [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.CreateWorkflow_WithValidModel_ReturnsCreatedWorkflow [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequest_WithValidRequest_ReturnsUpdatedRequest [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.DelegateRequest_WithEmptyDelegateUserId_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_AdministratorRole_HasAccess [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_WithoutAuthentication_ReturnsUnauthorized [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.Exception_ReturnsErrorResponse [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.CreateWorkflow_WithEmptyTargetEntity_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ApproveRequest_WithWhitespaceComments_HandlesCorrectly [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ApproveRequest_WithEmptyComments_HandlesCorrectly [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetWorkflow_WithValidId_ReturnsWorkflowDetails [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequest_WithEmptyGuid_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_RegularUserRole_NoAccess [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequestModel_HasCommentsProperty [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ApproveRequestModel_AcceptsNullComments [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.UpdateWorkflow_WithEmptyGuid_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_ManagerRole_HasAccess [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.UpdateWorkflow_SetsModelIdFromRoute [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.MultipleRequests_ShouldBeIndependent [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequestModel_HasReasonProperty [< 1 ms]
+[xUnit.net 00:00:00.33]   Finished:    WebVella.Erp.Plugins.Approval.Tests
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.RejectRequest_WithEmptyReason_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ApproveRequest_WithEmptyGuid_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetRequestHistory_ReturnsChronologicalOrder [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.GetDashboardMetrics_WithManagerRole_ReturnsMetrics [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.UpdateWorkflow_WithNullModel_ReturnsValidationError [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.DelegateRequest_WithoutAuthentication_ReturnsUnauthorized [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ApproveRequest_WithComments_IncludesComments [< 1 ms]
+  Passed WebVella.Erp.Plugins.Approval.Tests.ApprovalControllerIntegrationTests.ValidationError_ReturnsJsonResponse [< 1 ms]
+
+Test Run Successful.
+Total tests: 585
+     Passed: 585
+ Total time: 0.7320 Seconds
+     1>Done Building Project "/tmp/blitzy/blitzy-WebVella-ERP/blitzy145b21cba/WebVella.Erp.Plugins.Approval.Tests/WebVella.Erp.Plugins.Approval.Tests.csproj" (VSTest target(s)).
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:04.49
