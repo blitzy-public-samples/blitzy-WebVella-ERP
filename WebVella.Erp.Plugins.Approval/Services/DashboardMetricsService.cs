@@ -57,8 +57,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                // Calculate pending count - filtered by user authorization if userId specified
-                result.PendingCount = GetPendingCount(userId);
+                // Calculate pending count - filtered by user authorization if userId specified AND by date range
+                // STORY-009 AC4: Pending count reflects requests awaiting user's action
+                // STORY-009 AC3: All metrics filter by date range
+                result.PendingCount = GetPendingCount(userId, fromDate, toDate);
 
                 // Calculate average approval time in hours - filtered by date range
                 result.AverageApprovalTimeHours = GetAverageApprovalTimeHours(fromDate, toDate);
@@ -66,14 +68,17 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 // Calculate approval rate as percentage of approved vs total completed - filtered by date range
                 result.ApprovalRate = GetApprovalRate(fromDate, toDate);
 
-                // Calculate overdue/escalated count
-                result.OverdueCount = GetOverdueCount();
+                // Calculate overdue/escalated count - filtered by date range
+                // STORY-009 AC3: All metrics filter by date range
+                result.OverdueCount = GetOverdueCount(fromDate, toDate);
 
-                // Calculate recent activity count from last 24 hours
-                result.RecentActivityCount = GetRecentActivityCount();
+                // Calculate recent activity count - filtered by date range
+                // STORY-009 AC3: All metrics filter by date range
+                result.RecentActivityCount = GetRecentActivityCount(fromDate, toDate);
 
-                // Get the last 5 recent activity items
-                result.RecentActivity = GetRecentActivity(5);
+                // Get the last 5 recent activity items - filtered by date range
+                // STORY-009 AC3: All metrics filter by date range
+                result.RecentActivity = GetRecentActivity(5, fromDate, toDate);
             }
             catch (Exception)
             {
@@ -88,19 +93,36 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Gets the count of pending approval requests that the specified user is authorized to approve.
         /// STORY-009 AC4: Filters to requests where user is the authorized approver for the current step.
+        /// STORY-009 AC3: Filters by date range when specified.
         /// </summary>
         /// <param name="userId">The user ID to filter by authorization. Use Guid.Empty for all pending requests.</param>
+        /// <param name="fromDate">Start date for filtering. Use DateTime.MinValue for no start date filter.</param>
+        /// <param name="toDate">End date for filtering. Use DateTime.MaxValue for no end date filter.</param>
         /// <returns>Count of pending requests awaiting the user's action.</returns>
-        private int GetPendingCount(Guid userId)
+        private int GetPendingCount(Guid userId, DateTime fromDate, DateTime toDate)
         {
             try
             {
-                // Get all pending requests
+                // Get all pending requests with date filtering
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter("status", "pending")
                 };
                 var eql = "SELECT id, current_step_id FROM approval_request WHERE status = @status";
+                
+                // Add date filtering - filter by requested_on for pending requests
+                if (fromDate > DateTime.MinValue)
+                {
+                    eqlParams.Add(new EqlParameter("fromDate", fromDate));
+                    eql += " AND requested_on >= @fromDate";
+                }
+                
+                if (toDate < DateTime.MaxValue)
+                {
+                    eqlParams.Add(new EqlParameter("toDate", toDate));
+                    eql += " AND requested_on <= @toDate";
+                }
+                
                 var records = new EqlCommand(eql, eqlParams).Execute();
 
                 if (records == null || !records.Any())
@@ -397,21 +419,39 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Gets the count of overdue or escalated approval requests.
         /// Counts both explicitly escalated/expired requests AND pending requests that have exceeded their step timeout.
+        /// STORY-009 AC3: Filters by date range when specified.
         /// </summary>
+        /// <param name="fromDate">Start date for filtering. Use DateTime.MinValue for no start date filter.</param>
+        /// <param name="toDate">End date for filtering. Use DateTime.MaxValue for no end date filter.</param>
         /// <returns>Count of overdue/escalated requests.</returns>
-        private int GetOverdueCount()
+        private int GetOverdueCount(DateTime fromDate, DateTime toDate)
         {
             try
             {
                 int count = 0;
 
-                // Count requests with escalated or expired status
+                // Build date filter clause for escalated/expired status queries
+                var dateFilterClause = "";
                 var statusParams = new List<EqlParameter>
                 {
                     new EqlParameter("escalated", "escalated"),
                     new EqlParameter("expired", "expired")
                 };
-                var statusEql = "SELECT id FROM approval_request WHERE status = @escalated OR status = @expired";
+                
+                if (fromDate > DateTime.MinValue)
+                {
+                    statusParams.Add(new EqlParameter("fromDate", fromDate));
+                    dateFilterClause += " AND requested_on >= @fromDate";
+                }
+                
+                if (toDate < DateTime.MaxValue)
+                {
+                    statusParams.Add(new EqlParameter("toDate", toDate));
+                    dateFilterClause += " AND requested_on <= @toDate";
+                }
+                
+                // Count requests with escalated or expired status
+                var statusEql = "SELECT id FROM approval_request WHERE (status = @escalated OR status = @expired)" + dateFilterClause;
                 var statusRecords = new EqlCommand(statusEql, statusParams).Execute();
                 count += statusRecords?.Count ?? 0;
 
@@ -422,6 +462,20 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     new EqlParameter("status", "pending")
                 };
                 var pendingEql = "SELECT id, requested_on, current_step_id FROM approval_request WHERE status = @status";
+                
+                // Add date filter for pending requests too
+                if (fromDate > DateTime.MinValue)
+                {
+                    pendingParams.Add(new EqlParameter("fromDate", fromDate));
+                    pendingEql += " AND requested_on >= @fromDate";
+                }
+                
+                if (toDate < DateTime.MaxValue)
+                {
+                    pendingParams.Add(new EqlParameter("toDate", toDate));
+                    pendingEql += " AND requested_on <= @toDate";
+                }
+                
                 var pendingRecords = new EqlCommand(pendingEql, pendingParams).Execute();
 
                 if (pendingRecords != null && pendingRecords.Any())
@@ -505,19 +559,39 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Gets the count of recent approval activity within the last 24 hours.
+        /// Gets the count of recent approval activity within the specified date range.
+        /// STORY-009 AC3: Filters by date range when specified.
         /// </summary>
+        /// <param name="fromDate">Start date for filtering. Use DateTime.MinValue for no start date filter (defaults to last 24 hours).</param>
+        /// <param name="toDate">End date for filtering. Use DateTime.MaxValue for no end date filter.</param>
         /// <returns>Count of recent activity items.</returns>
-        private int GetRecentActivityCount()
+        private int GetRecentActivityCount(DateTime fromDate, DateTime toDate)
         {
             try
             {
-                var cutoffTime = DateTime.UtcNow.AddHours(-24);
-                var eqlParams = new List<EqlParameter>
+                var eqlParams = new List<EqlParameter>();
+                var eql = "SELECT id FROM approval_history WHERE 1=1";
+                
+                // Apply date filter - use provided dates or default to last 24 hours if no dates specified
+                if (fromDate > DateTime.MinValue)
                 {
-                    new EqlParameter("cutoff_time", cutoffTime)
-                };
-                var eql = "SELECT id FROM approval_history WHERE performed_on >= @cutoff_time";
+                    eqlParams.Add(new EqlParameter("fromDate", fromDate));
+                    eql += " AND performed_on >= @fromDate";
+                }
+                else
+                {
+                    // Default to last 24 hours when no date range specified
+                    var cutoffTime = DateTime.UtcNow.AddHours(-24);
+                    eqlParams.Add(new EqlParameter("fromDate", cutoffTime));
+                    eql += " AND performed_on >= @fromDate";
+                }
+                
+                if (toDate < DateTime.MaxValue)
+                {
+                    eqlParams.Add(new EqlParameter("toDate", toDate));
+                    eql += " AND performed_on <= @toDate";
+                }
+                
                 var records = new EqlCommand(eql, eqlParams).Execute();
                 return records?.Count ?? 0;
             }
@@ -528,25 +602,48 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Gets the most recent approval activity items.
+        /// Gets the most recent approval activity items filtered by date range.
         /// STORY-009 Issue 3: Must display list of recent activities with action type, performer, time, and links.
+        /// STORY-009 AC3: Filters by date range when specified.
         /// </summary>
         /// <param name="count">Maximum number of activity items to return.</param>
+        /// <param name="fromDate">Start date for filtering. Use DateTime.MinValue for no start date filter.</param>
+        /// <param name="toDate">End date for filtering. Use DateTime.MaxValue for no end date filter.</param>
         /// <returns>List of recent activity items.</returns>
-        private List<RecentActivityItem> GetRecentActivity(int count)
+        private List<RecentActivityItem> GetRecentActivity(int count, DateTime fromDate, DateTime toDate)
         {
             var result = new List<RecentActivityItem>();
             
             try
             {
+                // Build EQL query with date filtering
                 // Query for the most recent activity items, ordered by most recent first
                 // Join with user to get performer details
-                var eql = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments,
+                var eqlParams = new List<EqlParameter>();
+                var whereClause = "";
+                
+                // Apply date filter for performed_on
+                if (fromDate > DateTime.MinValue)
+                {
+                    eqlParams.Add(new EqlParameter("fromDate", fromDate));
+                    whereClause += " WHERE performed_on >= @fromDate";
+                }
+                
+                if (toDate < DateTime.MaxValue)
+                {
+                    eqlParams.Add(new EqlParameter("toDate", toDate));
+                    if (string.IsNullOrEmpty(whereClause))
+                        whereClause = " WHERE performed_on <= @toDate";
+                    else
+                        whereClause += " AND performed_on <= @toDate";
+                }
+                
+                var eql = $@"SELECT id, request_id, step_id, action, performed_by, performed_on, comments,
                            $$user_performed_by.username, $$user_performed_by.first_name, $$user_performed_by.last_name
-                           FROM approval_history 
+                           FROM approval_history{whereClause}
                            ORDER BY performed_on DESC";
                 
-                var records = new EqlCommand(eql).Execute();
+                var records = new EqlCommand(eql, eqlParams).Execute();
                 
                 if (records != null && records.Any())
                 {

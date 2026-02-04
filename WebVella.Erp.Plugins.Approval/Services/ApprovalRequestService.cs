@@ -1033,16 +1033,23 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     : Guid.Empty);
 
             // STORY-005 AC8: Log all status transitions to audit trail
-            try
+            // NOTE: Do NOT log terminal statuses here (approved, rejected, delegated, escalated)
+            // These are already logged by the service methods (Approve, Reject, Delegate) with full details
+            // Only log status changes that happen via direct RecordManager updates (non-terminal transitions)
+            // This prevents duplicate history entries - Issue #3 fix
+            if (status != STATUS_APPROVED && status != STATUS_REJECTED && status != "delegated" && status != STATUS_ESCALATED)
             {
-                var historyService = new ApprovalHistoryService();
-                var actionType = status; // The status serves as the action type
-                var stepIdForHistory = currentStepId ?? Guid.Empty;
-                historyService.LogApprovalAction(requestId, stepIdForHistory, actionType, performedBy, null);
-            }
-            catch (Exception)
-            {
-                // Continue even if logging fails - don't block the main operation
+                try
+                {
+                    var historyService = new ApprovalHistoryService();
+                    var actionType = status; // The status serves as the action type
+                    var stepIdForHistory = currentStepId ?? Guid.Empty;
+                    historyService.LogApprovalAction(requestId, stepIdForHistory, actionType, performedBy, null);
+                }
+                catch (Exception)
+                {
+                    // Continue even if logging fails - don't block the main operation
+                }
             }
 
             // Handle status-specific post-processing

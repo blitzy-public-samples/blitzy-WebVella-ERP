@@ -322,19 +322,28 @@ namespace WebVella.Erp.Plugins.Approval.Components
                             var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
                             if (eqlResult != null && eqlResult.Any())
                             {
-                                records = eqlResult.ToList();
+                                // Get total count from EntityRecordList.TotalCount property BEFORE converting to List
+                                // EQL automatically populates this from ___total_count___ in the query result
+                                totalCount = eqlResult.TotalCount;
                                 
-                                // Get total count from the first record (EQL adds ___total_count___ automatically)
-                                var firstRecord = records.First();
-                                if (firstRecord.Properties.ContainsKey("___total_count___") && firstRecord["___total_count___"] != null)
+                                // Fallback: check the first record's ___total_count___ property if TotalCount is 0
+                                if (totalCount == 0)
                                 {
-                                    totalCount = Convert.ToInt32(firstRecord["___total_count___"]);
+                                    var firstRecord = eqlResult.First();
+                                    if (firstRecord.Properties.ContainsKey("___total_count___") && firstRecord["___total_count___"] != null)
+                                    {
+                                        totalCount = Convert.ToInt32(firstRecord["___total_count___"]);
+                                    }
+                                    else
+                                    {
+                                        // Final fallback: run a count query to get accurate total
+                                        string countEql = $"SELECT id FROM approval_request{whereClause}";
+                                        var countResult = new EqlCommand(countEql, eqlParams).Execute();
+                                        totalCount = countResult?.Count ?? eqlResult.Count;
+                                    }
                                 }
-                                else
-                                {
-                                    // Fallback: just use the count of returned records
-                                    totalCount = records.Count;
-                                }
+                                
+                                records = eqlResult.ToList();
                             }
                         }
                     }
