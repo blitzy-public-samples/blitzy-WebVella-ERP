@@ -14,6 +14,8 @@ using System.Globalization;
 using System.IO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IO.Compression;
+using WebVella.Erp.Plugins.Approval;
+using WebVella.Erp.Plugins.Mail;
 using WebVella.Erp.Plugins.SDK;
 using WebVella.Erp.Web;
 using WebVella.Erp.Web.Middleware;
@@ -180,6 +182,8 @@ namespace WebVella.Erp.Site
 			app.UseAuthorization();
 
 			app
+			.UseErpPlugin<ApprovalPlugin>()
+			.UseErpPlugin<MailPlugin>()
 			.UseErpPlugin<SdkPlugin>()
             .UseErp()
             .UseErpMiddleware()

@@ -1,0 +1,617 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@using WebVella.Erp.Plugins.Approval.Api;
+@using System.Collections.Generic;
+@functions {
+    /// <summary>
+    /// Converts a timestamp to a human-readable "time ago" string.
+    /// </summary>
+    public string GetTimeAgo(DateTime timestamp)
+    {
+        var now = DateTime.UtcNow;
+        var diff = now - timestamp;
+        
+        if (diff.TotalSeconds < 60)
+            return "just now";
+        if (diff.TotalMinutes < 60)
+            return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24)
+            return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 7)
+            return $"{(int)diff.TotalDays}d ago";
+        
+        return timestamp.ToString("MMM dd");
+    }
+}
+@{
+    // Cast ViewBag data to strongly typed models
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var metrics = (DashboardMetricsModel)ViewBag.Metrics;
+    
+    // Extract metrics values for display
+    var pendingCount = metrics?.PendingCount ?? 0;
+    var avgTime = metrics?.AverageApprovalTimeHours ?? 0m;
+    var approvalRate = metrics?.ApprovalRate ?? 0m;
+    var overdueCount = metrics?.OverdueCount ?? 0;
+    var recentActivityCount = metrics?.RecentActivityCount ?? 0;
+    var recentActivityList = metrics?.RecentActivity ?? new List<RecentActivityItem>();
+    
+    // Generate unique container ID for JavaScript targeting
+    var containerId = "approval-dashboard-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+    
+    // Get refresh interval from options (default 60 seconds)
+    var refreshInterval = options?.RefreshIntervalSeconds ?? 60;
+    
+    // Get date filter state from ViewBag (Issue 1 support)
+    var filterDays = ViewBag.FilterDays as int? ?? 0;
+    var filterFromDate = ViewBag.FilterFromDate as string ?? "";
+    var filterToDate = ViewBag.FilterToDate as string ?? "";
+}
+
+<div id="@containerId" class="approval-dashboard-container" data-filter-days="@filterDays" data-filter-from="@filterFromDate" data-filter-to="@filterToDate">
+    @* Dashboard Header *@
+    <wv-row class="mb-3">
+        <wv-column width="6">
+            <h5 class="mb-0">
+                <i class="fas fa-tachometer-alt mr-2"></i>Approval Dashboard
+                <small class="text-muted ml-2" id="@(containerId)-last-updated">
+                    Last updated: @DateTime.UtcNow.ToString("HH:mm:ss") UTC
+                </small>
+            </h5>
+        </wv-column>
+        <wv-column width="6">
+            @* Date Range Filter - Issue 1 Compliance (STORY-009 AC3) *@
+            <div class="date-filter-container d-flex align-items-center justify-content-end">
+                <div class="btn-group btn-group-sm mr-2" role="group" aria-label="Date filter presets">
+                    <button type="button" class="btn @(filterDays == 7 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="7">7d</button>
+                    <button type="button" class="btn @(filterDays == 30 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="30">30d</button>
+                    <button type="button" class="btn @(filterDays == 90 ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="90">90d</button>
+                    <button type="button" class="btn @(filterDays == 0 && string.IsNullOrEmpty(filterFromDate) ? "btn-primary" : "btn-outline-secondary") date-preset-btn" data-days="0">All</button>
+                </div>
+                <div class="custom-date-filter d-flex align-items-center">
+                    <input type="date" class="form-control form-control-sm mr-1" id="@(containerId)-from-date" value="@filterFromDate" placeholder="From" style="width: 130px;">
+                    <span class="mr-1">to</span>
+                    <input type="date" class="form-control form-control-sm mr-1" id="@(containerId)-to-date" value="@filterToDate" placeholder="To" style="width: 130px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary apply-custom-date-btn">Apply</button>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* KPI Cards Row 1 - Primary Metrics *@
+    <wv-row class="mb-3">
+        @* Pending Count Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-hourglass-half fa-2x pending-icon @(pendingCount > 0 ? "go-orange" : "go-gray")"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        <span class="pending-count @(pendingCount > 10 ? "go-orange" : "")">@pendingCount</span>
+                    </h3>
+                    <div class="text-muted small">Pending Approvals</div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Average Approval Time Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-clock fa-2x go-light-blue"></i>
+                    </div>
+                    <h3 class="mb-1">
+                        <span class="avg-time">@avgTime.ToString("F1")</span> <small>hrs</small>
+                    </h3>
+                    <div class="text-muted small">Avg. Approval Time</div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Approval Rate Card *@
+        <wv-column width="4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-percentage fa-2x approval-rate-icon @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")"></i>
+                    </div>
+                    <h3 class="mb-1 approval-rate-heading @(approvalRate >= 80 ? "go-green" : approvalRate >= 50 ? "go-orange" : "go-red")">
+                        <span class="approval-rate">@approvalRate.ToString("F1")</span><small>%</small>
+                    </h3>
+                    <div class="text-muted small">Approval Rate</div>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* KPI Cards Row 2 - Secondary Metrics *@
+    <wv-row class="mb-3">
+        @* Overdue Count Card *@
+        <wv-column width="6">
+            <div class="card h-100 overdue-card @(overdueCount > 0 ? "border-danger" : "")">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x overdue-icon @(overdueCount > 0 ? "go-red" : "go-gray")"></i>
+                    </div>
+                    <h3 class="mb-1 overdue-heading @(overdueCount > 0 ? "go-red" : "go-gray")">
+                        <span class="overdue-count">@overdueCount</span>
+                    </h3>
+                    <div class="text-muted small">Overdue / Escalated</div>
+                    <div class="mt-2 overdue-badge" style="@(overdueCount > 0 ? "" : "display:none")">
+                        <span class="badge badge-danger">Requires Attention</span>
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+
+        @* Recent Activity Card - Issue 3 Compliance (STORY-009 Line 23: Last 5 approval actions) *@
+        <wv-column width="6">
+            <div class="card h-100">
+                <div class="card-header d-flex align-items-center">
+                    <i class="fas fa-history go-purple mr-2"></i>
+                    <span>Recent Activity</span>
+                    <span class="badge badge-secondary ml-auto">@recentActivityCount in 24h</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="recent-activity-list">
+                        @if (recentActivityList != null && recentActivityList.Count > 0)
+                        {
+                            <ul class="list-group list-group-flush">
+                                @foreach (var activity in recentActivityList)
+                                {
+                                    var iconClass = activity.ActionType?.ToLower() switch
+                                    {
+                                        "approved" => "fa-check-circle go-green",
+                                        "rejected" => "fa-times-circle go-red",
+                                        "delegated" => "fa-share go-orange",
+                                        "escalated" => "fa-level-up-alt go-orange",
+                                        "submitted" => "fa-paper-plane go-light-blue",
+                                        _ => "fa-circle go-gray"
+                                    };
+                                    var timeAgo = GetTimeAgo(activity.PerformedOn);
+                                    <li class="list-group-item d-flex align-items-center py-2">
+                                        <i class="fas @iconClass mr-2"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="small">
+                                                <strong>@(activity.PerformedByName ?? "Unknown")</strong>
+                                                <span class="text-muted">@(activity.ActionType?.ToLower() ?? "performed action")</span>
+                                            </div>
+                                            <small class="text-muted">@timeAgo</small>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-3">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                <small>No recent activity</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* Summary Statistics Row - Uses same class selectors as main cards for auto-refresh *@
+    <wv-row>
+        <wv-column>
+            <div class="card">
+                <div class="card-body">
+                    <wv-row flex-vertical-alignment="Center" class="text-center">
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-orange mr-2"></i>
+                                <span><strong class="summary-pending-count">@pendingCount</strong> Pending</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-green mr-2"></i>
+                                <span><strong class="summary-approval-rate">@approvalRate.ToString("F1")</strong>% Approved</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle summary-overdue-icon @(overdueCount > 0 ? "go-red" : "go-gray") mr-2"></i>
+                                <span><strong class="summary-overdue-count">@overdueCount</strong> Overdue</span>
+                            </div>
+                        </wv-column>
+                        <wv-column>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <i class="fas fa-circle go-light-blue mr-2"></i>
+                                <span><strong class="summary-avg-time">@avgTime.ToString("F1")</strong>h Avg. Time</span>
+                            </div>
+                        </wv-column>
+                    </wv-row>
+                </div>
+            </div>
+        </wv-column>
+    </wv-row>
+</div>
+
+@* Reference external service.js for page builder lifecycle events *@
+<script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js"></script>
+
+@* Auto-refresh JavaScript initialization *@
+<script>
+    (function() {
+        // Initialize the approval dashboard with auto-refresh capability
+        var containerId = '@containerId';
+        var refreshInterval = @refreshInterval;
+        
+        // Helper function to get icon class for action type
+        function getActionIconClass(action) {
+            if (!action) return 'fa-circle go-gray';
+            switch (action.toLowerCase()) {
+                case 'approved': return 'fa-check-circle go-green';
+                case 'rejected': return 'fa-times-circle go-red';
+                case 'delegated': return 'fa-share go-orange';
+                case 'escalated': return 'fa-level-up-alt go-orange';
+                case 'submitted': return 'fa-paper-plane go-light-blue';
+                default: return 'fa-circle go-gray';
+            }
+        }
+        
+        // Helper function to format time ago
+        function getTimeAgo(timestamp) {
+            var now = new Date();
+            var diff = now - timestamp;
+            var seconds = Math.floor(diff / 1000);
+            var minutes = Math.floor(seconds / 60);
+            var hours = Math.floor(minutes / 60);
+            var days = Math.floor(hours / 24);
+            
+            if (seconds < 60) return 'just now';
+            if (minutes < 60) return minutes + 'm ago';
+            if (hours < 24) return hours + 'h ago';
+            if (days < 7) return days + 'd ago';
+            
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return months[timestamp.getMonth()] + ' ' + timestamp.getDate();
+        }
+        
+        // Function to initialize dashboard auto-refresh
+        function initApprovalDashboard(containerId, refreshIntervalSeconds) {
+            var container = document.getElementById(containerId);
+            if (!container) {
+                console.warn('Approval Dashboard container not found:', containerId);
+                return;
+            }
+            
+            // Set up date filter button click handlers (Issue 1)
+            setupDateFilterHandlers(containerId);
+            
+            // Set up auto-refresh if interval is greater than 0
+            if (refreshIntervalSeconds > 0) {
+                var intervalMs = refreshIntervalSeconds * 1000;
+                
+                // Store interval ID on container for cleanup
+                container.dataset.refreshIntervalId = setInterval(function() {
+                    refreshDashboardMetrics(containerId);
+                }, intervalMs);
+                
+                // Clean up interval when container is removed from DOM
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.removedNodes.forEach(function(node) {
+                            if (node === container || (node.contains && node.contains(container))) {
+                                clearInterval(parseInt(container.dataset.refreshIntervalId));
+                                observer.disconnect();
+                            }
+                        });
+                    });
+                });
+                
+                if (container.parentNode) {
+                    observer.observe(container.parentNode, { childList: true, subtree: true });
+                }
+            }
+        }
+        
+        // Function to set up date filter handlers (Issue 1 - STORY-009 AC3)
+        function setupDateFilterHandlers(containerId) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Handle preset buttons (7d, 30d, 90d, All)
+            var presetButtons = container.querySelectorAll('.date-preset-btn');
+            presetButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var days = parseInt(this.dataset.days) || 0;
+                    applyDateFilter(containerId, days, '', '');
+                });
+            });
+            
+            // Handle custom date range apply button
+            var applyBtn = container.querySelector('.apply-custom-date-btn');
+            if (applyBtn) {
+                applyBtn.addEventListener('click', function() {
+                    var fromDate = document.getElementById(containerId + '-from-date').value;
+                    var toDate = document.getElementById(containerId + '-to-date').value;
+                    applyDateFilter(containerId, 0, fromDate, toDate);
+                });
+            }
+        }
+        
+        // Function to apply date filter and reload page with new parameters
+        function applyDateFilter(containerId, days, fromDate, toDate) {
+            var url = new URL(window.location.href);
+            
+            // Clear existing filter params
+            url.searchParams.delete('days');
+            url.searchParams.delete('fromDate');
+            url.searchParams.delete('toDate');
+            
+            // Set new filter params
+            if (days > 0) {
+                url.searchParams.set('days', days);
+            } else if (fromDate || toDate) {
+                if (fromDate) url.searchParams.set('fromDate', fromDate);
+                if (toDate) url.searchParams.set('toDate', toDate);
+            }
+            
+            // Navigate to filtered URL
+            window.location.href = url.toString();
+        }
+        
+        // Function to build metrics API URL with current filter params (for auto-refresh)
+        function getMetricsApiUrl() {
+            var baseUrl = '/api/v3.0/p/approval/dashboard/metrics';
+            var currentUrl = new URL(window.location.href);
+            var params = new URLSearchParams();
+            
+            // Copy filter params from current URL to API call
+            if (currentUrl.searchParams.has('days')) {
+                params.set('days', currentUrl.searchParams.get('days'));
+            }
+            if (currentUrl.searchParams.has('fromDate')) {
+                params.set('fromDate', currentUrl.searchParams.get('fromDate'));
+            }
+            if (currentUrl.searchParams.has('toDate')) {
+                params.set('toDate', currentUrl.searchParams.get('toDate'));
+            }
+            
+            var queryString = params.toString();
+            return queryString ? baseUrl + '?' + queryString : baseUrl;
+        }
+        
+        // Function to refresh dashboard metrics via AJAX (maintains filter state)
+        function refreshDashboardMetrics(containerId) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            // Call the dashboard metrics API endpoint with filter params
+            fetch(getMetricsApiUrl(), {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch metrics');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.success && data.object) {
+                    updateDashboardDisplay(containerId, data.object);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error refreshing dashboard metrics:', error);
+            });
+        }
+        
+        // Function to update dashboard display with new metrics
+        function updateDashboardDisplay(containerId, metrics) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            var pendingCount = metrics.pendingCount || 0;
+            var avgTime = metrics.averageApprovalTimeHours || 0;
+            var rate = metrics.approvalRate || 0;
+            var overdueCount = metrics.overdueCount || 0;
+            var recentCount = metrics.recentActivityCount || 0;
+            
+            // Update pending count (main card value)
+            var pendingEl = container.querySelector('.pending-count');
+            if (pendingEl) {
+                pendingEl.textContent = pendingCount;
+                pendingEl.className = 'pending-count' + (pendingCount > 10 ? ' go-orange' : '');
+            }
+            
+            // Update pending icon (main card)
+            var pendingIcon = container.querySelector('.pending-icon');
+            if (pendingIcon) {
+                pendingIcon.className = 'fas fa-hourglass-half fa-2x pending-icon ' + 
+                    (pendingCount > 0 ? 'go-orange' : 'go-gray');
+            }
+            
+            // Update pending count (summary row)
+            var summaryPendingEl = container.querySelector('.summary-pending-count');
+            if (summaryPendingEl) {
+                summaryPendingEl.textContent = pendingCount;
+            }
+            
+            // Update average time (main card)
+            var avgTimeEl = container.querySelector('.avg-time');
+            if (avgTimeEl) {
+                avgTimeEl.textContent = avgTime.toFixed(1);
+            }
+            
+            // Update average time (summary row)
+            var summaryAvgTimeEl = container.querySelector('.summary-avg-time');
+            if (summaryAvgTimeEl) {
+                summaryAvgTimeEl.textContent = avgTime.toFixed(1);
+            }
+            
+            // Update approval rate (main card value)
+            var approvalRateEl = container.querySelector('.approval-rate');
+            if (approvalRateEl) {
+                approvalRateEl.textContent = rate.toFixed(1);
+            }
+            
+            // Update approval rate icon (main card)
+            var rateIcon = container.querySelector('.approval-rate-icon');
+            if (rateIcon) {
+                rateIcon.className = 'fas fa-percentage fa-2x approval-rate-icon ' + 
+                    (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
+            }
+            
+            // Update approval rate heading (main card)
+            var rateHeading = container.querySelector('.approval-rate-heading');
+            if (rateHeading) {
+                rateHeading.className = 'mb-1 approval-rate-heading ' + 
+                    (rate >= 80 ? 'go-green' : rate >= 50 ? 'go-orange' : 'go-red');
+            }
+            
+            // Update approval rate (summary row)
+            var summaryApprovalRateEl = container.querySelector('.summary-approval-rate');
+            if (summaryApprovalRateEl) {
+                summaryApprovalRateEl.textContent = rate.toFixed(1);
+            }
+            
+            // Update overdue count (main card value)
+            var overdueEl = container.querySelector('.overdue-count');
+            if (overdueEl) {
+                overdueEl.textContent = overdueCount;
+            }
+            
+            // Update overdue icon (main card)
+            var overdueIcon = container.querySelector('.overdue-icon');
+            if (overdueIcon) {
+                overdueIcon.className = 'fas fa-exclamation-triangle fa-2x overdue-icon ' + 
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
+            }
+            
+            // Update overdue heading (main card)
+            var overdueHeading = container.querySelector('.overdue-heading');
+            if (overdueHeading) {
+                overdueHeading.className = 'mb-1 overdue-heading ' + 
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
+            }
+            
+            // Update overdue card border
+            var overdueCard = container.querySelector('.overdue-card');
+            if (overdueCard) {
+                if (overdueCount > 0) {
+                    overdueCard.classList.add('border-danger');
+                } else {
+                    overdueCard.classList.remove('border-danger');
+                }
+            }
+            
+            // Update overdue badge visibility
+            var overdueBadge = container.querySelector('.overdue-badge');
+            if (overdueBadge) {
+                overdueBadge.style.display = overdueCount > 0 ? '' : 'none';
+            }
+            
+            // Update overdue count (summary row)
+            var summaryOverdueEl = container.querySelector('.summary-overdue-count');
+            if (summaryOverdueEl) {
+                summaryOverdueEl.textContent = overdueCount;
+            }
+            
+            // Update overdue icon color (summary row)
+            var summaryOverdueIcon = container.querySelector('.summary-overdue-icon');
+            if (summaryOverdueIcon) {
+                summaryOverdueIcon.className = 'fas fa-circle summary-overdue-icon mr-2 ' + 
+                    (overdueCount > 0 ? 'go-red' : 'go-gray');
+            }
+            
+            // Update recent activity count badge
+            var recentCountBadge = container.querySelector('.recent-activity-list').closest('.card').querySelector('.badge');
+            if (recentCountBadge) {
+                recentCountBadge.textContent = recentCount + ' in 24h';
+            }
+            
+            // Update recent activity list (Issue 3 - STORY-009 Line 23)
+            var recentActivityList = metrics.recentActivity || [];
+            var listContainer = container.querySelector('.recent-activity-list');
+            if (listContainer && recentActivityList.length > 0) {
+                var listHtml = '<ul class="list-group list-group-flush">';
+                recentActivityList.forEach(function(activity) {
+                    var iconClass = getActionIconClass(activity.actionType);
+                    var timeAgo = getTimeAgo(new Date(activity.performedOn));
+                    listHtml += '<li class="list-group-item d-flex align-items-center py-2">' +
+                        '<i class="fas ' + iconClass + ' mr-2"></i>' +
+                        '<div class="flex-grow-1">' +
+                        '<div class="small"><strong>' + (activity.performedByName || 'Unknown') + '</strong> ' +
+                        '<span class="text-muted">' + (activity.actionType || 'performed action').toLowerCase() + '</span></div>' +
+                        '<small class="text-muted">' + timeAgo + '</small></div>' +
+                        '</li>';
+                });
+                listHtml += '</ul>';
+                listContainer.innerHTML = listHtml;
+            } else if (listContainer && recentActivityList.length === 0) {
+                listContainer.innerHTML = '<div class="text-center text-muted py-3">' +
+                    '<i class="fas fa-inbox fa-2x mb-2 d-block"></i>' +
+                    '<small>No recent activity</small></div>';
+            }
+            
+            // Update last updated timestamp
+            var timestampEl = document.getElementById(containerId + '-last-updated');
+            if (timestampEl) {
+                var now = new Date();
+                var timeStr = now.getUTCHours().toString().padStart(2, '0') + ':' +
+                              now.getUTCMinutes().toString().padStart(2, '0') + ':' +
+                              now.getUTCSeconds().toString().padStart(2, '0');
+                timestampEl.textContent = 'Last updated: ' + timeStr + ' UTC';
+            }
+        }
+        
+        // Initialize dashboard on DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                initApprovalDashboard(containerId, refreshInterval);
+            });
+        } else {
+            initApprovalDashboard(containerId, refreshInterval);
+        }
+    })();
+</script>
+
+<style>
+    .approval-dashboard-container .card {
+        transition: box-shadow 0.2s ease-in-out;
+    }
+    .approval-dashboard-container .card:hover {
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    }
+    .approval-dashboard-container .go-green {
+        color: #28a745 !important;
+    }
+    .approval-dashboard-container .go-red {
+        color: #dc3545 !important;
+    }
+    .approval-dashboard-container .go-orange {
+        color: #fd7e14 !important;
+    }
+    .approval-dashboard-container .go-gray {
+        color: #6c757d !important;
+    }
+    .approval-dashboard-container .go-light-blue {
+        color: #17a2b8 !important;
+    }
+    .approval-dashboard-container .go-purple {
+        color: #6f42c1 !important;
+    }
+    .approval-dashboard-container .border-danger {
+        border-color: #dc3545 !important;
+        border-width: 2px !important;
+    }
+</style>

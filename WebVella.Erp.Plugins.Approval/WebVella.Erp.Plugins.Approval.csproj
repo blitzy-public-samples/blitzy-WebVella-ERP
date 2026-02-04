@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	</PropertyGroup>
+
+	<!-- Exclude ad-hoc test files and test project files from compilation -->
+	<ItemGroup>
+		<Compile Remove="blitzy_adhoc_test_*.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<!-- Static web assets in wwwroot are automatically served via _content/WebVella.Erp.Plugins.Approval/ -->
+	<!-- Note: Service.js files are served as static content from wwwroot/Components/*/service.js -->
+	<!-- No EmbeddedResource entries needed - wwwroot content is automatically included by SDK -->
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.10" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\WebVella.Erp.Web\WebVella.Erp.Web.csproj" />
+		<ProjectReference Include="..\WebVella.ERP\WebVella.Erp.csproj" />
+	</ItemGroup>
+</Project>

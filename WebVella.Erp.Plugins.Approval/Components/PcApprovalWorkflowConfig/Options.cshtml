@@ -1,0 +1,62 @@
+@*
+    Options.cshtml - Configuration panel for PcApprovalWorkflowConfig component
+    
+    This view provides the page builder configuration interface for the Approval Workflow
+    Configuration component. Administrators can configure:
+    - ShowInactive: Whether to display disabled/inactive workflows
+    - PageSize: Number of workflows per page for pagination
+    - FilterByEntity: Optional entity name filter to show only workflows targeting specific entities
+    
+    STORY-008: UI components must support Options render mode
+    Components must use WebVella tag helpers for form fields
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    var options = (PcApprovalWorkflowConfig.PcApprovalWorkflowConfigOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+
+@* Display Settings Section *@
+<wv-row>
+    <wv-column span="12">
+        <wv-field-checkbox name="show_inactive" 
+                           value="@options.ShowInactive" 
+                           label-text="Show Inactive Workflows" 
+                           text-true="displays all workflows including disabled ones" 
+                           text-false="displays only active (enabled) workflows">
+        </wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+@* Pagination Settings Section *@
+<wv-row>
+    <wv-column span="6">
+        <wv-field-number name="page_size" 
+                         value="@options.PageSize" 
+                         label-text="Page Size" 
+                         min="5" 
+                         max="100"
+                         placeholder="e.g. 10"
+                         description="Number of workflows to display per page (5-100). Default is 10.">
+        </wv-field-number>
+    </wv-column>
+</wv-row>
+
+@* Filtering Settings Section *@
+<wv-row>
+    <wv-column span="6">
+        <wv-field-text name="filter_by_entity" 
+                       value="@options.FilterByEntity" 
+                       label-text="Filter by Target Entity"
+                       placeholder="e.g. purchase_order"
+                       description="Optional: Enter an entity name to filter workflows. Only workflows targeting this entity will be shown. Leave empty to display all workflows.">
+        </wv-field-text>
+    </wv-column>
+</wv-row>

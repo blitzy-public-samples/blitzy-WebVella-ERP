@@ -1,0 +1,32 @@
+@*
+    Options.cshtml - Configuration panel for PcApprovalAction component
+    Used by the page builder to configure the component's behavior.
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    var options = (PcApprovalAction.PcApprovalActionOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+}
+<wv-row>
+    <wv-column span="4">
+        <wv-field-datasource name="request_id" value="@options.RequestId" label-text="Request ID" page-id="@erpRequest.Page.Id"></wv-field-datasource>
+    </wv-column>
+</wv-row>
+<wv-row>
+    <wv-column span="4">
+        <wv-field-checkbox name="show_approve" value="@options.ShowApprove" label-text="Show Approve Button"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox name="show_reject" value="@options.ShowReject" label-text="Show Reject Button"></wv-field-checkbox>
+    </wv-column>
+    <wv-column span="4">
+        <wv-field-checkbox name="show_delegate" value="@options.ShowDelegate" label-text="Show Delegate Button"></wv-field-checkbox>
+    </wv-column>
+</wv-row>

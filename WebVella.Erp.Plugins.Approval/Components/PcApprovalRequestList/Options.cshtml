@@ -1,0 +1,130 @@
+@*
+    Options.cshtml - Configuration panel for PcApprovalRequestList component.
+    Provides page builder options UI for configuring filter settings including
+    status filter, pagination size, and display options.
+    Part of STORY-008 - Approval UI Components
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Web;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@using WebVella.TagHelpers.Models;
+@{
+    // Cast ViewBag options to strongly typed configuration options
+    var options = (PcApprovalRequestList.PcApprovalRequestListOptions)ViewBag.Options;
+    
+    // Get the page body node for component context
+    var node = (PageBodyNode)ViewBag.Node;
+    
+    // Get the ERP request context for page-related operations
+    var erpRequest = (ErpRequestContext)ViewBag.RequestContext;
+    
+    // Build status filter options for the select dropdown
+    // These correspond to the valid status values for approval requests
+    var statusOptions = new List<WvSelectOption>
+    {
+        new WvSelectOption { Value = "", Label = "All Statuses" },
+        new WvSelectOption { Value = "pending", Label = "Pending" },
+        new WvSelectOption { Value = "approved", Label = "Approved" },
+        new WvSelectOption { Value = "rejected", Label = "Rejected" },
+        new WvSelectOption { Value = "escalated", Label = "Escalated" },
+        new WvSelectOption { Value = "expired", Label = "Expired" }
+    };
+    
+    // Build page size options for the select dropdown
+    var pageSizeOptions = new List<WvSelectOption>
+    {
+        new WvSelectOption { Value = "5", Label = "5 per page" },
+        new WvSelectOption { Value = "10", Label = "10 per page" },
+        new WvSelectOption { Value = "20", Label = "20 per page" },
+        new WvSelectOption { Value = "50", Label = "50 per page" },
+        new WvSelectOption { Value = "100", Label = "100 per page" }
+    };
+}
+
+@* Data Source Configuration *@
+<wv-row>
+    <wv-column span="12">
+        <wv-field-datasource 
+            name="records" 
+            value="@options.Records" 
+            label-text="Records Data Source" 
+            page-id="erpRequest.Page.Id"
+            description="Optional: Select a data source for approval request records. If not set, the component will load records directly from the approval_request entity.">
+        </wv-field-datasource>
+    </wv-column>
+</wv-row>
+
+@* Filter Configuration Row *@
+<wv-row>
+    <wv-column span="6">
+        <wv-field-select 
+            name="status_filter" 
+            value="@options.StatusFilter" 
+            label-text="Status Filter" 
+            options="@statusOptions"
+            description="Filter approval requests by status. Select 'All Statuses' to show all requests.">
+        </wv-field-select>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-select 
+            name="page_size" 
+            value="@options.PageSize.ToString()" 
+            label-text="Page Size" 
+            options="@pageSizeOptions"
+            description="Number of approval requests to display per page.">
+        </wv-field-select>
+    </wv-column>
+</wv-row>
+
+@* Display Options Row *@
+<wv-row>
+    <wv-column span="6">
+        <wv-field-checkbox 
+            name="show_my_requests_only" 
+            value="@options.ShowMyRequestsOnly" 
+            label-text="Filter to My Requests" 
+            text-true="Show only requests where I am the approver"
+            description="When enabled, only approval requests assigned to the current user will be displayed.">
+        </wv-field-checkbox>
+    </wv-column>
+    <wv-column span="6">
+        <wv-field-checkbox 
+            name="auto_refresh" 
+            value="@options.AutoRefresh" 
+            label-text="Auto Refresh" 
+            text-true="Automatically refresh the list periodically"
+            description="When enabled, the list will automatically refresh to show new approval requests.">
+        </wv-field-checkbox>
+    </wv-column>
+</wv-row>
+
+@* Navigation Configuration Row *@
+<wv-row>
+    <wv-column span="12">
+        <wv-field-text 
+            name="detail_page_url" 
+            value="@options.DetailPageUrl" 
+            label-text="Detail Page URL Template"
+            description="Use {id} as placeholder for request ID. Example: /c/approval/action?requestId={id}. Leave empty to hide the View button.">
+        </wv-field-text>
+    </wv-column>
+</wv-row>
+
+@* Help Information *@
+<div class="alert alert-info p-2 mt-3">
+    <small>
+        <strong><i class="fas fa-info-circle"></i> Configuration Tips:</strong>
+        <ul class="mb-0 mt-1">
+            <li><strong>Records Data Source:</strong> Leave empty to load data directly from the approval_request entity, or select a pre-configured data source.</li>
+            <li><strong>Status Filter:</strong> Use "Pending" to show requests awaiting approval, or "All Statuses" for a complete view.</li>
+            <li><strong>Filter to My Requests:</strong> Useful for approvers who want to see only their assigned requests.</li>
+            <li><strong>Auto Refresh:</strong> Recommended for dashboards to keep the request list current.</li>
+            <li><strong>Detail Page URL:</strong> Configure navigation to a detail page. Use <code>{id}</code> as a placeholder for the request ID (e.g., <code>/c/approval/action?requestId={id}</code>). Leave empty to hide the View button.</li>
+        </ul>
+    </small>
+</div>

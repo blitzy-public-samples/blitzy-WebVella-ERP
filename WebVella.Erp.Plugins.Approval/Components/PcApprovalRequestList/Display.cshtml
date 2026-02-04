@@ -1,0 +1,667 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalRequestList component.
+    
+    Renders a filterable, paginated list of pending approval requests including:
+    - Request ID
+    - Workflow name
+    - Source entity name
+    - Status (with badge styling)
+    - Requested by user
+    - Requested date
+    - Current step
+    - Action links
+    
+    Uses WebVella grid components and tag helpers for consistent UI rendering.
+    Supports filter form submission and optional auto-refresh via service.js integration.
+*@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.TagHelpers.Models
+@{
+    // Extract component options from ViewBag
+    var options = (PcApprovalRequestList.PcApprovalRequestListOptions)ViewBag.Options;
+    
+    // Extract records list - may be empty if no pending approvals
+    var records = ViewBag.Records as List<EntityRecord> ?? new List<EntityRecord>();
+    
+    // Extract pagination data
+    var totalCount = ViewBag.TotalCount != null ? (int)ViewBag.TotalCount : 0;
+    var pageSize = ViewBag.PageSize != null ? (int)ViewBag.PageSize : 10;
+    var currentPage = ViewBag.CurrentPage != null ? (int)ViewBag.CurrentPage : 1;
+    var totalPages = ViewBag.TotalPages != null ? (int)ViewBag.TotalPages : 1;
+    var hasPreviousPage = ViewBag.HasPreviousPage != null ? (bool)ViewBag.HasPreviousPage : false;
+    var hasNextPage = ViewBag.HasNextPage != null ? (bool)ViewBag.HasNextPage : false;
+    
+    // Extract pager data
+    var pager = ViewBag.Pager as EntityRecord;
+    var visiblePages = pager != null && pager.Properties.ContainsKey("visible_pages") 
+        ? pager["visible_pages"] as List<int> ?? new List<int>() 
+        : new List<int>();
+    var showFirstEllipsis = pager != null && pager.Properties.ContainsKey("show_first_ellipsis") 
+        ? (bool)pager["show_first_ellipsis"] 
+        : false;
+    var showLastEllipsis = pager != null && pager.Properties.ContainsKey("show_last_ellipsis") 
+        ? (bool)pager["show_last_ellipsis"] 
+        : false;
+    
+    // Get site root URL for building links
+    var siteRootUrl = ViewBag.SiteRootUrl as string ?? "";
+    
+    // Define grid columns for the approval request list
+    var gridColumns = new List<WvGridColumnMeta>
+    {
+        new WvGridColumnMeta { Name = "action", Label = "Actions", Width = "120px" },
+        new WvGridColumnMeta { Name = "workflow_name", Label = "Workflow", Width = "" },
+        new WvGridColumnMeta { Name = "source_entity", Label = "Source Entity", Width = "150px" },
+        new WvGridColumnMeta { Name = "status", Label = "Status", Width = "100px" },
+        new WvGridColumnMeta { Name = "requested_by", Label = "Requested By", Width = "150px" },
+        new WvGridColumnMeta { Name = "requested_on", Label = "Requested On", Width = "150px" },
+        new WvGridColumnMeta { Name = "current_step", Label = "Current Step", Width = "150px" }
+    };
+    
+    // Status options for filter dropdown
+    var statusOptions = new List<SelectOption>
+    {
+        new SelectOption { Value = "", Label = "All Statuses" },
+        new SelectOption { Value = "pending", Label = "Pending" },
+        new SelectOption { Value = "approved", Label = "Approved" },
+        new SelectOption { Value = "rejected", Label = "Rejected" },
+        new SelectOption { Value = "escalated", Label = "Escalated" },
+        new SelectOption { Value = "expired", Label = "Expired" }
+    };
+    
+    // Generate unique component ID for JavaScript targeting
+    var componentId = "approval-request-list-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+}
+
+<div id="@componentId" class="pc-approval-request-list" data-auto-refresh="@options.AutoRefresh.ToString().ToLower()">
+    @* Filter Section *@
+    <div class="card mb-3">
+        <div class="card-body p-2">
+            <form method="get" class="form-inline approval-filter-form">
+                <div class="row w-100 align-items-end">
+                    @* Status Filter Dropdown *@
+                    <div class="col-md-2 mb-2 mb-md-0">
+                        <label class="small text-muted d-block">Status</label>
+                        <select name="status" class="form-control form-control-sm w-100">
+                            @foreach (var statusOption in statusOptions)
+                            {
+                                var isSelected = statusOption.Value == (options.StatusFilter ?? "");
+                                if (isSelected)
+                                {
+                                    <option value="@statusOption.Value" selected>@statusOption.Label</option>
+                                }
+                                else
+                                {
+                                    <option value="@statusOption.Value">@statusOption.Label</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    
+                    @* Filter Button *@
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <label class="small text-muted d-block">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-filter"></i> Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    @* Summary Row *@
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="text-muted small">
+            @if (totalCount > 0)
+            {
+                var startRecord = ((currentPage - 1) * pageSize) + 1;
+                var endRecord = Math.Min(currentPage * pageSize, totalCount);
+                <span>Showing @startRecord - @endRecord of @totalCount requests</span>
+            }
+            else
+            {
+                <span>No requests found</span>
+            }
+        </div>
+        @if (options.AutoRefresh)
+        {
+            <div class="text-muted small">
+                <i class="fas fa-sync-alt fa-spin mr-1"></i>
+                <span class="auto-refresh-indicator">Auto-refresh enabled</span>
+            </div>
+        }
+    </div>
+    
+    @* Request List Grid *@
+    @if (records.Count > 0)
+    {
+        <wv-grid bordered="true" hover="true" small="true" columns="@gridColumns" has-tfoot="false" striped="true">
+            @foreach (var record in records)
+            {
+                // Extract record properties with null-safe access
+                var recordId = record.Properties.ContainsKey("id") && record["id"] != null 
+                    ? record["id"].ToString() 
+                    : "";
+                var workflowName = record.Properties.ContainsKey("workflow_name") && record["workflow_name"] != null 
+                    ? record["workflow_name"].ToString() 
+                    : "Unknown";
+                var sourceEntityName = record.Properties.ContainsKey("source_entity") && record["source_entity"] != null 
+                    ? record["source_entity"].ToString() 
+                    : "N/A";
+                var sourceRecordId = record.Properties.ContainsKey("source_record_id") && record["source_record_id"] != null 
+                    ? record["source_record_id"].ToString() 
+                    : "";
+                var status = record.Properties.ContainsKey("status") && record["status"] != null 
+                    ? record["status"].ToString() 
+                    : "unknown";
+                var statusBadgeClass = record.Properties.ContainsKey("status_badge_class") && record["status_badge_class"] != null 
+                    ? record["status_badge_class"].ToString() 
+                    : "badge-secondary";
+                var requestedByUsername = record.Properties.ContainsKey("requested_by_username") && record["requested_by_username"] != null 
+                    ? record["requested_by_username"].ToString() 
+                    : "Unknown";
+                var requestedOnFormatted = record.Properties.ContainsKey("requested_on_formatted") && record["requested_on_formatted"] != null 
+                    ? record["requested_on_formatted"].ToString() 
+                    : "N/A";
+                var currentStepName = record.Properties.ContainsKey("current_step_name") && record["current_step_name"] != null 
+                    ? record["current_step_name"].ToString() 
+                    : "N/A";
+                
+                // Generate detail page URL dynamically from options
+                var detailPageUrl = !string.IsNullOrWhiteSpace(options.DetailPageUrl) 
+                    ? options.DetailPageUrl.Replace("{id}", recordId) 
+                    : "";
+                var showViewButton = !string.IsNullOrWhiteSpace(detailPageUrl);
+                
+                <wv-grid-row>
+                    @* Action Column - View and Inline Action Buttons *@
+                    <wv-grid-column width="120px" class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            @* View button - only shown if detail page URL is configured *@
+                            @if (showViewButton)
+                            {
+                                <a href="@detailPageUrl" class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            }
+                            @if (status == "pending")
+                            {
+                                @* Approve button - shown only for pending requests *@
+                                <button type="button" class="btn btn-sm btn-success" 
+                                        onclick="openInlineApproveModal('@recordId')" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                @* Reject button - shown only for pending requests *@
+                                <button type="button" class="btn btn-sm btn-danger" 
+                                        onclick="openInlineRejectModal('@recordId')" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
+                        </div>
+                    </wv-grid-column>
+                    
+                    @* Workflow Name Column *@
+                    <wv-grid-column>
+                        <span class="font-weight-bold">@workflowName</span>
+                        @if (!string.IsNullOrEmpty(sourceRecordId))
+                        {
+                            <br />
+                            <small class="text-muted">Record: @sourceRecordId.Substring(0, Math.Min(8, sourceRecordId.Length))...</small>
+                        }
+                    </wv-grid-column>
+                    
+                    @* Source Entity Column *@
+                    <wv-grid-column width="150px">
+                        <span class="text-capitalize">@sourceEntityName.Replace("_", " ")</span>
+                    </wv-grid-column>
+                    
+                    @* Status Column with Badge *@
+                    <wv-grid-column width="100px">
+                        <span class="badge @statusBadgeClass text-capitalize">@status</span>
+                    </wv-grid-column>
+                    
+                    @* Requested By Column *@
+                    <wv-grid-column width="150px">
+                        <i class="fas fa-user mr-1 text-muted"></i>
+                        @requestedByUsername
+                    </wv-grid-column>
+                    
+                    @* Requested On Column *@
+                    <wv-grid-column width="150px">
+                        <i class="far fa-calendar-alt mr-1 text-muted"></i>
+                        @requestedOnFormatted
+                    </wv-grid-column>
+                    
+                    @* Current Step Column *@
+                    <wv-grid-column width="150px">
+                        <i class="fas fa-tasks mr-1 text-muted"></i>
+                        @currentStepName
+                    </wv-grid-column>
+                </wv-grid-row>
+            }
+        </wv-grid>
+    }
+    else
+    {
+        @* Empty State Message *@
+        <div class="alert alert-info m-0">
+            <i class="fas fa-info-circle mr-2"></i>
+            @if (!string.IsNullOrEmpty(options.StatusFilter) && options.StatusFilter != "pending")
+            {
+                <span>No @options.StatusFilter approval requests found.</span>
+            }
+            else if (options.ShowMyRequestsOnly)
+            {
+                <span>You have no pending approval requests assigned to you.</span>
+            }
+            else
+            {
+                <span>No pending approval requests found. New requests will appear here when submitted.</span>
+            }
+        </div>
+    }
+    
+    @* Pagination Controls *@
+    @if (totalPages > 1)
+    {
+        // Capture current page path to preserve URL during pagination
+        var currentPath = Context.Request.Path.ToString();
+        // Always include status parameter (even when empty) to preserve "All Statuses" filter
+        var statusQueryParam = $"&status={Uri.EscapeDataString(options.StatusFilter ?? "")}";
+        
+        <nav aria-label="Approval request list pagination" class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                @* First Page Button *@
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" href="@($"{currentPath}?page=1{statusQueryParam}")" aria-label="First" title="First Page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                
+                @* Previous Page Button *@
+                <li class="page-item @(!hasPreviousPage ? "disabled" : "")">
+                    <a class="page-link" href="@($"{currentPath}?page={currentPage - 1}{statusQueryParam}")" aria-label="Previous" title="Previous Page">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                
+                @* First Page Number (if not visible) *@
+                @if (showFirstEllipsis)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@($"{currentPath}?page=1{statusQueryParam}")">1</a>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                }
+                
+                @* Visible Page Numbers *@
+                @foreach (var pageNum in visiblePages)
+                {
+                    <li class="page-item @(pageNum == currentPage ? "active" : "")">
+                        <a class="page-link" href="@($"{currentPath}?page={pageNum}{statusQueryParam}")">@pageNum</a>
+                    </li>
+                }
+                
+                @* Last Page Number (if not visible) *@
+                @if (showLastEllipsis)
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="@($"{currentPath}?page={totalPages}{statusQueryParam}")">@totalPages</a>
+                    </li>
+                }
+                
+                @* Next Page Button *@
+                <li class="page-item @(!hasNextPage ? "disabled" : "")">
+                    <a class="page-link" href="@($"{currentPath}?page={currentPage + 1}{statusQueryParam}")" aria-label="Next" title="Next Page">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                
+                @* Last Page Button *@
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" href="@($"{currentPath}?page={totalPages}{statusQueryParam}")" aria-label="Last" title="Last Page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        
+        @* Page Info Summary *@
+        <div class="text-center mt-2">
+            <small class="text-muted">Page @currentPage of @totalPages (@totalCount total records)</small>
+        </div>
+    }
+</div>
+
+@* Shared Approve Modal for Inline Actions *@
+<div class="modal fade" id="inlineApproveModal" tabindex="-1" role="dialog" aria-labelledby="inlineApproveModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="inlineApproveModalLabel">
+                    <i class="fas fa-check-circle mr-2"></i>Approve Request
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inlineApproveRequestId" value="" />
+                <p class="text-muted mb-3">
+                    You are about to approve this request. This action will advance the request to the next approval step, 
+                    or mark it as fully approved if this is the final step.
+                </p>
+                <div class="form-group">
+                    <label for="inlineApproveComments">Comments (Optional)</label>
+                    <textarea class="form-control" id="inlineApproveComments" rows="3" 
+                              placeholder="Enter any comments about your approval decision..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitInlineApprove()">
+                    <i class="fas fa-check mr-1"></i>Confirm Approval
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Shared Reject Modal for Inline Actions *@
+<div class="modal fade" id="inlineRejectModal" tabindex="-1" role="dialog" aria-labelledby="inlineRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="inlineRejectModalLabel">
+                    <i class="fas fa-times-circle mr-2"></i>Reject Request
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="inlineRejectRequestId" value="" />
+                <p class="text-muted mb-3">
+                    You are about to reject this request. Please provide a reason for the rejection.
+                </p>
+                <div class="form-group">
+                    <label for="inlineRejectReason">
+                        Reason for Rejection <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="inlineRejectReason" rows="3" 
+                              placeholder="Enter the reason for rejecting this request..." required></textarea>
+                    <div class="invalid-feedback">
+                        Please provide a reason for rejection.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="inlineRejectComments">Additional Comments (Optional)</label>
+                    <textarea class="form-control" id="inlineRejectComments" rows="2" 
+                              placeholder="Enter any additional comments..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitInlineReject()">
+                    <i class="fas fa-ban mr-1"></i>Confirm Rejection
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Inline Styles for Component *@
+<style>
+    .pc-approval-request-list .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    .pc-approval-request-list .badge-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    .pc-approval-request-list .badge-success {
+        background-color: #28a745;
+        color: #fff;
+    }
+    .pc-approval-request-list .badge-danger {
+        background-color: #dc3545;
+        color: #fff;
+    }
+    .pc-approval-request-list .badge-info {
+        background-color: #17a2b8;
+        color: #fff;
+    }
+    .pc-approval-request-list .badge-secondary {
+        background-color: #6c757d;
+        color: #fff;
+    }
+    .pc-approval-request-list .approval-filter-form .form-control-sm {
+        height: calc(1.5em + 0.5rem + 2px);
+        font-size: 0.875rem;
+    }
+    .pc-approval-request-list .auto-refresh-indicator {
+        font-style: italic;
+    }
+</style>
+
+@* Reference external service.js for page builder lifecycle events *@
+<script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalRequestList/service.js"></script>
+
+@* Inline Action Scripts *@
+<script type="text/javascript">
+    /**
+     * Opens the approve modal and sets the request ID
+     */
+    function openInlineApproveModal(requestId) {
+        document.getElementById('inlineApproveRequestId').value = requestId;
+        document.getElementById('inlineApproveComments').value = '';
+        
+        var modalElement = document.getElementById('inlineApproveModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalElement).modal('show');
+        }
+    }
+    
+    /**
+     * Opens the reject modal and sets the request ID
+     */
+    function openInlineRejectModal(requestId) {
+        document.getElementById('inlineRejectRequestId').value = requestId;
+        document.getElementById('inlineRejectReason').value = '';
+        document.getElementById('inlineRejectReason').classList.remove('is-invalid');
+        document.getElementById('inlineRejectComments').value = '';
+        
+        var modalElement = document.getElementById('inlineRejectModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        } else if (typeof $ !== 'undefined' && $.fn.modal) {
+            $(modalElement).modal('show');
+        }
+    }
+    
+    /**
+     * Submits the inline approve action
+     */
+    function submitInlineApprove() {
+        var requestId = document.getElementById('inlineApproveRequestId').value;
+        var comments = document.getElementById('inlineApproveComments').value.trim();
+        
+        if (!requestId) {
+            console.error('No request ID found for approval');
+            return;
+        }
+        
+        performInlineAction(
+            '/api/v3.0/p/approval/request/' + requestId + '/approve',
+            { comments: comments },
+            'inlineApproveModal',
+            'Request approved successfully!'
+        );
+    }
+    
+    /**
+     * Submits the inline reject action
+     */
+    function submitInlineReject() {
+        var requestId = document.getElementById('inlineRejectRequestId').value;
+        var reasonField = document.getElementById('inlineRejectReason');
+        var reason = reasonField.value.trim();
+        var comments = document.getElementById('inlineRejectComments').value.trim();
+        
+        if (!requestId) {
+            console.error('No request ID found for rejection');
+            return;
+        }
+        
+        // Validate required reason field
+        if (!reason) {
+            reasonField.classList.add('is-invalid');
+            reasonField.focus();
+            return;
+        }
+        reasonField.classList.remove('is-invalid');
+        
+        performInlineAction(
+            '/api/v3.0/p/approval/request/' + requestId + '/reject',
+            { reason: reason, comments: comments },
+            'inlineRejectModal',
+            'Request rejected.'
+        );
+    }
+    
+    /**
+     * Performs an inline approval/rejection action via AJAX
+     */
+    function performInlineAction(url, data, modalId, successMessage) {
+        var btn = document.querySelector('#' + modalId + ' .modal-footer .btn-success, #' + modalId + ' .modal-footer .btn-danger');
+        var originalHtml = btn ? btn.innerHTML : '';
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
+        }
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) {
+                    throw new Error(err.message || 'An error occurred');
+                });
+            }
+            return response.json();
+        })
+        .then(function(result) {
+            // Close the modal
+            var modalElement = document.getElementById(modalId);
+            if (modalElement) {
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    var modalInstance;
+                    // Check if getInstance method exists (Bootstrap 5.1.0+)
+                    if (typeof bootstrap.Modal.getInstance === 'function') {
+                        modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    }
+                    // If no existing instance, create a new one
+                    if (!modalInstance) {
+                        modalInstance = new bootstrap.Modal(modalElement);
+                    }
+                    modalInstance.hide();
+                } else if (typeof $ !== 'undefined') {
+                    // Fallback to jQuery if Bootstrap 5 is not available
+                    $(modalElement).modal('hide');
+                }
+            }
+            
+            // Show success message
+            if (typeof toastr !== 'undefined') {
+                toastr.success(successMessage);
+            } else {
+                alert(successMessage);
+            }
+            
+            // Refresh the page to show updated status
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        })
+        .catch(function(error) {
+            console.error('Inline action error:', error);
+            
+            // Show error message
+            if (typeof toastr !== 'undefined') {
+                toastr.error(error.message || 'An error occurred while processing your request.');
+            } else {
+                alert('Error: ' + (error.message || 'An error occurred while processing your request.'));
+            }
+            
+            // Re-enable the button
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    }
+</script>
+
+@* Auto-refresh Script Integration *@
+@if (options.AutoRefresh)
+{
+    <script type="text/javascript">
+        (function() {
+            // Auto-refresh functionality for approval request list
+            var componentId = '@componentId';
+            var refreshInterval = 60000; // 60 seconds default refresh interval
+            
+            function refreshApprovalList() {
+                // Trigger page reload to refresh the list
+                // In a more sophisticated implementation, this would use AJAX
+                if (document.visibilityState === 'visible') {
+                    window.location.reload();
+                }
+            }
+            
+            // Set up auto-refresh interval
+            var intervalId = setInterval(refreshApprovalList, refreshInterval);
+            
+            // Clean up interval when component is removed
+            var component = document.getElementById(componentId);
+            if (component) {
+                // Use MutationObserver to detect when component is removed
+                var observer = new MutationObserver(function(mutations) {
+                    if (!document.body.contains(component)) {
+                        clearInterval(intervalId);
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(document.body, { childList: true, subtree: true });
+            }
+        })();
+    </script>
+}

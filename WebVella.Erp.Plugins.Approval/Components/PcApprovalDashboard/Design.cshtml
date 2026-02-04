@@ -1,0 +1,86 @@
+@addTagHelper *, WebVella.Erp.Plugins.Core
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils;
+@using WebVella.Erp.Api.Models;
+@using WebVella.Erp.Web.Models;
+@using WebVella.Erp.Plugins.Approval.Components;
+@{
+    // Sample data for design-time preview
+    var pendingCount = 12;
+    var avgTime = 4.5m;
+    var approvalRate = 87.3m;
+    var overdueCount = 2;
+    var recentActivity = 45;
+}
+
+<div class="approval-dashboard-container">
+    @* Dashboard Header *@
+    <div class="p-2 mb-2 bg-light rounded">
+        <h6 class="mb-0">
+            <i class="fas fa-chart-line mr-2"></i>Approval Dashboard
+            <small class="text-muted">(Design Preview)</small>
+        </h6>
+    </div>
+
+    @* KPI Cards Row 1 *@
+    <wv-row class="mb-2">
+        @* Pending Count Card *@
+        <wv-column width="4">
+            <div class="bg-white p-3 rounded border text-center">
+                <div class="mb-2">
+                    <i class="fas fa-hourglass-half fa-2x" style="color: #fd7e14;"></i>
+                </div>
+                <h4 class="mb-1">@pendingCount</h4>
+                <small class="text-muted">Pending Approvals</small>
+            </div>
+        </wv-column>
+
+        @* Average Time Card *@
+        <wv-column width="4">
+            <div class="bg-white p-3 rounded border text-center">
+                <div class="mb-2">
+                    <i class="fas fa-clock fa-2x" style="color: #17a2b8;"></i>
+                </div>
+                <h4 class="mb-1">@avgTime.ToString("F1") <small>hrs</small></h4>
+                <small class="text-muted">Avg. Approval Time</small>
+            </div>
+        </wv-column>
+
+        @* Approval Rate Card *@
+        <wv-column width="4">
+            <div class="bg-white p-3 rounded border text-center">
+                <div class="mb-2">
+                    <i class="fas fa-percentage fa-2x" style="color: #28a745;"></i>
+                </div>
+                <h4 class="mb-1" style="color: #28a745;">@approvalRate.ToString("F1")<small>%</small></h4>
+                <small class="text-muted">Approval Rate</small>
+            </div>
+        </wv-column>
+    </wv-row>
+
+    @* KPI Cards Row 2 *@
+    <wv-row>
+        @* Overdue Count Card *@
+        <wv-column width="6">
+            <div class="bg-white p-3 rounded border text-center border-danger">
+                <div class="mb-2">
+                    <i class="fas fa-exclamation-triangle fa-2x" style="color: #dc3545;"></i>
+                </div>
+                <h4 class="mb-1" style="color: #dc3545;">@overdueCount</h4>
+                <small class="text-muted">Overdue / Escalated</small>
+            </div>
+        </wv-column>
+
+        @* Recent Activity Card *@
+        <wv-column width="6">
+            <div class="bg-white p-3 rounded border text-center">
+                <div class="mb-2">
+                    <i class="fas fa-history fa-2x" style="color: #6f42c1;"></i>
+                </div>
+                <h4 class="mb-1">@recentActivity</h4>
+                <small class="text-muted">Recent Activity (24h)</small>
+            </div>
+        </wv-column>
+    </wv-row>
+</div>

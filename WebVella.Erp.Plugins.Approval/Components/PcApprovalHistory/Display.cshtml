@@ -1,0 +1,258 @@
+@*
+    Display.cshtml - Runtime display view for PcApprovalHistory component
+    Renders the approval audit trail as a vertical timeline with Bootstrap styling
+    and FontAwesome icons for different action types.
+    
+    ViewBag Properties Expected:
+    - ViewBag.HistoryRecords (List<EntityRecord>) - History records from approval_history entity
+    - ViewBag.RequestId (Guid) - The approval request ID
+    - ViewBag.Options (PcApprovalHistoryOptions) - Component configuration options
+    - ViewBag.QueryError (string) - Error message if query failed
+*@
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+
+@using System
+@using System.Collections.Generic
+@using WebVella.Erp.Api
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+
+@{
+    // Cast ViewBag data to appropriate types
+    var historyRecords = ViewBag.HistoryRecords as List<EntityRecord> ?? new List<EntityRecord>();
+    var requestId = ViewBag.RequestId != null ? (Guid)ViewBag.RequestId : Guid.Empty;
+    var queryError = ViewBag.QueryError as string;
+    
+    // Cache user information lookup to avoid multiple database calls
+    var userCache = new Dictionary<Guid, string>();
+    
+    // Helper function to get icon class based on action type
+    Func<string, string> GetActionIcon = (action) =>
+    {
+        return action?.ToLowerInvariant() switch
+        {
+            "submitted" => "fas fa-paper-plane",
+            "approved" => "fas fa-check",
+            "rejected" => "fas fa-times",
+            "delegated" => "fas fa-share",
+            "escalated" => "fas fa-arrow-up",
+            _ => "fas fa-circle"
+        };
+    };
+    
+    // Helper function to get color class based on action type
+    Func<string, string> GetActionColor = (action) =>
+    {
+        return action?.ToLowerInvariant() switch
+        {
+            "submitted" => "primary",
+            "approved" => "success",
+            "rejected" => "danger",
+            "delegated" => "info",
+            "escalated" => "warning",
+            _ => "secondary"
+        };
+    };
+    
+    // Helper function to get action display text
+    Func<string, string> GetActionDisplayText = (action) =>
+    {
+        return action?.ToLowerInvariant() switch
+        {
+            "submitted" => "Submitted for Approval",
+            "approved" => "Approved",
+            "rejected" => "Rejected",
+            "delegated" => "Delegated",
+            "escalated" => "Escalated",
+            _ => action ?? "Unknown Action"
+        };
+    };
+    
+    // Helper function to get user display name
+    Func<Guid, string> GetUserDisplayName = (userId) =>
+    {
+        if (userId == Guid.Empty)
+        {
+            return "System";
+        }
+        
+        // Check cache first
+        if (userCache.ContainsKey(userId))
+        {
+            return userCache[userId];
+        }
+        
+        // Try to resolve user information
+        try
+        {
+            var recMan = new RecordManager();
+            var userRecord = recMan.Find(new EntityQuery("user", "username,email,first_name,last_name", EntityQuery.QueryEQ("id", userId)));
+            
+            if (userRecord != null && userRecord.Object != null && userRecord.Object.Data != null && userRecord.Object.Data.Count > 0)
+            {
+                var user = userRecord.Object.Data[0];
+                
+                // Build display name: prefer first/last name, fallback to username
+                var firstName = user["first_name"] as string ?? "";
+                var lastName = user["last_name"] as string ?? "";
+                var username = user["username"] as string ?? "";
+                
+                string displayName;
+                if (!string.IsNullOrWhiteSpace(firstName) || !string.IsNullOrWhiteSpace(lastName))
+                {
+                    displayName = $"{firstName} {lastName}".Trim();
+                }
+                else
+                {
+                    displayName = username;
+                }
+                
+                if (string.IsNullOrWhiteSpace(displayName))
+                {
+                    displayName = "Unknown User";
+                }
+                
+                userCache[userId] = displayName;
+                return displayName;
+            }
+        }
+        catch
+        {
+            // If lookup fails, return generic label
+        }
+        
+        userCache[userId] = "User";
+        return "User";
+    };
+    
+    // Helper function to format datetime
+    Func<object, string> FormatDateTime = (dateTimeValue) =>
+    {
+        if (dateTimeValue == null)
+        {
+            return "N/A";
+        }
+        
+        if (dateTimeValue is DateTime dt)
+        {
+            return dt.ToString("dd MMM yyyy HH:mm");
+        }
+        
+        return dateTimeValue.ToString();
+    };
+}
+
+@* 
+    Timeline container - populated via AJAX from GET /api/v3.0/p/approval/request/{id}/history
+    The service.js auto-initializes elements with data-approval-history-component attribute
+    and loads history data from the REST API endpoint per AC13 requirements.
+*@
+<div class="pc-approval-history" data-approval-history-component data-request-id="@requestId.ToString()">
+    @if (requestId == Guid.Empty)
+    {
+        @* No request ID - show static message *@
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No History Available</h5>
+                <p class="text-muted mb-0">No approval request specified.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        @* 
+            Loading state placeholder - will be replaced by service.js renderTimeline()
+            when data is loaded via GET /api/v3.0/p/approval/request/{requestId}/history
+        *@
+        <div id="approval-timeline-container" class="approval-timeline-ajax-container">
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-muted mb-2"></i>
+                <p class="text-muted mb-0">Loading approval history...</p>
+            </div>
+        </div>
+        
+        @* Refresh button for manual reload *@
+        <div class="mt-2 text-right">
+            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                    data-refresh-approval-history data-target=".pc-approval-history[data-request-id='@requestId.ToString()']">
+                <i class="fas fa-sync-alt mr-1"></i>Refresh
+            </button>
+        </div>
+    }
+</div>
+
+<style>
+    .pc-approval-history {
+        font-family: inherit;
+    }
+    
+    .approval-timeline .timeline-item {
+        position: relative;
+    }
+    
+    .approval-timeline .timeline-badge {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+    }
+    
+    .approval-timeline .timeline-content {
+        min-width: 0;
+    }
+    
+    .approval-timeline .timeline-content .card {
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: box-shadow 0.2s ease;
+    }
+    
+    .approval-timeline .timeline-content .card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    
+    .approval-timeline .card-header {
+        border-bottom: none;
+    }
+    
+    .approval-timeline .opacity-75 {
+        opacity: 0.85;
+    }
+    
+    .approval-timeline .font-weight-medium {
+        font-weight: 500;
+    }
+    
+    .approval-timeline .timeline-comments p {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    /* Responsive adjustments */
+    @@media (max-width: 576px) {
+        .approval-timeline .timeline-badge {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            font-size: 0.875rem;
+        }
+        
+        .approval-timeline .timeline-connector {
+            margin-left: 15px !important;
+        }
+        
+        .approval-timeline .card-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .approval-timeline .card-header small {
+            margin-top: 0.25rem;
+        }
+    }
+</style>
+
+@* Reference external service.js for page builder lifecycle events *@
+<script src="/_content/WebVella.Erp.Plugins.Approval/Components/PcApprovalHistory/service.js"></script>
