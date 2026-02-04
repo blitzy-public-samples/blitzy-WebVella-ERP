@@ -240,6 +240,21 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Workflow created successfully.";
                 response.Object = created;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return HTTP 403 Forbidden for permission failures per STORY-007 AC13
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
+            }
             catch (Exception ex)
             {
                 response.Success = false;
@@ -292,6 +307,21 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Workflow updated successfully.";
                 response.Object = updated;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return HTTP 403 Forbidden for permission failures per STORY-007 AC13
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
+            }
             catch (Exception ex)
             {
                 response.Success = false;
@@ -332,6 +362,21 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Success = true;
                 response.Message = "Workflow deleted successfully.";
                 response.Object = null;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return HTTP 403 Forbidden for permission failures per STORY-007 AC13
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -533,6 +578,21 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Approval request approved successfully.";
                 response.Object = updatedRequest;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return HTTP 403 Forbidden for permission failures per STORY-007 AC13
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
+            }
             catch (Exception ex)
             {
                 response.Success = false;
@@ -592,6 +652,21 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Approval request rejected successfully.";
                 response.Object = updatedRequest;
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Return HTTP 403 Forbidden for permission failures per STORY-007 AC13
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
+            }
             catch (Exception ex)
             {
                 response.Success = false;
@@ -650,6 +725,20 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Success = true;
                 response.Message = "Approval request delegated successfully.";
                 response.Object = updatedRequest;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -721,9 +810,12 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         /// <response code="401">If user is not authenticated.</response>
         /// <response code="403">If user does not have Manager or Administrator role.</response>
         /// <response code="500">If an error occurs during metrics calculation.</response>
+        /// <param name="days">Optional. Number of days to filter metrics by (7, 30, 90). If not specified, returns all-time metrics.</param>
+        /// <param name="fromDate">Optional. Start date for custom date range filter (ISO 8601 format).</param>
+        /// <param name="toDate">Optional. End date for custom date range filter (ISO 8601 format).</param>
         [Route("api/v3.0/p/approval/dashboard/metrics")]
         [HttpGet]
-        public ActionResult GetDashboardMetrics()
+        public ActionResult GetDashboardMetrics([FromQuery] int? days = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null)
         {
             var response = new ApprovalResponseModel();
 
@@ -746,8 +838,28 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                     return Json(response);
                 }
 
+                // STORY-009 AC3: Support date range filtering
+                // Determine the effective date range
+                DateTime effectiveFromDate = DateTime.MinValue;
+                DateTime effectiveToDate = DateTime.MaxValue;
+
+                // If days parameter is provided, calculate the date range
+                if (days.HasValue && days.Value > 0)
+                {
+                    effectiveToDate = DateTime.UtcNow;
+                    effectiveFromDate = effectiveToDate.AddDays(-days.Value);
+                }
+                // If custom date range is provided, use those
+                else if (fromDate.HasValue || toDate.HasValue)
+                {
+                    if (fromDate.HasValue)
+                        effectiveFromDate = fromDate.Value;
+                    if (toDate.HasValue)
+                        effectiveToDate = toDate.Value;
+                }
+
                 var metricsService = new DashboardMetricsService();
-                var metrics = metricsService.GetDashboardMetrics();
+                var metrics = metricsService.GetDashboardMetrics(userId.Value, effectiveFromDate, effectiveToDate);
 
                 response.Success = true;
                 response.Message = "Dashboard metrics retrieved successfully.";
@@ -855,11 +967,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Step created successfully.";
                 response.Object = createdStep;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -911,11 +1031,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Step updated successfully.";
                 response.Object = updatedStep;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -962,11 +1090,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Step deleted successfully.";
                 response.Object = null;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -1013,11 +1149,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Steps reordered successfully.";
                 response.Object = null;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -1121,11 +1265,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Rule created successfully.";
                 response.Object = createdRule;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -1177,11 +1329,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Rule updated successfully.";
                 response.Object = updatedRule;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {
@@ -1228,11 +1388,19 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
                 response.Message = "Rule deleted successfully.";
                 response.Object = null;
             }
-            catch (ValidationException ex)
+            catch (UnauthorizedAccessException ex)
             {
                 response.Success = false;
                 response.Message = ex.Message;
                 response.Object = null;
+                return StatusCode(403, response);
+            }
+            catch (ValidationException ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+                response.Errors = ex.Errors;
+                return Json(response);
             }
             catch (Exception ex)
             {

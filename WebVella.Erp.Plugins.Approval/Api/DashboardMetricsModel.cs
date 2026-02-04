@@ -1,4 +1,6 @@
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 
 namespace WebVella.Erp.Plugins.Approval.Api
 {
@@ -46,5 +48,68 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// </summary>
         [JsonProperty(PropertyName = "recentActivityCount")]
         public int RecentActivityCount { get; set; }
+
+        /// <summary>
+        /// Gets or sets the list of recent activity items showing the last 5 actions taken.
+        /// This provides a feed of recent approval workflow activity for the dashboard.
+        /// </summary>
+        [JsonProperty(PropertyName = "recentActivity")]
+        public List<RecentActivityItem> RecentActivity { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a single recent activity item for the dashboard activity feed.
+    /// Contains details about an approval action including who performed it and when.
+    /// </summary>
+    public class RecentActivityItem
+    {
+        /// <summary>
+        /// Gets or sets the unique identifier of the approval history record.
+        /// </summary>
+        [JsonProperty(PropertyName = "id")]
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the unique identifier of the approval request.
+        /// Used to link to the request details page.
+        /// </summary>
+        [JsonProperty(PropertyName = "requestId")]
+        public Guid RequestId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the action type (approved, rejected, delegated, etc.).
+        /// </summary>
+        [JsonProperty(PropertyName = "actionType")]
+        public string ActionType { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user ID who performed the action.
+        /// </summary>
+        [JsonProperty(PropertyName = "performedById")]
+        public Guid PerformedById { get; set; }
+
+        /// <summary>
+        /// Gets or sets the display name of the user who performed the action.
+        /// </summary>
+        [JsonProperty(PropertyName = "performedByName")]
+        public string PerformedByName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the timestamp when the action was performed.
+        /// </summary>
+        [JsonProperty(PropertyName = "performedOn")]
+        public DateTime PerformedOn { get; set; }
+
+        /// <summary>
+        /// Gets or sets optional comments associated with the action.
+        /// </summary>
+        [JsonProperty(PropertyName = "comments")]
+        public string Comments { get; set; }
+
+        /// <summary>
+        /// Gets or sets the link to view the request details.
+        /// </summary>
+        [JsonProperty(PropertyName = "requestLink")]
+        public string RequestLink { get; set; }
     }
 }

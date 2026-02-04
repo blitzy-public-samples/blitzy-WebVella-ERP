@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace WebVella.Erp.Plugins.Approval.Api
 {
@@ -49,14 +50,25 @@ namespace WebVella.Erp.Plugins.Approval.Api
         public object Object { get; set; }
 
         /// <summary>
+        /// Collection of validation errors when the operation fails due to validation issues.
+        /// </summary>
+        /// <value>
+        /// A list of validation error objects. Can be <c>null</c> if no validation errors occurred.
+        /// Typically contains WebVella.Erp.Exceptions.ValidationError objects when validation fails.
+        /// </value>
+        [JsonProperty(PropertyName = "errors")]
+        public object Errors { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ResponseModel"/> class
-        /// with default values: Success = false, Message = null, Object = null.
+        /// with default values: Success = false, Message = null, Object = null, Errors = null.
         /// </summary>
         public ResponseModel()
         {
             Success = false;
             Message = null;
             Object = null;
+            Errors = null;
         }
 
         /// <summary>

@@ -261,7 +261,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = "SELECT * FROM approval_rule WHERE workflow_id = @workflowId ORDER BY priority DESC";
+                // Order by threshold_value ASC per STORY-003 to enable proper threshold-based rule matching
+                var eqlCommand = "SELECT * FROM approval_rule WHERE workflow_id = @workflowId ORDER BY threshold_value ASC";
                 var eqlParams = new List<EqlParameter>() { new EqlParameter("workflowId", workflowId) };
                 var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
 
@@ -333,6 +334,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             // Validate field_name exists on target entity
             ValidateFieldExists(workflow.TargetEntityName, model.FieldName);
+
+            // Validate no threshold overlap with other rules per STORY-003 AC7
+            // Check if another rule for the same workflow and field has the same threshold_value
+            ValidateNoThresholdOverlap(model.WorkflowId, model.FieldName, model.ThresholdValue, model.Id);
 
             // Build the patch record for update
             var patchRecord = new EntityRecord();
@@ -670,6 +675,68 @@ namespace WebVella.Erp.Plugins.Approval.Services
             {
                 throw new ValidationException(
                     $"Unable to validate field '{fieldName}' on entity '{entityName}': {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Validates that no other rule for the same workflow and field has the same threshold_value.
+        /// This prevents overlapping thresholds which would cause ambiguous rule matching.
+        /// Per STORY-003 AC7 - rules cannot have overlapping thresholds.
+        /// </summary>
+        /// <param name="workflowId">The workflow ID to check for overlapping rules.</param>
+        /// <param name="fieldName">The field name to check for overlapping rules.</param>
+        /// <param name="thresholdValue">The threshold value to validate for uniqueness.</param>
+        /// <param name="excludeRuleId">Optional rule ID to exclude from the check (used during update operations).</param>
+        /// <exception cref="ValidationException">Thrown when another rule has the same threshold value.</exception>
+        private void ValidateNoThresholdOverlap(Guid workflowId, string fieldName, decimal thresholdValue, Guid? excludeRuleId = null)
+        {
+            try
+            {
+                // Query for existing rules with the same workflow, field, and threshold
+                var eqlCommand = @"SELECT id, threshold_value FROM approval_rule 
+                                   WHERE workflow_id = @workflowId 
+                                   AND field_name = @fieldName 
+                                   AND threshold_value = @thresholdValue";
+                
+                var eqlParams = new List<EqlParameter>
+                {
+                    new EqlParameter("workflowId", workflowId),
+                    new EqlParameter("fieldName", fieldName),
+                    new EqlParameter("thresholdValue", thresholdValue)
+                };
+
+                var eqlResult = new EqlCommand(eqlCommand, eqlParams).Execute();
+
+                if (eqlResult != null && eqlResult.Any())
+                {
+                    foreach (var record in eqlResult)
+                    {
+                        if (record.Properties.ContainsKey("id") && record["id"] != null)
+                        {
+                            var existingRuleId = (Guid)record["id"];
+                            
+                            // Skip if this is the rule being updated
+                            if (excludeRuleId.HasValue && existingRuleId == excludeRuleId.Value)
+                            {
+                                continue;
+                            }
+
+                            // Found an overlapping rule
+                            throw new ValidationException(
+                                $"A rule with threshold value '{thresholdValue}' already exists for field '{fieldName}' " +
+                                $"in this workflow. Rules cannot have overlapping thresholds per STORY-003 AC7.");
+                        }
+                    }
+                }
+            }
+            catch (ValidationException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                // Entity may not exist yet during plugin initialization
+                // Skip validation in this case
             }
         }
 

@@ -113,5 +113,50 @@ namespace WebVella.Erp.Plugins.Approval.Api
 		/// </summary>
 		[JsonProperty(PropertyName = "new_status")]
 		public string NewStatus { get; set; }
+
+		/// <summary>
+		/// Gets or sets the username of the user who performed this action.
+		/// Populated from user relation expansion for display purposes.
+		/// </summary>
+		[JsonProperty(PropertyName = "performer_username")]
+		public string PerformerUsername { get; set; }
+
+		/// <summary>
+		/// Gets or sets the first name of the user who performed this action.
+		/// Populated from user relation expansion for display purposes.
+		/// </summary>
+		[JsonProperty(PropertyName = "performer_first_name")]
+		public string PerformerFirstName { get; set; }
+
+		/// <summary>
+		/// Gets or sets the last name of the user who performed this action.
+		/// Populated from user relation expansion for display purposes.
+		/// </summary>
+		[JsonProperty(PropertyName = "performer_last_name")]
+		public string PerformerLastName { get; set; }
+
+		/// <summary>
+		/// Gets or sets the email of the user who performed this action.
+		/// Populated from user relation expansion for display purposes.
+		/// </summary>
+		[JsonProperty(PropertyName = "performer_email")]
+		public string PerformerEmail { get; set; }
+
+		/// <summary>
+		/// Gets the full display name of the performer, combining first and last name.
+		/// Returns username if first/last name are not available.
+		/// </summary>
+		[JsonIgnore]
+		public string PerformerDisplayName
+		{
+			get
+			{
+				if (!string.IsNullOrWhiteSpace(PerformerFirstName) || !string.IsNullOrWhiteSpace(PerformerLastName))
+				{
+					return $"{PerformerFirstName} {PerformerLastName}".Trim();
+				}
+				return PerformerUsername ?? string.Empty;
+			}
+		}
 	}
 }

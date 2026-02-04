@@ -190,7 +190,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     }
 
                     // Step 5: Log the 'submitted' action to history
-                    HistoryService.LogAction(requestId, firstStep.Id, ACTION_SUBMITTED, requestedBy, "Approval request submitted.", null, STATUS_PENDING);
+                    HistoryService.LogApprovalAction(requestId, firstStep.Id, ACTION_SUBMITTED, requestedBy, "Approval request submitted.", null, STATUS_PENDING);
 
                     connection.CommitTransaction();
 
@@ -340,7 +340,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                     // Step 7: Log the 'approved' action to history
                     var historyComments = string.IsNullOrWhiteSpace(comments) ? "Step approved." : comments;
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_APPROVED, userId, historyComments, STATUS_PENDING, newStatus);
+                    HistoryService.LogApprovalAction(requestId, currentStepId, ACTION_APPROVED, userId, historyComments, STATUS_PENDING, newStatus);
 
                     connection.CommitTransaction();
 
@@ -473,7 +473,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     {
                         historyComments += $". Comments: {comments}";
                     }
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_REJECTED, userId, historyComments, request.Status, STATUS_REJECTED);
+                    HistoryService.LogApprovalAction(requestId, currentStepId, ACTION_REJECTED, userId, historyComments, request.Status, STATUS_REJECTED);
 
                     connection.CommitTransaction();
 
@@ -603,7 +603,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     {
                         historyComments += $". Comments: {comments}";
                     }
-                    HistoryService.LogAction(requestId, currentStepId, ACTION_DELEGATED, userId, historyComments, request.Status, request.Status);
+                    HistoryService.LogApprovalAction(requestId, currentStepId, ACTION_DELEGATED, userId, historyComments, request.Status, request.Status);
 
                     connection.CommitTransaction();
 
@@ -1019,12 +1019,74 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
 
             var status = record["status"].ToString().ToLowerInvariant();
+            var requestId = record.Properties.ContainsKey("id") ? (Guid)record["id"] : Guid.Empty;
+            var currentStepId = record.Properties.ContainsKey("current_step_id") && record["current_step_id"] != null
+                ? (Guid?)record["current_step_id"]
+                : null;
+            var workflowId = record.Properties.ContainsKey("workflow_id") && record["workflow_id"] != null
+                ? (Guid)record["workflow_id"]
+                : Guid.Empty;
+            var performedBy = record.Properties.ContainsKey("updated_by") && record["updated_by"] != null
+                ? (Guid)record["updated_by"]
+                : (record.Properties.ContainsKey("requested_by") && record["requested_by"] != null
+                    ? (Guid)record["requested_by"]
+                    : Guid.Empty);
+
+            // STORY-005 AC8: Log all status transitions to audit trail
+            try
+            {
+                var historyService = new ApprovalHistoryService();
+                var actionType = status; // The status serves as the action type
+                var stepIdForHistory = currentStepId ?? Guid.Empty;
+                historyService.LogApprovalAction(requestId, stepIdForHistory, actionType, performedBy, null);
+            }
+            catch (Exception)
+            {
+                // Continue even if logging fails - don't block the main operation
+            }
 
             // Handle status-specific post-processing
             switch (status)
             {
                 case STATUS_APPROVED:
-                    HandleApprovalComplete(record);
+                    // STORY-005 AC9: Evaluate next step when status changes to approved
+                    try
+                    {
+                        if (currentStepId.HasValue && workflowId != Guid.Empty)
+                        {
+                            var routeService = new ApprovalRouteService();
+                            var nextStep = routeService.GetNextStep(workflowId, currentStepId.Value);
+                            
+                            if (nextStep != null)
+                            {
+                                // Advance to next step
+                                var patchRecord = new EntityRecord();
+                                patchRecord["id"] = requestId;
+                                patchRecord["current_step_id"] = nextStep.Id;
+                                patchRecord["status"] = STATUS_PENDING; // Reset to pending for next approver
+                                RecMan.UpdateRecord(ENTITY_NAME, patchRecord);
+                            }
+                            else
+                            {
+                                // No more steps - workflow is complete
+                                var patchRecord = new EntityRecord();
+                                patchRecord["id"] = requestId;
+                                patchRecord["completed_on"] = DateTime.UtcNow;
+                                RecMan.UpdateRecord(ENTITY_NAME, patchRecord);
+                                HandleApprovalComplete(record);
+                            }
+                        }
+                        else
+                        {
+                            // Final step or no step info - mark as complete
+                            HandleApprovalComplete(record);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Continue even if step advancement fails
+                        HandleApprovalComplete(record);
+                    }
                     break;
 
                 case STATUS_REJECTED:

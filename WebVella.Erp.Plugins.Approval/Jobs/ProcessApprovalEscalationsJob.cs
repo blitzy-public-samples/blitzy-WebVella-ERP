@@ -370,7 +370,7 @@ namespace WebVella.Erp.Plugins.Approval.Jobs
             }
 
             // Step 2: Log the escalation action to history with status tracking
-            historyService.LogAction(
+            historyService.LogApprovalAction(
                 requestId: requestId,
                 stepId: currentStepId,
                 action: ACTION_ESCALATED,

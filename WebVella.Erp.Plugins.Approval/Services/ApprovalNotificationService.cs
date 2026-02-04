@@ -58,24 +58,28 @@ namespace WebVella.Erp.Plugins.Approval.Services
 		private const string NOTIFICATION_TYPE_ESCALATION = "escalation";
 
 		/// <summary>
-		/// Email status for pending delivery (matches email entity schema: 0=Pending).
+		/// Email status for pending delivery (matches email entity schema: "0"=Pending).
+		/// Mail plugin uses string values, not integers.
 		/// </summary>
-		private const int STATUS_PENDING = 0;
+		private const string STATUS_PENDING = "0";
 
 		/// <summary>
-		/// Email status for sent/delivered (matches email entity schema: 1=Sent).
+		/// Email status for sent/delivered (matches email entity schema: "1"=Sent).
+		/// Mail plugin uses string values, not integers.
 		/// </summary>
-		private const int STATUS_SENT = 1;
+		private const string STATUS_SENT = "1";
 
 		/// <summary>
-		/// Email status for aborted/failed delivery (matches email entity schema: 2=Aborted).
+		/// Email status for aborted/failed delivery (matches email entity schema: "2"=Aborted).
+		/// Mail plugin uses string values, not integers.
 		/// </summary>
-		private const int STATUS_ABORTED = 2;
+		private const string STATUS_ABORTED = "2";
 
 		/// <summary>
-		/// Normal email priority for the Mail plugin (matches email entity schema: 1=Normal).
+		/// Normal email priority for the Mail plugin (matches email entity schema: "1"=Normal).
+		/// Mail plugin uses string values, not integers.
 		/// </summary>
-		private const int PRIORITY_NORMAL = 1;
+		private const string PRIORITY_NORMAL = "1";
 
 		#endregion
 
@@ -494,14 +498,41 @@ namespace WebVella.Erp.Plugins.Approval.Services
 				}
 
 				// Format recipients as JSON array as required by Mail plugin
-				var recipientsJson = $"[{{\n  \"email\": \"{recipientEmail}\"\n}}]";
+				// EmailAddress class expects "address" not "email" per Issue 12
+				var recipientsJson = $"[{{\"address\":\"{recipientEmail}\"}}]";
 
 				// Convert plain text body to HTML
 				var htmlBody = $"<html><body><pre style=\"font-family: Arial, sans-serif; white-space: pre-wrap;\">{System.Net.WebUtility.HtmlEncode(body)}</pre></body></html>";
 
+				// Get sender details from SMTP service with try-catch for missing smtp_service table
+				string senderJson;
+				try
+				{
+					var smtpCommand = "SELECT default_from_email, default_from_name FROM smtp_service WHERE id = @id";
+					var smtpParams = new List<EqlParameter> { new EqlParameter("id", serviceId) };
+					var smtpResult = new EqlCommand(smtpCommand, smtpParams).Execute();
+					
+					var fromEmail = smtpResult != null && smtpResult.Any() && smtpResult[0]["default_from_email"] != null
+						? (string)smtpResult[0]["default_from_email"]
+						: "";
+					var fromName = smtpResult != null && smtpResult.Any() && smtpResult[0]["default_from_name"] != null
+						? (string)smtpResult[0]["default_from_name"]
+						: "";
+
+					senderJson = $"{{\"name\":\"{fromName}\",\"address\":\"{fromEmail}\"}}";
+				}
+				catch (Exception ex)
+				{
+					// smtp_service table might not exist if Mail plugin not installed
+					// Log error and use default sender
+					System.Diagnostics.Debug.WriteLine($"Failed to get SMTP service details: {ex.Message}");
+					senderJson = $"{{\"name\":\"Approval System\",\"address\":\"noreply@system.local\"}}";
+				}
+
 				var record = new EntityRecord();
 				record["id"] = emailId;
 				record["service_id"] = serviceId;
+				record["sender"] = senderJson;
 				record["recipients"] = recipientsJson;
 				record["subject"] = subject;
 				record["content_html"] = htmlBody;

@@ -43,13 +43,13 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// </summary>
         /// <param name="requestId">The unique identifier of the approval request.</param>
         /// <param name="stepId">The unique identifier of the approval step at which the action was performed.</param>
-        /// <param name="action">The type of action performed (submitted, approved, rejected, delegated, escalated).</param>
+        /// <param name="action">The type of action performed (submitted, approved, rejected, delegated, escalated, recalled, commented).</param>
         /// <param name="performedBy">The unique identifier of the user who performed the action.</param>
         /// <param name="comments">Optional comments or notes associated with the action.</param>
         /// <returns>The created ApprovalHistoryModel representing the logged action.</returns>
         /// <exception cref="ValidationException">Thrown when the record creation fails.</exception>
         /// <exception cref="ArgumentException">Thrown when requestId, stepId, or performedBy is empty.</exception>
-        public ApprovalHistoryModel LogAction(Guid requestId, Guid stepId, string action, Guid performedBy, string comments = null, string previousStatus = null, string newStatus = null)
+        public ApprovalHistoryModel LogApprovalAction(Guid requestId, Guid stepId, string action, Guid performedBy, string comments = null, string previousStatus = null, string newStatus = null)
         {
             // Validate required parameters
             if (requestId == Guid.Empty)
@@ -72,8 +72,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 throw new ArgumentException("Action cannot be null or empty.", nameof(action));
             }
 
-            // Validate action value is one of the allowed values
-            var validActions = new[] { "submitted", "approved", "rejected", "delegated", "escalated" };
+            // Validate action value is one of the allowed values per STORY-004 AC13
+            var validActions = new[] { "submitted", "approved", "rejected", "delegated", "escalated", "recalled", "commented" };
             if (!validActions.Contains(action.ToLowerInvariant()))
             {
                 throw new ArgumentException(
@@ -134,11 +134,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Retrieves all history records for a specific approval request, ordered by performed_on ascending.
-        /// This provides the complete audit trail for the request from submission to completion.
+        /// Retrieves all history records for a specific approval request, ordered by performed_on descending (most recent first).
+        /// This provides the complete audit trail for the request from submission to completion with user details.
         /// </summary>
         /// <param name="requestId">The unique identifier of the approval request.</param>
-        /// <returns>A list of ApprovalHistoryModel records for the request, ordered chronologically.</returns>
+        /// <returns>A list of ApprovalHistoryModel records for the request, ordered by most recent first.</returns>
         /// <exception cref="ArgumentException">Thrown when requestId is empty.</exception>
         public List<ApprovalHistoryModel> GetByRequestId(Guid requestId)
         {
@@ -149,10 +149,15 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
             try
             {
-                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status 
+                // Query includes user relation expansion for performer details per STORY-004 AC14
+                var eqlCommand = @"SELECT id, request_id, step_id, action, performed_by, performed_on, comments, previous_status, new_status,
+                                   $user_1n_history_performed_by.username,
+                                   $user_1n_history_performed_by.first_name,
+                                   $user_1n_history_performed_by.last_name,
+                                   $user_1n_history_performed_by.email
                                    FROM approval_history 
                                    WHERE request_id = @requestId 
-                                   ORDER BY performed_on ASC";
+                                   ORDER BY performed_on DESC";
 
                 var eqlParams = new List<EqlParameter>
                 {
@@ -166,7 +171,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     return new List<ApprovalHistoryModel>();
                 }
 
-                return eqlResult.Select(record => MapToModel(record)).ToList();
+                return eqlResult.Select(record => MapToModelWithUserDetails(record)).ToList();
             }
             catch (Exception ex)
             {
@@ -406,6 +411,56 @@ namespace WebVella.Erp.Plugins.Approval.Services
             if (record.Properties.ContainsKey("new_status") && record["new_status"] != null)
             {
                 model.NewStatus = (string)record["new_status"];
+            }
+
+            return model;
+        }
+
+        /// <summary>
+        /// Maps an EntityRecord with user relation expansion to an ApprovalHistoryModel DTO.
+        /// Includes performer user details (username, first_name, last_name, email) per STORY-004 AC14.
+        /// </summary>
+        /// <param name="record">The EntityRecord retrieved from the database with user relation expansion.</param>
+        /// <returns>An ApprovalHistoryModel populated with values from the record including user details.</returns>
+        private ApprovalHistoryModel MapToModelWithUserDetails(EntityRecord record)
+        {
+            // Start with basic mapping
+            var model = MapToModel(record);
+            if (model == null)
+            {
+                return null;
+            }
+
+            // Map performer user details from relation expansion
+            // WebVella EQL returns nested relations as a List of EntityRecords
+            var userRelationKey = "$user_1n_history_performed_by";
+            if (record.Properties.ContainsKey(userRelationKey) && record[userRelationKey] != null)
+            {
+                var userRecords = record[userRelationKey] as List<EntityRecord>;
+                if (userRecords != null && userRecords.Count > 0)
+                {
+                    var userRecord = userRecords[0];
+                    
+                    if (userRecord.Properties.ContainsKey("username") && userRecord["username"] != null)
+                    {
+                        model.PerformerUsername = (string)userRecord["username"];
+                    }
+                    
+                    if (userRecord.Properties.ContainsKey("first_name") && userRecord["first_name"] != null)
+                    {
+                        model.PerformerFirstName = (string)userRecord["first_name"];
+                    }
+                    
+                    if (userRecord.Properties.ContainsKey("last_name") && userRecord["last_name"] != null)
+                    {
+                        model.PerformerLastName = (string)userRecord["last_name"];
+                    }
+                    
+                    if (userRecord.Properties.ContainsKey("email") && userRecord["email"] != null)
+                    {
+                        model.PerformerEmail = (string)userRecord["email"];
+                    }
+                }
             }
 
             return model;

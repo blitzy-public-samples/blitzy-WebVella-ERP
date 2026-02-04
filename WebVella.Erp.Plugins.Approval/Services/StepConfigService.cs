@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WebVella.Erp.Api;
 using WebVella.Erp.Api.Models;
+using WebVella.Erp.Database;
 using WebVella.Erp.Eql;
 using WebVella.Erp.Exceptions;
 using WebVella.Erp.Plugins.Approval.Api;
@@ -420,21 +421,44 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 }
             }
 
-            // Update step_order for each step based on list position
-            int newOrder = 1;
-            foreach (var stepId in stepIdsInOrder)
+            // Use transaction to ensure atomic operation per STORY-003 AC5
+            // Ensures contiguous step_order numbering (1, 2, 3...) on success
+            // Rolls back all changes if any update fails
+            using (var connection = DbContext.Current.CreateConnection())
             {
-                var patchRecord = new EntityRecord();
-                patchRecord["id"] = stepId;
-                patchRecord["step_order"] = newOrder;
-
-                var response = RecMan.UpdateRecord(ENTITY_NAME, patchRecord);
-                if (!response.Success)
+                try
                 {
-                    throw new ValidationException($"Failed to update step order for step '{stepId}': {response.Message}");
-                }
+                    connection.BeginTransaction();
 
-                newOrder++;
+                    // Update step_order for each step based on list position
+                    int newOrder = 1;
+                    foreach (var stepId in stepIdsInOrder)
+                    {
+                        var patchRecord = new EntityRecord();
+                        patchRecord["id"] = stepId;
+                        patchRecord["step_order"] = newOrder;
+
+                        var response = RecMan.UpdateRecord(ENTITY_NAME, patchRecord);
+                        if (!response.Success)
+                        {
+                            throw new ValidationException($"Failed to update step order for step '{stepId}': {response.Message}");
+                        }
+
+                        newOrder++;
+                    }
+
+                    connection.CommitTransaction();
+                }
+                catch (ValidationException)
+                {
+                    connection.RollbackTransaction();
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    connection.RollbackTransaction();
+                    throw new ValidationException($"Failed to reorder steps: {ex.Message}");
+                }
             }
         }
 
