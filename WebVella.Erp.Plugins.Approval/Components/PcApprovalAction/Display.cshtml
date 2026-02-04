@@ -1,11 +1,16 @@
 @*
     Display.cshtml - Runtime display view for PcApprovalAction PageComponent
     
-    Renders approval action buttons (Approve, Reject, Delegate) with a Bootstrap modal dialog
-    for entering comments. Buttons are conditionally displayed based on:
+    Renders approval action buttons (Approve, Reject, Delegate) with Bootstrap modal dialogs
+    for entering comments and selecting delegate users. Buttons are conditionally displayed based on:
     - Component options configuration (ShowApproveButton, ShowRejectButton, ShowDelegateButton)
     - User authorization (CanApprove from ViewBag)
     - Request status (only shown for pending requests)
+    
+    Modal IDs are static to work with service.js selectors:
+    - #approvalApproveModal - Modal for approve confirmation with optional comments
+    - #approvalRejectModal - Modal for reject confirmation with required comments
+    - #approvalDelegateModal - Modal for delegation with user selection
     
     ViewBag Data Expected:
     - Options: PcApprovalActionOptions component configuration
@@ -37,7 +42,7 @@
 @using System
 
 @{
-    // Cast ViewBag data to strongly-typed variables
+    // Cast ViewBag data to strongly-typed variables with null safety
     var options = ViewBag.Options as PcApprovalAction.PcApprovalActionOptions ?? new PcApprovalAction.PcApprovalActionOptions();
     var node = ViewBag.Node as PageBodyNode;
     var erpRequest = ViewBag.RequestContext as ErpRequestContext;
@@ -45,7 +50,7 @@
     var currentUser = ViewBag.CurrentUser;
     var currentUserJson = ViewBag.CurrentUserJson as string ?? "{}";
     
-    // Request data
+    // Request data with null safety
     var canApprove = ViewBag.CanApprove as bool? ?? false;
     var requestId = ViewBag.RequestId as Guid?;
     var requestStatus = ViewBag.RequestStatus as string ?? "";
@@ -58,31 +63,38 @@
     
     // Generate unique component ID for DOM elements
     var componentId = node != null ? $"pc-approval-action-{node.Id}" : $"pc-approval-action-{Guid.NewGuid():N}";
-    var modalId = $"approval-action-modal-{node?.Id ?? Guid.NewGuid()}";
-    var delegateModalId = $"approval-delegate-modal-{node?.Id ?? Guid.NewGuid()}";
     
     // API base URL for approval actions
     var apiBaseUrl = "/api/v3.0/p/approval";
+    
+    // Determine if approval requires comments based on options
+    var requireCommentsOnApprove = options.RequireCommentsOnApprove;
+    var requireCommentsOnDelegate = options.RequireCommentsOnDelegate;
 }
 
-<div id="@componentId" class="pc-approval-action-container" 
+<!-- Approval Action Component Container -->
+<div id="@componentId" 
+     class="pc-approval-action-container approval-action-container" 
      data-request-id="@requestId" 
      data-api-base-url="@apiBaseUrl"
      data-current-user-json="@Html.Raw(System.Web.HttpUtility.HtmlEncode(currentUserJson))"
-     data-request-json="@Html.Raw(System.Web.HttpUtility.HtmlEncode(requestJson))">
+     data-request-json="@Html.Raw(System.Web.HttpUtility.HtmlEncode(requestJson))"
+     data-require-comments-on-approve="@requireCommentsOnApprove.ToString().ToLowerInvariant()"
+     data-require-comments-on-delegate="@requireCommentsOnDelegate.ToString().ToLowerInvariant()">
     
     @if (requestId.HasValue && requestId.Value != Guid.Empty)
     {
         @if (canPerformActions)
         {
+            <!-- Action Buttons Group -->
             <div class="btn-group approval-action-buttons" role="group" aria-label="Approval Actions">
                 @if (options.ShowApproveButton)
                 {
                     <button type="button" 
                             class="btn btn-success approval-action-approve-btn"
                             data-request-id="@requestId"
-                            data-requires-comment="@options.RequireCommentsOnApprove.ToString().ToLowerInvariant()"
-                            data-modal-id="@modalId"
+                            data-requires-comment="@requireCommentsOnApprove.ToString().ToLowerInvariant()"
+                            data-show-confirmation="@(requireCommentsOnApprove ? "true" : "false")"
                             title="Approve this request">
                         <i class="fas fa-check"></i> Approve
                     </button>
@@ -92,7 +104,6 @@
                     <button type="button" 
                             class="btn btn-danger approval-action-reject-btn"
                             data-request-id="@requestId"
-                            data-modal-id="@modalId"
                             title="Reject this request">
                         <i class="fas fa-times"></i> Reject
                     </button>
@@ -102,24 +113,29 @@
                     <button type="button" 
                             class="btn btn-secondary approval-action-delegate-btn"
                             data-request-id="@requestId"
-                            data-requires-comment="@options.RequireCommentsOnDelegate.ToString().ToLowerInvariant()"
-                            data-modal-id="@delegateModalId"
+                            data-requires-comment="@requireCommentsOnDelegate.ToString().ToLowerInvariant()"
                             title="Delegate this request to another user">
                         <i class="fas fa-user-plus"></i> Delegate
                     </button>
                 }
             </div>
+            
+            <!-- Hidden input for request ID (fallback for JS) -->
+            <input type="hidden" name="approval_request_id" value="@requestId" />
         }
         else if (!canApprove && isPending)
         {
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-info-circle"></i> You are not authorized to approve this request.
+            <!-- Not authorized message -->
+            <div class="alert alert-info mb-0 py-2">
+                <i class="fas fa-info-circle me-1"></i> 
+                You are not authorized to approve this request.
             </div>
         }
         else if (!isPending)
         {
-            <div class="alert alert-secondary mb-0">
-                <i class="fas fa-check-circle"></i> 
+            <!-- Already processed message -->
+            <div class="alert alert-secondary mb-0 py-2">
+                <i class="fas fa-check-circle me-1"></i> 
                 This request has been 
                 <strong>@(string.IsNullOrEmpty(requestStatus) ? "processed" : requestStatus)</strong>.
             </div>
@@ -127,99 +143,340 @@
     }
     else
     {
-        <div class="alert alert-warning mb-0">
-            <i class="fas fa-exclamation-triangle"></i> No approval request selected.
+        <!-- No request selected message -->
+        <div class="alert alert-warning mb-0 py-2">
+            <i class="fas fa-exclamation-triangle me-1"></i> 
+            No approval request selected.
         </div>
     }
 </div>
 
-@* Comment Modal for Approve/Reject Actions *@
-<div class="modal fade" id="@modalId" tabindex="-1" role="dialog" aria-labelledby="@(modalId)-label" aria-hidden="true">
+@* ============================================================================
+   Approve Modal - Confirmation dialog for approve action with optional comments
+   Modal ID: approvalApproveModal (static ID expected by service.js)
+   ============================================================================ *@
+<div class="modal fade" id="approvalApproveModal" tabindex="-1" role="dialog" 
+     aria-labelledby="approvalApproveModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="@(modalId)-label">
-                    <span class="approval-action-modal-title">Confirm Action</span>
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="approvalApproveModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>Confirm Approval
                 </h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <p class="mb-3">Are you sure you want to approve this request?</p>
                 <form class="approval-action-form">
-                    <input type="hidden" name="action_type" class="approval-action-type" value="" />
-                    <input type="hidden" name="request_id" value="@requestId" />
-                    <div class="form-group">
-                        <label for="@(modalId)-comments">Comments</label>
-                        <textarea class="form-control approval-comments" 
-                                  id="@(modalId)-comments" 
+                    <div class="mb-3">
+                        <label for="approveComments" class="form-label">
+                            Comments 
+                            @if (requireCommentsOnApprove)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">(optional)</span>
+                            }
+                        </label>
+                        <textarea class="form-control" 
+                                  id="approveComments" 
                                   name="comments" 
                                   rows="4" 
-                                  placeholder="Enter your comments (optional for approval, required for rejection)..."></textarea>
-                        <small class="form-text text-muted approval-comments-hint">
-                            <span class="approve-hint d-none">Comments are @(options.RequireCommentsOnApprove ? "required" : "optional") for approval.</span>
-                            <span class="reject-hint d-none">Comments are required for rejection.</span>
+                                  placeholder="Enter any comments for this approval..."
+                                  @(requireCommentsOnApprove ? "required" : "")></textarea>
+                        <div class="invalid-feedback">Please provide comments for this approval.</div>
+                        <small class="form-text text-muted">
+                            @if (requireCommentsOnApprove)
+                            {
+                                <text>Comments are required for approval.</text>
+                            }
+                            else
+                            {
+                                <text>Add any notes or comments to accompany your approval decision.</text>
+                            }
                         </small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary approval-action-submit-btn">
-                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                    <span class="btn-text">Submit</span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-success approval-action-approve-confirm-btn">
+                    <span class="approval-loading-spinner fa fa-spinner fa-spin me-1 d-none"></span>
+                    <i class="fas fa-check me-1"></i>
+                    <span class="btn-text">Approve</span>
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-@* Delegate Modal for selecting delegate user *@
-<div class="modal fade" id="@delegateModalId" tabindex="-1" role="dialog" aria-labelledby="@(delegateModalId)-label" aria-hidden="true">
+@* ============================================================================
+   Reject Modal - Confirmation dialog for reject action with required comments
+   Modal ID: approvalRejectModal (static ID expected by service.js)
+   ============================================================================ *@
+<div class="modal fade" id="approvalRejectModal" tabindex="-1" role="dialog" 
+     aria-labelledby="approvalRejectModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="@(delegateModalId)-label">
-                    <i class="fas fa-user-plus"></i> Delegate Request
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="approvalRejectModalLabel">
+                    <i class="fas fa-times-circle me-2"></i>Confirm Rejection
                 </h5>
-                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form class="approval-delegate-form">
-                    <input type="hidden" name="request_id" value="@requestId" />
-                    <div class="form-group">
-                        <label for="@(delegateModalId)-user">Delegate To <span class="text-danger">*</span></label>
-                        <select class="form-control approval-delegate-user-select" 
-                                id="@(delegateModalId)-user" 
-                                name="delegate_to_user_id" 
-                                required>
-                            <option value="">-- Select User --</option>
-                            @* Users will be loaded dynamically via JavaScript *@
-                        </select>
-                        <small class="form-text text-muted">Select the user to delegate this approval request to.</small>
-                    </div>
-                    <div class="form-group mt-3">
-                        <label for="@(delegateModalId)-comments">Comments</label>
-                        <textarea class="form-control approval-delegate-comments" 
-                                  id="@(delegateModalId)-comments" 
+                <p class="mb-3">Are you sure you want to reject this request?</p>
+                <form class="approval-action-form">
+                    <div class="mb-3">
+                        <label for="rejectComments" class="form-label">
+                            Rejection Reason <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control" 
+                                  id="rejectComments" 
                                   name="comments" 
-                                  rows="3" 
-                                  placeholder="Enter delegation reason or notes..."></textarea>
+                                  rows="4" 
+                                  placeholder="Please provide a reason for rejection..."
+                                  required></textarea>
+                        <div class="invalid-feedback">Please provide a reason for rejection.</div>
                         <small class="form-text text-muted">
-                            Comments are @(options.RequireCommentsOnDelegate ? "required" : "optional") for delegation.
+                            A rejection reason is required to help the requester understand why the request was not approved.
                         </small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary approval-delegate-submit-btn">
-                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger approval-action-reject-confirm-btn">
+                    <span class="approval-loading-spinner fa fa-spinner fa-spin me-1 d-none"></span>
+                    <i class="fas fa-times me-1"></i>
+                    <span class="btn-text">Reject</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ============================================================================
+   Delegate Modal - Dialog for selecting a user to delegate the request to
+   Modal ID: approvalDelegateModal (static ID expected by service.js)
+   ============================================================================ *@
+<div class="modal fade" id="approvalDelegateModal" tabindex="-1" role="dialog" 
+     aria-labelledby="approvalDelegateModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title" id="approvalDelegateModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Delegate Request
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Select a user to delegate this approval request to:</p>
+                <form class="approval-delegate-form">
+                    <div class="mb-3">
+                        <label for="delegateUserId" class="form-label">
+                            Delegate To <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select approval-delegate-user-select" 
+                                id="delegateUserId" 
+                                name="delegate_to_user_id" 
+                                required>
+                            <option value="">-- Select User --</option>
+                            @* Users will be dynamically loaded via JavaScript from /api/v3.0/p/approval/users *@
+                        </select>
+                        <div class="invalid-feedback">Please select a user to delegate to.</div>
+                        <small class="form-text text-muted">
+                            Choose the user who will take over this approval request.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="delegateComments" class="form-label">
+                            Comments 
+                            @if (requireCommentsOnDelegate)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">(optional)</span>
+                            }
+                        </label>
+                        <textarea class="form-control approval-delegate-comments" 
+                                  id="delegateComments" 
+                                  name="comments" 
+                                  rows="3" 
+                                  placeholder="Enter delegation reason or notes..."
+                                  @(requireCommentsOnDelegate ? "required" : "")></textarea>
+                        <div class="invalid-feedback">Please provide a reason for delegation.</div>
+                        <small class="form-text text-muted">
+                            @if (requireCommentsOnDelegate)
+                            {
+                                <text>Comments are required for delegation.</text>
+                            }
+                            else
+                            {
+                                <text>Provide context for why you are delegating this request.</text>
+                            }
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary approval-action-delegate-confirm-btn">
+                    <span class="approval-loading-spinner fa fa-spinner fa-spin me-1 d-none"></span>
+                    <i class="fas fa-user-plus me-1"></i>
                     <span class="btn-text">Delegate</span>
                 </button>
             </div>
         </div>
     </div>
 </div>
+
+@* ============================================================================
+   Inline Script for Component Initialization
+   Loads users for delegation dropdown when modal is about to be shown
+   ============================================================================ *@
+<script type="text/javascript">
+    (function() {
+        'use strict';
+        
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            var delegateModal = document.getElementById('approvalDelegateModal');
+            if (delegateModal) {
+                // Load users when delegate modal is about to be shown
+                delegateModal.addEventListener('show.bs.modal', function() {
+                    loadDelegateUsers();
+                });
+            }
+        });
+        
+        /**
+         * Loads available users for the delegation dropdown
+         * Makes an AJAX call to fetch users who can be delegated to
+         */
+        function loadDelegateUsers() {
+            var userSelect = document.getElementById('delegateUserId');
+            if (!userSelect) return;
+            
+            // Check if users are already loaded
+            if (userSelect.options.length > 1) return;
+            
+            // Show loading state
+            userSelect.innerHTML = '<option value="">Loading users...</option>';
+            userSelect.disabled = true;
+            
+            // Fetch users from API
+            var apiBaseUrl = '@apiBaseUrl';
+            fetch(apiBaseUrl + '/users', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to load users');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                userSelect.innerHTML = '<option value="">-- Select User --</option>';
+                
+                // Handle different response structures
+                var users = data.object || data.users || data || [];
+                if (Array.isArray(users)) {
+                    users.forEach(function(user) {
+                        var option = document.createElement('option');
+                        option.value = user.id || user.Id;
+                        option.textContent = user.username || user.Username || user.name || user.Name || user.email || user.Email || 'Unknown User';
+                        userSelect.appendChild(option);
+                    });
+                }
+                
+                userSelect.disabled = false;
+            })
+            .catch(function(error) {
+                console.error('Error loading users:', error);
+                userSelect.innerHTML = '<option value="">-- Error loading users --</option>';
+                userSelect.disabled = false;
+                
+                // Show error notification if toastr is available
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Failed to load users for delegation. Please try again.', 'Error');
+                }
+            });
+        }
+    })();
+</script>
+
+@* ============================================================================
+   Component-specific CSS Styles
+   ============================================================================ *@
+<style type="text/css">
+    /* Approval action container styling */
+    .pc-approval-action-container {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Action buttons group styling */
+    .approval-action-buttons .btn {
+        margin-right: 0.25rem;
+    }
+    
+    .approval-action-buttons .btn:last-child {
+        margin-right: 0;
+    }
+    
+    /* Button icon spacing */
+    .approval-action-buttons .btn i,
+    .approval-action-buttons .btn .fas {
+        margin-right: 0.375rem;
+    }
+    
+    /* Loading spinner styling */
+    .approval-loading-spinner {
+        display: inline-block;
+    }
+    
+    .approval-loading-spinner.d-none {
+        display: none !important;
+    }
+    
+    /* Modal header icon alignment */
+    .modal-header .modal-title i {
+        vertical-align: middle;
+    }
+    
+    /* Form validation feedback */
+    .approval-action-form .invalid-feedback,
+    .approval-delegate-form .invalid-feedback {
+        display: none;
+    }
+    
+    .approval-action-form .is-invalid ~ .invalid-feedback,
+    .approval-delegate-form .is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+    
+    /* Alert styling within component */
+    .pc-approval-action-container .alert {
+        font-size: 0.9rem;
+    }
+    
+    /* Button close white variant for dark headers */
+    .btn-close-white {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+</style>
