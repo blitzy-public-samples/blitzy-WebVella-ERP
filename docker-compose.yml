@@ -1,0 +1,194 @@
+# =============================================================================
+# Docker Compose — WebVella ERP Security Scanning Environment
+# =============================================================================
+#
+# Defines the web (WebVella ERP .NET 9.0) and db (PostgreSQL 16) services for
+# the security validation workflow documented at docs/security/docker-setup.md.
+#
+# This file does not ship with the upstream WebVella ERP repository and was
+# authored specifically for the security assessment initiative.
+#
+# Usage:
+#   docker compose up -d --build                          # Build and start
+#   docker compose build --no-cache web && docker compose up -d web  # Rebuild after patch
+#   docker compose down -v                                # Stop and remove volumes
+#
+# Health check (wait for HTTP 200 from the metadata endpoint):
+#   curl -sf http://localhost:5000/api/v3/en_US/meta
+#
+# Authentication (obtain JWT Bearer token for scanner configuration):
+#   curl -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
+#     -H "Content-Type: application/json" \
+#     -d '{"email":"erp@webvella.com","password":"erp"}'
+#
+# Source: WebVella.Erp.Site/WebVella.Erp.Site.csproj  (net9.0, InProcess hosting)
+# Source: WebVella.Erp.Site/Config.json               (connection string, JWT settings)
+# Source: WebVella.Erp.Site/Startup.cs                (CORS, authentication, config loading)
+# =============================================================================
+
+# Compose file format version for broad compatibility with Docker Compose V2.
+# Docker Compose V2 (2.20+) uses the Compose Specification and technically
+# does not require this key, but it is included for backward compatibility
+# with tooling that expects it.
+version: "3.8"
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 Database Service
+  # ---------------------------------------------------------------------------
+  # Provides the PostgreSQL 16 data store required by WebVella ERP.
+  # Credentials and database name are configured to match the connection string
+  # injected into the web service at startup.
+  #
+  # The upstream Config.json points to a development server at 192.168.0.190:5436
+  # with test/test credentials. This service replaces that external dependency
+  # with a local containerised instance using webvella/webvella credentials and
+  # the same database name (erp3).
+  #
+  # Source: WebVella.Erp.Site/Config.json — Settings:ConnectionString
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16
+    container_name: webvella-db
+    environment:
+      # PostgreSQL initialisation variables — the postgres:16 entrypoint uses
+      # these to create the role and database on first startup.
+      POSTGRES_USER: webvella
+      POSTGRES_PASSWORD: webvella
+      POSTGRES_DB: erp3
+    ports:
+      # Expose PostgreSQL on the host for external tooling (e.g., pgAdmin,
+      # psql, or security scanner database inspection).
+      - "5432:5432"
+    volumes:
+      # Named volume for data persistence across container restarts.
+      # Run 'docker compose down -v' to wipe and start fresh.
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - webvella-net
+    healthcheck:
+      # pg_isready returns 0 when PostgreSQL is accepting connections.
+      # The web service depends_on this check so it only starts after the
+      # database is ready.
+      test: ["CMD-SHELL", "pg_isready -U webvella -d erp3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # WebVella ERP Application Service (.NET 9.0)
+  # ---------------------------------------------------------------------------
+  # Builds the WebVella ERP application using the multi-stage Dockerfile at
+  # the repository root and configures it to connect to the containerised
+  # PostgreSQL instance.
+  #
+  # Connection String Override Strategy:
+  #   The application loads its configuration exclusively from config.json via
+  #   a custom ConfigurationBuilder that does NOT call AddEnvironmentVariables()
+  #   (see Startup.cs:L42-43):
+  #
+  #       string configPath = "config.json";
+  #       Configuration = new ConfigurationBuilder()
+  #           .SetBasePath(Directory.GetCurrentDirectory())
+  #           .AddJsonFile(configPath)
+  #           .Build();
+  #
+  #   Because of this, environment variables alone cannot override the
+  #   connection string. The entrypoint is therefore overridden with a bash
+  #   command that uses sed to patch config.json at container startup,
+  #   replacing the development server address (192.168.0.190:5436) and
+  #   credentials (test/test) with the Docker service name (db:5432) and the
+  #   credentials configured on the db service (webvella/webvella).
+  #
+  # ASPNETCORE_* Variables:
+  #   ASPNETCORE_URLS and ASPNETCORE_ENVIRONMENT are recognised by the .NET
+  #   hosting infrastructure itself and work regardless of ConfigurationBuilder
+  #   setup. They are set explicitly here for clarity, even though the
+  #   Dockerfile already provides defaults.
+  #
+  # Source: WebVella.Erp.Site/Startup.cs:L42-43 (config loading)
+  # Source: WebVella.Erp.Site/Config.json         (default connection string)
+  # Source: Dockerfile                            (multi-stage build, port 5000)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webvella-web
+    ports:
+      # Map container port 5000 to host port 5000.
+      # Security scanners (ZAP, Nuclei) target http://localhost:5000.
+      - "5000:5000"
+    depends_on:
+      db:
+        # Wait for PostgreSQL to be healthy before starting the web service.
+        # This prevents startup failures caused by the application trying to
+        # connect to a database that is not yet accepting connections.
+        condition: service_healthy
+    environment:
+      # Bind Kestrel to all interfaces on port 5000 so the container is
+      # reachable from the host and from other containers on the network.
+      ASPNETCORE_URLS: "http://+:5000"
+      # Development mode enables the developer exception page
+      # (Startup.cs:L147-150), which is appropriate for security scanning
+      # as it surfaces detailed error information for assessment.
+      ASPNETCORE_ENVIRONMENT: "Development"
+    # Override the Dockerfile ENTRYPOINT to inject connection string
+    # configuration before launching the application.
+    #
+    # The sed command performs the following replacement in config.json:
+    #   Before: Server=192.168.0.190;Port=5436;User Id=test;Password=test
+    #   After:  Server=db;Port=5432;User Id=webvella;Password=webvella
+    #
+    # 'exec' replaces the bash process with dotnet so that the .NET runtime
+    # becomes PID 1 and receives SIGTERM correctly on container stop.
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        sed -i
+        's|Server=192.168.0.190;Port=5436;User Id=test;Password=test|Server=db;Port=5432;User Id=webvella;Password=webvella|g'
+        /app/config.json &&
+        exec dotnet WebVella.Erp.Site.dll
+    networks:
+      - webvella-net
+    healthcheck:
+      # Poll the WebVella ERP metadata endpoint to confirm the application
+      # has fully started and can serve API requests.
+      # -s (silent) suppresses progress output; -f (fail) returns non-zero
+      # on HTTP error codes (4xx/5xx).
+      # Source: AAP Section 0.1.1 — health validation endpoint
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/api/v3/en_US/meta || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      # Allow 60 seconds for initial startup before health checks begin.
+      # On first run the application creates the database schema and seeds
+      # default data (admin user erp@webvella.com, roles, entities), which
+      # can take longer than a typical restart.
+      start_period: 60s
+    restart: unless-stopped
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+# pgdata — Persists PostgreSQL data files across container restarts so that
+# the database does not need to be re-initialised on every start.
+# Use 'docker compose down -v' to destroy the volume and start fresh.
+# =============================================================================
+volumes:
+  pgdata:
+    driver: local
+
+# =============================================================================
+# Custom Network
+# =============================================================================
+# webvella-net — Dedicated bridge network for container-to-container
+# communication. The web service resolves the db service by its Docker DNS
+# hostname 'db'. Security scanning containers (OWASP ZAP, Nuclei) can join
+# this network via --network webvella-net to reach the web service directly.
+# =============================================================================
+networks:
+  webvella-net:
+    driver: bridge
