@@ -55,7 +55,7 @@ Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L1-4313`
 
 Each finding in this report uses the following standardized structure. Copy this template when adding new findings discovered during scan execution.
 
-```
+```text
 ### Finding WV-SEC-XXX: [Title]
 
 | Field | Value |
@@ -84,6 +84,7 @@ Each finding in this report uses the following standardized structure. Copy this
 **Scanner Re-Scan Confirmation**: PASS / FAIL — Description of re-scan result
 
 **Source Citation**: `Source: File.cs:LNNN-NNN`
+
 ```
 
 ---
@@ -125,7 +126,8 @@ public async Task<IActionResult> GetJwtToken([FromBody] JwtTokenLoginModel model
     }
     return DoResponse(response);
 }
-```
+
+```text
 
 **Remediated Code (After Patch)**:
 
@@ -149,6 +151,7 @@ public async Task<IActionResult> GetJwtToken([FromBody] JwtTokenLoginModel model
     }
     return DoResponse(response);
 }
+
 ```
 
 **Remediation Pattern Applied**: Error Response Sanitization
@@ -184,11 +187,13 @@ public static string EncryptText(string text, SymmetricAlgorithm algorithm)
 {
     return EncryptText(text, CryptKey, algorithm);
 }
-```
+
+```text
 
 ```csharp
 // Source: WebVella.Erp.Web/Security/AuthToken.cs:L94 (commented out but shows DES usage pattern)
 // string tokenJson = CryptoUtility.DecryptDES(wrapper.Token);
+
 ```
 
 **Remediated Code (After Patch)**:
@@ -233,7 +238,8 @@ public class CryptoUtility
         return Convert.ToBase64String(result);
     }
 }
-```
+
+```text
 
 > **Note**: This remediation uses AES-256-GCM (authenticated encryption) as the primary approach, consistent with [Remediation Guide — Pattern 4](remediation-guide.md). AES-GCM provides both confidentiality and integrity verification, which is superior to unauthenticated modes like AES-CBC.
 
@@ -287,12 +293,14 @@ public static class PasswordUtil
         return (0 == comparer.Compare(hashOfInput, hash));
     }
 }
+
 ```
 
 ```csharp
 // Source: WebVella.Erp/Api/SecurityManager.cs:L84 (caller)
 var encryptedPassword = PasswordUtil.GetMd5Hash(password);
-```
+
+```text
 
 **Remediated Code (After Patch)**:
 
@@ -337,6 +345,7 @@ public static class PasswordUtil
         return StringComparer.OrdinalIgnoreCase.Compare(sBuilder.ToString(), hash) == 0;
     }
 }
+
 ```
 
 **Remediation Pattern Applied**: Password Hashing Upgrade (MD5 → bcrypt)
@@ -379,7 +388,8 @@ services.AddCors(options =>
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
-```
+
+```text
 
 **Remediated Code (After Patch)**:
 
@@ -397,6 +407,7 @@ services.AddCors(options =>
             .AllowAnyHeader()
             .AllowCredentials());
 });
+
 ```
 
 **Remediation Pattern Applied**: CORS Origin Whitelisting
@@ -438,7 +449,8 @@ services.AddCors(options =>
     }
   }
 }
-```
+
+```text
 
 **Remediated Code (After Patch)**:
 
@@ -458,6 +470,7 @@ services.AddCors(options =>
     }
   }
 }
+
 ```
 
 ```csharp
@@ -467,7 +480,8 @@ Configuration = new ConfigurationBuilder()
     .AddJsonFile(configPath)
     .AddEnvironmentVariables("WEBVELLA_") // Reads WEBVELLA_* env vars
     .Build();
-```
+
+```text
 
 **Remediation Pattern Applied**: Secret Externalization
 
@@ -603,6 +617,7 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 | Parameter | Value |
@@ -622,6 +637,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer <TOKEN>" \
   -jsonl -o nuclei-results.jsonl
+
 ```
 
 | Parameter | Value |

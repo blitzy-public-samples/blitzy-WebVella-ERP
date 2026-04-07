@@ -39,12 +39,14 @@ Pull the official Nuclei Docker image from Docker Hub:
 
 ```bash
 docker pull projectdiscovery/nuclei:latest
-```
+
+```text
 
 Verify the installed version:
 
 ```bash
 docker run --rm projectdiscovery/nuclei:latest -version
+
 ```
 
 Expected output should confirm **Nuclei v3.7.1** with templates **v10.3.9**.
@@ -61,7 +63,8 @@ go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 
 # Verify installation
 nuclei -version
-```
+
+```text
 
 Alternatively, download a pre-compiled binary from the [Nuclei GitHub Releases](https://github.com/projectdiscovery/nuclei/releases) page for your target platform (Linux, macOS, Windows).
 
@@ -75,13 +78,15 @@ docker run --rm projectdiscovery/nuclei:latest -update-templates
 
 # Binary-based template update
 nuclei -update-templates
+
 ```
 
 After updating, verify the templates version is **v10.3.9** with **9,821+** templates:
 
 ```bash
 docker run --rm projectdiscovery/nuclei:latest -version
-```
+
+```text
 
 > **Source**: [Nuclei Templates Repository](https://github.com/projectdiscovery/nuclei-templates) — Community-maintained templates v10.3.9 covering CVE detection, misconfiguration, exposed panels, default credentials, and technology-specific checks.
 
@@ -123,6 +128,7 @@ Use both template packs together for comprehensive coverage:
 
 ```bash
 -tags aspnet,api
+
 ```
 
 This configures Nuclei to execute all templates tagged with either `aspnet` OR `api`, providing both technology-specific and general API vulnerability detection in a single scan pass.
@@ -143,12 +149,14 @@ Use the `-H` flag to inject the Bearer token as a custom HTTP header:
 
 ```bash
 -H "Authorization: Bearer <TOKEN>"
-```
+
+```text
 
 Replace `<TOKEN>` with the JWT token obtained from the authentication endpoint. For example, if you stored the token in a shell variable:
 
 ```bash
 -H "Authorization: Bearer $TOKEN"
+
 ```
 
 ### Token Acquisition (Quick Reference)
@@ -161,7 +169,8 @@ TOKEN=$(curl -sf -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo "Token acquired: ${TOKEN:0:20}..."
-```
+
+```text
 
 > **Cross-reference**: See [Authentication](authentication.md) for the complete token acquisition flow, error handling, and token refresh procedure.
 
@@ -172,6 +181,7 @@ Before launching the full scan, verify that the token grants authenticated acces
 ```bash
 curl -sf -H "Authorization: Bearer $TOKEN" \
   http://localhost:5000/api/v3/en_US/meta/entity/list | jq '.success'
+
 ```
 
 Expected output: `true`. If this returns `false` or an error, the token may be expired or invalid. Re-acquire the token before proceeding.
@@ -186,7 +196,8 @@ Point Nuclei at the WebVella ERP base URL:
 
 ```bash
 -u http://localhost:5000
-```
+
+```text
 
 Nuclei will automatically discover and crawl API paths from the base URL, applying each selected template against the target.
 
@@ -210,6 +221,7 @@ Filter scan output to report only **CRITICAL** and **HIGH** severity findings, a
 
 ```bash
 -severity critical,high
+
 ```
 
 ### Severity Level Definitions
@@ -230,7 +242,8 @@ To also capture MEDIUM and LOW findings for a comprehensive baseline, omit the s
 ```bash
 # Capture all severity levels
 -severity critical,high,medium,low,info
-```
+
+```text
 
 ---
 
@@ -242,6 +255,7 @@ Use JSONL (JSON Lines) format for machine-parseable output that integrates direc
 
 ```bash
 -jsonl -o nuclei-results.jsonl
+
 ```
 
 Each line in the output file is a self-contained JSON object representing a single finding. This format is ideal for:
@@ -271,7 +285,8 @@ A single finding entry in `nuclei-results.jsonl` has the following structure:
   "matched-at": "http://localhost:5000/api/v3/en_US/eql",
   "timestamp": "2024-01-01T12:00:00.000Z"
 }
-```
+
+```text
 
 Key fields for finding analysis:
 
@@ -300,6 +315,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer <TOKEN>" \
   -jsonl -o nuclei-results.jsonl
+
 ```
 
 Replace `<TOKEN>` with the JWT Bearer token obtained from the authentication endpoint.
@@ -315,7 +331,8 @@ docker run --network host -v $(pwd)/nuclei-work:/output \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer <TOKEN>" \
   -jsonl -o /output/nuclei-results.jsonl
-```
+
+```text
 
 This mounts the local `./nuclei-work/` directory into the container at `/output/`, ensuring `nuclei-results.jsonl` is available on the host after the scan completes.
 
@@ -344,6 +361,7 @@ docker run --network host -v $(pwd)/nuclei-work:/output \
 echo "Scan complete. Results:"
 wc -l nuclei-work/nuclei-results.jsonl
 cat nuclei-work/nuclei-results.jsonl | jq -r '.info.severity' | sort | uniq -c | sort -rn
+
 ```
 
 ### Command-Line Flag Reference
@@ -433,13 +451,15 @@ if [ -f nuclei-work/nuclei-results.jsonl ]; then
   echo "Nuclei Finding Summary:"
   cat nuclei-work/nuclei-results.jsonl | jq -r '.info.severity' | sort | uniq -c | sort -rn
 fi
-```
+
+```text
 
 Save this script as `run-parallel-scans.sh` and execute:
 
 ```bash
 chmod +x run-parallel-scans.sh
 ./run-parallel-scans.sh
+
 ```
 
 ### Resource Considerations
@@ -476,7 +496,8 @@ docker run --network host -v $(pwd)/nuclei-work:/output \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer $TOKEN" \
   -jsonl -o /output/nuclei-results.jsonl
-```
+
+```text
 
 > **Cross-reference**: See [ZAP Scan Configuration](zap-scan-config.md) for the complete ZAP command-line details and Automation Framework YAML plan.
 
@@ -490,13 +511,15 @@ Nuclei templates are regularly updated by the ProjectDiscovery community to add 
 
 ```bash
 docker run --rm projectdiscovery/nuclei:latest -update-templates
+
 ```
 
 ### Update Command (Binary)
 
 ```bash
 nuclei -update-templates
-```
+
+```text
 
 ### Version Verification
 
@@ -504,13 +527,15 @@ After updating, confirm the templates version:
 
 ```bash
 docker run --rm projectdiscovery/nuclei:latest -version
+
 ```
 
 Expected output should include:
 
-```
+```text
 Nuclei Engine Version: v3.7.1
 Nuclei Templates Version: v10.3.9
+
 ```
 
 > **Note**: Templates version **v10.3.9** includes **9,821+ community templates** covering CVE detection, misconfiguration, exposed panels, default credentials, technology fingerprinting, and fuzzing payloads. The `aspnet` and `api` tags select a relevant subset focused on ASP.NET Core and REST API vulnerabilities.
@@ -534,7 +559,8 @@ docker run --network host \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer $TOKEN" \
   -jsonl -o /output/nuclei-results.jsonl
-```
+
+```text
 
 This ensures every scan run uses the exact same template definitions, producing consistent and comparable results across assessments.
 
@@ -572,6 +598,7 @@ cat nuclei-work/nuclei-results.jsonl | jq -r '.template-id' | sort | uniq -c | s
 
 # View first finding in detail
 head -1 nuclei-work/nuclei-results.jsonl | jq '.'
+
 ```
 
 ---

@@ -29,7 +29,8 @@ Verify your Docker installation:
 ```bash
 docker --version
 docker compose version
-```
+
+```text
 
 ---
 
@@ -40,6 +41,7 @@ Clone the WebVella ERP repository from GitHub and navigate into the project dire
 ```bash
 git clone https://github.com/WebVella/WebVella-ERP.git
 cd WebVella-ERP
+
 ```
 
 > **Source**: Repository URL from `README.md`. The README describes WebVella ERP as "a free and open-source web software" targeting ASP.NET Core 9 and PostgreSQL 16.
@@ -55,6 +57,7 @@ Create a `Dockerfile` at the repository root. This uses a multi-stage build to p
 **Runtime stage**: Uses the ASP.NET Core 9.0 runtime image (`mcr.microsoft.com/dotnet/aspnet:9.0`) for a minimal production footprint.
 
 Key project details informing the Dockerfile:
+
 - **Target framework**: `net9.0` (`Source: WebVella.Erp.Site/WebVella.Erp.Site.csproj:L4`)
 - **Hosting model**: InProcess (`Source: WebVella.Erp.Site/WebVella.Erp.Site.csproj:L15`)
 - **Project references**: The site project references `WebVella.Erp.Plugins.SDK`, `WebVella.Erp.Web`, and `WebVella.Erp` (`Source: WebVella.Erp.Site/WebVella.Erp.Site.csproj:L42-44`), so the entire repository must be copied into the build context.
@@ -215,7 +218,8 @@ USER appuser
 # The application uses WebHost.CreateDefaultBuilder with Kestrel as the
 # web server (Program.cs), configured through Startup.cs.
 ENTRYPOINT ["dotnet", "WebVella.Erp.Site.dll"]
-```
+
+```text
 
 ### Dockerfile Explanation
 
@@ -248,10 +252,13 @@ services:
       POSTGRES_PASSWORD: webvella
       POSTGRES_DB: erp3
     ports:
+
       - "5432:5432"
     volumes:
+
       - pgdata:/var/lib/postgresql/data
     networks:
+
       - webvella-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U webvella -d erp3"]
@@ -266,6 +273,7 @@ services:
       dockerfile: Dockerfile
     container_name: webvella-web
     ports:
+
       - "5000:5000"
     depends_on:
       db:
@@ -275,12 +283,14 @@ services:
       ASPNETCORE_ENVIRONMENT: "Development"
     entrypoint: ["/bin/bash", "-c"]
     command:
+
       - >-
         sed -i
         's|Server=192.168.0.190;Port=5436;User Id=test;Password=test|Server=db;Port=5432;User Id=webvella;Password=webvella|g'
         /app/config.json &&
         exec dotnet WebVella.Erp.Site.dll
     networks:
+
       - webvella-net
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:5000/api/v3/en_US/meta || exit 1"]
@@ -297,6 +307,7 @@ volumes:
 networks:
   webvella-net:
     driver: bridge
+
 ```
 
 ### Docker Compose Service Details
@@ -329,7 +340,8 @@ The `docker-compose.yml` handles the connection string override **automatically 
 sed -i \
   's|Server=192.168.0.190;Port=5436;User Id=test;Password=test|Server=db;Port=5432;User Id=webvella;Password=webvella|g' \
   /app/config.json
-```
+
+```text
 
 This replaces the default development server connection details with the Docker Compose service values:
 
@@ -344,8 +356,10 @@ This replaces the default development server connection details with the Docker 
 The resulting connection string after the `sed` replacement is:
 
 ```
+
 Server=db;Port=5432;User Id=webvella;Password=webvella;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;
-```
+
+```text
 
 > **Source**: `docker-compose.yml` — `web.command` field. The `sed` command runs before `exec dotnet WebVella.Erp.Site.dll`, so the patched `config.json` is loaded by the application at startup.
 
@@ -375,6 +389,7 @@ Build and start all containers in detached mode:
 
 ```bash
 docker compose up -d --build
+
 ```
 
 ### What Happens During Startup
@@ -397,20 +412,23 @@ docker compose logs -f web
 
 # Follow only the database logs
 docker compose logs -f db
-```
+
+```text
 
 ### Verifying Container Status
 
 ```bash
 docker compose ps
+
 ```
 
 Expected output when both services are running:
 
-```
+```text
 NAME                    SERVICE   STATUS          PORTS
 webvella-erp-web-1      web       Up (healthy)    0.0.0.0:5000->5000/tcp
 webvella-erp-db-1       db        Up (healthy)    0.0.0.0:5432->5432/tcp
+
 ```
 
 ---
@@ -419,8 +437,9 @@ webvella-erp-db-1       db        Up (healthy)    0.0.0.0:5432->5432/tcp
 
 After the containers are running, validate that the WebVella ERP API is fully initialized by polling the metadata endpoint:
 
-```
+```text
 GET /api/v3/en_US/meta
+
 ```
 
 ### Automated Polling Script
@@ -433,7 +452,8 @@ until curl -sf http://localhost:5000/api/v3/en_US/meta > /dev/null 2>&1; do
   sleep 5
 done
 echo "WebVella ERP is ready!"
-```
+
+```text
 
 ### Polling with Retry Limit
 
@@ -454,6 +474,7 @@ done
 
 echo "ERROR: WebVella ERP did not start within $((MAX_ATTEMPTS * SLEEP_INTERVAL)) seconds"
 exit 1
+
 ```
 
 ### Expected Health Check Response
@@ -468,7 +489,8 @@ A successful health check returns HTTP 200 with a JSON body containing entity me
   "errors": [],
   "object": { ... }
 }
-```
+
+```text
 
 > **Source**: The response envelope format follows the structure documented in `docs/developer/web-api/response.md` with `success`, `message`, `timestamp`, `errors`, and `object` fields.
 
@@ -487,6 +509,7 @@ A successful health check returns HTTP 200 with a JSON body containing entity me
 ```bash
 # Verify the current connection string
 grep -i "connectionstring" WebVella.Erp.Site/Config.json
+
 ```
 
 ### Port 5000 Already in Use
@@ -499,8 +522,10 @@ grep -i "connectionstring" WebVella.Erp.Site/Config.json
 
 ```yaml
 ports:
+
   - "8080:5000"  # Map host port 8080 to container port 5000
-```
+
+```text
 
 Then access the application at `http://localhost:8080` instead.
 
@@ -519,6 +544,7 @@ docker compose logs db
 # Reset the database volume (WARNING: deletes all data)
 docker compose down -v
 docker compose up -d --build
+
 ```
 
 ### Application Startup Timeout
@@ -535,7 +561,8 @@ docker compose logs -f web
 
 # Look for lines indicating schema creation or seed data insertion
 docker compose logs web | grep -i "init\|seed\|creat\|migrat"
-```
+
+```text
 
 ### Config.json Not Found at Startup
 
@@ -549,6 +576,7 @@ Configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile(configPath)
     .Build();
+
 ```
 
 **Resolution**: Verify the `Config.json` file exists and has the correct casing. On case-sensitive file systems (Linux), the file must be lowercase `config.json`. In the repository, it is stored as `Config.json` — the .NET `AddJsonFile` method is case-sensitive on Linux.
@@ -556,13 +584,15 @@ Configuration = new ConfigurationBuilder()
 ```bash
 # Check file casing in the publish output
 docker compose exec web ls -la /app/ | grep -i config
-```
+
+```text
 
 If the file is missing or has wrong casing, rebuild with a Dockerfile modification:
 
 ```dockerfile
 # Add after COPY --from=build /app/publish .
 RUN if [ -f Config.json ] && [ ! -f config.json ]; then cp Config.json config.json; fi
+
 ```
 
 ### Scanner Cannot Reach the Application
@@ -579,13 +609,15 @@ docker run --network host ghcr.io/zaproxy/zaproxy:stable ...
 
 # Nuclei with host networking
 docker run --network host projectdiscovery/nuclei:latest ...
-```
+
+```text
 
 Alternatively, connect the scanner container to the `webvella-net` network (Docker Compose prefixes network names with the project directory name — use `docker network ls` to find the exact name):
 
 ```bash
 docker run --network webvella-erp_webvella-net \
   projectdiscovery/nuclei:latest -u http://web:5000 ...
+
 ```
 
 ---
@@ -602,7 +634,8 @@ graph LR
     C["Host Machine"] -->|"HTTP :5000"| A
     C -->|"PostgreSQL :5432"| B
     D["ZAP / Nuclei<br/>--network host"] -->|"HTTP :5000"| A
-```
+
+```text
 
 **Network flow**:
 
@@ -654,6 +687,7 @@ Update the `Dockerfile`:
 FROM mcr.microsoft.com/dotnet/sdk:9.0.14 AS build
 # ...
 FROM mcr.microsoft.com/dotnet/aspnet:9.0.14
+
 ```
 
 Update `docker-compose.yml`:
@@ -662,7 +696,8 @@ Update `docker-compose.yml`:
 services:
   db:
     image: postgres:16.13
-```
+
+```text
 
 ### Option B: Pin to sha256 Digests (Strongest Reproducibility)
 
@@ -677,6 +712,7 @@ docker inspect --format='{{index .RepoDigests 0}}' mcr.microsoft.com/dotnet/aspn
 
 docker pull postgres:16.13
 docker inspect --format='{{index .RepoDigests 0}}' postgres:16.13
+
 ```
 
 Then reference the digest directly in the `Dockerfile`:
@@ -685,6 +721,7 @@ Then reference the digest directly in the `Dockerfile`:
 FROM mcr.microsoft.com/dotnet/sdk:9.0.14@sha256:<digest> AS build
 # ...
 FROM mcr.microsoft.com/dotnet/aspnet:9.0.14@sha256:<digest>
+
 ```
 
 ### Recommendation

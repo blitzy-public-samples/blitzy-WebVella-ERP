@@ -58,12 +58,14 @@ Quick start:
 
 ```bash
 docker compose up -d --build
+
 ```
 
 Once the containers are running, poll the health endpoint until the application is ready:
 
 ```bash
 curl -sf http://localhost:5000/api/v3/en_US/meta
+
 ```
 
 For detailed Docker setup instructions, including environment configuration and troubleshooting, see the [Docker Environment Setup](../../security/docker-setup.md) documentation.
@@ -73,6 +75,7 @@ For detailed Docker setup instructions, including environment configuration and 
 A comprehensive security validation workflow has been documented for WebVella ERP, covering dynamic application security testing (DAST) with OWASP ZAP and Nuclei scanners.
 
 The security documentation covers:
+
 - Docker environment setup for security scanning
 - JWT authentication for authenticated scans
 - OWASP ZAP and Nuclei scan configuration
@@ -81,4 +84,3 @@ The security documentation covers:
 - Final security assessment reporting with CWE references
 
 See the [Security Assessment Overview](../../security/README.md) for the complete security validation workflow documentation.
-

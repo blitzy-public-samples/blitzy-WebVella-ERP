@@ -49,6 +49,7 @@ All remediation patterns follow ASP.NET Core secure coding conventions: paramete
 **Affected File**: `WebVella.Erp.Web/Controllers/WebApiController.cs`
 
 **Affected Endpoints**:
+
 - `POST /api/v3/en_US/eql` (line 63)
 - `POST /api/v3/en_US/eql-ds` (line 97)
 - `POST /api/v3/en_US/eql-ds-select2` (line 190)
@@ -97,6 +98,7 @@ public ActionResult EqlQueryAction([FromBody] EqlQuery model)
 
     return Json(response);
 }
+
 ```
 
 ### Remediated Code (AFTER)
@@ -149,6 +151,7 @@ public ActionResult EqlQueryAction([FromBody] EqlQuery model)
 
     return Json(response);
 }
+
 ```
 
 ### Explanation
@@ -171,6 +174,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -tags sqli -severity critical,high \
   -H "Authorization: Bearer <TOKEN>" \
   -jsonl -o nuclei-eql-rescan.jsonl
+
 ```
 
 **Expected result**: Re-scan output contains zero CRITICAL or HIGH findings for the `/eql` endpoint.
@@ -184,6 +188,7 @@ docker run --network host projectdiscovery/nuclei:latest \
 **Severity**: HIGH
 
 **Affected Files**:
+
 - `WebVella.Erp.Web/Controllers/WebApiController.cs` — class-level `[Authorize]` at line 35
 - `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — entirely commented out (all 146 lines)
 
@@ -204,6 +209,7 @@ public class WebApiController : ApiControllerBase
     // All 60+ endpoints inherit this single [Authorize] attribute
     // No per-endpoint role checks exist
 }
+
 ```
 
 ```csharp
@@ -217,6 +223,7 @@ public class WebApiController : ApiControllerBase
 //    var identity = principal.Identity as ErpIdentity;
 //    return identity != null;  // No role check — any authenticated user passes
 //}
+
 ```
 
 ### Remediated Code (AFTER)
@@ -278,6 +285,7 @@ public class WebApiController : ApiControllerBase
         return DoResponse(response);
     }
 }
+
 ```
 
 ```csharp
@@ -358,6 +366,7 @@ namespace WebVella.Erp.Web.Security
         }
     }
 }
+
 ```
 
 ### Explanation
@@ -382,6 +391,7 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 **Expected result**: Re-scan confirms no IDOR or BOLA findings on entity/record endpoints.
@@ -428,6 +438,7 @@ public IActionResult UploadFileManagerCKEditor(IFormFile upload)
         string vMessage = "";
         // VULNERABLE: Unencoded user-controlled values injected into HTML/JavaScript
         var vOutput = @"<html><body><script>window.parent.CKEDITOR.tools.callFunction("
+
             + CKEditorFuncNum + ", \"" + url + "\", \"" + vMessage
             + "\");</script></body></html>";
 
@@ -438,11 +449,13 @@ public IActionResult UploadFileManagerCKEditor(IFormFile upload)
         new LogService().Create(Diagnostics.LogType.Error, "TErpApi:UploadFileManagerCKEditor", ex);
         // VULNERABLE: ex.Message injected directly into HTML response
         var vOutput = @"<html><body><script>window.parent.CKEDITOR.tools.callFunction("
+
             + CKEditorFuncNum + ", \"\", \"" + ex.Message
             + "\");</script></body></html>";
         return Content(vOutput, "text/html");
     }
 }
+
 ```
 
 ### Remediated Code (AFTER)
@@ -491,6 +504,7 @@ public IActionResult UploadFileManagerCKEditor(IFormFile upload)
         return Content(vOutput, "text/html");
     }
 }
+
 ```
 
 For JSON API responses, apply encoding to user-supplied string fields before serialization:
@@ -504,6 +518,7 @@ string safeValue = HtmlEncoder.Default.Encode(userSuppliedValue);
 
 // In any endpoint that returns user-supplied string data in JavaScript contexts:
 string safeJsValue = JavaScriptEncoder.Default.Encode(userSuppliedValue);
+
 ```
 
 ### Explanation
@@ -528,6 +543,7 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 **Expected result**: Re-scan confirms zero XSS findings on CKEditor upload endpoints.
@@ -579,6 +595,7 @@ namespace WebVella.Erp.Utilities
 
 // Caller pattern (from AuthToken.cs, commented out, line 143):
 // Token = CryptoUtility.EncryptDES(JsonConvert.SerializeObject(token, ...));
+
 ```
 
 ### Remediated Code (AFTER)
@@ -687,6 +704,7 @@ namespace WebVella.Erp.Utilities
         }
     }
 }
+
 ```
 
 ### Explanation
@@ -712,6 +730,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -tags crypto -severity critical,high \
   -H "Authorization: Bearer <TOKEN>" \
   -jsonl -o nuclei-crypto-rescan.jsonl
+
 ```
 
 **Expected result**: Re-scan shows no findings related to weak cryptographic algorithms.
@@ -768,6 +787,7 @@ namespace WebVella.Erp.Utilities
         }
     }
 }
+
 ```
 
 ### Remediated Code (AFTER)
@@ -869,6 +889,7 @@ namespace WebVella.Erp.Utilities
         }
     }
 }
+
 ```
 
 ### Explanation
@@ -891,6 +912,7 @@ curl -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
   -d '{"email":"erp@webvella.com","password":"erp"}'
 # Expected: HTTP 200 with JWT token in response
+
 ```
 
 **Expected result**: Authentication succeeds with existing credentials; new password hashes stored in bcrypt format.
@@ -930,6 +952,7 @@ services.AddCors(options =>
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
+
 ```
 
 ### Remediated Code (AFTER)
@@ -967,6 +990,7 @@ services.AddCors(options =>
         }
     });
 });
+
 ```
 
 Add the following to `Config.json` under `"Settings"`:
@@ -977,6 +1001,7 @@ Add the following to `Config.json` under `"Settings"`:
         "AllowedOrigins": "https://your-domain.com,https://admin.your-domain.com"
     }
 }
+
 ```
 
 ### Explanation
@@ -1005,6 +1030,7 @@ curl -sI -H "Origin: http://localhost:5000" \
   http://localhost:5000/api/v3/en_US/meta \
   | grep -i "access-control"
 # Expected: Access-Control-Allow-Origin: http://localhost:5000
+
 ```
 
 **Expected result**: CORS headers are only returned for whitelisted origins; requests from unauthorized origins receive no CORS headers.
@@ -1020,6 +1046,7 @@ curl -sI -H "Origin: http://localhost:5000" \
 **Affected File**: `WebVella.Erp.Web/Controllers/WebApiController.cs`
 
 **Affected Lines**:
+
 - JWT token endpoint: lines 4283–4288
 - JWT token refresh endpoint: lines 4302–4307
 - Multiple other endpoints with the same pattern (e.g., GetJobs at line 3437, GetSnippetNames at line 4262)
@@ -1080,6 +1107,7 @@ public async Task<IActionResult> GetNewJwtToken([FromBody] JwtTokenModel model)
     }
     return DoResponse(response);
 }
+
 ```
 
 ### Remediated Code (AFTER)
@@ -1136,6 +1164,7 @@ public async Task<IActionResult> GetNewJwtToken([FromBody] JwtTokenModel model)
     }
     return DoResponse(response);
 }
+
 ```
 
 ### Explanation
@@ -1147,6 +1176,7 @@ The remediation is straightforward but critical:
 3. **Pattern consistency**: This same pattern (`e.Message + e.StackTrace`) appears in multiple catch blocks throughout `WebApiController.cs` (e.g., `GetJobs` at line 3437, `GetSnippetNames` at line 4262). Each instance should be remediated with the same approach: log server-side, return generic message.
 
 **Additional instances requiring the same remediation** (search for `e.Message + e.StackTrace` in the controller):
+
 - Line 4262: `GetSnippetNames` error handler
 - Line 3437: `GetJobs` error handler
 - Other error handlers that concatenate exception messages with stack traces
@@ -1170,6 +1200,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -u http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -tags exposure -severity critical,high,medium \
   -jsonl -o nuclei-infodisclosure-rescan.jsonl
+
 ```
 
 **Expected result**: API error responses contain only generic messages; no stack traces, file paths, or internal class names are exposed.
@@ -1185,6 +1216,7 @@ docker run --network host projectdiscovery/nuclei:latest \
 **Affected File**: `WebVella.Erp.Web/Controllers/WebApiController.cs`
 
 **Affected Endpoints**:
+
 - `POST /fs/upload/` (line 3327)
 - `POST /fs/upload-user-file-multiple/` (line 4041)
 - `POST /fs/upload-file-multiple/` (line 4134)
@@ -1250,6 +1282,7 @@ public IActionResult MoveFile([FromBody] JObject submitObj)
         Url = movedFile.FilePath, Filename = fileName
     }));
 }
+
 ```
 
 ### Remediated Code (AFTER)
@@ -1354,6 +1387,7 @@ public IActionResult MoveFile([FromBody] JObject submitObj)
         Url = movedFile.FilePath, Filename = targetFileName
     }));
 }
+
 ```
 
 ### Explanation
@@ -1400,6 +1434,7 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 **Expected result**: File upload scanners confirm no unrestricted upload, path traversal, or denial-of-service findings.
@@ -1429,6 +1464,7 @@ until curl -sf http://localhost:5000/api/v3/en_US/meta > /dev/null 2>&1; do
     sleep 5
 done
 echo "Application is ready."
+
 ```
 
 ### Step 3: Re-authenticate
@@ -1441,6 +1477,7 @@ TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -d '{"email":"erp@webvella.com","password":"erp"}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['object']['token'])")
 echo "Token: $TOKEN"
+
 ```
 
 ### Step 4: Run Targeted Re-Scan
@@ -1463,6 +1500,7 @@ docker run --network host projectdiscovery/nuclei:latest \
   -tags <RELEVANT_TAGS> -severity critical,high \
   -H "Authorization: Bearer $TOKEN" \
   -jsonl -o nuclei-rescan-<FINDING_ID>.jsonl
+
 ```
 
 ### Step 5: Verify Resolution
@@ -1490,6 +1528,7 @@ if [ -s nuclei-rescan-<FINDING_ID>.jsonl ]; then
 else
     echo "PASS: No findings detected by Nuclei"
 fi
+
 ```
 
 ### Step 6: Update the Security Report
@@ -1525,6 +1564,7 @@ sequenceDiagram
         Dev->>Docker: Rebuild and re-deploy
         Dev->>Scanner: Re-scan again
     end
+
 ```
 
 ---

@@ -61,7 +61,8 @@ Clone the repository and start the Docker environment:
 ```bash
 git clone https://github.com/WebVella/WebVella-ERP.git && cd WebVella-ERP
 docker compose up -d --build
-```
+
+```text
 
 Validate health by polling the metadata endpoint until an HTTP 200 response is returned:
 
@@ -71,6 +72,7 @@ until curl -sf http://localhost:5000/api/v3/en_US/meta > /dev/null 2>&1; do
   sleep 5
 done
 echo "WebVella ERP is ready!"
+
 ```
 
 ### Step 2: Authenticate
@@ -85,7 +87,8 @@ TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo "Bearer token acquired: ${TOKEN:0:20}..."
-```
+
+```text
 
 > Source: `docs/developer/introduction/getting-started.md` — default account email `erp@webvella.com` and password `erp`.
 
@@ -128,6 +131,7 @@ docker run --network host projectdiscovery/nuclei:latest \
 # Wait for both scanners to complete
 wait
 echo "Both scans complete."
+
 ```
 
 ### Step 5: Analyze Findings
@@ -150,9 +154,12 @@ For each HIGH or CRITICAL finding:
 1. Locate the vulnerable file and line number in the WebVella source
 2. Apply the appropriate ASP.NET Core 9 secure coding pattern (parameterized EQL queries, `[Authorize]` attributes, output encoding, etc.)
 3. Rebuild the Docker image:
+
    ```bash
    docker compose build --no-cache web && docker compose up -d web
+
    ```
+
 4. Re-run the targeted scan check to confirm resolution
 5. Document the finding in the [Security Report](security-report.md) with before/after code and scanner confirmation
 
@@ -224,11 +231,13 @@ All findings include a [Common Weakness Enumeration (CWE)](https://cwe.mitre.org
 
 Every technical claim in the documentation references its source file using the format:
 
-```
+```text
 Source: <file_path>:<line_range>
+
 ```
 
 Examples:
+
 - `Source: WebVella.Erp.Web/Controllers/WebApiController.cs:L4287`
 - `Source: WebVella.Erp.Site/Startup.cs:L58-64`
 - `Source: WebVella.Erp.Site/Config.json:L24`
@@ -247,12 +256,15 @@ All code examples use fenced code blocks with explicit syntax highlighting:
 
 Workflow visualizations use inline [Mermaid](https://mermaid.js.org/) fenced code blocks. These render natively on GitHub, in VS Code (with the Mermaid extension), and in any Mermaid-compatible Markdown renderer:
 
-````
+````markdown
+
 ```mermaid
 flowchart TD
     A[Step 1] --> B[Step 2]
+
 ```
-````
+
+````markdown
 
 ---
 
@@ -278,6 +290,7 @@ flowchart TD
     M -->|Yes| N[10. Document in Report<br>Before/After + CWE]
     M -->|No| J
     N --> O[Final Security Report]
+
 ```
 
 ### Workflow Phase Summary

@@ -37,17 +37,20 @@ Pull the official OWASP ZAP Docker image:
 
 ```bash
 docker pull ghcr.io/zaproxy/zaproxy:stable
-```
+
+```text
 
 Verify the installed version:
 
 ```bash
 docker run --rm ghcr.io/zaproxy/zaproxy:stable zap.sh -version
+
 ```
 
 Expected output: `ZAP 2.17.0`
 
 **Key capabilities of ZAP 2.17.0**:
+
 - Java 17+ runtime (included in the Docker image — no host installation required)
 - Automation Framework for CI/CD integration via YAML plans
 - Browser-Based Authentication and Client Spider for modern SPA applications
@@ -58,7 +61,8 @@ Create the working directory for scan output:
 
 ```bash
 mkdir -p zap-work
-```
+
+```text
 
 This directory is volume-mounted into the ZAP container at `/zap/wrk` and receives the scan report output.
 
@@ -76,6 +80,7 @@ For security scanning, configure ZAP's **Replacer add-on** to inject the Bearer 
 -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
     -config replacer.full_list(0).matchstr=Authorization \
     -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 Replace `<TOKEN>` with the actual JWT token value obtained from `POST /api/v3/en_US/auth/jwt/token`.
@@ -134,21 +139,23 @@ Per the security assessment requirements, the scan scope encompasses these speci
 
 ### Scope Inclusion Regex (for ZAP Context Configuration)
 
-```
+```text
 http://localhost:5000/api/v3/.*
 http://localhost:5000/fs/.*
 http://localhost:5000/ckeditor/.*
+
 ```
 
 ### Scope Exclusion Patterns
 
 Exclude non-security-relevant static resources and the anonymous CSS endpoint:
 
-```
+```text
 http://localhost:5000/api/v3.0/p/core/styles.css
 http://localhost:5000/_framework/.*
 http://localhost:5000/_content/.*
 http://localhost:5000/lib/.*
+
 ```
 
 > The `styles.css` endpoint is the only non-static `[AllowAnonymous]` endpoint aside from the JWT authentication routes, and it serves dynamically generated CSS with no security-relevant attack surface.
@@ -164,32 +171,40 @@ The ZAP Automation Framework provides a YAML-based declarative configuration for
 ---
 env:
   contexts:
+
     - name: "WebVella ERP API"
       urls:
+
         - "http://localhost:5000"
       includePaths:
+
         - "http://localhost:5000/api/v3/.*"
         - "http://localhost:5000/fs/.*"
         - "http://localhost:5000/ckeditor/.*"
       excludePaths:
+
         - "http://localhost:5000/api/v3.0/p/core/styles.css"
       sessionManagement:
         method: "headers"
         parameters:
+
           - "Authorization: Bearer <TOKEN>"
   parameters:
     failOnError: true
     progressToStdout: true
 
 jobs:
+
   - type: spider
     parameters:
       context: "WebVella ERP API"
       maxDuration: 10
+
   - type: spiderAjax
     parameters:
       context: "WebVella ERP API"
       maxDuration: 5
+
   - type: activeScan
     parameters:
       context: "WebVella ERP API"
@@ -197,24 +212,32 @@ jobs:
       maxScanDurationInMins: 60
     policyDefinition:
       rules:
+
         - id: 40018  # SQL Injection
           strength: HIGH
+
         - id: 40014  # Cross Site Scripting (Persistent)
           strength: HIGH
+
         - id: 40012  # Cross Site Scripting (Reflected)
           strength: HIGH
+
         - id: 40003  # CRLF Injection
           strength: MEDIUM
+
         - id: 6      # Path Traversal
           strength: HIGH
+
         - id: 30001  # Buffer Overflow
           strength: LOW
+
   - type: report
     parameters:
       template: "json-plus"
       reportDir: "/zap/wrk"
       reportFile: "zap-report.json"
-```
+
+```text
 
 **YAML Configuration Breakdown**:
 
@@ -297,12 +320,14 @@ Record CRUD endpoints are the primary BOLA (Broken Object-Level Authorization) s
 1. **Create two user sessions**: Obtain JWT tokens for two different user accounts (e.g., the default admin `erp@webvella.com` and a newly created regular user).
 
 2. **Identify target record GUIDs**: Using the admin token, list records from a target entity:
+
    ```bash
    curl -H "Authorization: Bearer $ADMIN_TOKEN" \
      "http://localhost:5000/api/v3/en_US/record/user/list"
    ```
 
 3. **Cross-account access test**: Using the regular user's token, attempt to access admin-owned records:
+
    ```bash
    curl -H "Authorization: Bearer $USER_TOKEN" \
      "http://localhost:5000/api/v3/en_US/record/user/<ADMIN_RECORD_GUID>"
@@ -340,17 +365,19 @@ File upload endpoints are a high-priority scan target in WebVella ERP because no
 
 Configure ZAP to test file upload handlers with the following payload categories:
 
-**1. Web Shell Upload (CWE-434: Unrestricted Upload of File with Dangerous Type)**
+#### 1. Web Shell Upload (CWE-434: Unrestricted Upload of File with Dangerous Type)
 
 Upload files with executable extensions to verify the server does not allow web shell deployment:
+
 - `shell.aspx` — ASP.NET web shell
 - `shell.cshtml` — Razor view file
 - `shell.config` — Configuration file overwrite
 - `shell.exe` — Windows executable
 
-**2. Path Traversal Filenames (CWE-22: Improper Limitation of a Pathname)**
+#### 2. Path Traversal Filenames (CWE-22: Improper Limitation of a Pathname)
 
 Upload files with path traversal sequences in the filename:
+
 - `../../../etc/passwd` — Unix path traversal
 - `..\..\web.config` — Windows path traversal
 - `%2e%2e%2f%2e%2e%2fetc/passwd` — URL-encoded traversal
@@ -358,9 +385,10 @@ Upload files with path traversal sequences in the filename:
 > The `/fs/move/` endpoint at L3347-3368 accepts `source` and `target` paths directly from the request body with no sanitization — this is an additional path traversal surface.
 > Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L3347-3368`
 
-**3. Oversized File Upload**
+#### 3. Oversized File Upload
 
 Upload files exceeding reasonable size limits to test for denial of service:
+
 - The upload handlers read the entire file into memory via `ReadFully()` (L3385-3397) without size validation
 - Test with 10MB, 50MB, and 100MB payloads
 
@@ -370,17 +398,21 @@ The `/ckeditor/image-upload-url` endpoint injects the `CKEditorFuncNum` query pa
 
 ```csharp
 var vOutput = @"<html><body><script>window.parent.CKEDITOR.tools.callFunction("
+
     + CKEditorFuncNum + ", \"" + url + "\", \"" + vMessage + "\");</script></body></html>";
+
 ```
 
 > Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L4029`
 
 Test by setting `CKEditorFuncNum` to XSS payloads:
+
 ```bash
 curl -X POST "http://localhost:5000/ckeditor/image-upload-url?CKEditorFuncNum=1);alert('XSS');//" \
   -H "Authorization: Bearer $TOKEN" \
   -F "upload=@test-image.png"
-```
+
+```text
 
 ### Wildcard Delete Route
 
@@ -390,6 +422,7 @@ The `DELETE {*filepath}` route matches **any URL path** for file deletion. The `
 # Test wildcard path deletion — should be rejected for non-file paths
 curl -X DELETE "http://localhost:5000/../../sensitive-file" \
   -H "Authorization: Bearer $TOKEN"
+
 ```
 
 > Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L3370-3383`
@@ -406,7 +439,8 @@ Use the `-J` flag for the `zap-full-scan.py` wrapper:
 
 ```bash
 -J zap-report.json
-```
+
+```text
 
 Or configure the `report` job in the Automation Framework YAML:
 
@@ -416,6 +450,7 @@ Or configure the `report` job in the Automation Framework YAML:
     template: "json-plus"
     reportDir: "/zap/wrk"
     reportFile: "zap-report.json"
+
 ```
 
 The report is written to `/zap/wrk/zap-report.json` inside the container, which maps to `./zap-work/zap-report.json` on the host via the volume mount.
@@ -423,6 +458,7 @@ The report is written to `/zap/wrk/zap-report.json` inside the container, which 
 ### Report Contents
 
 The ZAP JSON report contains:
+
 - **Site**: Target URL and host information
 - **Alerts**: Array of findings, each containing:
   - `alert`: Finding name
@@ -443,19 +479,22 @@ After the scan completes, verify the report was generated:
 
 ```bash
 ls -la zap-work/zap-report.json
-```
+
+```text
 
 Preview the report summary using `jq`:
 
 ```bash
 # Count findings by risk level
 cat zap-work/zap-report.json | jq '.site[].alerts | group_by(.riskcode) | map({risk: .[0].riskcode, count: length})'
+
 ```
 
 ```bash
 # List HIGH and CRITICAL findings
 cat zap-work/zap-report.json | jq '.site[].alerts[] | select(.riskcode >= 3) | {alert: .alert, risk: .riskcode, cweid: .cweid, uri: .instances[0].uri}'
-```
+
+```text
 
 > **Next Step**: See [Finding Analysis](finding-analysis.md) for the complete output parsing procedure, cross-scanner deduplication with Nuclei results, and source code location methodology.
 
@@ -474,6 +513,7 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+
 ```
 
 **Command breakdown**:
@@ -506,7 +546,8 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
   -v $(pwd)/zap-automation.yaml:/zap/wrk/automation.yaml \
   ghcr.io/zaproxy/zaproxy:stable zap.sh \
   -cmd -autorun /zap/wrk/automation.yaml
-```
+
+```text
 
 **Command breakdown**:
 
@@ -543,6 +584,7 @@ docker run --network host -v $(pwd)/nuclei-work:/tmp/output \
 # Wait for both scanners to complete
 wait
 echo "[+] Both ZAP and Nuclei scans complete."
+
 ```
 
 > **Cross-reference**: See [Nuclei Scan Configuration](nuclei-scan-config.md) for the full Nuclei command syntax and template pack details.
@@ -577,6 +619,7 @@ Scan duration varies based on the number of endpoints discovered by the spider a
 **Symptom**: ZAP reports "Failed to connect to localhost:5000" or scan discovers zero URLs.
 
 **Resolution**:
+
 1. Verify WebVella ERP is running: `curl -sf http://localhost:5000/api/v3/en_US/meta`
 2. Ensure `--network host` is used in the Docker run command (ZAP needs host networking to reach `localhost`)
 3. On macOS/Windows with Docker Desktop, `--network host` may not work as expected — use the host's IP address instead of `localhost`
@@ -586,6 +629,7 @@ Scan duration varies based on the number of endpoints discovered by the spider a
 **Symptom**: ZAP finds endpoints but receives HTTP 401 on all protected routes.
 
 **Resolution**:
+
 1. Verify the JWT token is valid: `curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/v3/en_US/meta/entity/list`
 2. Check that the Replacer configuration syntax is correct — quotation marks around `Bearer <TOKEN>` must match exactly
 3. Verify the token has not expired — refresh using `POST /api/v3/en_US/auth/jwt/token/refresh`
@@ -596,6 +640,7 @@ Scan duration varies based on the number of endpoints discovered by the spider a
 **Symptom**: Active scan exceeds `maxScanDurationInMins` and is terminated prematurely.
 
 **Resolution**:
+
 1. Increase `maxScanDurationInMins` in the Automation Framework YAML
 2. Reduce scan scope to focus on CRITICAL and HIGH priority endpoints first
 3. Lower rule strength from `HIGH` to `MEDIUM` for non-priority vulnerability categories
@@ -606,6 +651,7 @@ Scan duration varies based on the number of endpoints discovered by the spider a
 **Symptom**: `zap-report.json` exists but contains no alerts.
 
 **Resolution**:
+
 1. This may indicate the scan completed successfully with no findings — verify by checking ZAP's scan log
 2. Ensure the spider discovered endpoints within the scope (check `spider` job output)
 3. Verify the active scan policy includes the correct rule IDs

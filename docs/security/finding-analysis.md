@@ -32,7 +32,8 @@ flowchart TD
     F --> H[Classify by CWE]
     H --> I[Map to OWASP Top 10]
     I --> J[Proceed to Remediation]
-```
+
+```text
 
 ---
 
@@ -82,6 +83,7 @@ The ZAP JSON report follows a hierarchical structure. The top-level object conta
     }
   ]
 }
+
 ```
 
 ### Extracting All Findings
@@ -90,7 +92,8 @@ Extract a summary of all findings with key fields:
 
 ```bash
 jq '.site[].alerts[] | {name, riskcode, cweid, uri: .instances[0].uri, param: .instances[0].param, evidence: .instances[0].evidence}' zap-report.json
-```
+
+```text
 
 This outputs one JSON object per finding type with the alert name, risk code, CWE ID, first affected URI, parameter, and evidence string.
 
@@ -113,6 +116,7 @@ To extract only HIGH-severity findings from the ZAP report:
 
 ```bash
 jq '.site[].alerts[] | select(.riskcode == "3") | {name, cweid, instances: [.instances[] | {uri, method, param}]}' zap-report.json
+
 ```
 
 ### Counting Findings by Severity
@@ -121,7 +125,8 @@ Generate a severity distribution summary:
 
 ```bash
 jq '[.site[].alerts[] | .riskcode] | group_by(.) | map({riskcode: .[0], count: length})' zap-report.json
-```
+
+```text
 
 ### Extracting All Affected URLs per Finding
 
@@ -129,6 +134,7 @@ List every URL instance for a specific CWE:
 
 ```bash
 jq '.site[].alerts[] | select(.cweid == "89") | .instances[] | .uri' zap-report.json
+
 ```
 
 ---
@@ -163,7 +169,8 @@ Each line in the Nuclei JSONL output is a self-contained JSON object representin
   "curl-command": "curl -X 'GET' ...",
   "timestamp": "2026-01-15T10:30:00Z"
 }
-```
+
+```text
 
 ### Extracting All Findings
 
@@ -171,6 +178,7 @@ Extract a summary of all Nuclei findings:
 
 ```bash
 cat nuclei-results.jsonl | jq -s '.[] | {templateID: .["template-id"], name: .info.name, severity: .info.severity, matchedAt: .["matched-at"], curl: .["curl-command"]}' 
+
 ```
 
 ### Nuclei Severity Values
@@ -191,7 +199,8 @@ Extract only CRITICAL and HIGH severity findings from the Nuclei output:
 
 ```bash
 cat nuclei-results.jsonl | jq -s '.[] | select(.info.severity == "critical" or .info.severity == "high")'
-```
+
+```text
 
 ### Counting Findings by Severity
 
@@ -199,6 +208,7 @@ Generate a severity distribution summary:
 
 ```bash
 cat nuclei-results.jsonl | jq -s 'group_by(.info.severity) | map({severity: .[0].info.severity, count: length})'
+
 ```
 
 ### Listing Unique Template IDs
@@ -207,7 +217,8 @@ Identify which Nuclei templates produced findings:
 
 ```bash
 cat nuclei-results.jsonl | jq -s '[.[] | .["template-id"]] | unique'
-```
+
+```text
 
 ---
 
@@ -239,9 +250,11 @@ jq '[.site[].alerts[] | {
   source: "ZAP",
   detail: .desc
 }]' zap-report.json > zap-normalized.json
+
 ```
 
 This command:
+
 - Extracts the CWE ID from the `cweid` field
 - Normalizes the URL by stripping the host prefix and query string
 - Maps ZAP risk codes to standard severity strings
@@ -261,9 +274,11 @@ cat nuclei-results.jsonl | jq -s '[.[] | {
   source: "Nuclei",
   detail: (.info.description // .info.name)
 }]' > nuclei-normalized.json
-```
+
+```text
 
 This command:
+
 - Extracts the CWE ID from `classification.cwe-id` array, stripping the `CWE-` prefix to match ZAP's numeric-only format
 - Normalizes the URL identically to the ZAP normalization
 - Sets `param` to empty string (Nuclei typically does not report parameter-level detail)
@@ -285,9 +300,11 @@ jq -s '.[0] + .[1]
       sources: [.[].source] | unique,
       details: [.[] | {source, detail}]
     })' zap-normalized.json nuclei-normalized.json > deduplicated-findings.json
+
 ```
 
 This command:
+
 - Concatenates both normalized arrays
 - Groups findings by the composite key `CWE|URL|parameter`
 - For each group, selects the highest severity across scanners
@@ -355,13 +372,15 @@ echo "=== Deduplication Complete ==="
 echo "Total unique findings: $TOTAL"
 echo "Actionable (HIGH/CRITICAL): $ACTIONABLE"
 echo "Output: $OUTPUT_DIR/actionable-findings.json"
-```
+
+```text
 
 Save the script as `scripts/dedup-findings.sh` and run it after both scans complete:
 
 ```bash
 chmod +x scripts/dedup-findings.sh
 ./scripts/dedup-findings.sh
+
 ```
 
 ---
@@ -387,7 +406,8 @@ If you ran the full deduplication script above, the file `findings/actionable-fi
 ```bash
 jq '[.[] | select(.severity == "critical" or .severity == "high")]' \
   findings/deduplicated-findings.json > findings/actionable-findings.json
-```
+
+```text
 
 ### Verifying the Filtered Output
 
@@ -396,14 +416,16 @@ Display a summary of actionable findings:
 ```bash
 jq '.[] | "\(.severity | ascii_upcase): \(.name) [\(.sources | join(", "))] — \(.url)"' \
   findings/actionable-findings.json
+
 ```
 
 Expected output format:
 
-```
+```text
 "HIGH: SQL Injection [ZAP] — /api/v3/en_US/eql"
 "HIGH: Information Disclosure [ZAP, Nuclei] — /api/v3/en_US/auth/jwt/token"
 "CRITICAL: Remote Code Execution [Nuclei] — /api/v3.0/datasource/code-compile"
+
 ```
 
 ---
@@ -425,7 +447,8 @@ rg '\[Route\(.*eql.*\)\]' --type cs
 
 # Find AcceptVerbs route definitions (used for file upload endpoints)
 rg 'Route\s*=\s*"/fs/' --type cs
-```
+
+```text
 
 > Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L36-37` — All routes are defined in `WebApiController` which extends `ApiControllerBase`.
 
@@ -479,6 +502,7 @@ rg '\[Authorize|\[AllowAnonymous' --type cs
 
 # Find password hashing implementations (CWE-916: Weak Password Hash)
 rg 'MD5\.Create|GetMd5Hash|ComputeHash' --type cs
+
 ```
 
 ### Locating Configuration Exposure
@@ -491,6 +515,7 @@ find . -name "Config.json" -not -path "*/bin/*" -not -path "*/obj/*"
 
 # Search for references to Config.json settings in code
 rg 'Configuration\["Settings' --type cs
+
 ```
 
 > Source: `WebVella.Erp.Site/Config.json:L3-4,L24` — Contains hardcoded connection string, encryption key, and JWT signing key.
@@ -597,6 +622,7 @@ The following vulnerabilities were identified during static code analysis prior 
   - **Line 24**: JWT signing key (`ThisIsMySecretKeyThisIsMySecretKeyThisIsMySecretKey`)
   
   These secrets are used at runtime by `Startup.cs:L110-L112` to configure JWT token validation. Any attacker with source code access can forge valid JWT tokens.
+
 - **OWASP Category**: A07:2021 — Identification and Authentication Failures
 - **Remediation**: Move secrets to environment variables or a secrets manager (Azure Key Vault, AWS Secrets Manager). See [Remediation Guide](remediation-guide.md).
 
@@ -617,6 +643,7 @@ The following vulnerabilities were identified during static code analysis prior 
   - The in-memory identity cache (`WebSecurityUtil.cache`) is inactive
   
   The application currently relies solely on ASP.NET Core's built-in `[Authorize]` attribute and the `JWT_OR_COOKIE` policy scheme configured in `Startup.cs`.
+
 - **OWASP Category**: A04:2021 — Insecure Design
 - **Remediation**: Remove commented-out code entirely or restore and harden the custom security layer. See [Remediation Guide](remediation-guide.md).
 
@@ -636,6 +663,7 @@ The following vulnerabilities were identified during static code analysis prior 
   - Filename sanitization beyond basic path construction
   
   The CKEditor upload handlers at lines L3962-L3964 and L4009-L4011 directly use `upload.FileName` in path construction (`"tmp/" + Guid.NewGuid() + "/" + upload.FileName`) without sanitizing directory traversal characters.
+
 - **OWASP Category**: A04:2021 — Insecure Design
 - **Remediation**: Add content-type allow-list, file extension filtering, size limits, and filename sanitization. See [Remediation Guide](remediation-guide.md).
 

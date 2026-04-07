@@ -15,7 +15,7 @@ flowchart TD
     B --> C["3. Start Containers<br/>docker compose up -d --build"]
     C --> D["4. Health Check<br/>GET /api/v3/en_US/meta → HTTP 200"]
     D --> E["5. JWT Authentication<br/>POST /api/v3/en_US/auth/jwt/token"]
-    E --> F["6. Extract Bearer Token<br/>jq -r '.object.token'"]
+    E --> F["6. Extract Bearer Token<br/>jq -r '.object'"]
     F --> G["7a. OWASP ZAP 2.17.0<br/>Authenticated Active Scan"]
     F --> H["7b. Nuclei v3.7.1<br/>ASP.NET + API Templates"]
     G --> I["8a. Parse ZAP JSON Output<br/>jq extraction"]
@@ -33,7 +33,7 @@ flowchart TD
     R -->|No| O
     S --> T["17. Final Security Report<br/>Per-Finding Structure"]
     N --> T
-```
+```text
 
 ### How to Read the Diagram
 
@@ -76,7 +76,7 @@ Both scanners receive the same JWT Bearer token extracted in step 6 to authentic
 
 Step 9 correlates findings from both scanners using a composite deduplication key:
 
-```
+```text
 Deduplication Key = CWE ID + Affected URL + Parameter Name
 ```
 

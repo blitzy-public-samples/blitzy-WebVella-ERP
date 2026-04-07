@@ -50,7 +50,8 @@ The WebVella ERP API exposes a JWT token endpoint that accepts email and passwor
 curl -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
   -d '{"email":"erp@webvella.com","password":"erp"}'
-```
+
+```text
 
 This sends a JSON payload with the default admin credentials to the JWT token endpoint. On success, the server returns a signed JWT token in the standard WebVella JSON response envelope.
 
@@ -70,6 +71,7 @@ The JWT token endpoint returns the standard WebVella JSON response envelope cont
   "errors": [],
   "object": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
+
 ```
 
 The `object` field contains the JWT token directly as a bare string — it is **not** a nested object. This is because `AuthService.GetTokenAsync()` returns `ValueTask<string>`, and the `ResponseModel.Object` property (annotated with `[JsonProperty(PropertyName = "object")]` in `BaseModels.cs:L40-47`) serializes the returned string directly.
@@ -88,7 +90,8 @@ TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo $TOKEN
-```
+
+```text
 
 This command silently (`-s`) issues the POST request, pipes the JSON response to `jq`, and extracts the `object` field — which contains the JWT token as a plain string — into the `TOKEN` shell variable.
 
@@ -104,6 +107,7 @@ If authentication fails (invalid credentials, missing fields), the response will
   "errors": [],
   "object": null
 }
+
 ```
 
 > **⚠️ Security Finding (CWE-209: Generation of Error Message Containing Sensitive Information)**: On failure, the endpoint concatenates `e.Message + e.StackTrace` into the response `message` field (`Source: WebVella.Erp.Web/Controllers/WebApiController.cs:L4287`). This leaks internal implementation details including file paths, class names, and method signatures to the caller. This information disclosure aids attackers in mapping the application internals and is flagged as a **High** severity finding.
@@ -116,8 +120,9 @@ Once the JWT token is extracted, configure it as an `Authorization` header for a
 
 **Header Format**:
 
-```
+```text
 Authorization: Bearer <token>
+
 ```
 
 **Verify Token by Calling a Protected Endpoint**:
@@ -126,7 +131,8 @@ Authorization: Bearer <token>
 # Verify token works by calling a protected endpoint
 curl -H "Authorization: Bearer $TOKEN" \
   http://localhost:5000/api/v3/en_US/meta/entity/list
-```
+
+```text
 
 A successful response (`"success": true` with entity data in `object`) confirms that the token is valid and the `JWT_OR_COOKIE` policy scheme correctly routed the request to the JWT Bearer handler.
 
@@ -148,6 +154,7 @@ The `JWT_OR_COOKIE` policy scheme inspects the incoming `Authorization` header. 
         return CookieAuthenticationDefaults.AuthenticationScheme;
     };
 });
+
 ```
 
 This dual-scheme design means that security scanners using `Authorization: Bearer <token>` headers operate on the JWT code path, while browser-based users continue to use cookie authentication seamlessly.
@@ -176,7 +183,8 @@ WebVella ERP provides a token refresh endpoint to obtain a new JWT token from an
 curl -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token/refresh \
   -H "Content-Type: application/json" \
   -d "{\"token\":\"$TOKEN\"}"
-```
+
+```text
 
 The refresh endpoint accepts the current token and returns a new token with an updated expiration. This is useful for long-running security scans that may exceed the original token lifetime.
 
@@ -188,6 +196,7 @@ TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token/refres
   -d "{\"token\":\"$TOKEN\"}" | jq -r '.object')
 
 echo $TOKEN
+
 ```
 
 > **⚠️ Security Finding (CWE-209: Generation of Error Message Containing Sensitive Information)**: The refresh endpoint also leaks stack traces in error responses via `e.Message + e.StackTrace` (`Source: WebVella.Erp.Web/Controllers/WebApiController.cs:L4306`). This is the same information disclosure pattern as the login endpoint and carries the same **High** severity classification.
@@ -234,7 +243,8 @@ OWASP ZAP supports header injection via the Replacer add-on. Configure the Beare
 -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
     -config replacer.full_list(0).matchstr=Authorization \
     -config replacer.full_list(0).replacement='Bearer $TOKEN'"
-```
+
+```text
 
 This configures ZAP to inject an `Authorization: Bearer <token>` header into every outgoing request during the scan. The Replacer add-on operates at the proxy level, ensuring all spidered and actively scanned requests include the authentication header.
 
@@ -247,6 +257,7 @@ Nuclei supports custom header injection via the `-H` flag:
 ```bash
 # Nuclei custom header injection
 -H "Authorization: Bearer $TOKEN"
+
 ```
 
 Pass this flag alongside your Nuclei scan command to inject the Bearer token into every HTTP request template execution.
@@ -297,7 +308,8 @@ export AUTH_HEADER="Authorization: Bearer $TOKEN"
 echo "[+] Exported AUTH_TOKEN and AUTH_HEADER for scanner configuration."
 echo "[+] Use: -H \"Authorization: Bearer \$AUTH_TOKEN\" for Nuclei"
 echo "[+] Use: -z \"-config replacer.full_list(0).matchtype=REQ_HEADER ...\" for ZAP"
-```
+
+```text
 
 Save this script as `get-token.sh`, make it executable (`chmod +x get-token.sh`), and source it (`source get-token.sh`) to populate the `AUTH_TOKEN` and `AUTH_HEADER` environment variables for scanner use.
 
@@ -325,6 +337,7 @@ Understanding the JWT configuration is essential for assessing the authenticatio
 ### Security Assessment of JWT Configuration
 
 **Positive Findings**:
+
 - All four validation flags (`ValidateIssuer`, `ValidateAudience`, `ValidateLifetime`, `ValidateIssuerSigningKey`) are enabled, which is correct practice
 - The policy scheme (`JWT_OR_COOKIE`) correctly segregates JWT and cookie authentication paths
 
@@ -393,6 +406,7 @@ sequenceDiagram
     Auth-->>API: New JWT Token + New Expiration
     API-->>Client: {"success":true, "object":"eyJ...(new)"}
     end
+
 ```
 
 ---
@@ -404,6 +418,7 @@ sequenceDiagram
 **Symptom**: `curl` returns `"success": false` or connection refused.
 
 **Checks**:
+
 1. Verify the Docker environment is running: `docker compose ps`
 2. Verify the health endpoint: `curl -sf http://localhost:5000/api/v3/en_US/meta`
 3. Verify the credentials are correct (default: `erp@webvella.com` / `erp`)
@@ -414,6 +429,7 @@ sequenceDiagram
 **Symptom**: `$TOKEN` is empty or `null` after `jq` extraction.
 
 **Checks**:
+
 1. Verify `jq` is installed: `jq --version`
 2. Inspect the raw response: remove `| jq -r '.object'` from the command and examine the full JSON
 3. If `"success": false`, check the `message` field for error details (note: may contain stack trace per CWE-209 finding)
@@ -423,6 +439,7 @@ sequenceDiagram
 **Symptom**: Protected endpoint returns 401 Unauthorized despite providing the Bearer token.
 
 **Checks**:
+
 1. Ensure the header format is exact: `Authorization: Bearer <token>` (note the space after "Bearer")
 2. Check if the token has expired (compare `expiration` field from the response with current UTC time)
 3. Refresh the token using the refresh endpoint
