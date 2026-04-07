@@ -6,1399 +6,891 @@
 
 ### 0.1.1 Core Documentation Objective
 
-Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create a JIRA user story** that enables the delivery of a real-time manager dashboard for team performance metrics. This user story will follow the State Street "Writing a User Story" guide standards and serve as a vertical slice of functionality deliverable within a single sprint.
+Based on the provided requirements, the Blitzy platform understands that the documentation objective is to **create comprehensive documentation** for a full dynamic security validation workflow on the WebVella ERP platform — an open-source ASP.NET Core 9 ERP system backed by PostgreSQL 16. This is a **new documentation creation** initiative that will produce a complete security assessment report and accompanying procedural documentation.
 
-**Documentation Type Classification:**
-- **Category:** Create new documentation
-- **Documentation Type:** JIRA User Story (Agile requirement artifact)
-- **Format:** Who/What/Why user story with Given/When/Then acceptance criteria
-- **Target Audience:** Product Owner, Scrum Master, Development Team, Business Stakeholders
+The documentation type is a hybrid of: **Security Assessment Report**, **Technical Procedure Guide**, and **Remediation Documentation**.
 
-**Explicit Documentation Requirements:**
+The documentation requirements, restated with enhanced clarity:
 
-| Requirement | Source | Interpretation |
-|-------------|--------|----------------|
-| User story in Who/What/Why format | User instructions | Follow State Street guide: "As a <role>, I want <goal>, so that <reason>" |
-| Acceptance criteria using Given/When/Then | User instructions | Apply BDD-style scenarios per State Street guide |
-| Single sprint delivery scope | User instructions | Size story appropriately (vertical slice) |
-| Follow State Street guide best practices | User instructions + Attachment | Apply INVEST criteria and all formatting standards |
-| Real-time dashboard views | Business objective | Dashboard must refresh without manual intervention |
-| Team performance metrics | Business objective | Display quantitative measures of team activity/output |
-| Enable faster manager decisions | Business objective | Provide actionable insights at a glance |
+- **Docker Environment Setup Documentation**: Document the procedure to clone the WebVella ERP repository from GitHub (`https://github.com/WebVella/WebVella-ERP.git`), stand up the application and its PostgreSQL 16 dependency via Docker Compose, and validate health by polling the metadata endpoint `GET /api/v3/en_US/meta` until an HTTP 200 response is returned. The repository does not contain a Docker Compose file, so one must be authored.
 
-**Implicit Documentation Requirements:**
+- **Authentication Procedure Documentation**: Document the REST API authentication flow using the WebVella JWT token endpoint at `POST /api/v3/en_US/auth/jwt/token` with the default admin credentials (`erp@webvella.com` / `erp`). Capture the Bearer token extraction process from the JSON response and configure it as an `Authorization: Bearer <token>` header for all subsequent API requests.
 
-- Summary field must not exceed 255 characters (State Street guide constraint)
-- Story must be demo-able for Product Owner acceptance
-- Story must be independent, negotiable, valuable, estimable, sized appropriately, and testable (INVEST)
-- Story should reference potential sub-tasks for team execution
-- Story should include clear business value articulation
+- **OWASP ZAP Scan Configuration Documentation**: Document the configuration of an OWASP ZAP (v2.17.0) authenticated active scan using the extracted Bearer token. The scan scope encompasses:
+  - `/api/v3/` — all REST API endpoints (the `WebApiController` exposes 60+ routes)
+  - `/api/v3/en_US/entity/` — entity management CRUD endpoints (prioritize IDOR and Broken Object-Level Authorization)
+  - `/api/v3/en_US/user/` — authentication endpoints (test for privilege escalation)
+  - `/fs/upload/`, `/fs/upload-user-file-multiple/`, `/fs/upload-file-multiple/`, `/ckeditor/drop-upload-url`, `/ckeditor/image-upload-url` — all file upload handlers present in `WebVella.Erp.Web/Controllers/WebApiController.cs`
+
+- **Nuclei Scan Configuration Documentation**: Document a parallel Nuclei (v3.7.1) scan using the ASP.NET Core and generic API template packs against the same base URL, with templates version v10.3.9.
+
+- **Finding Analysis and Remediation Documentation**: Document the process of parsing ZAP JSON and Nuclei outputs, deduplicating findings across scanners, and for each HIGH or CRITICAL finding: locating the vulnerable file and line number in the WebVella source, generating a remediation patch using ASP.NET Core secure coding patterns (parameterized EF Core / EQL queries for SQLi, proper `[Authorize]` attributes and role checks for IDOR, output encoding for XSS), applying the patch, rebuilding the Docker image, and re-running the specific scan check to confirm resolution.
+
+- **Final Security Report Documentation**: Produce a structured report per finding containing: CWE reference, vulnerable code before patch, remediated code after patch, and scanner confirmation of resolution.
+
+**Inferred Documentation Needs** (implicit requirements surfaced from codebase analysis):
+
+- The repository lacks a `Dockerfile` and `docker-compose.yml` at the project root — documentation must include the creation of these files and their contents
+- The security architecture uses DES encryption (legacy) and MD5 password hashing (unsalted) — these are known pre-existing weaknesses documented in Section 6.4 of the tech spec that scanners will likely flag
+- The CORS policy in `WebVella.Erp.Site/Startup.cs` allows any origin (`AllowAnyOrigin()`) — this will likely appear as a finding
+- The JWT error response in `WebApiController.cs` line 4287 leaks stack traces (`e.Message + e.StackTrace`) — this information disclosure pattern needs remediation documentation
+- Multiple `[AllowAnonymous]` attributes are commented out but present in the codebase, indicating security surface boundaries that need documentation
+- The `Config.json` contains hardcoded secrets (JWT key, encryption key, database credentials) — scanners may flag configuration exposure
 
 ### 0.1.2 Special Instructions and Constraints
 
-**CRITICAL Directives from User:**
-- Follow ALL best practices, formatting, and standards from the State Street "Writing a User Story" guide
-- Represent ONE vertical slice of functionality (not the entire dashboard epic)
-- Deliver measurable progress toward the business objective
-- Appropriate level of detail for single sprint delivery
-
-**Template Requirements:**
-
-**USER PROVIDED TEMPLATE (from State Street Guide):**
-
-```
-Summary: [Maximum 255 Characters]
-
-Description:
-As a <named user or role>, or the WHO
-I want <some goal>, or the WHAT
-so that <some reason>, or the WHY
-
-Acceptance Criteria:
-- Given <a scenario>
-  When <a criteria is met>
-  Then <the expected result>
-```
-
-**Style Preferences:**
-- Use State Street naming conventions
-- Maintain consistency with existing STORY-001 through STORY-008 format in the repository
-- Include Business Value section per established repository pattern
-- Include Technical Implementation Details where applicable
-- Use checkbox format for acceptance criteria ([ ])
-
-**Quality Standards (from State Street Guide):**
-
-| Criterion | Requirement |
-|-----------|-------------|
-| Independent | Self-contained, no inherent dependency on another user story |
-| Negotiable | Can be changed or rewritten until committed to iteration |
-| Valuable | Delivers value to end user and/or customer |
-| Estimable | Team can estimate the size |
-| Sized appropriately | Not too big for planning/prioritization |
-| Testable | Provides information for test development |
-| Demo-able | Work can be demonstrated for acceptance |
-
-**Acceptance Criteria Quality (from State Street Guide):**
-- Clarity: Straightforward and easy to understand
-- Conciseness: Necessary information without unnecessary detail
-- Testability: Independently verifiable (clear pass/fail)
-- Result-Oriented: Focus on delivering customer satisfaction
+- **Docker Compose Authoring**: Since the repository contains no `docker-compose.yml`, the documentation must include the full file content targeting .NET 9.0 SDK, PostgreSQL 16, and the `WebVella.Erp.Site` project
+- **Default Credentials**: The default admin credentials are `erp@webvella.com` / `erp` as documented in `docs/developer/introduction/getting-started.md`
+- **Scanner Parallelism**: ZAP and Nuclei scans are to run in parallel — documentation must address concurrent scan orchestration
+- **Remediation Scope**: Patches must follow ASP.NET Core secure coding patterns specifically — parameterized queries via EQL (not raw SQL), proper `[Authorize]` attributes, and output encoding
+- **Rebuild-and-Verify Cycle**: Each remediation must include a Docker image rebuild and targeted re-scan to confirm resolution
 
 ### 0.1.3 Technical Interpretation
 
 These documentation requirements translate to the following technical documentation strategy:
 
-| User Requirement | Documentation Action |
-|------------------|---------------------|
-| Create user story for manager dashboard | Create markdown file `STORY-009-manager-dashboard-metrics.md` following repository pattern |
-| Follow State Street guide format | Structure with Description, Business Value, Acceptance Criteria, Technical Implementation sections |
-| Single sprint delivery | Scope to one dashboard view with 3-5 key metrics (vertical slice) |
-| Real-time dashboard views | Specify automatic refresh mechanism (e.g., 30-60 second intervals or SignalR) |
-| Team performance metrics | Define specific metrics: approval cycle time, pending requests, completion rates |
-| Given/When/Then acceptance criteria | Write 4-6 BDD scenarios covering view, refresh, filter, and permission behaviors |
-
-**Documentation Actions:**
-- To document the manager dashboard feature, we will create `jira-stories/STORY-009-manager-dashboard-metrics.md` with complete user story format
-- To update the backlog exports, we will update `jira-stories/stories-export.csv` and `jira-stories/stories-export.json` with the new story entry
-- To ensure consistency, we will follow the exact structure established in existing stories (STORY-001 through STORY-008)
+- To **document the Docker environment setup**, we will **create** `docs/security/docker-setup.md` containing Docker Compose configuration for the .NET 9.0 application and PostgreSQL 16, health check polling procedures, and troubleshooting guidance
+- To **document the authentication procedure**, we will **create** `docs/security/authentication.md` detailing the JWT token acquisition flow via `POST /api/v3/en_US/auth/jwt/token`, token extraction from the JSON response envelope, and header configuration for authenticated scanning
+- To **document the ZAP scan configuration**, we will **create** `docs/security/zap-scan-config.md` specifying the authenticated active scan setup, scope definitions mapped to the `WebApiController.cs` route inventory, and scan policy parameters
+- To **document the Nuclei scan configuration**, we will **create** `docs/security/nuclei-scan-config.md` covering template pack selection, ASP.NET Core-specific templates, and parallel execution alongside ZAP
+- To **document finding analysis and remediation**, we will **create** `docs/security/finding-analysis.md` and `docs/security/remediation-guide.md` covering the deduplication algorithm, vulnerable code location process, and ASP.NET Core remediation patterns
+- To **produce the final security report**, we will **create** `docs/security/security-report.md` with a per-finding structure: CWE reference, before/after code, and scanner confirmation
 
 ### 0.1.4 Inferred Documentation Needs
 
-**Based on Code Analysis:**
-- The existing WebVella ERP system has UI component patterns (`docs/developer/components`) that the dashboard story should reference
-- The approval workflow entities (`approval_request`, `approval_history`) provide natural metrics sources
-- Background job patterns from STORY-006 inform real-time update mechanisms
+Based on code analysis:
+- `WebVella.Erp.Web/Controllers/WebApiController.cs` (4313 lines) contains 60+ API routes with security-relevant patterns including raw EQL execution, file upload handling without content-type validation, and stack trace leakage in error responses — all require security assessment documentation
+- `WebVella.Erp.Web/Security/` contains authentication primitives (AuthToken, AuthCache, AuthorizeAttribute, WebSecurityUtil) where implementations are largely commented out — this unusual state needs documentation as it affects the security posture
+- `WebVella.Erp/Utilities/CryptoUtility.cs` uses DES encryption and `PasswordUtil.cs` uses unsalted MD5 — known weaknesses requiring remediation documentation
+- `WebVella.Erp.Site/Startup.cs` configures `AllowAnyOrigin()` CORS policy — a common scanner finding requiring documentation
+- `WebVella.Erp.Site/Config.json` contains hardcoded JWT signing key (`ThisIsMySecretKeyThisIsMySecretKey...`) and database credentials — configuration exposure requiring documentation
 
-**Based on Structure:**
-- The jira-stories folder uses consistent markdown structure with technical implementation details
-- Stories include dependency chains (the new dashboard story depends on F-008 UI Components)
-- CSV/JSON exports maintain parallel data for reporting/import
-
-**Based on User Journey:**
-- Manager needs to: access dashboard → view metrics → identify trends → make decisions
-- Dashboard should integrate with existing WebVella page component system
-- Metrics should align with approval workflow domain (existing entity data)
-
-**Based on Business Objective:**
-- "Faster decisions" implies at-a-glance metrics visualization (not complex drill-downs in this slice)
-- "Real-time" means automatic refresh or push updates
-- "Team performance" suggests aggregate metrics per team/manager scope
-
-**Contextual Alignment with Existing System:**
-The new user story aligns with the existing approval workflow system by providing managerial visibility into:
-- Approval request volumes and processing times
-- Step-level bottleneck identification
-- Team member approval response metrics
-- SLA compliance tracking
+Based on user journey:
+- Security teams need a complete end-to-end runbook from environment setup through scan execution to remediation verification
+- Each finding needs traceable documentation from scanner output to source code location to remediation patch to re-scan confirmation
 
 ## 0.2 Documentation Discovery and Analysis
 
 ### 0.2.1 Existing Documentation Infrastructure Assessment
 
-**Repository Analysis Summary:**
-The repository analysis reveals a well-structured JIRA story documentation system within the `jira-stories/` folder, with established patterns for user story creation and backlog management.
+Repository analysis reveals a structured developer documentation framework under `docs/developer/` with **14 topical sections**, but **zero security assessment or vulnerability documentation** exists. The documentation uses a folder.json manifest convention with HTML-comment JSON front-matter for metadata.
 
-**Documentation Structure:**
+**Documentation Framework**: Static HTML/Markdown files served directly — no documentation generator (MkDocs, Docusaurus, Sphinx) detected. All documentation is plain Markdown with inline HTML comment metadata blocks.
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Story Markdown Files | `jira-stories/STORY-*.md` | Detailed user story specifications |
-| CSV Export | `jira-stories/stories-export.csv` | Tabular backlog for import/reporting |
-| JSON Export | `jira-stories/stories-export.json` | Structured data for programmatic access |
-| Developer Docs | `docs/developer/` | Technical reference documentation |
+**Documentation Generator Configuration**: None detected. No `mkdocs.yml`, `docusaurus.config.js`, `sphinx/conf.py`, or `.readthedocs.yml` found in the repository.
 
-**Documentation Framework Assessment:**
-- **Documentation Generator:** None (plain markdown)
-- **Documentation Configuration:** Standalone files with no build system
-- **Story Format Version:** Custom markdown with structured sections
-- **Export Formats:** CSV (JIRA-compatible), JSON (API/tool-compatible)
+**API Documentation Tools**: No automated API documentation tools (Swagger/OpenAPI, JSDoc, XML doc comments) detected. The existing `docs/developer/web-api/` section provides manual REST API documentation covering base URL conventions, CORS behavior, ISO 8601 date formatting, and the JSON response envelope structure (`success`, `message`, `timestamp`, `errors`, `object`).
 
-**Existing Story Files Discovered:**
+**Diagram Tools**: No Mermaid, PlantUML, or other diagram tooling detected. Documentation relies on text descriptions only.
 
-| File | Story ID | Title | Points |
-|------|----------|-------|--------|
-| `STORY-001-approval-plugin-infrastructure.md` | STORY-001 | Approval Plugin Infrastructure | 3 |
-| `STORY-002-approval-entity-schema.md` | STORY-002 | Approval Entity Schema | 8 |
-| `STORY-003-workflow-configuration-management.md` | STORY-003 | Workflow Configuration Management | 5 |
-| `STORY-004-approval-service-layer.md` | STORY-004 | Approval Service Layer | 8 |
-| `STORY-005-approval-hooks-integration.md` | STORY-005 | Approval Hooks Integration | 5 |
-| `STORY-006-notification-escalation-jobs.md` | STORY-006 | Notification and Escalation Jobs | 5 |
-| `STORY-007-approval-rest-api.md` | STORY-007 | Approval REST API Endpoints | 5 |
-| `STORY-008-approval-ui-components.md` | STORY-008 | Approval UI Page Components | 8 |
-
-**Story Template Structure (from repository analysis):**
+**Current Documentation Structure**:
 
 ```
-# STORY-XXX: [Title]
-
-#### Description
-[Detailed description paragraph]
-
-#### Business Value
-- [Bullet point 1]
-- [Bullet point 2]
-- [etc.]
-
-#### Acceptance Criteria
-- [ ] **AC1**: [Criterion]
-- [ ] **AC2**: [Criterion]
-- [etc.]
-
-#### Technical Implementation Details
-
-#### Files/Modules to Create
-| File Path | Description |
-|-----------|-------------|
-| [path] | [description] |
-
-#### Key Classes and Functions
-[Code snippets and patterns]
-
-#### Dependencies
-| Dependency Type | Details |
-|-----------------|---------|
-| [type] | [details] |
+docs/
+└── developer/
+    ├── applications/       (Application management concepts)
+    ├── background-jobs/    (Job scheduling documentation)
+    ├── components/         (UI component reference)
+    ├── data-sources/       (Data source configuration)
+    ├── entities/           (Entity modeling reference - comprehensive)
+    ├── hooks/              (API hooks, page hooks, render hooks)
+    ├── introduction/       (Getting started guide - references .NET Core 2.1, outdated)
+    ├── pages/              (Page system documentation)
+    ├── plugins/            (Plugin architecture)
+    ├── server-api/         (EntityManager, RecordManager, SecurityManager C# examples)
+    ├── system-log/         (Logging documentation)
+    ├── tag-helpers/        (Razor tag helper reference)
+    ├── users-and-roles/    (User management, role system: Administrator/Regular/Guest)
+    └── web-api/            (REST API overview, response format)
 ```
+
+**Documentation Conventions Observed**:
+- Each topic folder contains a `folder.json` manifest with `name`, `page`, and `nav` properties
+- Individual pages use HTML-comment JSON front-matter: `<!-- {"name": "...", "tag": "..."} -->`
+- Content is plain Markdown with occasional inline HTML
+- No standardized template across sections
+- Version references are outdated (introduction references .NET Core 2.1, while codebase targets .NET 9.0)
 
 ### 0.2.2 Repository Code Analysis for Documentation
 
-**Search Patterns Employed:**
+Search patterns employed for code requiring security documentation:
 
-| Pattern | Purpose | Results |
-|---------|---------|---------|
-| `jira-stories/*.md` | User story files | 8 files found |
-| `jira-stories/*.csv` | Export files | 1 file found |
-| `jira-stories/*.json` | Export files | 1 file found |
-| `docs/developer/**` | Reference documentation | Full documentation hub |
+- **Controllers**: `find . -name "*.cs" -path "*/Controllers/*"` → 4 controllers found:
+  - `WebVella.Erp.Web/Controllers/WebApiController.cs` (4313 lines, 60+ routes — primary API surface)
+  - `WebVella.Erp.Web/Controllers/ApiControllerBase.cs` (base controller)
+  - `WebVella.Erp.Web/Controllers/AdminController.cs` (admin functionality)
+  - `WebVella.Erp.Web/Controllers/ProjectController.cs` (project management)
 
-**Key Directories Examined:**
+- **Security Files**: `find . -name "*.cs" -path "*Security*"` → 11 files found:
+  - `WebVella.Erp.Web/Security/AuthCache.cs` (in-process GUID cache, 5-min TTL)
+  - `WebVella.Erp.Web/Security/AuthToken.cs` (DES-encrypted token Create/Encrypt/Decrypt/Verify)
+  - `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` (ActionFilterAttribute — no role checks implemented)
+  - `WebVella.Erp.Web/Security/ErpIdentity.cs` (ClaimsIdentity wrapper)
+  - `WebVella.Erp.Web/Security/ErpPrincipal.cs` (ClaimsPrincipal wrapper)
+  - `WebVella.Erp.Web/Security/HttpForbiddenResult.cs`
+  - `WebVella.Erp.Web/Security/HttpUnauthorizedResult.cs`
+  - `WebVella.Erp.Web/Security/WebSecurityUtil.cs` (AUTH_TOKEN_KEY=`erp-auth`, token expiry 2/30 days)
+  - `WebVella.Erp/Api/Security/QuerySecurity.cs`
+  - `WebVella.Erp/Api/Security/SecurityContext.cs` (AsyncLocal scoping)
+  - `WebVella.Erp/Api/SecurityManager.cs` (user CRUD, EQL-based queries)
 
-| Directory | Contents | Relevance |
-|-----------|----------|-----------|
-| `jira-stories/` | All JIRA user story artifacts | Primary target for new story |
-| `docs/developer/components/` | PageComponent documentation | Reference for UI implementation |
-| `docs/developer/pages/` | Page routing documentation | Reference for dashboard page |
-| `docs/developer/entities/` | Entity documentation | Reference for metrics data sources |
-| `WebVella.Erp.Plugins.Approval/` | Plugin implementation | Technical context |
+- **Configuration Files**: `WebVella.Erp.Site/Config.json` — contains connection string, encryption key, JWT key, development mode flag
 
-**Related Documentation Found:**
+- **File Upload Handlers**: Located in `WebApiController.cs` at routes `/fs/upload/`, `/fs/upload-user-file-multiple/`, `/fs/upload-file-multiple/`, `/ckeditor/drop-upload-url`, `/ckeditor/image-upload-url` — no content-type validation or file size limits observed
 
-| Document | Relevance to New Story |
-|----------|------------------------|
-| `docs/developer/components/` | Dashboard will use PageComponent pattern |
-| `STORY-008-approval-ui-components.md` | UI component patterns to follow |
-| `STORY-007-approval-rest-api.md` | API patterns for data retrieval |
-| Feature Catalog (Tech Spec 2.1) | Feature dependency context |
+- **Authentication Endpoints**: JWT token endpoint at `POST /api/v3/en_US/auth/jwt/token` (lines 4270-4300) and refresh at `POST /api/v3/en_US/auth/jwt/token/refresh` (lines 4302-4314)
 
-### 0.2.3 State Street Guide Analysis
+**Key Directories Examined**:
+- `WebVella.Erp/` — Core library (SecurityManager, CryptoUtility, PasswordUtil)
+- `WebVella.Erp.Web/` — Web layer (Controllers, Security, Middleware)
+- `WebVella.Erp.Site/` — Host site (Startup.cs, Config.json)
+- `docs/developer/` — All 14 documentation subsections
+- `WebVella.Erp.Plugins.*` — 6 plugin projects (SDK, Next, CRM, Project, Marketplace, Duatec)
 
-**Guide Structure (from attachment):**
+**Related Documentation Found**:
+- `docs/developer/web-api/overview.md` — REST API conventions (base URL, CORS, authorization cookie)
+- `docs/developer/web-api/response.md` — JSON response envelope format
+- `docs/developer/server-api/overview.md` — C# server-side API reference (EntityManager, RecordManager, SecurityManager)
+- `docs/developer/users-and-roles/` — Users.md (user management), Roles.md (3-tier role system with GUIDs), Overview.md
+- `docs/developer/entities/` — Entity field definitions, relation modeling, CRUD API patterns
+- `docs/developer/hooks/` — API hooks (pre/post CRUD), page hooks, render hooks
 
-The State Street "Writing a User Story" guide (6 pages) establishes the following standards:
+### 0.2.3 Web Search Research Conducted
 
-**1. Purpose Statement:**
-A user story covers vertical slices of a system, contains a short description of what the user wants, and serves as a conversation starter with the team. Must include Acceptance Criteria defining conditions for "done."
+- **OWASP ZAP latest version**: ZAP 2.17.0 (stable, released December 15, 2025). Docker image: `ghcr.io/zaproxy/zaproxy:stable`. Requires Java 17+. Supports Automation Framework for CI/CD integration, Browser-Based Authentication, and Client Spider.
 
-**2. Ownership Model:**
-- Stories owned by Team; sub-tasks owned by individuals
-- Only Product Owner can transition to Done (Scrum/Kanban)
-- Sub-tasks describe actions to achieve Acceptance Criteria
+- **Nuclei latest version**: Nuclei v3.7.1 (latest, released March 5, 2026). Templates version v10.3.9 with 9,821+ templates. Requires Go >= 1.24.2 for source installation. Docker image: `projectdiscovery/nuclei:latest`. MIT licensed. Supports ASP.NET Core and generic API template packs.
 
-**3. Relationships:**
-- Children: Sub-tasks
-- Parent: Epics
+- **Best practices for security scanning ASP.NET Core applications**: Authenticated DAST scanning with token-based auth, scope containment to API surface areas, IDOR testing on entity-level endpoints, file upload handler fuzzing, and configuration exposure checks.
 
-**4. Anatomy of a Story:**
-
-| Element | Format | Constraint |
-|---------|--------|------------|
-| Summary | Brief title | Max 255 characters |
-| Description | Who/What/Why | As a/I want/so that |
-| Acceptance Criteria | Given/When/Then | Must be testable |
-
-**5. INVEST Criteria:**
-- **I**ndependent: Self-contained
-- **N**egotiable: Can change until committed
-- **V**aluable: Delivers user/customer value
-- **E**stimable: Can be sized
-- **S**ized appropriately: Fits in sprint
-- **T**estable: Clear pass/fail verification
-
-**6. Story Estimation:**
-- Uses Fibonacci sequence (1, 2, 3, 5, 8, 13, 20, 40...)
-- Based on effort, complexity, and uncertainty
-- Relative sizing compared to baseline stories
-
-### 0.2.4 Web Search Research Conducted
-
-**Best Practices Research Topics:**
-
-| Topic | Finding |
-|-------|---------|
-| Real-time dashboard user stories | Focus on specific metrics, refresh intervals, and user permissions |
-| Performance metrics for team management | Common metrics: throughput, cycle time, lead time, response time |
-| JIRA user story best practices | Vertical slicing, story mapping, definition of ready |
-| BDD acceptance criteria patterns | Scenario-based with clear preconditions and postconditions |
-
-**Applicable Standards:**
-- User stories should represent 1-3 days of work for appropriate sizing
-- Dashboard stories typically focus on one view/perspective per story
-- Real-time features should specify update frequency and mechanism
-- Manager-specific stories should include role-based access requirements
+- **Documentation structure conventions for security assessment reports**: CWE-referenced findings, before/after code snippets, severity classification (CRITICAL/HIGH/MEDIUM/LOW), scanner-confirmed remediation verification, and OWASP Top 10 mapping.
 
 ## 0.3 Documentation Scope Analysis
 
 ### 0.3.1 Code-to-Documentation Mapping
 
-**Documentation Artifacts Requiring Creation:**
+**Modules Requiring Security Assessment Documentation:**
 
-| Artifact | Type | Source Context | Documentation Needed |
-|----------|------|----------------|----------------------|
-| `STORY-009-manager-dashboard-metrics.md` | User Story | Business objective | Complete story following State Street format |
-| `stories-export.csv` | Backlog Export | Existing export | New row for STORY-009 |
-| `stories-export.json` | Backlog Export | Existing export | New story object for STORY-009 |
+- **Module**: `WebVella.Erp.Web/Controllers/WebApiController.cs`
+  - Public APIs: 60+ REST endpoints including EQL execution, entity meta CRUD, record CRUD, file upload/move/delete, schedule plans, system log, JWT authentication, and page/node management
+  - Current documentation: Partial — `docs/developer/web-api/` covers base URL and response format only; no security documentation exists
+  - Documentation needed: Complete API attack surface inventory, endpoint-level security classification, scan scope definition, per-finding remediation documentation
 
-**User Story Content Mapping:**
+- **Module**: `WebVella.Erp.Web/Security/AuthToken.cs`
+  - Public APIs: `Create()`, `Encrypt()`, `Decrypt()`, `Verify()` — DES-encrypted URL-safe token management
+  - Current documentation: None
+  - Documentation needed: Security assessment finding for DES encryption weakness, remediation patch to upgrade to AES-256-GCM
 
-| Story Section | Content Source | Documentation Approach |
-|---------------|----------------|------------------------|
-| Summary | Business objective | Distill to ≤255 chars |
-| Description (Who/What/Why) | User requirements | Manager role, dashboard goal, decision-making benefit |
-| Business Value | Inferred from objective | Faster decisions, visibility, efficiency |
-| Acceptance Criteria | Derived from requirements | 5-6 Given/When/Then scenarios |
-| Technical Details | Repository analysis | Files, classes, integration points |
-| Dependencies | Feature catalog analysis | STORY-008 (UI Components), STORY-007 (API) |
-| Story Points | Sizing analysis | 5 points (moderate complexity) |
-| Labels | Categorization | dashboard, metrics, ui, manager, approval |
+- **Module**: `WebVella.Erp.Web/Security/AuthorizeAttribute.cs`
+  - Public APIs: Custom `ActionFilterAttribute` applied at controller level
+  - Current documentation: None
+  - Documentation needed: Security finding for missing role-based checks, remediation patch to add proper `[Authorize(Roles = "...")]` enforcement
 
-### 0.3.2 User Story Vertical Slice Definition
+- **Module**: `WebVella.Erp.Web/Security/WebSecurityUtil.cs`
+  - Public APIs: Central security orchestrator with `AUTH_TOKEN_KEY` constant, token expiration configuration (2/30 days), IMemoryCache identity management
+  - Current documentation: None
+  - Documentation needed: Token management security findings, SameSite cookie configuration remediation
 
-**Business Objective Decomposition:**
+- **Module**: `WebVella.Erp/Api/SecurityManager.cs`
+  - Public APIs: `GetUser(Guid)`, `GetUser(email)`, `GetUserByUsername(string)`, `GetUser(email, password)` — all use EQL queries with `SecurityContext.OpenSystemScope()`
+  - Current documentation: Partial — `docs/developer/server-api/overview.md` provides C# examples
+  - Documentation needed: EQL injection assessment, system scope privilege escalation assessment
 
-The full business objective "Enable managers to make faster decisions by providing real-time dashboard views of team performance metrics" could span multiple user stories. For a single-sprint vertical slice:
+- **Module**: `WebVella.Erp.Site/Startup.cs`
+  - Configuration points: CORS policy (`AllowAnyOrigin()`), authentication scheme (`JWT_OR_COOKIE`), Razor Page authorization folder rules
+  - Current documentation: None
+  - Documentation needed: CORS misconfiguration finding documentation, authorization scheme security assessment
 
-**Vertical Slice: Real-Time Approval Metrics Dashboard**
+- **Module**: `WebVella.Erp.Site/Config.json`
+  - Configuration options: ConnectionString, EncryptionKey, JWT Key, JWT Issuer/Audience, DevelopmentMode flag
+  - Current documentation: None
+  - Documentation needed: Hardcoded secrets finding, configuration exposure remediation (environment variables, secrets manager)
 
-| Aspect | Full Scope | This Vertical Slice |
-|--------|------------|---------------------|
-| Users | All managers | Managers with approval responsibility |
-| Metrics | All team performance | Approval workflow metrics (4-5 key indicators) |
-| Views | Multiple dashboards | Single summary dashboard view |
-| Interactivity | Drill-downs, exports, filters | View-only with date range filter |
-| Real-time | Multiple update mechanisms | Auto-refresh at configurable interval |
+- **Module**: File upload handlers in `WebApiController.cs` (routes: `/fs/upload/`, `/fs/upload-user-file-multiple/`, `/fs/upload-file-multiple/`, `/ckeditor/*`)
+  - Public APIs: `UploadFile()`, `UploadUserFileMultiple()`, `UploadFileMultiple()`, `CkEditorDropUploadUrl()`, `CkEditorImageUploadUrl()`
+  - Current documentation: None
+  - Documentation needed: File upload vulnerability assessment (unrestricted file type, path traversal via `MoveFile()`, missing size limits), remediation patches
 
-**Specific Metrics for Vertical Slice:**
+- **Module**: `WebVella.Erp/Api/CryptoUtility.cs`
+  - Public APIs: DES encryption/decryption utilities
+  - Current documentation: None
+  - Documentation needed: Cryptographic weakness findings, AES-256 upgrade remediation
 
-| Metric | Description | Data Source |
-|--------|-------------|-------------|
-| Pending Approvals Count | Number awaiting manager action | `approval_request` where `status='pending'` |
-| Average Approval Time | Mean time from request to decision | `approval_history` timestamps |
-| Approval Rate | Percentage approved vs total processed | `approval_history` action counts |
-| Overdue Requests | Count exceeding SLA timeout | `approval_request` vs `approval_step.timeout_hours` |
-| Recent Activity | Last 5 approval actions | `approval_history` ordered by `performed_on` |
+- **Module**: `WebVella.Erp/Api/PasswordUtil.cs`
+  - Public APIs: MD5-based password hashing (unsalted)
+  - Current documentation: None
+  - Documentation needed: Password hashing weakness finding, bcrypt/Argon2 upgrade remediation
+
+### 0.3.2 Configuration Options Requiring Documentation
+
+| Config File | Options Documented | Options Total | Missing Documentation |
+|---|---|---|---|
+| `Config.json` | 0 | 8+ | ConnectionString, EncryptionKey, JwtKey, JwtIssuer, JwtAudience, DevelopmentMode, EnableBackgroundJobs, EmailSettings |
+| `Startup.cs` (CORS) | 0 | 3 | AllowAnyOrigin, AllowAnyMethod, AllowAnyHeader |
+| `Startup.cs` (Auth) | 0 | 4 | Cookie name, HttpOnly, Login path, JWT_OR_COOKIE scheme |
 
 ### 0.3.3 Documentation Gap Analysis
 
-**Current Documentation Status:**
+Given the requirements and repository analysis, documentation gaps include:
 
-| Documentation Area | Current State | Gap Identified |
-|--------------------|---------------|----------------|
-| Manager dashboard user story | Missing | CREATE: STORY-009 |
-| Dashboard metrics specification | Missing | INCLUDE in STORY-009 |
-| Real-time update requirements | Missing | INCLUDE in STORY-009 |
-| Backlog export for STORY-009 | Missing | UPDATE: CSV and JSON exports |
+**Undocumented Security Surface (Complete Gap)**:
+- No security assessment documentation of any kind exists in the repository
+- No Docker infrastructure documentation (no Dockerfile or docker-compose.yml in repository root)
+- No scanner configuration documentation (ZAP, Nuclei, or any DAST tooling)
+- No vulnerability remediation templates or patterns documented
+- No CWE-referenced security findings archive
 
-**Undocumented Requirements (to be addressed in STORY-009):**
+**Undocumented Public APIs Requiring Security Documentation**:
+- `POST /api/v3/en_US/eql` — EQL query execution (SQL injection surface)
+- `POST /api/v3/en_US/eql-ds` — Datasource query execution
+- `GET/POST/PUT/PATCH/DELETE /api/v3/en_US/meta/entity/*` — Full entity meta CRUD (IDOR surface)
+- `GET/POST/PUT/PATCH/DELETE /api/v3/en_US/record/{entityName}/*` — Record CRUD (BOLA surface)
+- `POST /api/v3/en_US/auth/jwt/token` — JWT issuance (stack trace leakage, brute-force surface)
+- `POST /api/v3/en_US/auth/jwt/token/refresh` — Token refresh (token reuse surface)
+- `POST /fs/upload/` — File upload (unrestricted upload surface)
+- `POST /fs/move/` — File move (path traversal surface)
+- `DELETE /{*filepath}` — File delete (wildcard path deletion surface)
+- `GET /fs/{fileName}` — File download (path traversal read surface)
+- `POST /api/v3.0/datasource/code-compile` — Dynamic code compilation (RCE surface)
 
-- Dashboard permission requirements (who can view which metrics)
-- Refresh interval configuration options
-- Mobile/responsive display considerations
-- Dashboard page component integration with existing PageComponent system
-- API endpoints for metrics data retrieval
+**Outdated Documentation Requiring Update**:
+- `docs/developer/introduction/getting-started.md` — References .NET Core 2.1 while codebase targets .NET 9.0
 
-### 0.3.4 Proposed User Story Content
-
-**STORY-009: Manager Approval Dashboard with Real-Time Metrics**
-
-**Summary (193 characters):**
-```
-Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability.
-```
-
-**Description (Who/What/Why Format):**
-```
-As a Manager with approval responsibilities,
-I want to view a real-time dashboard displaying my team's approval workflow metrics,
-so that I can make faster, data-driven decisions about resource allocation and identify processing bottlenecks.
-```
-
-**Proposed Acceptance Criteria (Given/When/Then):**
-
-| ID | Given | When | Then |
-|----|-------|------|------|
-| AC1 | I am logged in as a user with Manager role | I navigate to the Approvals Dashboard page | I see a dashboard displaying my team's approval metrics |
-| AC2 | The dashboard is displayed | 60 seconds have elapsed | The metrics automatically refresh without requiring page reload |
-| AC3 | I am viewing the dashboard | I select a date range filter | The metrics update to reflect only the selected time period |
-| AC4 | I have pending approval requests in queue | I view the Pending Approvals metric | The count accurately reflects requests awaiting my action |
-| AC5 | Approval requests exceed their configured timeout | I view the Overdue Requests metric | The count accurately identifies requests past their SLA |
-| AC6 | I am a user without Manager role | I attempt to access the dashboard | I receive an access denied message |
-
-**Business Value Points:**
-- Reduces time managers spend gathering performance data from multiple sources
-- Enables proactive identification of workflow bottlenecks before escalation
-- Provides visibility into team workload for resource planning decisions
-- Supports compliance reporting with real-time SLA monitoring
-- Improves manager accountability through transparent metrics
+**Missing Architecture Security Documentation**:
+- No threat model documentation
+- No security zone boundary documentation
+- No data flow diagrams showing trust boundaries
+- No incident response or vulnerability disclosure procedures
 
 ## 0.4 Documentation Implementation Design
 
 ### 0.4.1 Documentation Structure Planning
 
-**Documentation Hierarchy:**
+The security validation workflow documentation will be organized under a new `docs/security/` directory, parallel to the existing `docs/developer/` structure. Each phase of the workflow corresponds to a dedicated documentation file.
 
 ```
-jira-stories/
-├── STORY-001-approval-plugin-infrastructure.md      (existing)
-├── STORY-002-approval-entity-schema.md              (existing)
-├── STORY-003-workflow-configuration-management.md   (existing)
-├── STORY-004-approval-service-layer.md              (existing)
-├── STORY-005-approval-hooks-integration.md          (existing)
-├── STORY-006-notification-escalation-jobs.md        (existing)
-├── STORY-007-approval-rest-api.md                   (existing)
-├── STORY-008-approval-ui-components.md              (existing)
-├── STORY-009-manager-dashboard-metrics.md           (CREATE)
-├── stories-export.csv                               (UPDATE)
-└── stories-export.json                              (UPDATE)
+docs/
+├── developer/                          (existing — unchanged)
+│   ├── introduction/
+│   ├── web-api/
+│   ├── server-api/
+│   ├── users-and-roles/
+│   ├── entities/
+│   ├── hooks/
+│   └── ... (10 other sections)
+└── security/
+    ├── README.md                       (Security assessment overview and quick start)
+    ├── folder.json                     (Navigation manifest following existing convention)
+    ├── docker-setup.md                 (Docker environment setup and health validation)
+    ├── authentication.md               (JWT token acquisition and scan authentication)
+    ├── attack-surface-inventory.md     (Complete API endpoint security classification)
+    ├── zap-scan-config.md              (OWASP ZAP authenticated active scan setup)
+    ├── nuclei-scan-config.md           (Nuclei template-based scan configuration)
+    ├── finding-analysis.md             (Output parsing, deduplication, triage)
+    ├── remediation-guide.md            (ASP.NET Core secure coding patterns)
+    ├── security-report.md              (Final per-finding report with CWE references)
+    └── diagrams/
+        ├── scan-workflow.md            (Mermaid: end-to-end scan workflow)
+        ├── attack-surface.md           (Mermaid: API route security classification)
+        └── remediation-flow.md         (Mermaid: patch-rebuild-verify cycle)
 ```
-
-**File Structure for STORY-009:**
-
-The new story file will follow the established markdown structure with sections for Description (Who/What/Why format per State Street guide), Business Value (bullet points), Acceptance Criteria (checkbox format with Given/When/Then), and Technical Implementation Details including tables for files/modules, tree diagrams for folder structure, code snippets for key classes, and dependency tables.
 
 ### 0.4.2 Content Generation Strategy
 
-**Information Extraction Approach:**
+**Information Extraction Approach**:
+- Extract the full API route inventory from `WebVella.Erp.Web/Controllers/WebApiController.cs` (lines 1-4313) by parsing `[HttpGet]`, `[HttpPost]`, `[HttpPut]`, `[HttpPatch]`, `[HttpDelete]` attributes and their route templates
+- Extract security configuration from `WebVella.Erp.Site/Startup.cs` (CORS policy, authentication scheme, cookie configuration, authorization folder rules)
+- Extract cryptographic implementations from `WebVella.Erp/Api/CryptoUtility.cs` (DES encryption) and `WebVella.Erp/Api/PasswordUtil.cs` (MD5 hashing)
+- Extract authentication flow from `WebVella.Erp.Web/Security/WebSecurityUtil.cs` (token creation, identity caching, session management)
+- Extract file upload handling from `WebApiController.cs` lines 3320-3500 (upload, move, delete handlers)
+- Generate remediation examples by analyzing ASP.NET Core 9 secure coding patterns (parameterized queries, authorization policies, output encoding via `HtmlEncoder`)
+- Create Mermaid diagrams by mapping controller route dependencies, security filter pipelines, and scan workflow sequences
 
-| Content Section | Extraction Method | Source |
-|-----------------|-------------------|--------|
-| Description | Interpret business objective | User requirements |
-| Business Value | Derive from objective keywords | "faster decisions", "real-time", "performance" |
-| Acceptance Criteria | Transform requirements to testable scenarios | User requirements + State Street guide |
-| Technical Details | Analyze repository patterns | Existing stories + codebase structure |
-| Dependencies | Trace feature relationships | Feature Catalog (Section 2.1) |
-| Story Points | Relative sizing | Compare to STORY-008 (8 pts for full UI) |
+**Template Application**:
+- Follow the existing `docs/developer/` convention: `folder.json` manifest with `name`, `page`, and `nav` properties per folder
+- Individual page metadata via HTML-comment JSON front-matter: `<!-- {"name": "...", "tag": "..."} -->`
+- Maintain consistent Markdown header hierarchy (# for page title, ## for major sections, ### for subsections)
 
-**Template Application:**
-
-The user story will apply the State Street template EXACTLY as specified in the guide:
-- Description uses "As a / I want / so that" format
-- Acceptance Criteria uses "Given / When / Then" syntax
-- Summary is limited to maximum 255 characters
-
-**Documentation Standards:**
-
-| Standard | Application |
-|----------|-------------|
-| Markdown formatting | Proper headers using # ## ### |
-| Code examples | Fenced code blocks with syntax highlighting |
-| Tables | Pipe-delimited markdown tables |
-| Lists | Checkbox format for acceptance criteria |
-| Source citations | Reference existing stories and codebase paths |
+**Documentation Standards**:
+- Markdown formatting with proper headers (`# ## ### ####`)
+- Mermaid diagram integration using triple-backtick `mermaid` fenced code blocks for all workflow visualizations
+- Code examples using triple-backtick fenced blocks with syntax highlighting (`csharp`, `json`, `bash`, `yaml`)
+- Source citations as inline references: `Source: WebVella.Erp.Web/Controllers/WebApiController.cs:L4287`
+- Tables for endpoint inventories, finding summaries, and configuration option descriptions
+- Consistent terminology: "finding" (not "vulnerability"), "remediation" (not "fix"), "scan target" (not "attack target")
 
 ### 0.4.3 Diagram and Visual Strategy
 
-**Mermaid Diagrams to Include in STORY-009:**
+**Mermaid Diagrams to Create**:
 
-**Dashboard Component Architecture:**
+- **End-to-End Scan Workflow** (`docs/security/diagrams/scan-workflow.md`): Flowchart showing the complete sequence from Docker environment setup → health check → authentication → parallel ZAP + Nuclei scans → output parsing → deduplication → remediation → re-scan verification → report generation
 
-```mermaid
-graph TD
-    subgraph Dashboard_Page
-        A[PcApprovalDashboard Component]
-        B[Metrics Display Panel]
-        C[Date Range Filter]
-        D[Auto-Refresh Timer]
-    end
-    
-    subgraph Data_Layer
-        E[ApprovalController]
-        F[DashboardMetricsService]
-        G[approval_request Entity]
-        H[approval_history Entity]
-    end
-    
-    A --> B
-    A --> C
-    A --> D
-    B --> E
-    E --> F
-    F --> G
-    F --> H
-```
+- **API Attack Surface Classification** (`docs/security/diagrams/attack-surface.md`): Graph diagram categorizing all 60+ `WebApiController` endpoints by security risk level (Critical: EQL execution, file uploads; High: entity/record CRUD; Medium: page/node management; Low: static resources)
 
-**User Workflow Diagram:**
+- **Remediation Patch-Rebuild-Verify Cycle** (`docs/security/diagrams/remediation-flow.md`): Sequence diagram showing the iterative cycle: identify finding → locate source file/line → generate patch → apply patch → rebuild Docker image → re-run targeted scan → verify resolution
 
-```mermaid
-sequenceDiagram
-    participant M as Manager
-    participant D as Dashboard Page
-    participant API as ApprovalController
-    participant S as DashboardMetricsService
-    
-    M->>D: Navigate to Dashboard
-    D->>API: GET /metrics
-    API->>S: GetDashboardMetrics
-    S-->>API: MetricsResponse
-    API-->>D: JSON Response
-    D-->>M: Display Metrics
-    
-    loop Every 60 seconds
-        D->>API: GET /metrics
-        API-->>D: Updated Metrics
-        D-->>M: Update Display
-    end
-```
+- **Authentication Flow Diagram** (inline in `docs/security/authentication.md`): Sequence diagram showing `POST /api/v3/en_US/auth/jwt/token` request → `AuthService.GetTokenAsync()` → JWT token response → Bearer header configuration
 
-### 0.4.4 Technical Implementation Outline
-
-**Files/Modules to Reference in Documentation:**
-
-| File Path | Purpose |
-|-----------|---------|
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/` | Dashboard page component |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs` | Component class |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Display.cshtml` | Display view |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/Options.cshtml` | Configuration options |
-| `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js` | AJAX refresh logic |
-| `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs` | Metrics calculation service |
-| `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs` | API endpoint additions |
-| `WebVella.Erp.Plugins.Approval/Api/DashboardMetricsModel.cs` | Response model |
-
-**Component Options to Document:**
-
-| Option | Type | Description |
-|--------|------|-------------|
-| refresh_interval | Number | Seconds between auto-refresh (default: 60) |
-| date_range_default | Text | Default date range (7d/30d/90d) |
-| show_overdue_alert | Boolean | Highlight overdue requests |
-| metrics_to_display | Text | Comma-separated metric IDs |
-
-**API Endpoints to Document:**
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v3.0/p/approval/dashboard/metrics` | Returns dashboard metrics for current user |
-| GET | `/api/v3.0/p/approval/dashboard/metrics?from={date}&to={date}` | Filtered by date range |
-
-### 0.4.5 INVEST Criteria Validation
-
-| Criterion | Validation | Status |
-|-----------|------------|--------|
-| **Independent** | No blocking dependency on undelivered features; builds on F-007/F-008 | ✓ Pass |
-| **Negotiable** | Metrics selection and refresh interval are negotiable | ✓ Pass |
-| **Valuable** | Directly addresses manager decision-making objective | ✓ Pass |
-| **Estimable** | Similar scope to STORY-008 UI component; 5 points | ✓ Pass |
-| **Sized** | Single dashboard view, single refresh mechanism | ✓ Pass |
-| **Testable** | All acceptance criteria have clear pass/fail | ✓ Pass |
-| **Demo-able** | Dashboard can be demonstrated to Product Owner | ✓ Pass |
+- **Security Architecture Overview** (inline in `docs/security/attack-surface-inventory.md`): Class diagram showing `WebApiController` → `SecurityManager` → `SecurityContext` → `AuthorizeAttribute` relationships and the `JWT_OR_COOKIE` authentication pipeline
 
 ## 0.5 Documentation File Transformation Mapping
 
 ### 0.5.1 File-by-File Documentation Plan
 
-**CRITICAL: Complete mapping of ALL documentation files to be created, updated, or deleted.**
-
-**Documentation Transformation Modes:**
-- **CREATE** - Create a new documentation file
-- **UPDATE** - Update an existing documentation file
-- **DELETE** - Remove an obsolete documentation file
-- **REFERENCE** - Use as an example for documentation style and structure
-
 | Target Documentation File | Transformation | Source Code/Docs | Content/Changes |
-|---------------------------|----------------|------------------|-----------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | Business objective, State Street guide, existing stories | Complete user story with Description, Business Value, Acceptance Criteria, Technical Details |
-| `jira-stories/stories-export.csv` | UPDATE | `jira-stories/stories-export.csv` | Add new row with STORY-009 data matching existing column structure |
-| `jira-stories/stories-export.json` | UPDATE | `jira-stories/stories-export.json` | Add new story object to stories array with all required fields |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | - | Use as template for component documentation structure |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | - | Use as template for API endpoint documentation |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | - | Use as template for overall story structure and formatting |
+|---|---|---|---|
+| `docs/security/README.md` | CREATE | `README.md`, `docs/developer/introduction/getting-started.md` | Security assessment overview, workflow summary, prerequisites, quick-start guide linking to all sub-documents |
+| `docs/security/folder.json` | CREATE | `docs/developer/folder.json` (style reference) | Navigation manifest with `name`, `page`, `nav` properties following existing docs/developer convention |
+| `docs/security/docker-setup.md` | CREATE | `WebVella.Erp.Site/WebVella.Erp.Site.csproj`, `WebVella.Erp.Site/Startup.cs`, `WebVella.Erp.Site/Config.json` | Docker Compose authoring for .NET 9.0 + PostgreSQL 16, Dockerfile creation, health check polling `/api/v3/en_US/meta`, environment variable configuration, container networking |
+| `docs/security/authentication.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs` (lines 4270-4314), `WebVella.Erp.Web/Security/WebSecurityUtil.cs`, `docs/developer/users-and-roles/users.md` | JWT token acquisition via `POST /api/v3/en_US/auth/jwt/token` with default credentials (`erp@webvella.com` / `erp`), Bearer header configuration, token refresh procedure, Mermaid auth flow diagram |
+| `docs/security/attack-surface-inventory.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs` (all 4313 lines), `WebVella.Erp.Web/Controllers/AdminController.cs`, `WebVella.Erp.Web/Controllers/ApiControllerBase.cs` | Complete endpoint inventory table with route, HTTP method, authorization requirement, security risk classification; categorized by EQL/entity/record/file/auth/system groups |
+| `docs/security/zap-scan-config.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs` (route inventory), `WebVella.Erp.Site/Startup.cs` (CORS config) | OWASP ZAP 2.17.0 Docker configuration, Automation Framework YAML plan, Bearer token auth context, scan scope definitions for `/api/v3/`, `/api/v3/en_US/entity/`, `/api/v3/en_US/user/`, file upload handlers; scan policy for IDOR, BOLA, XSS, SQLi |
+| `docs/security/nuclei-scan-config.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs`, `WebVella.Erp.Site/Startup.cs` | Nuclei v3.7.1 configuration, ASP.NET Core template pack (`-tags aspnet`), generic API templates (`-tags api`), custom header injection for Bearer token, parallel execution alongside ZAP, output format selection (`-jsonl`) |
+| `docs/security/finding-analysis.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs`, `WebVella.Erp.Web/Security/*.cs`, `WebVella.Erp/Api/SecurityManager.cs`, `WebVella.Erp/Api/CryptoUtility.cs`, `WebVella.Erp/Api/PasswordUtil.cs` | ZAP JSON output parsing procedure, Nuclei JSONL output parsing, cross-scanner deduplication algorithm (by CWE + URL + parameter), severity filtering for HIGH/CRITICAL, source code location methodology (file + line mapping), finding triage workflow |
+| `docs/security/remediation-guide.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs`, `WebVella.Erp.Web/Security/AuthToken.cs`, `WebVella.Erp.Web/Security/AuthorizeAttribute.cs`, `WebVella.Erp/Api/CryptoUtility.cs`, `WebVella.Erp/Api/PasswordUtil.cs`, `WebVella.Erp.Site/Startup.cs` | ASP.NET Core 9 secure coding patterns: parameterized EQL queries (SqlParameter binding), `[Authorize(Roles)]` attribute enforcement, `HtmlEncoder.Default.Encode()` for XSS output encoding, `AesGcm` for encryption upgrade, `BCrypt.Net` for password hashing, CORS origin whitelisting, `SameSite=Strict` cookie policy, error response sanitization; per-pattern before/after code examples |
+| `docs/security/security-report.md` | CREATE | All source files referenced in finding-analysis.md and remediation-guide.md | Final report template with per-finding structure: Finding ID, CWE Reference, Severity, Scanner Source (ZAP/Nuclei/Both), Affected File:Line, Vulnerable Code Before, Remediated Code After, Scanner Re-Scan Confirmation, OWASP Top 10 Mapping |
+| `docs/security/diagrams/scan-workflow.md` | CREATE | N/A (synthesized from workflow) | Mermaid flowchart: Docker setup → health poll → JWT auth → parallel ZAP+Nuclei → parse → dedup → remediate → rebuild → re-scan → report |
+| `docs/security/diagrams/attack-surface.md` | CREATE | `WebVella.Erp.Web/Controllers/WebApiController.cs` | Mermaid graph: endpoint classification by risk level (Critical/High/Medium/Low) with route groupings |
+| `docs/security/diagrams/remediation-flow.md` | CREATE | N/A (synthesized from workflow) | Mermaid sequence diagram: patch-rebuild-verify iterative cycle per finding |
+| `docker-compose.yml` | CREATE | `WebVella.Erp.Site/WebVella.Erp.Site.csproj`, `WebVella.Erp.Site/Config.json` | Docker Compose file at repository root defining `web` (.NET 9.0 app) and `db` (PostgreSQL 16) services with health checks, volume mounts, environment variables, and network configuration |
+| `Dockerfile` | CREATE | `WebVella.Erp.Site/WebVella.Erp.Site.csproj`, `global.json` | Multi-stage Dockerfile at repository root: build stage (mcr.microsoft.com/dotnet/sdk:9.0), runtime stage (mcr.microsoft.com/dotnet/aspnet:9.0), exposing port 5000 |
+| `docs/developer/introduction/getting-started.md` | UPDATE | `docs/developer/introduction/getting-started.md` | Update .NET Core 2.1 references to .NET 9.0; add link to new `docs/security/` documentation; note Docker-based setup alternative |
 
 ### 0.5.2 New Documentation Files Detail
 
-**File: jira-stories/STORY-009-manager-dashboard-metrics.md**
+```
+File: docs/security/README.md
+Type: Overview / Quick Start
+Source Code: README.md, docs/developer/introduction/getting-started.md
+Sections:
+    - Overview (purpose of security validation workflow)
+    - Prerequisites (Docker, OWASP ZAP, Nuclei, .NET 9.0 SDK)
+    - Quick Start (condensed 6-step procedure)
+    - Document Index (links to all sub-documents)
+    - Conventions (terminology, severity levels, CWE references)
+Diagrams:
+    - End-to-end workflow overview (Mermaid flowchart)
+Key Citations: README.md, WebVella.Erp.Site/WebVella.Erp.Site.csproj
+```
 
-| Attribute | Value |
-|-----------|-------|
-| **Type** | JIRA User Story (Markdown) |
-| **Source Context** | User requirements, State Street guide |
-| **Story ID** | STORY-009 |
-| **Story Points** | 5 |
-| **Labels** | dashboard, metrics, ui, manager, approval, real-time |
+```
+File: docs/security/docker-setup.md
+Type: Procedure Guide
+Source Code: WebVella.Erp.Site/WebVella.Erp.Site.csproj, WebVella.Erp.Site/Startup.cs, WebVella.Erp.Site/Config.json
+Sections:
+    - Prerequisites (Docker Engine 24+, Docker Compose V2)
+    - Repository Cloning (git clone from GitHub)
+    - Dockerfile Creation (multi-stage build for .NET 9.0)
+    - Docker Compose Configuration (web + db services)
+    - Environment Variables (connection string, JWT key, encryption key)
+    - Container Startup Procedure (docker compose up -d)
+    - Health Check Validation (polling GET /api/v3/en_US/meta)
+    - Troubleshooting (common startup failures, PostgreSQL connectivity)
+Diagrams:
+    - Container architecture (Mermaid: web ↔ db network)
+Key Citations: WebVella.Erp.Site/Startup.cs:L28-42, Config.json
+```
 
-**Sections to Include:**
+```
+File: docs/security/authentication.md
+Type: Procedure Guide
+Source Code: WebVella.Erp.Web/Controllers/WebApiController.cs:L4270-4314, WebVella.Erp.Web/Security/WebSecurityUtil.cs
+Sections:
+    - Default Credentials (erp@webvella.com / erp from docs/developer/introduction/getting-started.md)
+    - JWT Token Request (POST /api/v3/en_US/auth/jwt/token with JwtTokenLoginModel)
+    - Response Parsing (extract token from JSON envelope)
+    - Bearer Header Configuration (Authorization: Bearer <token>)
+    - Token Refresh (POST /api/v3/en_US/auth/jwt/token/refresh)
+    - Cookie-Based Authentication Alternative (erp_auth_base cookie)
+    - Scanner Authentication Setup (configuring ZAP and Nuclei with token)
+Diagrams:
+    - JWT authentication sequence (Mermaid sequence diagram)
+Key Citations: WebApiController.cs:L4270-4314, WebSecurityUtil.cs, docs/developer/users-and-roles/users.md
+```
 
-| Section | Content Description |
-|---------|---------------------|
-| Title Header | `# STORY-009: Manager Approval Dashboard with Real-Time Metrics` |
-| Description | Who/What/Why format for manager viewing dashboard metrics |
-| Business Value | 5 bullet points articulating decision-making improvements |
-| Acceptance Criteria | 6 testable scenarios in Given/When/Then format |
-| Technical Implementation Details | Files/modules table, folder structure, key classes |
-| Dependencies | STORY-007, STORY-008 (UI Components and REST API) |
+```
+File: docs/security/attack-surface-inventory.md
+Type: API Reference / Security Classification
+Source Code: WebVella.Erp.Web/Controllers/WebApiController.cs (all 4313 lines)
+Sections:
+    - Endpoint Inventory Table (route, method, auth requirement, risk level)
+    - EQL Execution Endpoints (POST /api/v3/en_US/eql, /eql-ds, /eql-ds-select2)
+    - Entity Meta CRUD Endpoints (GET/POST/PATCH/DELETE /api/v3/en_US/meta/entity/*)
+    - Record CRUD Endpoints (GET/POST/PUT/PATCH/DELETE /api/v3/en_US/record/*)
+    - File System Endpoints (GET/POST/DELETE /fs/*)
+    - Authentication Endpoints (POST /api/v3/en_US/auth/jwt/*)
+    - Scheduling Endpoints (GET/PUT/POST /api/v3/en_US/scheduleplan/*)
+    - Anonymous Endpoints (GET /api/v3.0/p/core/styles.css)
+    - Security Risk Classification Matrix
+Diagrams:
+    - Attack surface classification graph (Mermaid)
+Key Citations: WebApiController.cs (full file), AdminController.cs
+```
 
-**Acceptance Criteria Detail:**
+```
+File: docs/security/zap-scan-config.md
+Type: Configuration Guide
+Source Code: WebApiController.cs (route inventory), Startup.cs (CORS config)
+Sections:
+    - ZAP Docker Setup (ghcr.io/zaproxy/zaproxy:stable)
+    - Automation Framework Plan (YAML configuration)
+    - Authentication Context (Bearer token header injection)
+    - Scan Scope Definition (included/excluded URL patterns)
+    - Active Scan Policy (IDOR, BOLA, SQLi, XSS, CSRF, path traversal)
+    - IDOR-Specific Configuration (entity UUID parameter fuzzing)
+    - File Upload Scan Configuration (multipart form testing)
+    - Output Configuration (JSON report format)
+    - Scan Execution Commands
+Diagrams: None (configuration-focused)
+Key Citations: WebApiController.cs route inventory, Startup.cs:L34-36 (CORS)
+```
 
-| AC ID | Scenario |
-|-------|----------|
-| AC1 | Manager navigates to dashboard and sees metrics |
-| AC2 | Dashboard auto-refreshes every 60 seconds |
-| AC3 | Date range filter updates displayed metrics |
-| AC4 | Pending approvals count reflects actual queue |
-| AC5 | Overdue requests identifies SLA violations |
-| AC6 | Non-manager users receive access denied |
+```
+File: docs/security/nuclei-scan-config.md
+Type: Configuration Guide
+Source Code: WebApiController.cs, Startup.cs
+Sections:
+    - Nuclei Installation (Docker or binary)
+    - Template Pack Selection (ASP.NET Core: -tags aspnet, API: -tags api)
+    - Custom Header Configuration (-H "Authorization: Bearer <token>")
+    - Target URL Configuration (-u http://localhost:5000)
+    - Severity Filtering (-severity critical,high)
+    - Output Format (-jsonl for machine parsing)
+    - Parallel Execution Strategy (alongside ZAP)
+    - Template Update Procedure (-update-templates)
+Diagrams: None (configuration-focused)
+Key Citations: WebApiController.cs (target surface), Startup.cs (server configuration)
+```
 
-**Key Technical Elements to Document:**
+```
+File: docs/security/finding-analysis.md
+Type: Procedure Guide
+Source Code: WebApiController.cs, Security/*.cs, SecurityManager.cs, CryptoUtility.cs, PasswordUtil.cs
+Sections:
+    - ZAP JSON Output Parsing (jq-based extraction)
+    - Nuclei JSONL Output Parsing (jq-based extraction)
+    - Cross-Scanner Deduplication Algorithm (CWE + URL + parameter matching)
+    - Severity Filtering (CRITICAL and HIGH only per requirements)
+    - Source Code Location Methodology (grep/ripgrep for vulnerable patterns)
+    - Finding Classification (CWE mapping, OWASP Top 10 alignment)
+    - Pre-Existing Vulnerability Catalog (known issues from tech spec 6.4)
+Diagrams:
+    - Finding triage flowchart (Mermaid)
+Key Citations: All security-relevant source files
+```
 
-| Element | Documentation Content |
-|---------|----------------------|
-| PcApprovalDashboard Component | Component class, views, options, service.js |
-| DashboardMetricsService | Service methods for metric calculations |
-| API Endpoint | GET /api/v3.0/p/approval/dashboard/metrics |
-| Response Model | DashboardMetricsModel with metric properties |
+```
+File: docs/security/remediation-guide.md
+Type: Technical Guide
+Source Code: WebApiController.cs, AuthToken.cs, AuthorizeAttribute.cs, CryptoUtility.cs, PasswordUtil.cs, Startup.cs
+Sections:
+    - SQL Injection Remediation (parameterized EQL queries)
+    - IDOR/BOLA Remediation (entity-level authorization checks via CanRead/CanUpdate/CanDelete role GUIDs)
+    - XSS Remediation (HtmlEncoder output encoding)
+    - Cryptographic Weakness Remediation (DES → AES-256-GCM migration)
+    - Password Hashing Remediation (MD5 → bcrypt/Argon2 migration)
+    - CORS Misconfiguration Remediation (origin whitelisting)
+    - Information Disclosure Remediation (error response sanitization)
+    - File Upload Remediation (content-type validation, size limits, path sanitization)
+    - Docker Rebuild Procedure (docker compose build --no-cache)
+    - Re-Scan Verification (targeted ZAP/Nuclei re-scan per finding)
+Diagrams:
+    - Patch-rebuild-verify cycle (Mermaid sequence diagram)
+Key Citations: All remediated source files with before/after line references
+```
+
+```
+File: docs/security/security-report.md
+Type: Security Report Template
+Source Code: All findings from ZAP and Nuclei scans
+Sections:
+    - Executive Summary (total findings by severity, scan coverage)
+    - Finding Detail Template (repeating per finding):
+        - Finding ID, CWE Reference, Severity
+        - Scanner Source (ZAP/Nuclei/Both)
+        - Affected File:Line Number
+        - Vulnerable Code (before patch)
+        - Remediated Code (after patch)
+        - Remediation Pattern Applied
+        - Scanner Re-Scan Confirmation (pass/fail)
+    - OWASP Top 10 Coverage Matrix
+    - Residual Risk Assessment
+    - Recommendations for Further Hardening
+Diagrams:
+    - Finding severity distribution (table/chart)
+Key Citations: All finding source files
+```
 
 ### 0.5.3 Documentation Files to Update Detail
 
-**File: jira-stories/stories-export.csv**
+- `docs/developer/introduction/getting-started.md` — Update .NET Core 2.1 references to .NET 9.0
+  - Update: Change SDK version reference from 2.1 to 9.0
+  - Addition: Add "Security Assessment" section linking to `docs/security/README.md`
+  - Addition: Add Docker-based setup instructions as alternative to manual setup
+  - Source citation: `WebVella.Erp.Site/WebVella.Erp.Site.csproj` (net9.0 TFM)
 
-| Change Type | Details |
-|-------------|---------|
-| Operation | Append new row |
-| Row Position | After STORY-008 row |
-| Column Structure | Match existing: Story ID, Title, Description, Business Value, Acceptance Criteria, Technical Details, Dependencies, Story Points, Labels |
+### 0.5.4 Documentation Configuration Updates
 
-**New Row Content:**
+- `docs/security/folder.json` — New navigation manifest for the security documentation folder following the existing `docs/developer/folder.json` convention with `name: "Security Assessment"`, ordered `nav` array linking all 9 documentation pages
 
-| Column | Value |
-|--------|-------|
-| Story ID | STORY-009 |
-| Title | Manager Approval Dashboard with Real-Time Metrics |
-| Description | Implement a real-time dashboard page component displaying team approval workflow metrics... |
-| Business Value | Reduces manager time gathering performance data; Enables proactive bottleneck identification... |
-| Acceptance Criteria | [ ] Manager sees dashboard metrics on navigation; [ ] Dashboard auto-refreshes at configurable interval... |
-| Technical Details | Files: Components/PcApprovalDashboard/, Services/DashboardMetricsService.cs... |
-| Dependencies | STORY-007, STORY-008 |
-| Story Points | 5 |
-| Labels | dashboard, metrics, ui, manager, approval, real-time |
+### 0.5.5 Cross-Documentation Dependencies
 
-**File: jira-stories/stories-export.json**
-
-| Change Type | Details |
-|-------------|---------|
-| Operation | Add story object to stories array |
-| Position | After STORY-008 object |
-| Structure | Match existing story object schema |
-
-**New Story Object Fields:**
-
-| Field | Type | Value |
-|-------|------|-------|
-| id | string | "STORY-009" |
-| title | string | "Manager Approval Dashboard with Real-Time Metrics" |
-| description | string | Full description paragraph |
-| businessValue | string | Concatenated value statements |
-| acceptanceCriteria | array | Array of criterion strings |
-| technicalDetails | object | { files: [], classes: [], integrationPoints: [], technicalApproach: "" } |
-| dependencies | array | ["STORY-007", "STORY-008"] |
-| storyPoints | number | 5 |
-| labels | array | ["dashboard", "metrics", "ui", "manager", "approval", "real-time"] |
-
-### 0.5.4 Cross-Documentation Dependencies
-
-**Shared Content References:**
-
-| Reference Type | Source | Target |
-|----------------|--------|--------|
-| Story naming convention | STORY-001 through STORY-008 | STORY-009 |
-| Technical detail structure | STORY-008 (UI components) | STORY-009 technical section |
-| API documentation pattern | STORY-007 (REST API) | STORY-009 API endpoints |
-| Entity references | STORY-002 (Entity schema) | STORY-009 data sources |
-
-**Navigation and Index Updates:**
-
-| Update | Location | Change |
-|--------|----------|--------|
-| CSV row order | stories-export.csv | Sequential after STORY-008 |
-| JSON array order | stories-export.json | Append to stories array |
-| Dependency tracking | STORY-009 | References STORY-007, STORY-008 |
-
-### 0.5.5 Complete File Inventory
-
-**All Documentation Files Affected:**
-
-| File Path | Action | Status |
-|-----------|--------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | CREATE | New file |
-| `jira-stories/stories-export.csv` | UPDATE | Add row |
-| `jira-stories/stories-export.json` | UPDATE | Add object |
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | REFERENCE | Template |
-| `jira-stories/STORY-007-approval-rest-api.md` | REFERENCE | API pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | REFERENCE | Component pattern |
-
-**No files marked as "pending" or "to be discovered" - all documentation artifacts explicitly listed.**
+- **Navigation Links**: `docs/security/README.md` links to all 9 sub-documents; each sub-document links back to README and to the next document in the workflow sequence
+- **Forward References**: `docker-setup.md` → `authentication.md` → `attack-surface-inventory.md` → `zap-scan-config.md` / `nuclei-scan-config.md` → `finding-analysis.md` → `remediation-guide.md` → `security-report.md`
+- **Cross-References to Existing Docs**: `authentication.md` references `docs/developer/users-and-roles/users.md` for credential details; `attack-surface-inventory.md` references `docs/developer/web-api/overview.md` for API conventions
+- **Root README Update**: `README.md` should add a link to `docs/security/README.md` under a new "Security" section
 
 ## 0.6 Dependency Inventory
 
 ### 0.6.1 Documentation Dependencies
 
-**Documentation Tools and Packages:**
-
-This documentation task (creating JIRA user story artifacts) does not require specific documentation generation tools. The deliverables are plain markdown files and structured data exports (CSV/JSON).
+The following tools and packages are relevant to producing and validating the security assessment documentation. All versions are verified from web search and repository analysis.
 
 | Registry | Package Name | Version | Purpose |
-|----------|--------------|---------|---------|
-| N/A | Markdown | - | Native format for story files |
-| N/A | CSV | - | Tabular export format |
-| N/A | JSON | - | Structured data export |
+|---|---|---|---|
+| Docker Hub | `ghcr.io/zaproxy/zaproxy:stable` | 2.17.0 | OWASP ZAP dynamic application security scanner (DAST); Docker image for authenticated active scanning |
+| Docker Hub | `projectdiscovery/nuclei:latest` | v3.7.1 | Nuclei template-based vulnerability scanner; Docker image for ASP.NET Core and API template scanning |
+| Docker Hub | `mcr.microsoft.com/dotnet/sdk:9.0` | 9.0 | .NET 9.0 SDK for building WebVella ERP Docker image (build stage) |
+| Docker Hub | `mcr.microsoft.com/dotnet/aspnet:9.0` | 9.0 | ASP.NET Core 9.0 runtime for WebVella ERP Docker image (runtime stage) |
+| Docker Hub | `postgres:16` | 16 | PostgreSQL 16 database container for WebVella ERP data storage |
+| GitHub | `projectdiscovery/nuclei-templates` | v10.3.9 | Community-maintained vulnerability detection templates (9,821+ templates); auto-downloaded by Nuclei |
+| NuGet | `Microsoft.AspNetCore.Authentication.JwtBearer` | 9.0.10 | JWT Bearer authentication middleware (existing project dependency) |
+| NuGet | `Npgsql` | 9.0.4 | PostgreSQL .NET data provider (existing project dependency) |
+| NuGet | `System.IdentityModel.Tokens.Jwt` | 8.14.0 | JWT token handling library (existing project dependency) |
+| NuGet | `Newtonsoft.Json` | 13.0.4 | JSON serialization for API responses (existing project dependency) |
+| System | `jq` | 1.7+ | Command-line JSON processor for parsing ZAP and Nuclei scan outputs |
+| System | `curl` | 8.0+ | HTTP client for health check polling and API authentication requests |
+| System | `Docker Engine` | 24.0+ | Container runtime for running WebVella, PostgreSQL, ZAP, and Nuclei |
+| System | `Docker Compose` | V2 (2.20+) | Multi-container orchestration for the WebVella + PostgreSQL stack |
 
-**Story Documentation Dependencies:**
+### 0.6.2 WebVella ERP Project Dependencies (Security-Relevant)
 
-The STORY-009 user story has dependencies on prior stories that provide the technical foundation:
+These are existing NuGet dependencies from the WebVella codebase that are directly relevant to the security assessment documentation:
 
-| Dependency Story | Type | Relationship | Rationale |
-|------------------|------|--------------|-----------|
-| STORY-007 | Prerequisite | API Layer | Dashboard consumes REST API endpoints |
-| STORY-008 | Prerequisite | UI Components | Dashboard uses PageComponent pattern |
-| STORY-004 | Indirect | Service Layer | Metrics service follows service patterns |
-| STORY-002 | Indirect | Entity Schema | Metrics query approval entities |
+| NuGet Package | Version | Project | Security Relevance |
+|---|---|---|---|
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | 9.0.10 | WebVella.Erp.Site | JWT authentication scheme — scanner target for token-based auth testing |
+| `System.IdentityModel.Tokens.Jwt` | 8.14.0 | WebVella.Erp.Web | JWT token creation/validation — weak HMAC-SHA256 key in Config.json |
+| `Npgsql` | 9.0.4 | WebVella.Erp | PostgreSQL driver — relevant for SQL injection assessment of EQL queries |
+| `Storage.Net` | 9.3.0 | WebVella.Erp | Cloud/filesystem storage abstraction — relevant for file upload security |
+| `HtmlAgilityPack` | 1.12.4 | WebVella.Erp.Web | HTML parsing — relevant for XSS output encoding assessment |
+| `Microsoft.CodeAnalysis.CSharp.Scripting` | 4.14.0 | WebVella.Erp.Web | Dynamic C# compilation — relevant for code injection assessment at `/api/v3.0/datasource/code-compile` |
+| `AutoMapper` | 14.0.0 | WebVella.Erp | Object mapping — relevant for IDOR assessment (object property exposure) |
 
-### 0.6.2 Technical Documentation References
+### 0.6.3 Remediation Dependencies (To Be Added)
 
-**WebVella ERP Documentation Dependencies:**
+These packages may be recommended in the remediation documentation for upgrading security primitives:
 
-| Documentation Area | Location | Relevance to STORY-009 |
-|--------------------|----------|------------------------|
-| Page Components | `docs/developer/components/` | Component creation pattern |
-| REST API | `docs/developer/web-api/` | API endpoint conventions |
-| Entities | `docs/developer/entities/` | Entity query patterns |
-| Background Jobs | `docs/developer/background-jobs/` | Auto-refresh considerations |
-
-**State Street Guide Dependencies:**
-
-| Guide Section | Application to STORY-009 |
-|---------------|--------------------------|
-| Purpose | User story definition and scope |
-| Anatomy of a Story | Summary, Description, Acceptance Criteria structure |
-| INVEST Criteria | Story quality validation |
-| Acceptance Criteria Effectiveness | Given/When/Then validation |
-| Story Estimation | Story point assignment (5 points) |
-
-### 0.6.3 Feature Dependency Chain
-
-**Dependency Graph for STORY-009:**
-
-```mermaid
-graph TD
-    S001[STORY-001: Plugin Infrastructure]
-    S002[STORY-002: Entity Schema]
-    S003[STORY-003: Config Services]
-    S004[STORY-004: Service Layer]
-    S005[STORY-005: Hooks Integration]
-    S006[STORY-006: Background Jobs]
-    S007[STORY-007: REST API]
-    S008[STORY-008: UI Components]
-    S009[STORY-009: Manager Dashboard]
-    
-    S001 --> S002
-    S002 --> S003
-    S003 --> S004
-    S004 --> S005
-    S004 --> S007
-    S005 --> S006
-    S007 --> S008
-    S008 --> S009
-    S007 --> S009
-```
-
-**Dependency Summary:**
-
-| Story | Direct Dependencies | Indirect Dependencies |
-|-------|--------------------|-----------------------|
-| STORY-009 | STORY-007, STORY-008 | STORY-001 through STORY-006 |
+| NuGet Package | Recommended Version | Purpose |
+|---|---|---|
+| `BCrypt.Net-Next` | 4.0.3 | Replace unsalted MD5 password hashing with bcrypt |
+| `Microsoft.AspNetCore.DataProtection` | 9.0.x | Replace DES encryption with modern data protection APIs |
 
 ### 0.6.4 Documentation Reference Updates
 
-**Documentation Files Requiring Link Updates:**
+No existing documentation links require transformation since the security documentation is entirely new. However, the following cross-references should be established:
 
-Since this is a new story being created, no existing documentation links need updating. However, the new story will establish references to:
-
-| Reference Source | Reference Target | Link Type |
-|------------------|------------------|-----------|
-| STORY-009 | STORY-007 | Dependency reference |
-| STORY-009 | STORY-008 | Dependency reference |
-| STORY-009 | approval_request entity | Technical reference |
-| STORY-009 | approval_history entity | Technical reference |
-| STORY-009 | ApprovalController | Implementation reference |
-
-### 0.6.5 Runtime Dependencies for Documented Feature
-
-**Technologies Referenced in STORY-009 Documentation:**
-
-| Category | Technology | Version | Purpose in Story |
-|----------|------------|---------|------------------|
-| Framework | ASP.NET Core | 9.0 | Web application framework |
-| Runtime | .NET | 9.0 | Application runtime |
-| Frontend | Bootstrap | 4.x | UI styling (per existing patterns) |
-| Frontend | jQuery | 3.x | AJAX calls in service.js |
-| Database | PostgreSQL | 16.x | Data storage for metrics |
-| JSON Library | Newtonsoft.Json | 13.x | API response serialization |
-
-**Note:** These are not documentation tool dependencies but technologies that the documented feature (STORY-009) will utilize. The user story documentation must accurately reference these technologies when describing technical implementation details.
+- `docs/security/README.md` → `docs/developer/web-api/overview.md` (API conventions reference)
+- `docs/security/authentication.md` → `docs/developer/users-and-roles/users.md` (default credentials)
+- `docs/security/attack-surface-inventory.md` → `docs/developer/entities/overview.md` (entity structure reference)
+- `docs/developer/introduction/getting-started.md` → `docs/security/README.md` (new security section link)
 
 ## 0.7 Coverage and Quality Targets
 
 ### 0.7.1 Documentation Coverage Metrics
 
-**Current Coverage Analysis:**
+**Current Coverage Analysis**:
 
-| Documentation Area | Current State | After STORY-009 |
-|--------------------|---------------|-----------------|
-| User stories in jira-stories/ | 8 stories (STORY-001 to STORY-008) | 9 stories (adds STORY-009) |
-| Backlog CSV export | 8 rows | 9 rows |
-| Backlog JSON export | 8 story objects | 9 story objects |
-| Manager/Dashboard stories | 0 | 1 |
-| Total story points documented | 47 | 52 |
+| Coverage Area | Currently Documented | Total Required | Coverage % |
+|---|---|---|---|
+| Security assessment procedures | 0 / 6 procedures | 6 procedures | 0% |
+| API endpoint security classification | 0 / 60+ endpoints | 60+ endpoints | 0% |
+| Scanner configuration guides | 0 / 2 scanners | 2 scanners (ZAP, Nuclei) | 0% |
+| Remediation patterns | 0 / 8 patterns | 8 ASP.NET Core patterns | 0% |
+| Docker infrastructure setup | 0 / 2 files | 2 files (Dockerfile, docker-compose.yml) | 0% |
+| Finding analysis procedures | 0 / 3 procedures | 3 (parse, dedup, triage) | 0% |
+| Security report template | 0 / 1 template | 1 per-finding template | 0% |
 
-**Coverage Gap Addressed:**
+**Target Coverage**: 100% documentation coverage of all 6 workflow phases specified in the user requirements.
 
-| Gap | Resolution |
-|-----|------------|
-| No manager-focused dashboard story | STORY-009 addresses managerial decision-making |
-| No real-time metrics story | STORY-009 specifies auto-refresh capability |
-| No team performance visibility story | STORY-009 provides team metrics dashboard |
+**Coverage Gaps to Address**:
 
-**Target Coverage:**
-- 100% of business objective addressed in single vertical slice
-- All story sections complete per State Street guide
-- All acceptance criteria testable with Given/When/Then
+- **Docker Environment** (currently 0%): No Docker Compose file exists in the repository; documentation must author both `Dockerfile` and `docker-compose.yml` from scratch and document the complete setup procedure
+- **Authentication Procedure** (currently 0%): JWT token endpoint exists at `POST /api/v3/en_US/auth/jwt/token` but is undocumented for scanner use; existing `docs/developer/web-api/overview.md` only mentions cookie-based authorization
+- **Attack Surface Inventory** (currently 0%): `WebApiController.cs` contains 60+ endpoints across 4313 lines; no security classification exists; each endpoint must be inventoried with method, route, authorization requirement, and risk level
+- **Scanner Configuration** (currently 0%): No ZAP or Nuclei configuration documentation exists; both require authenticated scan setup with Bearer token injection
+- **Finding Analysis** (currently 0%): No deduplication, parsing, or triage procedures documented; the cross-scanner correlation algorithm must be defined
+- **Remediation Patterns** (currently 0%): No ASP.NET Core secure coding pattern documentation exists; 8 remediation patterns needed (SQLi, IDOR, XSS, crypto, password hashing, CORS, info disclosure, file upload)
+- **Security Report** (currently 0%): No per-finding report template exists; must include CWE reference, before/after code, scanner confirmation
 
 ### 0.7.2 Documentation Quality Criteria
 
-**Completeness Requirements:**
+**Completeness Requirements**:
+- All 6 workflow phases from the user requirements are documented with step-by-step procedures
+- Every public API endpoint in `WebApiController.cs` has a security classification entry in the attack surface inventory
+- All scanner configuration parameters are documented with exact command-line syntax or YAML configuration
+- Each ASP.NET Core remediation pattern includes before/after code examples with source file citations
+- The Docker setup procedure includes health check validation with expected HTTP response
+- The final report template includes every required field: CWE reference, vulnerable code, remediated code, scanner confirmation
 
-| Criterion | Requirement | Validation Method |
-|-----------|-------------|-------------------|
-| Summary | ≤255 characters, descriptive | Character count check |
-| Description | Who/What/Why format complete | Format verification |
-| Business Value | Minimum 4 value statements | Count and relevance check |
-| Acceptance Criteria | Minimum 5 scenarios | Count and testability check |
-| Technical Details | Files, classes, dependencies listed | Completeness review |
+**Accuracy Validation**:
+- All code examples reference actual source files with line numbers (e.g., `WebApiController.cs:L4287`)
+- API endpoints match the actual routes discovered in the `WebApiController.cs` codebase analysis
+- Scanner commands use verified tool versions: ZAP 2.17.0, Nuclei v3.7.1, Templates v10.3.9
+- Docker images use exact tags: `mcr.microsoft.com/dotnet/sdk:9.0`, `mcr.microsoft.com/dotnet/aspnet:9.0`, `postgres:16`
+- Default credentials match `docs/developer/introduction/getting-started.md`: `erp@webvella.com` / `erp`
+- Configuration values match `Config.json` analysis (JWT key, encryption key, database credentials)
 
-**State Street Guide Compliance:**
+**Clarity Standards**:
+- Technical accuracy with accessible language suitable for security engineers and DevOps teams
+- Progressive disclosure: overview documents link to detailed procedure documents
+- Consistent terminology: "finding" (scanner output), "remediation" (code fix), "verification" (re-scan confirmation)
+- Each document follows a consistent structure: Overview → Prerequisites → Procedure → Verification → Troubleshooting
 
-| Guide Requirement | Compliance Check |
-|-------------------|------------------|
-| Story format (Who/What/Why) | ✓ As a Manager / I want dashboard / so that faster decisions |
-| Acceptance Criteria (Given/When/Then) | ✓ 6 scenarios with complete syntax |
-| INVEST criteria | ✓ All 6+1 criteria validated |
-| Summary length | ✓ 193 characters (under 255 limit) |
-| Demo-able | ✓ Dashboard can be demonstrated |
+**Maintainability**:
+- Source citations on every technical claim (file path:line number format)
+- Clear scanner version dependencies (ZAP 2.17.0, Nuclei v3.7.1) documented in prerequisites
+- Template-based report structure allows adding new findings without restructuring
+- Navigation manifest (`folder.json`) follows existing documentation convention for discoverability
 
-**Accuracy Validation:**
+### 0.7.3 Example and Diagram Requirements
 
-| Validation Area | Method |
-|-----------------|--------|
-| Technical file paths | Cross-reference with repository structure |
-| Entity references | Verify against STORY-002 schema |
-| API endpoint patterns | Align with STORY-007 conventions |
-| Component patterns | Match STORY-008 structure |
-| Story point sizing | Relative comparison to similar stories |
-
-### 0.7.3 Clarity and Consistency Standards
-
-**Clarity Standards:**
-
-| Standard | Application |
-|----------|-------------|
-| Technical accuracy | All file paths and class names verified |
-| Accessible language | Business value in non-technical terms |
-| Progressive disclosure | Summary → Description → Details |
-| Consistent terminology | Use existing entity/service names |
-
-**Consistency with Existing Stories:**
-
-| Element | Consistency Check |
-|---------|-------------------|
-| Markdown structure | Matches STORY-001 through STORY-008 |
-| Section ordering | Description → Business Value → Acceptance Criteria → Technical Details |
-| Table formatting | Pipe-delimited, header row, alignment |
-| Code block style | Fenced with language identifier |
-| Checkbox format | `- [ ] **ACx**: Description` |
-
-### 0.7.4 Example and Diagram Requirements
-
-**Minimum Content Requirements:**
-
-| Content Type | Minimum Count | Purpose |
-|--------------|---------------|---------|
-| Acceptance Criteria | 6 scenarios | Comprehensive testable requirements |
-| Business Value points | 5 bullets | Stakeholder justification |
-| Technical files | 8 paths | Implementation scope |
-| Diagrams | 2 Mermaid | Visual architecture and workflow |
-
-**Diagram Types Required:**
-
-| Diagram | Purpose | Location |
-|---------|---------|----------|
-| Component architecture | Show dashboard component structure | Technical Details section |
-| User workflow sequence | Show manager interaction flow | Technical Details section |
-
-### 0.7.5 Quality Validation Checklist
-
-**Pre-Delivery Checklist:**
-
-| Check | Status |
-|-------|--------|
-| Summary under 255 characters | ✓ Verified (193 chars) |
-| Who/What/Why format complete | ✓ All three elements present |
-| Minimum 5 acceptance criteria | ✓ 6 criteria defined |
-| Given/When/Then syntax | ✓ All 6 use correct format |
-| INVEST criteria passed | ✓ All 7 criteria validated |
-| Technical details complete | ✓ Files, classes, endpoints listed |
-| Dependencies documented | ✓ STORY-007, STORY-008 referenced |
-| Story points assigned | ✓ 5 points (consistent with scope) |
-| Labels defined | ✓ 6 labels assigned |
-| CSV export row ready | ✓ All columns mapped |
-| JSON export object ready | ✓ All fields defined |
-
-**Acceptance Criteria Clarity Validation:**
-
-| AC ID | Clarity | Conciseness | Testability | Result-Oriented |
-|-------|---------|-------------|-------------|-----------------|
-| AC1 | ✓ | ✓ | ✓ | ✓ |
-| AC2 | ✓ | ✓ | ✓ | ✓ |
-| AC3 | ✓ | ✓ | ✓ | ✓ |
-| AC4 | ✓ | ✓ | ✓ | ✓ |
-| AC5 | ✓ | ✓ | ✓ | ✓ |
-| AC6 | ✓ | ✓ | ✓ | ✓ |
+| Document | Minimum Code Examples | Required Diagrams | Verification Method |
+|---|---|---|---|
+| `docker-setup.md` | 3 (Dockerfile, docker-compose.yml, health check curl) | 1 (container architecture) | Docker Compose up + health endpoint 200 |
+| `authentication.md` | 2 (login curl, token extraction) | 1 (auth sequence diagram) | JWT token in response body |
+| `attack-surface-inventory.md` | 0 (table-based) | 1 (risk classification graph) | Route count matches codebase |
+| `zap-scan-config.md` | 3 (Docker run, Automation Framework YAML, scope config) | 0 | ZAP scan completes without error |
+| `nuclei-scan-config.md` | 2 (nuclei command, custom header) | 0 | Nuclei scan completes without error |
+| `finding-analysis.md` | 3 (jq parse ZAP, jq parse Nuclei, dedup script) | 1 (triage flowchart) | Deduplicated output produced |
+| `remediation-guide.md` | 16 (8 patterns × 2 before/after) | 1 (patch-rebuild-verify cycle) | Re-scan shows finding resolved |
+| `security-report.md` | 2 (report template, sample finding) | 0 | Report renders correctly |
 
 ## 0.8 Scope Boundaries
 
 ### 0.8.1 Exhaustively In Scope
 
-**New Documentation Files:**
+**New Documentation Files** (with trailing patterns):
+- `docs/security/README.md` — Security assessment overview and workflow quick start
+- `docs/security/folder.json` — Navigation manifest for security documentation
+- `docs/security/docker-setup.md` — Docker environment setup and health validation
+- `docs/security/authentication.md` — JWT token acquisition and scan authentication
+- `docs/security/attack-surface-inventory.md` — Complete API endpoint security classification
+- `docs/security/zap-scan-config.md` — OWASP ZAP authenticated active scan configuration
+- `docs/security/nuclei-scan-config.md` — Nuclei template-based scan configuration
+- `docs/security/finding-analysis.md` — Output parsing, deduplication, and triage
+- `docs/security/remediation-guide.md` — ASP.NET Core secure coding pattern documentation
+- `docs/security/security-report.md` — Final per-finding report with CWE references
+- `docs/security/diagrams/*.md` — Mermaid workflow, attack surface, and remediation diagrams
 
-| File Pattern | Description |
-|--------------|-------------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | Complete user story for manager dashboard |
+**Infrastructure Files** (new):
+- `Dockerfile` — Multi-stage build for WebVella ERP (.NET 9.0 SDK build, ASP.NET 9.0 runtime)
+- `docker-compose.yml` — Docker Compose orchestration for web + PostgreSQL 16 services
 
-**Documentation File Updates:**
+**Documentation File Updates**:
+- `docs/developer/introduction/getting-started.md` — Update .NET version references (2.1 → 9.0), add security documentation link
 
-| File Pattern | Description |
-|--------------|-------------|
-| `jira-stories/stories-export.csv` | Add STORY-009 row to backlog export |
-| `jira-stories/stories-export.json` | Add STORY-009 object to stories array |
+**Documentation Assets**:
+- `docs/security/diagrams/scan-workflow.md` — End-to-end scan workflow Mermaid diagram
+- `docs/security/diagrams/attack-surface.md` — API endpoint risk classification Mermaid diagram
+- `docs/security/diagrams/remediation-flow.md` — Patch-rebuild-verify cycle Mermaid diagram
 
-**Documentation Content Scope:**
-
-| Content Element | In Scope |
-|-----------------|----------|
-| User story summary | ✓ Maximum 255 characters |
-| Description (Who/What/Why) | ✓ Manager role, dashboard goal, decision benefit |
-| Business Value statements | ✓ 5 value articulations |
-| Acceptance Criteria | ✓ 6 Given/When/Then scenarios |
-| Technical Implementation Details | ✓ Files, classes, endpoints, dependencies |
-| Mermaid diagrams | ✓ Architecture and workflow diagrams |
-| Story metadata | ✓ Story points (5), labels, dependencies |
-
-**User Story Content Boundaries:**
-
-| Boundary | Definition |
-|----------|------------|
-| User role | Manager with approval responsibilities |
-| Feature scope | Single dashboard view with 5 key metrics |
-| Real-time scope | Auto-refresh at configurable interval (default 60 seconds) |
-| Filter scope | Date range filter only |
-| Metrics scope | Pending count, average time, approval rate, overdue count, recent activity |
-
-**Reference Files (Read-Only):**
-
-| File | Purpose |
-|------|---------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Structure template |
-| `jira-stories/STORY-007-approval-rest-api.md` | API documentation pattern |
-| `jira-stories/STORY-008-approval-ui-components.md` | Component documentation pattern |
-| State Street "Writing a User Story" guide (PDF) | Formatting requirements |
+**Source Code Files Referenced for Documentation** (read-only analysis, no modifications):
+- `WebVella.Erp.Web/Controllers/WebApiController.cs` — Full API route inventory extraction
+- `WebVella.Erp.Web/Controllers/AdminController.cs` — Admin endpoint analysis
+- `WebVella.Erp.Web/Controllers/ApiControllerBase.cs` — Base controller patterns
+- `WebVella.Erp.Web/Security/AuthToken.cs` — DES encryption token analysis
+- `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — Authorization attribute analysis
+- `WebVella.Erp.Web/Security/WebSecurityUtil.cs` — Security utility configuration analysis
+- `WebVella.Erp.Web/Security/AuthCache.cs` — Authentication cache analysis
+- `WebVella.Erp.Web/Security/ErpIdentity.cs` — Identity model analysis
+- `WebVella.Erp.Web/Security/ErpPrincipal.cs` — Principal model analysis
+- `WebVella.Erp/Api/SecurityManager.cs` — Security manager EQL query analysis
+- `WebVella.Erp/Api/Security/SecurityContext.cs` — Security context scoping analysis
+- `WebVella.Erp/Api/Security/QuerySecurity.cs` — Query security analysis
+- `WebVella.Erp/Api/CryptoUtility.cs` — DES encryption utility analysis
+- `WebVella.Erp/Api/PasswordUtil.cs` — MD5 password hashing analysis
+- `WebVella.Erp.Site/Startup.cs` — CORS, authentication, authorization configuration analysis
+- `WebVella.Erp.Site/Config.json` — Hardcoded secrets analysis
 
 ### 0.8.2 Explicitly Out of Scope
 
-**Source Code Modifications:**
-
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Creating PcApprovalDashboard component code | This is documentation only, not implementation |
-| Implementing DashboardMetricsService | Story documents requirements, not implementation |
-| Adding API endpoints to ApprovalController | Implementation follows from story acceptance |
-| Modifying existing plugin files | No code changes, only documentation |
-
-**Other Stories/Documentation:**
-
-| Out of Scope Item | Rationale |
-|-------------------|-----------|
-| Modifying STORY-001 through STORY-008 content | Existing stories are reference only |
-| Creating additional dashboard stories | Single vertical slice per request |
-| Epic-level documentation | User requested single sprint story |
-| Test case documentation | Not part of user story artifact |
-| Release notes | Separate documentation artifact |
-
-**Feature Scope Exclusions:**
-
-| Exclusion | Rationale |
-|-----------|-----------|
-| Multiple dashboard views | Vertical slice = one view |
-| Complex filtering (team, user, status) | Future story candidates |
-| Export functionality | Future story candidate |
-| Drill-down to individual records | Future story candidate |
-| Historical trend charts | Future story candidate |
-| Mobile-specific responsive design | Can be addressed in implementation |
-| Push notifications (SignalR) | Auto-refresh provides real-time, push is enhancement |
-
-**Explicitly Excluded per User Instructions:**
-
-| Exclusion | Source |
-|-----------|--------|
-| Items not specified by user | Only manager dashboard metrics story requested |
-| Full epic documentation | Single story requested |
-| Sprint planning artifacts | Only user story artifact requested |
-
-### 0.8.3 Boundary Clarifications
-
-**Vertical Slice Definition:**
-
-This user story represents ONE vertical slice of the larger business objective. The full objective could include:
-
-| Potential Future Stories | Not In This Scope |
-|--------------------------|-------------------|
-| STORY-010: Department-level metrics dashboard | Future backlog item |
-| STORY-011: Approval trend analysis charts | Future backlog item |
-| STORY-012: Manager notification preferences | Future backlog item |
-| STORY-013: Dashboard export to PDF/Excel | Future backlog item |
-| STORY-014: Mobile dashboard optimization | Future backlog item |
-
-**This Vertical Slice Delivers:**
-- One dashboard page component
-- Five key approval metrics
-- Auto-refresh capability
-- Date range filtering
-- Role-based access control
-
-**Sprint Delivery Boundary:**
-- Story sized at 5 points (moderate complexity)
-- Comparable to STORY-007 (API endpoints) or STORY-003 (configuration services)
-- Single sprint delivery achievable based on relative sizing
+- **Source code modifications**: No changes to any `.cs`, `.cshtml`, or `.razor` files — remediation patterns are documented only; actual code patches are implementation-phase work guided by the documentation
+- **Test file modifications**: No changes to test projects or test files
+- **Feature additions or code refactoring**: No new features, API endpoints, or architectural changes
+- **Deployment configuration changes**: No changes to CI/CD pipelines, cloud infrastructure, or production deployment configurations (except the new Dockerfile and docker-compose.yml for local security scanning)
+- **Unrelated documentation**: No changes to the 13 existing `docs/developer/` sections other than the version reference update in `getting-started.md`
+- **Plugin project documentation**: No documentation changes to any of the 6 plugin projects (`WebVella.Erp.Plugins.SDK`, `WebVella.Erp.Plugins.Next`, `WebVella.Erp.Plugins.Crm`, `WebVella.Erp.Plugins.Project`, `WebVella.Erp.Plugins.Marketplace`, `WebVella.Erp.Plugins.Duatec`)
+- **Blazor WebAssembly documentation**: No documentation for the `WebVella.BlazorWasm.*` solution
+- **Console application documentation**: No documentation for `WebVella.Erp.ConsoleApp`
+- **Host site variant documentation**: No documentation for the 6 alternative host sites (`WebVella.Erp.Site2` through `WebVella.Erp.Site7`)
+- **Planning artifact modifications**: No changes to `blitzy/` or `jira-stories/` directories
+- **Production security hardening**: Actual secret rotation, key management integration, or production CORS configuration is out of scope — documentation provides guidance only
+- **Automated CI/CD security pipeline**: Setting up recurring automated scans in a CI/CD pipeline is not in scope; documentation covers one-time manual execution
 
 ## 0.9 Execution Parameters
 
 ### 0.9.1 Documentation-Specific Instructions
 
-**Documentation Creation Commands:**
+**Docker Environment Build Command**:
+```bash
+docker compose up -d --build
+```
 
-| Operation | Command/Action |
-|-----------|----------------|
-| Create story file | Create `jira-stories/STORY-009-manager-dashboard-metrics.md` |
-| Update CSV export | Append row to `jira-stories/stories-export.csv` |
-| Update JSON export | Add object to `jira-stories/stories-export.json` |
+**Health Check Polling Command**:
+```bash
+curl -sf http://localhost:5000/api/v3/en_US/meta
+```
 
-**Documentation Validation Commands:**
+**JWT Authentication Command**:
+```bash
+curl -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
+  -H "Content-Type: application/json" \
+  -d '{"email":"erp@webvella.com","password":"erp"}'
+```
 
-| Validation | Method |
-|------------|--------|
-| Markdown syntax | Validate headers, tables, code blocks render correctly |
-| CSV format | Verify column alignment with existing rows |
-| JSON format | Validate JSON syntax with parser |
-| Link integrity | Verify internal references resolve |
+**OWASP ZAP Scan Execution Command**:
+```bash
+docker run --network host -v $(pwd)/zap-work:/zap/wrk \
+  ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
+  -t http://localhost:5000 -J zap-report.json \
+  -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
+      -config replacer.full_list(0).matchstr=Authorization \
+      -config replacer.full_list(0).replacement='Bearer <TOKEN>'"
+```
 
-**Default Documentation Format:**
-- Primary format: Markdown with Mermaid diagrams
-- Export formats: CSV (JIRA-compatible), JSON (API/tool-compatible)
-- Character encoding: UTF-8
-- Line endings: LF (Unix-style)
+**Nuclei Scan Execution Command**:
+```bash
+docker run --network host projectdiscovery/nuclei:latest \
+  -u http://localhost:5000 \
+  -tags aspnet,api -severity critical,high \
+  -H "Authorization: Bearer <TOKEN>" \
+  -jsonl -o nuclei-results.jsonl
+```
 
-### 0.9.2 Style Guide Compliance
+**Docker Image Rebuild After Remediation**:
+```bash
+docker compose build --no-cache web && docker compose up -d web
+```
 
-**Repository-Specific Conventions:**
+**Documentation Preview**: Not applicable — documentation uses plain Markdown files without a documentation generator. Preview via any Markdown renderer (VS Code, GitHub, or `grip` for local rendering).
 
-| Convention | Standard |
-|------------|----------|
-| Story ID format | `STORY-XXX` (sequential numbering) |
-| File naming | `STORY-XXX-kebab-case-title.md` |
-| Header format | `# STORY-XXX: Title Case Title` |
-| Section headers | `## Section Name` (no numbering) |
-| Acceptance criteria | `- [ ] **ACx**: Description` |
-| Tables | Pipe-delimited with header separator |
+**Diagram Generation**: Mermaid diagrams are embedded inline in Markdown files using fenced code blocks. No separate generation step is required — diagrams render natively in GitHub, VS Code with Mermaid extension, or any Mermaid-compatible renderer.
 
-**State Street Guide Compliance:**
+**Default Format**: Markdown with Mermaid diagrams, following the existing `docs/developer/` conventions (folder.json manifest, HTML-comment JSON front-matter).
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Summary ≤255 chars | "Manager Approval Dashboard displaying real-time team performance metrics including pending approvals, average processing time, approval rate, and overdue requests with auto-refresh capability." (193 chars) |
-| Who/What/Why format | "As a Manager... I want... so that..." |
-| Given/When/Then syntax | All 6 acceptance criteria use full syntax |
-| INVEST validation | All criteria verified and documented |
+**Citation Requirement**: Every technical claim in the documentation must reference its source file using the format: `Source: <file_path>:<line_range>` (e.g., `Source: WebVella.Erp.Web/Controllers/WebApiController.cs:L4270-4314`).
 
-### 0.9.3 Citation Requirements
+**Style Guide**: Follow the existing repository documentation conventions observed in `docs/developer/`:
+- Plain Markdown with HTML-comment metadata headers
+- `folder.json` manifests for navigation
+- Code examples in fenced blocks with language identifiers
+- Inline source citations rather than footnotes
 
-**Source Citation Format:**
-
-Every technical detail must reference source files using the format:
-- `Source: /path/to/file.ext:LineNumber` (for specific lines)
-- `Pattern: /path/to/reference/file.ext` (for structural patterns)
-
-**Key Citations for STORY-009:**
-
-| Claim | Citation |
-|-------|----------|
-| Component structure pattern | Pattern: `STORY-008-approval-ui-components.md` |
-| API endpoint conventions | Pattern: `STORY-007-approval-rest-api.md` |
-| Entity schema references | Pattern: `STORY-002-approval-entity-schema.md` |
-| Plugin infrastructure | Pattern: `STORY-001-approval-plugin-infrastructure.md` |
-| State Street format | Source: SST User Story Guide.pdf (Pages 1-3) |
-
-### 0.9.4 Export File Specifications
-
-**CSV Export Format:**
-
-| Column | Data Type | Example Value |
-|--------|-----------|---------------|
-| Story ID | String | STORY-009 |
-| Title | String | Manager Approval Dashboard with Real-Time Metrics |
-| Description | String | Implement a real-time dashboard... |
-| Business Value | String | Reduces manager time gathering...; Enables proactive... |
-| Acceptance Criteria | String | [ ] Manager sees dashboard...; [ ] Dashboard auto-refreshes... |
-| Technical Details | String | Files: Components/PcApprovalDashboard/...; Classes: ... |
-| Dependencies | String | STORY-007, STORY-008 |
-| Story Points | Number | 5 |
-| Labels | String | dashboard, metrics, ui, manager, approval, real-time |
-
-**JSON Export Schema:**
-
-| Field | Type | Required |
-|-------|------|----------|
-| id | string | Yes |
-| title | string | Yes |
-| description | string | Yes |
-| businessValue | string | Yes |
-| acceptanceCriteria | array[string] | Yes |
-| technicalDetails | object | Yes |
-| technicalDetails.files | array[string] | Yes |
-| technicalDetails.classes | array[string] | Yes |
-| technicalDetails.integrationPoints | array[string] | Yes |
-| technicalDetails.technicalApproach | string | Yes |
-| dependencies | array[string] | Yes |
-| storyPoints | number | Yes |
-| labels | array[string] | Yes |
-
-### 0.9.5 Quality Assurance Parameters
-
-**Pre-Commit Checks:**
-
-| Check | Criteria |
-|-------|----------|
-| File encoding | UTF-8 without BOM |
-| Line endings | LF only |
-| Trailing whitespace | None |
-| Markdown headers | Proper hierarchy (no skipped levels) |
-| Table alignment | Consistent column widths |
-| JSON validity | Passes JSON.parse() |
-| CSV validity | Correct column count per row |
-
-**Content Validation:**
-
-| Validation | Pass Criteria |
-|------------|---------------|
-| Summary length | ≤255 characters |
-| AC count | ≥5 acceptance criteria |
-| Dependencies listed | All prerequisite stories referenced |
-| Story points | Reasonable relative to similar stories (3-8 range) |
-| Labels present | Minimum 3 labels |
+**Documentation Validation**: Verify all internal links between documents resolve correctly; verify all source file citations reference valid file paths and line numbers in the repository.
 
 ## 0.10 Rules for Documentation
 
-### 0.10.1 User-Specified Rules
+No explicit documentation rules were specified by the user. The following rules are inferred from the requirements and enforced for consistency:
 
-**Rules Explicitly Stated by User:**
-
-| Rule | Source | Application |
-|------|--------|-------------|
-| Follow State Street "Writing a User Story" guide | User instructions | Apply all formatting, structure, and quality standards from guide |
-| Use Who/What/Why format for description | User instructions | "As a... I want... so that..." structure |
-| Use Given/When/Then syntax for acceptance criteria | User instructions | BDD-style scenario format |
-| Appropriate level of detail for single sprint | User instructions | Size story as vertical slice (~5 story points) |
-| Represent one vertical slice of functionality | User instructions | Dashboard with core metrics, not full reporting suite |
-| Deliver measurable progress toward objective | User instructions | Specific metrics that enable faster decisions |
-
-### 0.10.2 State Street Guide Rules
-
-**Mandatory Requirements from Guide:**
-
-| Rule | Guide Section | Implementation |
-|------|---------------|----------------|
-| Summary maximum 255 characters | Anatomy of a Story | 193 characters used |
-| Story must be demo-able | Purpose | Dashboard can be demonstrated |
-| Sub-tasks describe actions for acceptance criteria | Ownership | Technical details map to acceptance criteria |
-| Only Product Owner transitions to Done | Ownership | Story written for PO acceptance |
-
-**INVEST Criteria Rules:**
-
-| Criterion | Rule | Compliance |
-|-----------|------|------------|
-| Independent | Self-contained with no inherent dependency on undelivered stories | ✓ Builds on completed F-007/F-008 |
-| Negotiable | Can be changed until committed to iteration | ✓ Metrics selection is negotiable |
-| Valuable | Must deliver value to end user/customer | ✓ Enables faster manager decisions |
-| Estimable | Must be able to estimate size | ✓ 5 story points assigned |
-| Sized appropriately | Not too big for planning/prioritization | ✓ Single dashboard view |
-| Testable | Provides information for test development | ✓ All AC have pass/fail criteria |
-
-**Acceptance Criteria Quality Rules:**
-
-| Quality Dimension | Rule | Implementation |
-|-------------------|------|----------------|
-| Clarity | Straightforward and easy to understand | Plain language, specific outcomes |
-| Conciseness | Necessary information without unnecessary detail | Each AC is one scenario |
-| Testability | Independently verifiable (clear pass/fail) | Given/When/Then enables test cases |
-| Result-Oriented | Focus on delivering customer satisfaction | Outcomes aligned with business objective |
-
-### 0.10.3 Repository Convention Rules
-
-**File Naming Rules:**
-
-| Rule | Pattern | Example |
-|------|---------|---------|
-| Story file naming | `STORY-XXX-kebab-case-title.md` | `STORY-009-manager-dashboard-metrics.md` |
-| Story ID format | Sequential `STORY-XXX` | `STORY-009` |
-| Export file naming | Preserve existing names | `stories-export.csv`, `stories-export.json` |
-
-**Content Structure Rules:**
-
-| Rule | Standard |
-|------|----------|
-| Markdown header levels | # for title, ## for sections, ### for subsections |
-| Table format | Pipe-delimited with header row separator |
-| Checkbox format | `- [ ] **ACx**: Text` |
-| Code fence format | Triple backticks with language identifier |
-| Diagram format | Mermaid in fenced code block |
-
-**Export Format Rules:**
-
-| Export | Rule |
-|--------|------|
-| CSV | Maintain column order matching existing file |
-| CSV | Double-quote values containing commas |
-| JSON | Maintain field order matching existing objects |
-| JSON | Use consistent data types per field |
-
-### 0.10.4 Documentation Integrity Rules
-
-**Consistency Rules:**
-
-| Rule | Enforcement |
-|------|-------------|
-| Terminology consistency | Use entity names from STORY-002 schema |
-| Pattern consistency | Follow component patterns from STORY-008 |
-| API consistency | Follow endpoint patterns from STORY-007 |
-| Reference consistency | Cite source stories for patterns used |
-
-**Completeness Rules:**
-
-| Rule | Requirement |
-|------|-------------|
-| No pending items | All documentation artifacts explicitly listed |
-| No TBD sections | All content fully specified |
-| All dependencies documented | Prerequisite stories referenced |
-| All files mapped | Complete file transformation table |
-
-### 0.10.5 Quality Gate Rules
-
-**Story Quality Gates:**
-
-| Gate | Criteria | Required |
-|------|----------|----------|
-| Format compliance | Follows State Street template | Yes |
-| INVEST compliance | All 6+1 criteria pass | Yes |
-| AC quality | Clarity, conciseness, testability, result-oriented | Yes |
-| Technical accuracy | File paths and patterns verified | Yes |
-| Export readiness | CSV and JSON data complete | Yes |
-
-**Documentation Delivery Rules:**
-
-| Rule | Standard |
-|------|----------|
-| Single story per request | One STORY-009 file |
-| Vertical slice scope | Core dashboard, not full reporting |
-| Sprint-sized | 5 points (single sprint deliverable) |
-| Demo-able outcome | Dashboard can be shown to Product Owner |
+- **Follow existing documentation style and structure**: All new documentation under `docs/security/` must follow the `docs/developer/` conventions — `folder.json` navigation manifests, HTML-comment JSON front-matter metadata, plain Markdown content
+- **Include Mermaid diagrams for all workflow visualizations**: The end-to-end scan workflow, attack surface classification, authentication flow, and remediation cycle must each have corresponding Mermaid diagrams
+- **Provide working command-line examples for every procedure step**: Each step in the 6-phase workflow (Docker setup, authentication, ZAP scan, Nuclei scan, finding analysis, remediation) must include exact, copy-pasteable shell commands
+- **Add source code citations for all technical details**: Every reference to a source file, configuration value, API endpoint, or security behavior must include a citation in the format `Source: <file_path>:<line_range>`
+- **Use CWE references for all security findings**: Every documented finding must include its Common Weakness Enumeration (CWE) identifier for standardized vulnerability classification
+- **Document before/after code for every remediation**: Each remediation pattern must show the vulnerable code (before) and the fixed code (after) as paired fenced code blocks with source file citations
+- **Include scanner confirmation for every remediated finding**: Each finding in the final report must include a verification step showing the scanner re-scan result confirming the finding is resolved
+- **Maintain ASP.NET Core secure coding patterns**: All remediation patches must use ASP.NET Core 9 idiomatic patterns — parameterized EQL queries (not raw SQL), `[Authorize]` attributes with role specifications, `HtmlEncoder.Default.Encode()` for output encoding, and `IDataProtector` or `AesGcm` for cryptographic operations
+- **Docker Compose must target exact dependency versions**: The `docker-compose.yml` must pin PostgreSQL to version 16 and .NET to version 9.0 as specified in the repository's project files
+- **Parallel scan execution**: Documentation must describe ZAP and Nuclei running in parallel (not sequentially) per the user's requirement in Step 4
+- **Deduplication across scanners**: The finding analysis documentation must define a cross-scanner deduplication algorithm that correlates findings from ZAP and Nuclei by CWE ID, affected URL, and parameter to avoid duplicate reporting
 
 ## 0.11 References
 
-### 0.11.1 Repository Files Searched
+### 0.11.1 Repository Files and Folders Searched
 
-**Files Retrieved and Analyzed:**
+**Root-Level Files**:
+- `README.md` — Project overview, links to related repos, Apache 2.0 license
+- `global.json` — SDK version (commented out, no pinning active)
+- `docker-compose.yml` — Not found (does not exist in repository)
+- `Dockerfile` — Not found (does not exist in repository root)
 
-| File Path | Purpose | Key Findings |
-|-----------|---------|--------------|
-| `jira-stories/STORY-001-approval-plugin-infrastructure.md` | Story structure template | Markdown format, section ordering, checkbox AC format |
-| `jira-stories/stories-export.csv` | CSV export format | Column structure, data formatting conventions |
-| `jira-stories/stories-export.json` | JSON export format | Object schema, array structure, field types |
+**Documentation Directories**:
+- `docs/` — Root documentation folder (single child: `docs/developer/`)
+- `docs/developer/` — 14 topical documentation sections with folder.json manifests
+- `docs/developer/introduction/` — Getting started guide (references .NET Core 2.1, outdated)
+- `docs/developer/web-api/` — REST API conventions (overview.md, response.md)
+- `docs/developer/server-api/` — C# server-side API reference (overview.md)
+- `docs/developer/users-and-roles/` — User management, role system (overview.md, users.md, roles.md)
+- `docs/developer/entities/` — Entity modeling reference (overview.md, fields.md, relations.md)
+- `docs/developer/hooks/` — API hooks, page hooks, render hooks (6 pages)
+- `docs/developer/applications/` — Application management concepts
+- `docs/developer/background-jobs/` — Job scheduling documentation
+- `docs/developer/components/` — UI component reference
+- `docs/developer/data-sources/` — Data source configuration
+- `docs/developer/pages/` — Page system documentation
+- `docs/developer/plugins/` — Plugin architecture
+- `docs/developer/system-log/` — Logging documentation
+- `docs/developer/tag-helpers/` — Razor tag helper reference
 
-**Folders Explored:**
+**Source Code — Controllers**:
+- `WebVella.Erp.Web/Controllers/WebApiController.cs` (4313 lines) — Primary REST API controller with 60+ endpoints
+- `WebVella.Erp.Web/Controllers/AdminController.cs` — Admin functionality
+- `WebVella.Erp.Web/Controllers/ApiControllerBase.cs` — Base controller class
+- `WebVella.Erp.Web/Controllers/ProjectController.cs` — Project management
 
-| Folder Path | Purpose | Key Findings |
-|-------------|---------|--------------|
-| `/` (root) | Repository structure | `jira-stories/`, `docs/`, plugin folders |
-| `jira-stories/` | User story artifacts | 8 stories (STORY-001 to STORY-008), CSV and JSON exports |
-| `docs/developer/` | Technical documentation | Components, entities, API documentation patterns |
+**Source Code — Security**:
+- `WebVella.Erp.Web/Security/AuthCache.cs` — In-process GUID cache, 5-min TTL
+- `WebVella.Erp.Web/Security/AuthToken.cs` — DES-encrypted token management
+- `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — ActionFilterAttribute (no role checks)
+- `WebVella.Erp.Web/Security/ErpIdentity.cs` — ClaimsIdentity wrapper
+- `WebVella.Erp.Web/Security/ErpPrincipal.cs` — ClaimsPrincipal wrapper
+- `WebVella.Erp.Web/Security/HttpForbiddenResult.cs` — 403 result
+- `WebVella.Erp.Web/Security/HttpUnauthorizedResult.cs` — 401 result
+- `WebVella.Erp.Web/Security/WebSecurityUtil.cs` — Central security orchestrator
+- `WebVella.Erp/Api/Security/QuerySecurity.cs` — Query-level security
+- `WebVella.Erp/Api/Security/SecurityContext.cs` — AsyncLocal security scope
+- `WebVella.Erp/Api/SecurityManager.cs` — User CRUD with EQL queries
 
-**Search Patterns Employed:**
+**Source Code — Cryptography and Passwords**:
+- `WebVella.Erp/Api/CryptoUtility.cs` — DES encryption utilities
+- `WebVella.Erp/Api/PasswordUtil.cs` — MD5 password hashing (unsalted)
 
-| Pattern | Results |
-|---------|---------|
-| `jira-stories/*.md` | 8 story files |
-| `jira-stories/*.csv` | 1 export file |
-| `jira-stories/*.json` | 1 export file |
-| Root folder contents | 9 folders, 8 files |
+**Source Code — Configuration**:
+- `WebVella.Erp.Site/Startup.cs` — CORS, authentication, authorization configuration
+- `WebVella.Erp.Site/Config.json` — Hardcoded secrets (JWT key, encryption key, DB credentials)
 
-### 0.11.2 Technical Specification Sections Referenced
+**Source Code — Project Files**:
+- `WebVella.Erp/WebVella.Erp.csproj` — Core library, net9.0, version 1.7.4
+- `WebVella.Erp.Web/WebVella.Erp.Web.csproj` — Web layer, net9.0, version 1.7.5
+- `WebVella.Erp.Site/WebVella.Erp.Site.csproj` — Host site, net9.0, InProcess hosting
 
-| Section | Relevance to STORY-009 |
-|---------|------------------------|
-| 2.1 FEATURE CATALOG | Feature dependency chain, story point comparisons |
-| 7.3 PAGE COMPONENT SYSTEM | Component pattern for dashboard implementation |
-| 6.1 Core Services Architecture | Service layer patterns for metrics service |
+**Source Code — File Upload Handlers**:
+- `WebVella.Erp.Web/Controllers/WebApiController.cs` (lines 3320-3500) — UploadFile, MoveFile, DeleteFile
+- `WebVella.Erp.Web/Components/PcFieldHtml/PcFieldHtml.cs` — HTML field upload
+- `WebVella.Erp.Web/Components/PcFieldMultiFileUpload/PcFieldMultiFileUpload.cs` — Multi-file upload
+- `WebVella.Erp.Web/Pages/ImageFinder/ImageFinder.cshtml.cs` — Image finder upload
+- `WebVella.Erp/Database/DbFile.cs` — Database file storage
 
-### 0.11.3 External Attachments
+**Tech Spec Sections Retrieved**:
+- Section 6.4 Security Architecture — Hybrid authentication, RBAC, cryptographic weaknesses, security zones
+- Section 1.1 Executive Summary — WebVella ERP v1.7.4 overview, current initiative
 
-**Attachment 1: SST User Story Guide.pdf**
+### 0.11.2 Attachments
 
-| Attribute | Value |
-|-----------|-------|
-| File Name | SST User Story Guide.pdf |
-| MIME Type | application/pdf |
-| File Size | 429,127 bytes |
-| Pages | 6 |
+No attachments were provided by the user.
 
-**Content Summary:**
+### 0.11.3 External References
 
-The State Street "Writing a User Story" guide provides comprehensive standards for user story creation within Agile/Scrum environments. Key sections include:
-
-| Section | Key Content |
-|---------|-------------|
-| Purpose (Page 1) | User stories cover vertical slices, include acceptance criteria, allow flexibility |
-| Ownership (Page 1) | Stories owned by team, sub-tasks by individuals, PO transitions to Done |
-| Relationships (Page 1) | Children are sub-tasks, parent is Epic |
-| Anatomy of a Story (Pages 1-2) | Summary (255 chars max), Who/What/Why format, example |
-| INVEST Criteria (Page 2) | Independent, Negotiable, Valuable, Estimable, Sized, Testable, Demo-able |
-| Acceptance Criteria (Pages 2-3) | Given/When/Then syntax, clarity, conciseness, testability, result-oriented |
-| Scrum Master Recommendations (Pages 3-4) | Story writing techniques, engagement, lifecycle, templates |
-| Story Estimation (Pages 4-6) | Fibonacci sequence, relative sizing, fruit salad analogy, effort/complexity/uncertainty |
-
-**Key Templates Extracted:**
-
-User Story Description:
-- As a [named user or role], (WHO)
-- I want [some goal], (WHAT)
-- so that [some reason] (WHY)
-
-Acceptance Criteria:
-- Given [a scenario]
-- When [a criteria is met]
-- Then [the expected result]
-
-### 0.11.4 Figma Attachments
-
-No Figma attachments were provided for this documentation task.
-
-### 0.11.5 Web Search Research
-
-**Topics Researched:**
-
-| Topic | Purpose |
-|-------|---------|
-| User story best practices for dashboards | Validate vertical slice approach |
-| Real-time dashboard user story examples | Confirm acceptance criteria patterns |
-| INVEST criteria validation | Ensure story quality compliance |
-| Given/When/Then acceptance criteria | Verify BDD format usage |
-
-### 0.11.6 Cross-Reference Summary
-
-**Story Dependencies Documented:**
-
-| Story | Reference Purpose |
-|-------|-------------------|
-| STORY-001 | Plugin infrastructure pattern |
-| STORY-002 | Entity schema (data sources) |
-| STORY-003 | Configuration service pattern |
-| STORY-004 | Service layer pattern |
-| STORY-005 | Hooks integration pattern |
-| STORY-006 | Background job pattern (for auto-refresh alternative) |
-| STORY-007 | REST API endpoint pattern |
-| STORY-008 | UI page component pattern |
-
-**Documentation Artifacts Created:**
-
-| Artifact | Type | Status |
-|----------|------|--------|
-| `jira-stories/STORY-009-manager-dashboard-metrics.md` | User Story | To be created |
-| `jira-stories/stories-export.csv` (row addition) | CSV Export | To be updated |
-| `jira-stories/stories-export.json` (object addition) | JSON Export | To be updated |
-
-### 0.11.7 Comprehensive Source List
-
-| Source Category | Items |
-|-----------------|-------|
-| User-Provided Documents | SST User Story Guide.pdf |
-| Repository Story Files | STORY-001 through STORY-008 markdown files |
-| Repository Export Files | stories-export.csv, stories-export.json |
-| Tech Spec Sections | 2.1 Feature Catalog |
-| Documentation Folders | docs/developer/ hierarchy |
-| Business Objective | User-provided requirement text |
+- **WebVella ERP GitHub Repository**: `https://github.com/WebVella/WebVella-ERP` — Source repository to be cloned
+- **WebVella ERP Seed Repository**: `https://github.com/WebVella/WebVella-ERP-Seed.git` — Referenced in getting-started.md for seed data
+- **OWASP ZAP Documentation**: `https://www.zaproxy.org/` — ZAP 2.17.0 stable release, Docker images at `ghcr.io/zaproxy/zaproxy:stable`
+- **OWASP ZAP GitHub Releases**: `https://github.com/zaproxy/zaproxy/releases` — Release history and checksums
+- **Nuclei GitHub Repository**: `https://github.com/projectdiscovery/nuclei` — Nuclei v3.7.1 latest release
+- **Nuclei Templates Repository**: `https://github.com/projectdiscovery/nuclei-templates` — v10.3.9, 9,821+ community templates
+- **Nuclei Documentation**: `https://docs.projectdiscovery.io/tools/nuclei/install` — Installation and usage guide
+- **OWASP ZAP Docker Images**: `ghcr.io/zaproxy/zaproxy:stable` — Stable Docker image for scanning
+- **Nuclei Docker Images**: `projectdiscovery/nuclei:latest` — Docker image for template-based scanning
+- **.NET 9.0 Docker Images**: `mcr.microsoft.com/dotnet/sdk:9.0`, `mcr.microsoft.com/dotnet/aspnet:9.0` — Microsoft official images
+- **PostgreSQL Docker Images**: `postgres:16` — Official PostgreSQL 16 image
 
