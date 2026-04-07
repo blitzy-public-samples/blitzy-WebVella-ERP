@@ -298,7 +298,7 @@ var encryptedPassword = PasswordUtil.GetMd5Hash(password);
 
 ```csharp
 // Source: WebVella.Erp/Utilities/PasswordUtil.cs (remediated)
-// NuGet dependency: BCrypt.Net-Next (>= 4.0.3)
+// NuGet dependency: BCrypt.Net-Next (>= 4.1.0)
 public static class PasswordUtil
 {
     internal static string HashPassword(string input)

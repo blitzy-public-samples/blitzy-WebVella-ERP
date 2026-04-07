@@ -774,7 +774,7 @@ namespace WebVella.Erp.Utilities
 
 ```csharp
 // PasswordUtil.cs — bcrypt password hashing (remediated)
-// NuGet dependency: BCrypt.Net-Next v4.0.3
+// NuGet dependency: BCrypt.Net-Next v4.1.0
 using System;
 using System.Security.Cryptography;
 using System.Text;

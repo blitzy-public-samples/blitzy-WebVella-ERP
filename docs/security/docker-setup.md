@@ -631,6 +631,70 @@ Quick reference for managing the Docker Compose environment:
 
 ---
 
+## Build Reproducibility
+
+The `Dockerfile` and `docker-compose.yml` use rolling major/minor tags (`sdk:9.0`, `aspnet:9.0`, `postgres:16`) for Docker base images. Rolling tags automatically receive security patches when you run `docker pull` or `docker compose build`, which is convenient for development. However, rolling tags **sacrifice build reproducibility** — the same tag can resolve to different image digests over time, meaning two builds on different dates may produce different images.
+
+For **production security scans** and **audited environments** where build reproducibility is required, pin images to either specific patch-version tags or sha256 digests.
+
+### Option A: Pin to Specific Patch-Version Tags
+
+Replace rolling tags with explicit patch-level versions. As of the latest patched releases:
+
+| Image | Rolling Tag | Pinned Tag | Patches Applied |
+|---|---|---|---|
+| .NET SDK | `mcr.microsoft.com/dotnet/sdk:9.0` | `mcr.microsoft.com/dotnet/sdk:9.0.14` | CVE-2026-26130, CVE-2026-26127, CVE-2026-21218, CVE-2025-55315 |
+| ASP.NET Runtime | `mcr.microsoft.com/dotnet/aspnet:9.0` | `mcr.microsoft.com/dotnet/aspnet:9.0.14` | CVE-2026-26130, CVE-2026-26127, CVE-2026-21218, CVE-2025-55315 |
+| PostgreSQL | `postgres:16` | `postgres:16.13` | CVE-2026-2006, CVE-2026-2004, CVE-2026-2005 |
+
+Update the `Dockerfile`:
+
+```dockerfile
+# Pinned to specific patch versions for reproducible builds
+FROM mcr.microsoft.com/dotnet/sdk:9.0.14 AS build
+# ...
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.14
+```
+
+Update `docker-compose.yml`:
+
+```yaml
+services:
+  db:
+    image: postgres:16.13
+```
+
+### Option B: Pin to sha256 Digests (Strongest Reproducibility)
+
+For the strongest reproducibility guarantee, pin images to their sha256 digests. Retrieve the current digest with:
+
+```bash
+docker pull mcr.microsoft.com/dotnet/sdk:9.0.14
+docker inspect --format='{{index .RepoDigests 0}}' mcr.microsoft.com/dotnet/sdk:9.0.14
+
+docker pull mcr.microsoft.com/dotnet/aspnet:9.0.14
+docker inspect --format='{{index .RepoDigests 0}}' mcr.microsoft.com/dotnet/aspnet:9.0.14
+
+docker pull postgres:16.13
+docker inspect --format='{{index .RepoDigests 0}}' postgres:16.13
+```
+
+Then reference the digest directly in the `Dockerfile`:
+
+```dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:9.0.14@sha256:<digest> AS build
+# ...
+FROM mcr.microsoft.com/dotnet/aspnet:9.0.14@sha256:<digest>
+```
+
+### Recommendation
+
+- **For local development and iterative security scanning**: Use rolling tags (`:9.0`, `:16`) to automatically receive patches. This is the default configuration in the provided `Dockerfile` and `docker-compose.yml`.
+- **For audited or compliance-driven environments**: Pin to patch-version tags (Option A) or sha256 digests (Option B) and document the pinned versions in your scan report for traceability.
+- **When upgrading pinned images**: Check for new patch releases periodically using `docker pull` and update the pinned tags or digests accordingly. Monitor Microsoft's .NET Docker image release notes and PostgreSQL's official Docker Hub page for security advisories.
+
+---
+
 ## Next Steps
 
 Once the health check confirms the application is running:
