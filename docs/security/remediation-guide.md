@@ -184,20 +184,20 @@ docker run --network host projectdiscovery/nuclei:latest \
 **Severity**: HIGH
 
 **Affected Files**:
-- `WebVella.Erp.Web/Controllers/WebApiController.cs` — class-level `[Authorize]` at line 36
-- `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — entirely commented out (all 147 lines)
+- `WebVella.Erp.Web/Controllers/WebApiController.cs` — class-level `[Authorize]` at line 35
+- `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — entirely commented out (all 146 lines)
 
-> Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L36`
-> Source: `WebVella.Erp.Web/Security/AuthorizeAttribute.cs:L1-147`
+> Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L35`
+> Source: `WebVella.Erp.Web/Security/AuthorizeAttribute.cs:L1-146`
 
 ### Description
 
-The `WebApiController` applies only a class-level `[Authorize]` attribute (line 36) which verifies that a user is authenticated but performs **no role-based access checks**. The custom `AuthorizeAttribute.cs` file is entirely commented out — its `IsAuthorized` method (lines 62–71) only checked `identity != null` without validating roles. This means any authenticated user (including the `Guest` role) can access entity/record CRUD endpoints, enabling Insecure Direct Object Reference (IDOR) and Broken Object-Level Authorization (BOLA) attacks.
+The `WebApiController` applies only a class-level `[Authorize]` attribute (line 35) which verifies that a user is authenticated but performs **no role-based access checks**. The custom `AuthorizeAttribute.cs` file is entirely commented out — its `IsAuthorized` method (lines 62–71) only checked `identity != null` without validating roles. This means any authenticated user (including the `Guest` role) can access entity/record CRUD endpoints, enabling Insecure Direct Object Reference (IDOR) and Broken Object-Level Authorization (BOLA) attacks.
 
 ### Vulnerable Code (BEFORE)
 
 ```csharp
-// WebApiController.cs — Class-level authorization (line 36)
+// WebApiController.cs — Class-level authorization (line 35)
 [Authorize]  // Only checks authentication — no role requirement
 public class WebApiController : ApiControllerBase
 {
@@ -1022,7 +1022,7 @@ curl -sI -H "Origin: http://localhost:5000" \
 **Affected Lines**:
 - JWT token endpoint: lines 4283–4288
 - JWT token refresh endpoint: lines 4302–4307
-- Multiple other endpoints with the same pattern (e.g., GetJobs at line 4437, GetSnippetNames at line 4262)
+- Multiple other endpoints with the same pattern (e.g., GetJobs at line 3437, GetSnippetNames at line 4262)
 
 > Source: `WebVella.Erp.Web/Controllers/WebApiController.cs:L4283-4288, L4302-4307`
 
@@ -1144,11 +1144,11 @@ The remediation is straightforward but critical:
 
 1. **Generic error messages**: The `response.Message` now contains a user-friendly, generic message that does not reveal any internal implementation details.
 2. **Server-side logging preserved**: The full exception (including stack trace) is still logged via `LogService` for developer debugging — the information is simply not exposed to the client.
-3. **Pattern consistency**: This same pattern (`e.Message + e.StackTrace`) appears in multiple catch blocks throughout `WebApiController.cs` (e.g., `GetJobs` at line 4437, `GetSnippetNames` at line 4262). Each instance should be remediated with the same approach: log server-side, return generic message.
+3. **Pattern consistency**: This same pattern (`e.Message + e.StackTrace`) appears in multiple catch blocks throughout `WebApiController.cs` (e.g., `GetJobs` at line 3437, `GetSnippetNames` at line 4262). Each instance should be remediated with the same approach: log server-side, return generic message.
 
 **Additional instances requiring the same remediation** (search for `e.Message + e.StackTrace` in the controller):
 - Line 4262: `GetSnippetNames` error handler
-- Line 4437: `GetJobs` error handler
+- Line 3437: `GetJobs` error handler
 - Other error handlers that concatenate exception messages with stack traces
 
 ### Docker Rebuild and Verification

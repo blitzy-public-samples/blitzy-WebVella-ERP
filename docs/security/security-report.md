@@ -195,35 +195,47 @@ public static string EncryptText(string text, SymmetricAlgorithm algorithm)
 
 ```csharp
 // Source: WebVella.Erp/Utilities/CryptoUtility.cs (remediated)
-// Replace SymmetricAlgorithm parameter with AES-256-GCM enforcement
-public static string EncryptText(string text)
+// Replace SymmetricAlgorithm parameter with AES-256-GCM authenticated encryption
+using System.Security.Cryptography;
+
+public class CryptoUtility
 {
-    using var aes = Aes.Create();
-    aes.KeySize = 256;
-    aes.Mode = CipherMode.CBC; // Use AES-256-CBC as minimum; prefer AES-GCM where available
-    aes.Padding = PaddingMode.PKCS7;
-    return EncryptText(text, CryptKey, aes);
-}
+    private const int NonceSize = 12;  // 96-bit nonce for AES-GCM
+    private const int TagSize = 16;    // 128-bit authentication tag
 
-// For .NET 9+ environments supporting AES-GCM:
-public static byte[] EncryptWithAesGcm(byte[] plaintext, byte[] key)
-{
-    byte[] nonce = new byte[AesGcm.NonceByteSizes.MaxSize]; // 12 bytes
-    RandomNumberGenerator.Fill(nonce);
-    byte[] tag = new byte[AesGcm.TagByteSizes.MaxSize]; // 16 bytes
-    byte[] ciphertext = new byte[plaintext.Length];
+    /// <summary>
+    /// Encrypts text using AES-256-GCM authenticated encryption.
+    /// Returns Base64-encoded string containing nonce + ciphertext + tag.
+    /// </summary>
+    public static string EncryptText(string plainText)
+    {
+        return EncryptText(plainText, CryptKey);
+    }
 
-    using var aesGcm = new AesGcm(key, AesGcm.TagByteSizes.MaxSize);
-    aesGcm.Encrypt(nonce, plaintext, ciphertext, tag);
+    public static string EncryptText(string plainText, string key)
+    {
+        byte[] keyBytes = DeriveKey(key);
+        byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+        byte[] nonce = new byte[NonceSize];
+        RandomNumberGenerator.Fill(nonce);
+        byte[] ciphertext = new byte[plainBytes.Length];
+        byte[] tag = new byte[TagSize];
 
-    // Return nonce + ciphertext + tag concatenated
-    byte[] result = new byte[nonce.Length + ciphertext.Length + tag.Length];
-    Buffer.BlockCopy(nonce, 0, result, 0, nonce.Length);
-    Buffer.BlockCopy(ciphertext, 0, result, nonce.Length, ciphertext.Length);
-    Buffer.BlockCopy(tag, 0, result, nonce.Length + ciphertext.Length, tag.Length);
-    return result;
+        using var aesGcm = new AesGcm(keyBytes, TagSize);
+        aesGcm.Encrypt(nonce, plainBytes, ciphertext, tag);
+
+        // Concatenate: nonce (12) + ciphertext (N) + tag (16)
+        byte[] result = new byte[NonceSize + ciphertext.Length + TagSize];
+        Buffer.BlockCopy(nonce, 0, result, 0, NonceSize);
+        Buffer.BlockCopy(ciphertext, 0, result, NonceSize, ciphertext.Length);
+        Buffer.BlockCopy(tag, 0, result, NonceSize + ciphertext.Length, TagSize);
+
+        return Convert.ToBase64String(result);
+    }
 }
 ```
+
+> **Note**: This remediation uses AES-256-GCM (authenticated encryption) as the primary approach, consistent with [Remediation Guide — Pattern 4](remediation-guide.md). AES-GCM provides both confidentiality and integrity verification, which is superior to unauthenticated modes like AES-CBC.
 
 **Remediation Pattern Applied**: Cryptographic Algorithm Upgrade (DES → AES-256-GCM)
 
@@ -249,7 +261,7 @@ public static byte[] EncryptWithAesGcm(byte[] plaintext, byte[] key)
 **Vulnerable Code (Before Patch)**:
 
 ```csharp
-// Source: WebVella.Erp/Utilities/PasswordUtil.cs:L7-23
+// Source: WebVella.Erp/Utilities/PasswordUtil.cs:L9-23
 public static class PasswordUtil
 {
     private static MD5 md5Hash = MD5.Create();
@@ -473,7 +485,7 @@ The following table maps all identified findings to the OWASP Top 10 2021 catego
 
 | OWASP Category | ID | Findings Mapped | Status |
 |---|---|---|---|
-| **A01:2021 — Broken Access Control** | A01 | WV-SEC-004 (CORS Misconfiguration) | Documented — remediation in [Pattern 6](remediation-guide.md) |
+| **A01:2021 — Broken Access Control** | A01 | CWE-639 (IDOR/BOLA) — Record CRUD and EQL endpoints lack role-based authorization; any authenticated user can access all records | Documented — remediation in [Pattern 2](remediation-guide.md) |
 | **A02:2021 — Cryptographic Failures** | A02 | WV-SEC-002 (DES Encryption), WV-SEC-003 (MD5 Password Hashing), WV-SEC-005 (Hardcoded Secrets) | Documented — remediations in [Patterns 4, 5, and Secret Externalization](remediation-guide.md) |
 | **A03:2021 — Injection** | A03 | EQL injection surface identified in `WebApiController.cs` at `/api/v3/en_US/eql` endpoint | Scan-dependent — remediation in [Pattern 1](remediation-guide.md) |
 | **A04:2021 — Insecure Design** | A04 | `AuthorizeAttribute.cs` — entire file is commented out; `IsAuthorized()` method performs no role checks (returns `identity != null` without validating roles) | Documented — see [Residual Risks](#residual-risk-assessment) |

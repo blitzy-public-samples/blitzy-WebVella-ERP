@@ -67,7 +67,7 @@ graph TD
     end
 
     subgraph LOW["🟢 LOW Risk — ~7 Endpoints"]
-        L1["GET /api/v3.0/p/core/styles.css<br/>[AllowAnonymous]<br/>Source: L1039"]
+        L1["GET /api/v3.0/p/core/styles.css<br/>[AllowAnonymous]<br/>Source: L1038"]
         L2["GET /pc/component/resource/file<br/>Source: L997"]
         L3["POST /user/preferences/toggle-sidebar-size<br/>Source: L340"]
         L4["POST /user/preferences/toggle-section-collapse<br/>Source: L377"]

@@ -131,12 +131,12 @@ After the rebuilt container is healthy, run a targeted re-scan against the speci
 
 ```bash
 # ZAP: Re-scan specific endpoint for information disclosure (CWE-209)
-docker run --network host ghcr.io/zaproxy/zaproxy:stable zap-active-scan.py \
+docker run --network host ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
   -t http://localhost:5000/api/v3/en_US/auth/jwt/token
 
 # ZAP: Re-scan file upload endpoints for unrestricted upload (CWE-434)
 docker run --network host -v $(pwd)/zap-work:/zap/wrk \
-  ghcr.io/zaproxy/zaproxy:stable zap-active-scan.py \
+  ghcr.io/zaproxy/zaproxy:stable zap-full-scan.py \
   -t http://localhost:5000/fs/upload/ -J zap-rescan-upload.json \
   -z "-config replacer.full_list(0).matchtype=REQ_HEADER \
       -config replacer.full_list(0).matchstr=Authorization \

@@ -544,7 +544,7 @@ The following vulnerabilities were identified during static code analysis prior 
 
 - **Severity**: HIGH
 - **Affected File**: `WebVella.Erp/Utilities/CryptoUtility.cs`
-- **Affected Lines**: L12-L211 (entire `CryptoUtility` class)
+- **Affected Lines**: L12-L341 (entire `CryptoUtility` class)
 - **Description**: The `CryptoUtility` class accepts a `SymmetricAlgorithm` parameter for encryption/decryption operations. The `AuthToken.cs` security infrastructure (currently commented out) calls this with DES, which has an effective key length of only 56 bits and is considered cryptographically broken. The class also provides multiple MD5 hash methods (`ComputeMD5Hash`, `ComputeOddMD5Hash`, `ComputePhpLikeMD5Hash`) at lines L156-L209.
 - **OWASP Category**: A02:2021 — Cryptographic Failures
 - **Remediation**: Migrate to AES-256-GCM via `System.Security.Cryptography.AesGcm` or `IDataProtector`. See [Remediation Guide](remediation-guide.md).
@@ -607,9 +607,9 @@ The following vulnerabilities were identified during static code analysis prior 
 
 - **Severity**: HIGH (design-level concern)
 - **Affected Files**:
-  - `WebVella.Erp.Web/Security/AuthToken.cs` — Entire file (147 lines) is commented out
-  - `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — Entire file (147 lines) is commented out (duplicated content)
-  - `WebVella.Erp.Web/Security/WebSecurityUtil.cs` — Entire file (233 lines) is commented out
+  - `WebVella.Erp.Web/Security/AuthToken.cs` — Entire file (146 lines) is commented out
+  - `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` — Entire file (146 lines) is commented out — L1-73 and L74-146 contain duplicated content (the entire class definition appears twice in the file)
+  - `WebVella.Erp.Web/Security/WebSecurityUtil.cs` — Entire file (232 lines) is commented out
 - **Description**: The custom security infrastructure including token management (`AuthToken`), authorization enforcement (`AuthorizeAttribute`), and security utilities (`WebSecurityUtil`) is entirely commented out. This means:
   - The custom `AuthorizeAttribute` with `ActionFilterAttribute`-based authentication checks is inactive
   - The `IsAuthorized` method that would check roles is never called
@@ -620,8 +620,8 @@ The following vulnerabilities were identified during static code analysis prior 
 - **OWASP Category**: A04:2021 — Insecure Design
 - **Remediation**: Remove commented-out code entirely or restore and harden the custom security layer. See [Remediation Guide](remediation-guide.md).
 
-> Source: `WebVella.Erp.Web/Security/AuthToken.cs:L1-L147` — Every line is a comment
-> Source: `WebVella.Erp.Web/Security/AuthorizeAttribute.cs:L1-L147` — Every line is a comment
+> Source: `WebVella.Erp.Web/Security/AuthToken.cs:L1-L146` — Every line is a comment
+> Source: `WebVella.Erp.Web/Security/AuthorizeAttribute.cs:L1-L146` — Every line is a comment (L1-73 and L74-146 contain duplicated class definition)
 > Source: `WebVella.Erp.Web/Security/WebSecurityUtil.cs:L1-L232` — Every line is a comment
 
 ### VULN-007: Unrestricted File Upload — CWE-434
