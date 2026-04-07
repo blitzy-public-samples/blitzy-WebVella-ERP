@@ -111,6 +111,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Create a non-root user for defense-in-depth.
+# Running containers as a non-root user limits the blast radius of any
+# container escape exploit. The 'appuser' account has no login shell and
+# owns the /app working directory.
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /bin/false --create-home appuser
+
 # Copy the published application from the build stage
 COPY --from=build /app/publish .
 
@@ -128,6 +135,15 @@ ENV ASPNETCORE_URLS=http://+:5000
 # which is appropriate for the security assessment scanning environment.
 # Override via docker-compose.yml or docker run -e for other environments.
 ENV ASPNETCORE_ENVIRONMENT=Development
+
+# Ensure the non-root user owns the application directory so it can
+# read the published assemblies and write to config.json if needed.
+RUN chown -R appuser:appuser /app
+
+# Switch to the non-root user for runtime execution.
+# This follows Docker security best practice — the application process
+# runs with minimal privileges, reducing risk from container escape exploits.
+USER appuser
 
 # Launch the WebVella ERP application.
 # Assembly name 'WebVella.Erp.Site' is defined in the .csproj at line 6:

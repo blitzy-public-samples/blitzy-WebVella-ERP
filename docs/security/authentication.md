@@ -58,7 +58,7 @@ This sends a JSON payload with the default admin credentials to the JWT token en
 
 ## Response Parsing
 
-The JWT token endpoint returns the standard WebVella JSON response envelope containing the token and its expiration timestamp.
+The JWT token endpoint returns the standard WebVella JSON response envelope containing the token as a plain string in the `object` field.
 
 **Expected Successful Response**:
 
@@ -68,14 +68,15 @@ The JWT token endpoint returns the standard WebVella JSON response envelope cont
   "message": "",
   "timestamp": "2024-01-01T00:00:00.000Z",
   "errors": [],
-  "object": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expiration": "2024-01-02T00:00:00.000Z"
-  }
+  "object": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
+The `object` field contains the JWT token directly as a bare string — it is **not** a nested object. This is because `AuthService.GetTokenAsync()` returns `ValueTask<string>`, and the `ResponseModel.Object` property (annotated with `[JsonProperty(PropertyName = "object")]` in `BaseModels.cs:L40-47`) serializes the returned string directly.
+
 The response follows the standard WebVella API envelope format with `success`, `message`, `timestamp`, `errors`, and `object` fields.
+
+> **Source**: `WebVella.Erp.Web/Controllers/WebApiController.cs:L4273-4289` — `AuthService.GetTokenAsync()` returns a plain JWT string.
 
 > **Cross-reference**: See [Web API Response Format](../developer/web-api/overview.md) for the full JSON envelope specification.
 
@@ -84,12 +85,12 @@ The response follows the standard WebVella API envelope format with `success`, `
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
-  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object.token')
+  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo $TOKEN
 ```
 
-This command silently (`-s`) issues the POST request, pipes the JSON response to `jq`, and extracts the `token` field from the `object` property into the `TOKEN` shell variable.
+This command silently (`-s`) issues the POST request, pipes the JSON response to `jq`, and extracts the `object` field — which contains the JWT token as a plain string — into the `TOKEN` shell variable.
 
 **Expected Error Response**:
 
@@ -184,7 +185,7 @@ The refresh endpoint accepts the current token and returns a new token with an u
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token/refresh \
   -H "Content-Type: application/json" \
-  -d "{\"token\":\"$TOKEN\"}" | jq -r '.object.token')
+  -d "{\"token\":\"$TOKEN\"}" | jq -r '.object')
 
 echo $TOKEN
 ```
@@ -269,7 +270,7 @@ ERP_PASSWORD="erp"
 echo "[*] Acquiring JWT token..."
 TOKEN=$(curl -sf -X POST "${ERP_URL}/api/v3/en_US/auth/jwt/token" \
   -H "Content-Type: application/json" \
-  -d "{\"email\":\"${ERP_EMAIL}\",\"password\":\"${ERP_PASSWORD}\"}" | jq -r '.object.token')
+  -d "{\"email\":\"${ERP_EMAIL}\",\"password\":\"${ERP_PASSWORD}\"}" | jq -r '.object')
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
   echo "[!] Failed to acquire JWT token. Check credentials and ERP availability."
@@ -369,12 +370,12 @@ sequenceDiagram
     Client->>API: POST /api/v3/en_US/auth/jwt/token<br/>{"email":"erp@webvella.com","password":"erp"}
     API->>Auth: GetTokenAsync(email, password)
     Auth-->>API: JWT Token + Expiration
-    API-->>Client: {"success":true, "object":{"token":"eyJ..."}}
+    API-->>Client: {"success":true, "object":"eyJ..."}
     end
 
     rect rgb(240, 255, 240)
     Note over Client: Phase 2 — Token Extraction
-    Note over Client: TOKEN = response.object.token
+    Note over Client: TOKEN = response.object
     end
 
     rect rgb(255, 248, 240)
@@ -390,7 +391,7 @@ sequenceDiagram
     Client->>API: POST /api/v3/en_US/auth/jwt/token/refresh<br/>{"token":"<current_token>"}
     API->>Auth: GetNewTokenAsync(token)
     Auth-->>API: New JWT Token + New Expiration
-    API-->>Client: {"success":true, "object":{"token":"eyJ...(new)"}}
+    API-->>Client: {"success":true, "object":"eyJ...(new)"}
     end
 ```
 
@@ -414,7 +415,7 @@ sequenceDiagram
 
 **Checks**:
 1. Verify `jq` is installed: `jq --version`
-2. Inspect the raw response: remove `| jq -r '.object.token'` from the command and examine the full JSON
+2. Inspect the raw response: remove `| jq -r '.object'` from the command and examine the full JSON
 3. If `"success": false`, check the `message` field for error details (note: may contain stack trace per CWE-209 finding)
 
 ### Token Rejected on Protected Endpoints

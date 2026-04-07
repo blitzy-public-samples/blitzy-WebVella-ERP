@@ -173,10 +173,10 @@ env:
         - "http://localhost:5000/ckeditor/.*"
       excludePaths:
         - "http://localhost:5000/api/v3.0/p/core/styles.css"
-      authentication:
-        method: "manual"
+      sessionManagement:
+        method: "headers"
         parameters:
-          header: "Authorization: Bearer <TOKEN>"
+          - "Authorization: Bearer <TOKEN>"
   parameters:
     failOnError: true
     progressToStdout: true
@@ -221,7 +221,7 @@ jobs:
 | Section | Purpose |
 |---|---|
 | `env.contexts` | Defines the scan target URL and scope inclusion/exclusion patterns |
-| `env.contexts.authentication` | Configures manual Bearer token injection for all requests |
+| `env.contexts.sessionManagement` | Configures header-based session management, injecting the Bearer token into every request |
 | `env.parameters.failOnError` | Fail the scan job if ZAP encounters errors (useful for CI/CD gates) |
 | `env.parameters.progressToStdout` | Stream scan progress to standard output for monitoring |
 | `jobs[0]: spider` | Traditional spider to discover linked endpoints (10 min max) |
@@ -533,11 +533,12 @@ docker run --network host -v $(pwd)/zap-work:/zap/wrk \
       -config replacer.full_list(0).matchstr=Authorization \
       -config replacer.full_list(0).replacement='Bearer $TOKEN'" &
 
-docker run --network host projectdiscovery/nuclei:latest \
+docker run --network host -v $(pwd)/nuclei-work:/tmp/output \
+  projectdiscovery/nuclei:latest \
   -u http://localhost:5000 \
   -tags aspnet,api -severity critical,high \
   -H "Authorization: Bearer $TOKEN" \
-  -jsonl -o /tmp/nuclei-results.jsonl &
+  -jsonl -o /tmp/output/nuclei-results.jsonl &
 
 # Wait for both scanners to complete
 wait

@@ -158,7 +158,7 @@ Obtain the token before running the scan:
 ```bash
 TOKEN=$(curl -sf -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
-  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object.token')
+  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo "Token acquired: ${TOKEN:0:20}..."
 ```
@@ -327,7 +327,7 @@ Combining the token acquisition with the scan execution in a single workflow:
 # Step 1: Acquire JWT token
 TOKEN=$(curl -sf -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
-  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object.token')
+  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 # Step 2: Create output directory
 mkdir -p nuclei-work
@@ -376,7 +376,7 @@ set -euo pipefail
 # Acquire JWT token
 TOKEN=$(curl -sf -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
-  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object.token')
+  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
   echo "[!] Failed to acquire JWT token."
@@ -547,7 +547,7 @@ This ensures every scan run uses the exact same template definitions, producing 
 | Issue | Cause | Resolution |
 |---|---|---|
 | `Could not connect to target` | WebVella ERP not running or wrong port | Verify with `curl -sf http://localhost:5000/api/v3/en_US/meta` — should return HTTP 200. See [Docker Environment Setup](docker-setup.md). |
-| `0 results found` | Authentication failure — token not injected or expired | Re-acquire token: `TOKEN=$(curl -sf ... \| jq -r '.object.token')`. Verify with `curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/v3/en_US/meta/entity/list`. See [Authentication](authentication.md). |
+| `0 results found` | Authentication failure — token not injected or expired | Re-acquire token: `TOKEN=$(curl -sf ... \| jq -r '.object')`. Verify with `curl -H "Authorization: Bearer $TOKEN" http://localhost:5000/api/v3/en_US/meta/entity/list`. See [Authentication](authentication.md). |
 | `network host not supported` | Docker Desktop on macOS/Windows | Replace `--network host` with `-p 5000:5000` or use the Docker bridge network with the container IP instead of `localhost`. |
 | `permission denied: /output/nuclei-results.jsonl` | Volume mount permission mismatch | Run `chmod 777 nuclei-work/` on the host before mounting, or run Docker with `--user $(id -u):$(id -g)`. |
 | Templates version mismatch | Cached older templates in Docker image | Pull latest image: `docker pull projectdiscovery/nuclei:latest` then run `-update-templates`. |

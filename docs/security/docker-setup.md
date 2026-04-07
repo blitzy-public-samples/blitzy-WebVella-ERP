@@ -116,45 +116,62 @@ Create a `docker-compose.yml` file at the repository root to orchestrate the Web
 
 ```yaml
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - erp-network
-    restart: unless-stopped
-
   db:
     image: postgres:16
+    container_name: webvella-db
     environment:
-      POSTGRES_DB: erp
-      POSTGRES_USER: erp_user
-      POSTGRES_PASSWORD: erp_password
+      POSTGRES_USER: webvella
+      POSTGRES_PASSWORD: webvella
+      POSTGRES_DB: erp3
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U erp_user -d erp"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
     networks:
-      - erp-network
+      - webvella-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webvella -d erp3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webvella-web
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: "http://+:5000"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        sed -i
+        's|Server=192.168.0.190;Port=5436;User Id=test;Password=test|Server=db;Port=5432;User Id=webvella;Password=webvella|g'
+        /app/config.json &&
+        exec dotnet WebVella.Erp.Site.dll
+    networks:
+      - webvella-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/api/v3/en_US/meta || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
 
 volumes:
   pgdata:
+    driver: local
 
 networks:
-  erp-network:
+  webvella-net:
     driver: bridge
 ```
 
@@ -167,33 +184,48 @@ networks:
 
 **Key configuration points**:
 
-- **`depends_on` with health check**: The `web` service waits for PostgreSQL to report healthy via `pg_isready` before starting. This prevents the application from failing due to a database connection timeout on first startup.
+- **`depends_on` with health check**: The `web` service waits for PostgreSQL to report healthy via `pg_isready -U webvella -d erp3` before starting. This prevents the application from failing due to a database connection timeout on first startup.
+- **Connection string override via `sed`**: The application loads configuration exclusively from `config.json` via a custom `ConfigurationBuilder` that does **not** call `AddEnvironmentVariables()` (`Source: WebVella.Erp.Site/Startup.cs:L42-43`). Therefore, the `web` service overrides the Docker `ENTRYPOINT` to run a `sed` command that patches the connection string at container startup, replacing the default development server address (`192.168.0.190:5436`, `test/test`) with the Docker service hostname (`db:5432`) and the `webvella/webvella` credentials. No manual `Config.json` editing is required before building.
 - **Named volume `pgdata`**: PostgreSQL data persists across container restarts. Use `docker compose down -v` to reset the database completely.
-- **Network `erp-network`**: Both services share a bridge network so that the web application can resolve the database service by hostname `db`.
+- **Network `webvella-net`**: Both services share a dedicated bridge network so that the web application can resolve the database service by hostname `db`.
+- **PostgreSQL credentials**: The `db` service uses `POSTGRES_USER=webvella`, `POSTGRES_PASSWORD=webvella`, and `POSTGRES_DB=erp3` — matching the connection string injected by the `sed` command in the `web` service.
 
 ---
 
 ## Step 4: Environment Variables and Configuration
 
-The WebVella ERP application reads its configuration from `config.json` (lowercase) located in the working directory at startup (`Source: WebVella.Erp.Site/Startup.cs:L42`).
+The WebVella ERP application reads its configuration from `config.json` (lowercase) located in the working directory at startup (`Source: WebVella.Erp.Site/Startup.cs:L42`). Importantly, the `ConfigurationBuilder` does **not** call `AddEnvironmentVariables()`, so environment variables alone cannot override settings like the connection string.
 
-### Required Configuration Changes
+### Connection String Override (Automatic via `sed`)
 
-Before building the Docker image, update `WebVella.Erp.Site/Config.json` to point the connection string to the Docker Compose `db` service instead of the default development server.
+The `docker-compose.yml` handles the connection string override **automatically at container startup** — no manual `Config.json` editing is required before building. The `web` service's `command` field runs a `sed` command that patches `config.json` inside the container before launching the application:
 
-**Original connection string** (`Source: WebVella.Erp.Site/Config.json:L3`):
-
-```json
-"ConnectionString": "Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;"
+```bash
+# Executed automatically by the web service entrypoint:
+sed -i \
+  's|Server=192.168.0.190;Port=5436;User Id=test;Password=test|Server=db;Port=5432;User Id=webvella;Password=webvella|g' \
+  /app/config.json
 ```
 
-**Updated connection string for Docker**:
+This replaces the default development server connection details with the Docker Compose service values:
 
-```json
-"ConnectionString": "Server=db;Port=5432;User Id=erp_user;Password=erp_password;Database=erp;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;"
+| Parameter | Original (Config.json default) | Docker Override |
+|---|---|---|
+| Server | `192.168.0.190` | `db` (Docker DNS hostname) |
+| Port | `5436` | `5432` (PostgreSQL default) |
+| User Id | `test` | `webvella` |
+| Password | `test` | `webvella` |
+| Database | `erp3` | `erp3` (unchanged) |
+
+The resulting connection string after the `sed` replacement is:
+
+```
+Server=db;Port=5432;User Id=webvella;Password=webvella;Database=erp3;Pooling=true;MinPoolSize=1;MaxPoolSize=100;CommandTimeout=120;
 ```
 
-> **Important**: The `Server=db` hostname resolves to the PostgreSQL container within the Docker Compose network. The credentials must match the `POSTGRES_USER` and `POSTGRES_PASSWORD` values defined in the `db` service environment.
+> **Source**: `docker-compose.yml` — `web.command` field. The `sed` command runs before `exec dotnet WebVella.Erp.Site.dll`, so the patched `config.json` is loaded by the application at startup.
+
+> **Note**: The `Server=db` hostname resolves to the PostgreSQL container within the `webvella-net` Docker Compose network. The credentials (`webvella`/`webvella`) match the `POSTGRES_USER` and `POSTGRES_PASSWORD` values defined in the `db` service environment.
 
 ### Full Configuration Reference
 
@@ -208,17 +240,6 @@ The following table documents all security-relevant settings in `Config.json`:
 | JWT Key | `Settings.Jwt.Key` | `ThisIsMySecretKeyThisIsMySecretKeyThisIsMySecretKey` | `Config.json:L24` |
 | JWT Issuer | `Settings.Jwt.Issuer` | `webvella-erp` | `Config.json:L25` |
 | JWT Audience | `Settings.Jwt.Audience` | `webvella-erp` | `Config.json:L26` |
-
-### Applying the Connection String Update
-
-Edit the `Config.json` file using `sed` or any text editor:
-
-```bash
-sed -i 's|Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3|Server=db;Port=5432;User Id=erp_user;Password=erp_password;Database=erp|' \
-  WebVella.Erp.Site/Config.json
-```
-
-Alternatively, open `WebVella.Erp.Site/Config.json` in a text editor and replace the `ConnectionString` value manually.
 
 > **Security Note**: The default `Config.json` contains hardcoded secrets including the JWT signing key and encryption key. These values are acceptable for a local security scanning environment but must never be used in production. See the [Remediation Guide](remediation-guide.md) for secrets management recommendations.
 
@@ -335,9 +356,9 @@ A successful health check returns HTTP 200 with a JSON body containing entity me
 
 **Symptom**: The web application logs show `Npgsql.NpgsqlException: Failed to connect to 192.168.0.190:5436` or similar connection errors.
 
-**Cause**: The `Config.json` connection string still points to the original development server instead of the Docker `db` service.
+**Cause**: The `sed` command in the `web` service's `command` field may not have matched the connection string pattern in `config.json`, leaving the original development server address (`192.168.0.190:5436`) in place.
 
-**Resolution**: Update the connection string in `WebVella.Erp.Site/Config.json` to use `Server=db;Port=5432` as documented in [Step 4](#step-4-environment-variables-and-configuration). The hostname `db` resolves to the PostgreSQL container within the Docker Compose network.
+**Resolution**: Verify the `sed` command in `docker-compose.yml` matches the actual `Config.json` connection string pattern. The `web` service automatically patches the connection string at container startup to use `Server=db;Port=5432;User Id=webvella;Password=webvella`. The hostname `db` resolves to the PostgreSQL container within the `webvella-net` Docker Compose network. If the pattern has changed, update the `sed` command in `docker-compose.yml` accordingly.
 
 ```bash
 # Verify the current connection string
@@ -436,10 +457,10 @@ docker run --network host ghcr.io/zaproxy/zaproxy:stable ...
 docker run --network host projectdiscovery/nuclei:latest ...
 ```
 
-Alternatively, connect the scanner container to the `erp-network`:
+Alternatively, connect the scanner container to the `webvella-net` network (Docker Compose prefixes network names with the project directory name — use `docker network ls` to find the exact name):
 
 ```bash
-docker run --network webvella-erp_erp-network \
+docker run --network webvella-erp_webvella-net \
   projectdiscovery/nuclei:latest -u http://web:5000 ...
 ```
 
@@ -451,7 +472,7 @@ The following diagram illustrates the Docker Compose deployment topology and net
 
 ```mermaid
 graph LR
-    subgraph "Docker Network: erp-network"
+    subgraph "Docker Network: webvella-net"
         A["web<br/>WebVella ERP<br/>.NET 9.0<br/>Port: 5000"] <-->|"PostgreSQL Protocol<br/>Port: 5432"| B["db<br/>PostgreSQL 16<br/>Port: 5432"]
     end
     C["Host Machine"] -->|"HTTP :5000"| A
@@ -462,7 +483,7 @@ graph LR
 **Network flow**:
 
 1. The **Host Machine** accesses the WebVella ERP API on port 5000 for manual verification and health checks.
-2. The **web** service communicates with the **db** service over the internal `erp-network` bridge network using the hostname `db` on port 5432.
+2. The **web** service communicates with the **db** service over the internal `webvella-net` bridge network using the hostname `db` on port 5432.
 3. **Security scanners** (ZAP and Nuclei) use `--network host` mode to access the web application on `localhost:5000`, enabling them to reach the mapped container port directly.
 
 ---

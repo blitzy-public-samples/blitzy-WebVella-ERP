@@ -82,7 +82,7 @@ Acquire a JWT Bearer token using the default administrator credentials (`erp@web
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:5000/api/v3/en_US/auth/jwt/token \
   -H "Content-Type: application/json" \
-  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object.token')
+  -d '{"email":"erp@webvella.com","password":"erp"}' | jq -r '.object')
 
 echo "Bearer token acquired: ${TOKEN:0:20}..."
 ```

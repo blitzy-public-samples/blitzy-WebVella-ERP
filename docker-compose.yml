@@ -26,11 +26,9 @@
 # Source: WebVella.Erp.Site/Startup.cs                (CORS, authentication, config loading)
 # =============================================================================
 
-# Compose file format version for broad compatibility with Docker Compose V2.
-# Docker Compose V2 (2.20+) uses the Compose Specification and technically
-# does not require this key, but it is included for backward compatibility
-# with tooling that expects it.
-version: "3.8"
+# Docker Compose V2 (2.20+) uses the Compose Specification and does not
+# require a 'version' key. The deprecated 'version' field has been removed
+# to follow current Docker Compose best practices.
 
 services:
 
