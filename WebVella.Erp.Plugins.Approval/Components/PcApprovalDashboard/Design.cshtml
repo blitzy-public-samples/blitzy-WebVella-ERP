@@ -1,0 +1,155 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Api
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var node = (PageBodyNode)ViewBag.Node;
+    var componentMeta = ViewBag.ComponentMeta;
+    
+    var dashboardTitle = !string.IsNullOrEmpty(options.DashboardTitle) ? options.DashboardTitle : "Approval Dashboard";
+    
+    // Sample data for design preview
+    var samplePendingCount = 12;
+    var sampleAvgTime = 4.5m;
+    var sampleApprovalRate = 87.5m;
+    var sampleOverdueCount = 2;
+}
+
+<div class="approval-dashboard-design-preview">
+    <!-- Dashboard Header -->
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-primary">
+                <i class="fas fa-chart-line mr-2"></i>@dashboardTitle
+            </h5>
+            <div class="d-flex align-items-center">
+                <select class="form-control form-control-sm mr-2" style="width: auto;" disabled>
+                    <option>Last 30 Days</option>
+                </select>
+                <small class="text-muted">
+                    <i class="fas fa-sync-alt mr-1"></i>Auto-refresh: @(options.RefreshInterval)s
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sample Metrics Cards (Design Preview) -->
+    <div class="row">
+        <!-- Pending Approvals Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100 border-left-primary bg-light">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                        Pending Approvals
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-600">
+                        @samplePendingCount
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Approval Time Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100 border-left-success bg-light">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                        Avg. Approval Time
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-600">
+                        @sampleAvgTime hrs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Rate Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100 border-left-info bg-light">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                        Approval Rate
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-600">
+                        @sampleApprovalRate%
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Requests Card -->
+        <div class="col-md-3 mb-3">
+            <div class="card h-100 border-left-warning bg-light">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                        Overdue Requests
+                    </div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-600">
+                        @sampleOverdueCount
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Preview -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-header py-2">
+                    <small class="font-weight-bold text-primary">
+                        <i class="fas fa-history mr-1"></i>Recent Activity (Sample Data)
+                    </small>
+                </div>
+                <div class="card-body py-2">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1">
+                            <div>
+                                <span class="badge badge-success mr-2">
+                                    <i class="fas fa-check mr-1"></i>approved
+                                </span>
+                                <span class="text-muted small">Sample User - Request #1</span>
+                            </div>
+                            <small class="text-muted">Jan 17, 14:30</small>
+                        </div>
+                        <div class="list-group-item bg-transparent d-flex justify-content-between align-items-center px-0 py-1">
+                            <div>
+                                <span class="badge badge-danger mr-2">
+                                    <i class="fas fa-times mr-1"></i>rejected
+                                </span>
+                                <span class="text-muted small">Sample User - Request #2</span>
+                            </div>
+                            <small class="text-muted">Jan 17, 13:15</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Design Mode Indicator -->
+    <div class="mt-2 p-2 bg-info text-white rounded small">
+        <i class="fas fa-info-circle mr-1"></i>
+        <strong>Design Preview:</strong> This shows sample data. Live metrics will appear at runtime.
+        Refresh interval: @(options.RefreshInterval) seconds | Date range: @(options.DateRangeDefault)
+    </div>
+</div>
+
+<style>
+    .approval-dashboard-design-preview .border-left-primary {
+        border-left: 3px solid #4e73df !important;
+    }
+    .approval-dashboard-design-preview .border-left-success {
+        border-left: 3px solid #1cc88a !important;
+    }
+    .approval-dashboard-design-preview .border-left-info {
+        border-left: 3px solid #36b9cc !important;
+    }
+    .approval-dashboard-design-preview .border-left-warning {
+        border-left: 3px solid #f6c23e !important;
+    }
+</style>

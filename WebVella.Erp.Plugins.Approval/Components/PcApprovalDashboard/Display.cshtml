@@ -1,0 +1,365 @@
+@addTagHelper *, WebVella.Erp.Web
+@addTagHelper *, WebVella.TagHelpers
+@using WebVella.Erp.Web.Utils
+@using WebVella.Erp.Api.Models
+@using WebVella.Erp.Web.Models
+@using WebVella.Erp.Plugins.Approval.Components
+@using WebVella.Erp.Plugins.Approval.Api
+@{
+    var options = (PcApprovalDashboard.PcApprovalDashboardOptions)ViewBag.Options;
+    var metrics = (DashboardMetricsModel)ViewBag.Metrics;
+    var node = (PageBodyNode)ViewBag.Node;
+    
+    var showPending = (bool)ViewBag.ShowPending;
+    var showAvgTime = (bool)ViewBag.ShowAvgTime;
+    var showApprovalRate = (bool)ViewBag.ShowApprovalRate;
+    var showOverdue = (bool)ViewBag.ShowOverdue;
+    var showRecent = (bool)ViewBag.ShowRecent;
+    
+    var dashboardTitle = !string.IsNullOrEmpty(options.DashboardTitle) ? options.DashboardTitle : "Approval Dashboard";
+    var nodeId = node?.Id.ToString() ?? Guid.NewGuid().ToString();
+    
+    // Format values for display
+    var pendingCount = metrics?.PendingApprovalsCount ?? 0;
+    var avgTime = metrics?.AverageApprovalTimeHours ?? 0;
+    var approvalRate = metrics?.ApprovalRatePercent ?? 0;
+    var overdueCount = metrics?.OverdueRequestsCount ?? 0;
+    var recentActivity = metrics?.RecentActivity ?? new List<RecentActivityItem>();
+    var metricsAsOf = metrics?.MetricsAsOf ?? DateTime.UtcNow;
+}
+
+<div id="approval-dashboard-@nodeId" class="approval-dashboard-container" data-node-id="@nodeId" data-refresh-interval="@options.RefreshInterval">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-chart-line mr-2"></i>@dashboardTitle
+            </h4>
+            <div class="d-flex align-items-center">
+                <!-- Date Range Selector -->
+                <select id="date-range-@nodeId" class="form-control form-control-sm mr-2" style="width: auto;">
+                    <option value="7d" @(options.DateRangeDefault == "7d" ? "selected" : "")>Last 7 Days</option>
+                    <option value="30d" @(options.DateRangeDefault == "30d" ? "selected" : "")>Last 30 Days</option>
+                    <option value="90d" @(options.DateRangeDefault == "90d" ? "selected" : "")>Last 90 Days</option>
+                </select>
+                <!-- Last Updated -->
+                <small class="text-muted" id="last-updated-@nodeId">
+                    <i class="fas fa-sync-alt mr-1"></i>
+                    Updated: @metricsAsOf.ToString("HH:mm:ss")
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Cards Row -->
+    <div class="row" id="metrics-cards-@nodeId">
+        @if (showPending)
+        {
+            <!-- Pending Approvals Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 border-left-primary">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Pending Approvals
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="pending-count-@nodeId">
+                                    @pendingCount
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showAvgTime)
+        {
+            <!-- Average Approval Time Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 border-left-success">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Avg. Approval Time
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="avg-time-@nodeId">
+                                    @avgTime.ToString("F1") hrs
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showApprovalRate)
+        {
+            <!-- Approval Rate Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 border-left-info">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Approval Rate
+                                </div>
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col-auto">
+                                        <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800" id="approval-rate-@nodeId">
+                                            @approvalRate.ToString("F1")%
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="progress progress-sm mr-2">
+                                            <div class="progress-bar bg-info" role="progressbar" 
+                                                 style="width: @approvalRate%" 
+                                                 aria-valuenow="@approvalRate" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (showOverdue)
+        {
+            <!-- Overdue Requests Card -->
+            <div class="col-md-3 mb-4">
+                <div class="card h-100 @(overdueCount > 0 && options.ShowOverdueAlert ? "border-left-danger" : "border-left-warning")">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold @(overdueCount > 0 ? "text-danger" : "text-warning") text-uppercase mb-1">
+                                    Overdue Requests
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold @(overdueCount > 0 ? "text-danger" : "text-gray-800")" id="overdue-count-@nodeId">
+                                    @overdueCount
+                                    @if (overdueCount > 0 && options.ShowOverdueAlert)
+                                    {
+                                        <i class="fas fa-exclamation-triangle ml-1"></i>
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (showRecent)
+    {
+        <!-- Recent Activity Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-history mr-2"></i>Recent Activity
+                        </h6>
+                    </div>
+                    <div class="card-body" id="recent-activity-@nodeId">
+                        @if (recentActivity.Any())
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var activity in recentActivity)
+                                {
+                                    var actionBadgeClass = activity.Action?.ToLowerInvariant() switch
+                                    {
+                                        "approved" => "badge-success",
+                                        "rejected" => "badge-danger",
+                                        "escalated" => "badge-warning",
+                                        _ => "badge-secondary"
+                                    };
+                                    var actionIcon = activity.Action?.ToLowerInvariant() switch
+                                    {
+                                        "approved" => "fa-check",
+                                        "rejected" => "fa-times",
+                                        "escalated" => "fa-arrow-up",
+                                        _ => "fa-info"
+                                    };
+                                    
+                                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <div>
+                                            <span class="badge @actionBadgeClass mr-2">
+                                                <i class="fas @actionIcon mr-1"></i>@(activity.Action ?? "Unknown")
+                                            </span>
+                                            <span class="font-weight-bold">@(activity.PerformedBy ?? "Unknown User")</span>
+                                            <span class="text-muted ml-2">@(activity.RequestTitle ?? "Approval Request")</span>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="far fa-clock mr-1"></i>@activity.PerformedOn.ToString("MMM dd, HH:mm")
+                                        </small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No recent activity to display.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .approval-dashboard-container .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+    .approval-dashboard-container .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+    .approval-dashboard-container .border-left-info {
+        border-left: 4px solid #36b9cc !important;
+    }
+    .approval-dashboard-container .border-left-warning {
+        border-left: 4px solid #f6c23e !important;
+    }
+    .approval-dashboard-container .border-left-danger {
+        border-left: 4px solid #e74a3b !important;
+    }
+    .approval-dashboard-container .progress-sm {
+        height: 0.5rem;
+    }
+    .approval-dashboard-container .card {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+</style>
+
+<script>
+    (function() {
+        var nodeId = '@nodeId';
+        var refreshInterval = @options.RefreshInterval * 1000;
+        var apiUrl = '/api/v3.0/p/approval/dashboard/metrics';
+        var dateRangeSelector = document.getElementById('date-range-' + nodeId);
+        var refreshTimer = null;
+
+        function formatTime(date) {
+            var hours = date.getHours().toString().padStart(2, '0');
+            var minutes = date.getMinutes().toString().padStart(2, '0');
+            var seconds = date.getSeconds().toString().padStart(2, '0');
+            return hours + ':' + minutes + ':' + seconds;
+        }
+
+        function getDateRange() {
+            var range = dateRangeSelector ? dateRangeSelector.value : '30d';
+            var to = new Date();
+            var from = new Date();
+            
+            switch(range) {
+                case '7d': from.setDate(from.getDate() - 7); break;
+                case '90d': from.setDate(from.getDate() - 90); break;
+                default: from.setDate(from.getDate() - 30); break;
+            }
+            
+            return { from: from.toISOString(), to: to.toISOString() };
+        }
+
+        function refreshMetrics() {
+            var dateRange = getDateRange();
+            var url = apiUrl + '?from=' + encodeURIComponent(dateRange.from) + '&to=' + encodeURIComponent(dateRange.to);
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.success && data.object) {
+                    updateDisplay(data.object);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error refreshing dashboard metrics:', error);
+            });
+        }
+
+        function updateDisplay(metrics) {
+            // Update pending count
+            var pendingEl = document.getElementById('pending-count-' + nodeId);
+            if (pendingEl) pendingEl.textContent = metrics.pending_approvals_count || 0;
+            
+            // Update average time
+            var avgTimeEl = document.getElementById('avg-time-' + nodeId);
+            if (avgTimeEl) avgTimeEl.textContent = (metrics.average_approval_time_hours || 0).toFixed(1) + ' hrs';
+            
+            // Update approval rate
+            var approvalRateEl = document.getElementById('approval-rate-' + nodeId);
+            if (approvalRateEl) approvalRateEl.textContent = (metrics.approval_rate_percent || 0).toFixed(1) + '%';
+            
+            // Update overdue count
+            var overdueEl = document.getElementById('overdue-count-' + nodeId);
+            if (overdueEl) {
+                var overdueCount = metrics.overdue_requests_count || 0;
+                overdueEl.innerHTML = overdueCount;
+                if (overdueCount > 0) {
+                    overdueEl.innerHTML += ' <i class="fas fa-exclamation-triangle ml-1"></i>';
+                    overdueEl.classList.add('text-danger');
+                } else {
+                    overdueEl.classList.remove('text-danger');
+                }
+            }
+            
+            // Update last updated time
+            var lastUpdatedEl = document.getElementById('last-updated-' + nodeId);
+            if (lastUpdatedEl) {
+                lastUpdatedEl.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Updated: ' + formatTime(new Date());
+            }
+        }
+
+        // Set up date range change handler
+        if (dateRangeSelector) {
+            dateRangeSelector.addEventListener('change', function() {
+                refreshMetrics();
+            });
+        }
+
+        // Start auto-refresh timer
+        if (refreshInterval > 0) {
+            refreshTimer = setInterval(refreshMetrics, refreshInterval);
+        }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+        });
+    })();
+</script>
