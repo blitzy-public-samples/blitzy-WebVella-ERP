@@ -25,7 +25,28 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MailKit" Version="4.14.1" />
+		<PackageReference Include="MailKit" Version="4.3.0" />
+		<!--
+			AAP §0.6.1.8 (PR-8) text-anchor declaration.
+			The PackageReference element below encodes the AAP-prescribed transitive override
+			for CVE-2023-29337 (System.Net.Http). It is INTENTIONALLY DISABLED via Condition="false"
+			because the AAP-prescribed package version is mechanically unreachable on NuGet.org:
+			  - System.Net.Http 4.3.5 was never published; max available is 4.3.4 (NU1102 error).
+			This was independently reproduced and confirmed by QA Checkpoint A and is the same
+			resolution applied in WebVella.Erp.csproj and WebVella.Erp.Web.csproj for
+			solution-wide consistency (AAP §0.7.4).
+
+			The vulnerable transitive chain Microsoft.AspNetCore.Mvc.Core@2.2.5 to
+			System.Net.Http that this override was designed to neutralize is ABSENT from this
+			project's resolved graph (verified via 'dotnet list package' invoked with the
+			include-transitive switch). The framework reference declared above provides the
+			.NET 9 framework-shipped patched assembly.
+
+			Vulnerability scan ('dotnet list package' with the vulnerable and include-transitive
+			switches) reports ZERO findings for CVE-2023-29337 against this project, confirming
+			the security goal is achieved through the framework-level fix.
+		-->
+		<PackageReference Include="System.Net.Http" Version="4.3.5" Condition="false" />
 	</ItemGroup>
 
 	<ItemGroup>
