@@ -11,6 +11,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Security: Transitive override for CVE-2023-29331 (GHSA-447r-wph3-92pm) - ReDoS in System.Text.RegularExpressions <4.3.1 -->
+		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\WebVella.Erp.Web\WebVella.Erp.Web.csproj" />
 		<ProjectReference Include="..\WebVella.Erp\WebVella.Erp.csproj" />
 	</ItemGroup>
