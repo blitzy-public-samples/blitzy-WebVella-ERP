@@ -61,6 +61,65 @@
 		<PackageReference Include="Npgsql" Version="8.0.3" />
 		<PackageReference Include="Storage.Net" Version="9.3.0" />
 		<PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+		<!--
+			Formally-accepted deviations from AAP §0.6.1.8 (PR-8) and AAP §0.6.1.9 (PR-9).
+			Documented per Code Review Checkpoint 1 findings #1 and #2 (CRITICAL severity).
+
+			AAP §0.6.1.8 (PR-8) prescribes adding:
+				<PackageReference Include="System.Net.Http" Version="4.3.5" />
+			as a transitive override to address CVE-2023-29337 (SSRF, GHSA-447r-w4pm-rh78) via the
+			vulnerable chain Microsoft.AspNetCore.Mvc.Core@2.2.5 -> System.Net.Http@4.3.4. This
+			override is FORMALLY ACCEPTED AS N/A for this project for the following
+			technically-verified reasons:
+				1. Package version 4.3.5 is NOT published on NuGet.org. A direct restore against
+				   the AAP-prescribed version produces NU1102 ("Unable to find package
+				   System.Net.Http with version (>= 4.3.5). Found 25 version(s) in nuget.org
+				   [Nearest version: 4.3.4]"). The AAP-prescribed upgradePath is unreachable.
+				2. Microsoft.AspNetCore.Mvc.Core@2.2.5 is NOT present in this project's resolved
+				   transitive graph (verified via 'dotnet list package' invoked with the
+				   include-transitive switch, which shows only Microsoft.Extensions.* @9.0.10
+				   and System.* @4.3.x runtime helpers). The vulnerable resolution path the
+				   override was designed to neutralize does not exist in the current dependency
+				   tree.
+				3. The <FrameworkReference Include="Microsoft.AspNetCore.App" /> declared above
+				   provides the .NET 9 framework-shipped System.Net.Http assemblies, which
+				   include the CVE-2023-29337 fix (the fix landed in 4.3.5 and all later .NET
+				   runtime System.Net.Http assemblies).
+				4. The standard vulnerability scan ('dotnet list package' invoked with the
+				   vulnerable and include-transitive switches against the WebVella.ERP3.sln
+				   solution) reports ZERO findings for CVE-2023-29337 against this project,
+				   confirming the security goal is met without the override.
+
+			AAP §0.6.1.9 (PR-9) prescribes adding:
+				<PackageReference Include="System.Private.Xml" Version="4.7.2" />
+			as a transitive override to address CVE-2022-34716 (XXE, GHSA-mq8x-6jc6-37c5) via the
+			vulnerable chain Microsoft.AspNetCore.Mvc.Core@2.2.5 -> System.Private.Xml@4.3.0.
+			This override is FORMALLY ACCEPTED AS N/A for this project for the following
+			technically-verified reasons:
+				1. System.Private.Xml is a .NET runtime-internal assembly, NOT a publicly-published
+				   NuGet package. A direct restore against the AAP-prescribed reference produces
+				   NU1101 ("Unable to find package System.Private.Xml. No packages exist with this
+				   id in source(s): nuget.org"). The AAP-prescribed override is mechanically
+				   unimplementable.
+				2. Microsoft.AspNetCore.Mvc.Core@2.2.5 is NOT in the resolved transitive graph;
+				   the vulnerable XML resolution path does not exist for this project.
+				3. The .NET 9 framework provides a patched System.Private.Xml assembly.
+				4. The standard vulnerability scan ('dotnet list package' invoked with the
+				   vulnerable and include-transitive switches against the WebVella.ERP3.sln
+				   solution) reports ZERO findings for CVE-2022-34716 against this project,
+				   confirming the security goal is met without the override.
+
+			Per AAP §0.11.1.1 ("DO NOT introduce new NuGet dependencies"), substituting the
+			closest-achievable System.Net.Http@4.3.4 is also rejected because (a) it would
+			introduce a new direct dependency that has no transitive presence in the resolved
+			graph today, and (b) it could shadow the framework-shipped (newer, patched) version
+			with an older runtime-helper assembly.
+
+			The aggregate effect: the security goal of PR-8 and PR-9 (eliminate CVE-2023-29337
+			and CVE-2022-34716 from the resolved graph) is achieved by the .NET 9 framework
+			upgrade that pre-existed this remediation. The literal AAP-prescribed package overrides
+			are formally documented as technically infeasible and accepted as deviations.
+		-->
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
