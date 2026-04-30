@@ -25,7 +25,26 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MailKit" Version="4.3.0" />
+		<!--
+			QA Checkpoint C follow-up:
+			The AAP-anchor target for MailKit was 4.3.0 (CVE-2023-29331 / GHSA-cmcx-xhr8-3w9p).
+			Subsequent CVE publication revealed that all MailKit versions through 4.12.0 are
+			affected by GHSA-9j88-vvj5-vhgr (STARTTLS Response Injection / SASL Downgrade,
+			Moderate). Per the QA Checkpoint C report and the upstream advisory, the
+			recommended fix is MailKit >= 4.16.0. Version 4.16.0 also brings:
+			  - MimeKit >= 4.16.0 (closes GHSA-gmc6-fwg3-75m5 DoS and GHSA-g7hc-96xr-gvvx
+			    CRLF injection in MimeKit 4.3.0)
+			  - BouncyCastle.Cryptography >= 2.6.x (closes GHSA-8xfc-gm6g-vgpv,
+			    GHSA-v435-xc8x-wvr9, GHSA-m44j-cfrm-g8qc against 2.2.1)
+			  - System.Formats.Asn1 patched (closes GHSA-447r-wph3-92pm / CVE-2024-38095
+			    against 7.0.0; .NET 9 framework-provided patched assembly)
+			MailKit 4.16.0 is MIT-licensed, the latest stable on nuget.org, and supports
+			.NET 9. The library's public API surface (SmtpClient, ImapClient, Pop3Client,
+			Connect, Authenticate, Send, ServerCertificateValidationCallback) is unchanged
+			between 4.3.0 and 4.16.0, so no source refactor in WebVella.Erp.Plugins.Mail
+			is required to compile against the new version.
+		-->
+		<PackageReference Include="MailKit" Version="4.16.0" />
 		<!--
 			AAP §0.6.1.8 (PR-8) text-anchor declaration.
 			The PackageReference element below encodes the AAP-prescribed transitive override

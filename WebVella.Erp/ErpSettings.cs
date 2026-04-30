@@ -34,6 +34,17 @@ namespace WebVella.Erp
 		public static string EmailFrom { get; private set; }
 		public static string EmailTo { get; private set; }
 
+		// Security flag (disabled by default per CVE-2023-29331 / GHSA-cmcx-xhr8-3w9p remediation).
+		// When false (default), MailKit clients in WebVella.Erp.Plugins.Mail honor MailKit's
+		// built-in TLS certificate validation (hostname match, chain trust, expiration). When
+		// explicitly set to true via the "Settings:Mail:AcceptInvalidCertificates" configuration
+		// key, the SmtpService and SmtpInternalService SmtpClient instances will accept any
+		// server certificate (including self-signed and hostname-mismatched). This bypass MUST
+		// only be enabled in non-production environments where a self-signed SMTP/IMAP/POP3
+		// server is in use; enabling it in production re-introduces the MITM exposure that
+		// MailKit's library-level fix was designed to close (AAP §0.5.1.1 PR-11 expectation).
+		public static bool MailAcceptInvalidCertificates { get; private set; }
+
 		public static string NavLogoUrl { get; private set; }
 		public static string SystemMasterBackgroundImageUrl { get; private set; }
 		public static string AppName { get; private set; }
@@ -103,6 +114,11 @@ namespace WebVella.Erp
 			EmailSMTPPassword = configuration[$"Settings:EmailSMTPPassword"];
 			EmailFrom = configuration[$"Settings:EmailFrom"];
 			EmailTo = configuration[$"Settings:EmailTo"];
+
+			// Secure-by-default: do not bypass TLS cert validation in MailKit clients unless
+			// the "Settings:Mail:AcceptInvalidCertificates" key is explicitly set to true.
+			// See ErpSettings.MailAcceptInvalidCertificates above for full rationale.
+			MailAcceptInvalidCertificates = string.IsNullOrWhiteSpace(configuration["Settings:Mail:AcceptInvalidCertificates"]) ? false : bool.Parse(configuration["Settings:Mail:AcceptInvalidCertificates"]);
 
 			NavLogoUrl = configuration[$"Settings:NavLogoUrl"];
 			SystemMasterBackgroundImageUrl = configuration[$"Settings:SystemMasterBackgroundImageUrl"];
