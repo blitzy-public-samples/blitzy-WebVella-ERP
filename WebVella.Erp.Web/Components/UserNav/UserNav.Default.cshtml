@@ -10,18 +10,24 @@
 }
 
 <!--c:UserNav_Default-->
+@*
+	QA Issue 9 (MAJOR a11y) fix: Icon-only links must expose an accessible name to
+	assistive technology per WCAG 4.1.2 (Name, Role, Value, Level A) and 2.4.4
+	(Link Purpose, Level A). Both aria-label and title are set; the icon glyph is
+	marked aria-hidden so screen readers do not announce it as duplicate text.
+*@
 @if (showSettings)
 {
 	<div class="menu-nav-wrapper settings">
 		<div class="menu-nav dropdown">
-			<a href="javascript:void(0)" class="pl-2 pr-2" data-navclick-handler>
-				<span class="fa fa-cog icon"></span>
+			<a href="javascript:void(0)" class="pl-2 pr-2" data-navclick-handler aria-label="Settings" title="Settings">
+				<span class="fa fa-cog icon" aria-hidden="true"></span>
 			</a>
 		</div>
 		<div class="dropdown-menu  dropdown-menu-right level-0">
 			@if (erpUser != null && erpUser.IsAdmin && ViewBag.PageId != null)
 			{
-				<a class="dropdown-item" href="@pageEditUrl" target="_blank"><span class="fas fa-file icon fa-fw"></span>Manage Page</a>
+				<a class="dropdown-item" href="@pageEditUrl" target="_blank"><span class="fas fa-file icon fa-fw" aria-hidden="true"></span>Manage Page</a>
 			}
 		</div>
 	</div>
@@ -30,8 +36,8 @@
 
 <div class="menu-nav-wrapper logout">
 	<div class="menu-nav">
-		<a href="/logout" class="pl-2 pr-2" title="Logout">
-			<span class="fas fa-sign-out-alt"></span>
+		<a href="/logout" class="pl-2 pr-2" title="Logout" aria-label="Logout">
+			<span class="fas fa-sign-out-alt" aria-hidden="true"></span>
 		</a>
 	</div>
 </div>

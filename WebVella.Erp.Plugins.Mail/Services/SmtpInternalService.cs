@@ -787,8 +787,15 @@ namespace WebVella.Erp.Plugins.Mail.Services
 
 				using (var client = new SmtpClient())
 				{
-					//accept all SSL certificates (in case the server supports STARTTLS)
-					client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+					// CVE-2023-29331 / GHSA-cmcx-xhr8-3w9p remediation: honor MailKit's default
+					// hostname/chain certificate validation by default. Bypass only when an
+					// operator has explicitly opted in via the "Settings:Mail:AcceptInvalidCertificates"
+					// configuration key (typically only in development against a self-signed server).
+					if (ErpSettings.MailAcceptInvalidCertificates)
+					{
+						//accept all SSL certificates (in case the server supports STARTTLS)
+						client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+					}
 
 					client.Connect(service.Server, service.Port, service.ConnectionSecurity);
 

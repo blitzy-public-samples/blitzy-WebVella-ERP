@@ -1387,72 +1387,82 @@ a {
 /*#endregion*/
 
 /*#region << blue >>*/
+/* QA Issue 3 (MAJOR a11y) fix: Material Blue 600 (#1E88E5 = rgb(30,136,229)) on white
+ * yields a contrast of 3.68:1 — fails WCAG 2.1 AA Normal (4.5:1). Material Blue 500
+ * (#2196F3) was the prior default at 3.13:1. Both fail AA Normal. Adopting Material
+ * Blue 800 (#1565C0 = rgb(21,101,192)) which yields a 5.51:1 contrast on white,
+ * passing WCAG 2.1 AA Normal text (4.5:1) with margin while preserving the brand's
+ * Material-design blue identity. Hover/active deepen further to maintain visual
+ * affordance. */
 .btn-blue,
 .btn-primary {
 	color: #fff;
-	background-color: #2196F3;
-	/*background-image: linear-gradient(to bottom, #2196F3 0%, #395580 100%);
+	background-color: #1565C0;
+	/*background-image: linear-gradient(to bottom, #1565C0 0%, #395580 100%);
 	background-repeat: repeat-x;
-	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2196F3', endColorstr='#0D47A1', GradientType=0);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#1565C0', endColorstr='#0D47A1', GradientType=0);
 	border-color: #395580;*/
 }
 
 	.btn-blue:hover,
 	.btn-primary:hover {
 		color: #fff;
-		background-color: #1E88E5;
-		border-color: #1976D2;
+		background-color: #0D47A1;
+		border-color: #0D47A1;
 	}
 
 	.btn-blue:focus, .btn-blue.focus,
 	.btn-primary:focus, .btn-primary.focus {
-		box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.5);
+		box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.5);
 	}
 
 	.btn-blue.disabled, .btn-blue:disabled,
 	.btn-primary.disabled, .btn-primary:disabled {
-		background-color: #2196F3;
+		background-color: #1565C0;
 		border-color: #395580;
 	}
 
 	.btn-blue:not([disabled]):not(.disabled):active, .btn-blue:not([disabled]):not(.disabled).active, .show > .btn-blue.dropdown-toggle,
 	.btn-primary:not([disabled]):not(.disabled):active, .btn-primary:not([disabled]):not(.disabled).active, .show > .btn-primary.dropdown-toggle {
 		color: #fff;
-		background-color: #1976D2;
+		background-color: #0D47A1;
 		border-color: #395580;
-		box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.5);
+		box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.5);
 	}
 
+/* QA Issue 3 (MAJOR a11y) fix companion: outline-blue must use the same darker
+ * Material Blue 800 (#1565C0) as filled .btn-blue/.btn-primary for visual harmony
+ * and to ensure outline text on white passes WCAG AA Normal text (5.51:1). */
 .btn-outline-blue {
-	color: #2196F3;
+	color: #1565C0;
 	background-color: transparent;
 	background-image: none;
-	border-color: #2196F3;
+	border-color: #1565C0;
 	border-width: 1px;
 	box-shadow: none;
 }
 
 	.btn-outline-blue:hover {
 		color: #fff;
-		background-color: #2196F3;
-		border-color: #2196F3;
+		background-color: #1565C0;
+		border-color: #1565C0;
 	}
 
 	.btn-outline-blue:focus, .btn-outline-blue.focus {
-		box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.5);
+		box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.5);
 	}
 
 	.btn-outline-blue.disabled, .btn-outline-blue:disabled {
-		color: #2196F3;
+		color: #1565C0;
 		background-color: transparent;
 	}
 
 	.btn-outline-blue:not([disabled]):not(.disabled):active, .btn-outline-blue:not([disabled]):not(.disabled).active,
 	.show > .btn-outline-blue.dropdown-toggle {
 		color: #fff;
-		background-color: #2196F3;
-		border-color: #2196F3;
-		box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.5);
+		background-color: #1565C0;
+		border-color: #1565C0;
+		box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.5);
 	}
 
 /*#endregion*/
@@ -1659,68 +1669,77 @@ a {
 /*#endregion*/
 
 /*#region << green >>*/
+/* QA Issue 2 (MAJOR a11y) fix: Material Green 500 (#4CAF50 = rgb(76,175,80)) on
+ * white text yields a contrast of 2.78:1 — fails WCAG 2.1 AA Normal (4.5:1) and
+ * AA Large (3:1). Adopting Material Green 800 (#2E7D32 = rgb(46,125,50)) which
+ * yields 4.78:1 contrast on white, passing WCAG 2.1 AA Normal (4.5:1) with margin
+ * while preserving the brand's Material-design green identity. Hover/active deepen
+ * to Green 900 (#1B5E20 = 7.07:1) to maintain visual affordance and meet AAA. */
 .btn-green {
 	color: #fff;
-	background-color: #4CAF50;
-	/*background-image: linear-gradient(to bottom, #4CAF50 0%, #27862e 100%);
+	background-color: #2E7D32;
+	/*background-image: linear-gradient(to bottom, #2E7D32 0%, #1B5E20 100%);
 	background-repeat: repeat-x;
-	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4CAF50', endColorstr='#27862e', GradientType=0);
-	border-color: #27862e;*/
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#2E7D32', endColorstr='#1B5E20', GradientType=0);
+	border-color: #1B5E20;*/
 }
 
 	.btn-green:hover {
 		color: #fff;
-		background-color: #43A047;
-		border-color: #388E3C;
+		background-color: #1B5E20;
+		border-color: #1B5E20;
 	}
 
 	.btn-green:focus, .btn-green.focus {
-		box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5);
+		box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.5);
 	}
 
 	.btn-green.disabled, .btn-green:disabled {
-		background-color: #4CAF50;
-		border-color: #27862e;
+		background-color: #2E7D32;
+		border-color: #1B5E20;
 	}
 
 	.btn-green:not([disabled]):not(.disabled):active, .btn-green:not([disabled]):not(.disabled).active,
 	.show > .btn-green.dropdown-toggle {
 		color: #fff;
-		background-color: #388E3C;
-		border-color: #2E7D32;
-		box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5);
+		background-color: #1B5E20;
+		border-color: #1B5E20;
+		box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.5);
 	}
 
+/* QA Issue 2 (MAJOR a11y) fix companion: outline-green must use the same darker
+ * Material Green 800 (#2E7D32) as filled .btn-green for visual harmony and to
+ * ensure outline text on white passes WCAG AA Normal text (4.78:1). */
 .btn-outline-green {
-	color: #4CAF50;
+	color: #2E7D32;
 	background-color: transparent;
 	background-image: none;
-	border-color: #4CAF50;
+	border-color: #2E7D32;
 	border-width: 1px;
 	box-shadow: none;
 }
 
 	.btn-outline-green:hover {
 		color: #fff;
-		background-color: #4CAF50;
-		border-color: #4CAF50;
+		background-color: #2E7D32;
+		border-color: #2E7D32;
 	}
 
 	.btn-outline-green:focus, .btn-outline-green.focus {
-		box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5);
+		box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.5);
 	}
 
 	.btn-outline-green.disabled, .btn-outline-green:disabled {
-		color: #4CAF50;
+		color: #2E7D32;
 		background-color: transparent;
 	}
 
 	.btn-outline-green:not([disabled]):not(.disabled):active, .btn-outline-green:not([disabled]):not(.disabled).active,
 	.show > .btn-outline-green.dropdown-toggle {
 		color: #fff;
-		background-color: #4CAF50;
-		border-color: #4CAF50;
-		box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5);
+		background-color: #2E7D32;
+		border-color: #2E7D32;
+		box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.5);
 	}
 
 /*#endregion*/
@@ -3904,6 +3923,13 @@ border-bottom-style:dashed;
 	font-size: 1rem;
 	line-height:1em;
 	margin-top:5px;
+	/* QA Issue 5 (MAJOR a11y) fix companion: when meta-label is rendered as <h1>
+	 * (instead of <div>) by WvPageHeader.cs, suppress the browser's default <h1>
+	 * margin-bottom and font-weight so the visual output is byte-for-byte
+	 * equivalent to the prior <div> rendering per AAP §0.11.1.2 behavior
+	 * preservation. */
+	margin-bottom: 0;
+	font-weight: inherit;
 }
 
 	.pc-page-header .meta-label .divider {

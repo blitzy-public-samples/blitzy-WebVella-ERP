@@ -40,6 +40,10 @@ namespace WebVella.Erp.Web.TagHelpers
 				selectEl.AddCssClass("rounded-right");
 			}
 			selectEl.Attributes.Add("name", UrlQueryOfValue);
+			// QA Issue 7 (MAJOR a11y) fix: id matches the label `for=` rendered by
+			// WvFilterBase so screen readers announce the label and click-on-label
+			// focuses this select. Stable derivation from FilterId Guid.
+			selectEl.Attributes.Add("id", $"erp-filter-input-{FilterId}");
 
 			{
 				var optionEl = new TagBuilder("option");

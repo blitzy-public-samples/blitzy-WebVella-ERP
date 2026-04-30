@@ -17,8 +17,20 @@
 
 <div class="card">
 	<div class="card-body p-0">
+		@*
+			QA Issue 19 (MINOR responsive) fix: TOC and content columns now use
+			Bootstrap responsive `col-md-*` so that on viewports below the md
+			breakpoint (768px) the TOC stacks above the content column instead of
+			cramming both into a narrow horizontal layout that overflows. The
+			desktop layout (md and up) is identical to the prior fixed `col-2`/
+			`col-10` split.
+			QA Issue 17 (MINOR a11y) fix: the section TOC is wrapped in an
+			explicit <nav aria-label="API methods"> for landmark navigation; the
+			tab-content panel exposes role="tabpanel" semantics implicitly via
+			Bootstrap's data-toggle="pill" pattern.
+		*@
 		<div class="row no-gutters">
-			<div class="col-2 go-bkg-gray-light p-2">
+			<nav class="col-12 col-md-2 go-bkg-gray-light p-2" aria-label="API methods">
 				<div class="nav flex-column nav-pills">
 					<a class="nav-link disabled" href="#">Meta</a>
 					<a class="nav-link active" data-toggle="pill" href="#meta-read">Read</a>
@@ -35,8 +47,8 @@
 					<a class="nav-link" data-toggle="pill" href="#records-update">Update / Patch</a>
 					<a class="nav-link" data-toggle="pill" href="#records-delete">Delete</a>
 				</div>
-			</div>
-			<div class="col-10 border-left">
+			</nav>
+			<div class="col-12 col-md-10 border-left">
 				<div class="tab-content p-3" id="v-pills-tabContent">
 					@* Meta READ *@
 					<div class="tab-pane show active" id="meta-read">

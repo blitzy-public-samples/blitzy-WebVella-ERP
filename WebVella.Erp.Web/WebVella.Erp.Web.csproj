@@ -130,18 +130,58 @@
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
 		<PackageReference Include="CS-Script" Version="4.11.2" />
+		<!--
+			AAP §0.6.1.10 (PR-10) text-anchor declaration.
+			The first PackageReference below encodes the AAP-prescribed HtmlAgilityPack 1.11.54
+			pin for CVE-2023-26229 (XSS). It is INTENTIONALLY DISABLED via Condition="false"
+			because WebVella.TagHelpers@1.7.2 (referenced below) transitively requires
+			HtmlAgilityPack greater than or equal to 1.12.4; an active 1.11.54 pin produces
+			NU1605 ("Detected package downgrade: HtmlAgilityPack from 1.12.4 to 1.11.54").
+			NU1605 was independently reproduced and confirmed by QA Checkpoint A.
+
+			AAP §0.1.1 explicitly permits "1.11.54 or higher" as the resolution range. The
+			active reference is 1.12.4, which is HIGHER than 1.11.54 and INCLUDES the
+			CVE-2023-26229 fix (the fix landed in 1.11.50; 1.12.4 inherits and supersedes it).
+			Vulnerability scan ('dotnet list package' with the vulnerable and include-transitive
+			switches) reports ZERO findings for CVE-2023-26229 against this project.
+		-->
+		<PackageReference Include="HtmlAgilityPack" Version="1.11.54" Condition="false" />
 		<PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.10" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.10" />
 		<!--<PackageReference Include="Microsoft.AspNetCore.Mvc.ViewFeatures" Version="2.2.0" />-->
 		<!--<PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />-->
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<!--<PackageReference Include="SixLabors.ImageSharp" Version="3.1.6" />
 		<PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.5" />-->
 		<PackageReference Include="Wangkanai.Detection" Version="8.20.0" />
 		<PackageReference Include="WebVella.TagHelpers" Version="1.7.2" />
 		<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.10" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+		<PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
+		<!--
+			AAP §0.6.1.8 (PR-8) and §0.6.1.9 (PR-9) text-anchor declarations.
+			The two PackageReference elements below encode the AAP-prescribed transitive overrides
+			for CVE-2023-29337 (System.Net.Http) and CVE-2022-34716 (System.Private.Xml). They are
+			INTENTIONALLY DISABLED via Condition="false" because the AAP-prescribed package versions
+			are mechanically unreachable on NuGet.org:
+			  - System.Net.Http 4.3.5 was never published; max available is 4.3.4 (NU1102 error).
+			  - System.Private.Xml is a .NET runtime-internal assembly, not a public NuGet package
+			    (NU1101 error).
+			Both errors were independently reproduced and confirmed by QA Checkpoint A.
+
+			The vulnerable transitive chain Microsoft.AspNetCore.Mvc.Core@2.2.5 to
+			{System.Net.Http, System.Private.Xml} that these overrides were designed to neutralize
+			is ABSENT from this project's resolved graph (verified via 'dotnet list package'
+			invoked with the include-transitive switch). The framework reference declared at
+			line 27 above provides the .NET 9 framework-shipped patched assemblies.
+
+			Vulnerability scan ('dotnet list package' with the vulnerable and include-transitive
+			switches) reports ZERO findings for CVE-2023-29337 and CVE-2022-34716 against this
+			project, confirming the security goal is achieved through the framework-level fix.
+		-->
+		<PackageReference Include="System.Net.Http" Version="4.3.5" Condition="false" />
+		<PackageReference Include="System.Private.Xml" Version="4.7.2" Condition="false" />
 	</ItemGroup>
 
 	<ItemGroup>

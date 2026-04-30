@@ -40,6 +40,10 @@ namespace WebVella.Erp.Web.TagHelpers
 				valueDateControl.Attributes.Add("value", (Value != null ? Value.ToString("yyyy-MM-ddTHH:mm") : ""));
 				valueDateControl.Attributes.Add("type", "datetime-local");
 				valueDateControl.Attributes.Add("name", UrlQueryOfValue);
+				// QA Issue 7 (MAJOR a11y) fix: id matches the label `for=` rendered
+				// by WvFilterBase so screen readers announce the label and
+				// click-on-label focuses this datetime input.
+				valueDateControl.Attributes.Add("id", $"erp-filter-input-{FilterId}");
 				inputGroupEl.InnerHtml.AppendHtml(valueDateControl);
 			}
 			#endregion
@@ -61,6 +65,11 @@ namespace WebVella.Erp.Web.TagHelpers
 				{
 					value2DateControl.AddCssClass("d-none");
 				}
+				// QA Issue 7 (MAJOR a11y) fix: secondary datetime input gets a
+				// derived id (no shared id collisions) and an aria-label describing
+				// it as the upper bound of a BETWEEN/NOTBETWEEN range.
+				value2DateControl.Attributes.Add("id", $"erp-filter-input2-{FilterId}");
+				value2DateControl.Attributes.Add("aria-label", $"{(string.IsNullOrWhiteSpace(Label) ? Name : Label)} (upper bound)");
 				inputGroupEl.InnerHtml.AppendHtml(value2DateControl);
 			}
 			#endregion

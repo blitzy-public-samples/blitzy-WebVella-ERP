@@ -219,8 +219,22 @@ namespace WebVella.Erp.Web.TagHelpers
 			output.Attributes.Add("data-prefix", $"{Prefix}");
 			output.Attributes.Add("data-filter-id", $"{FilterId}");
 
+			// QA Issue 7 (MAJOR a11y) fix: Bind <label> to its primary <input> via
+			// matching `for` and `id` attributes so screen readers announce the
+			// label text when the input receives focus, per WCAG 1.3.1 (Info and
+			// Relationships, Level A) and 4.1.2 (Name, Role, Value, Level A).
+			// The `id` is a stable derivation of the FilterId Guid so re-renders
+			// (drawer open/close) keep the binding consistent. Below in the
+			// ValueTextControl/ValueNumberControl/Value2NumberControl rendering
+			// blocks we set a matching `id` on the primary input element so the
+			// label resolves to it. Multiple inputs can share a label scope
+			// because the visible label refers to the conceptual filter (e.g.
+			// "Name") and the screen-reader user navigates inputs by Tab.
+			var primaryInputId = $"erp-filter-input-{FilterId}";
+
 			var labelEl = new TagBuilder("label");
 			labelEl.AddCssClass("control-label");
+			labelEl.Attributes.Add("for", primaryInputId);
 			if (!String.IsNullOrWhiteSpace(Label))
 			{
 				labelEl.InnerHtml.AppendHtml(Label);
@@ -320,6 +334,9 @@ namespace WebVella.Erp.Web.TagHelpers
 				ValueTextControl.Attributes.Add("value", (Value ?? "").ToString());
 				ValueTextControl.Attributes.Add("type", "text");
 				ValueTextControl.Attributes.Add("name", UrlQueryOfValue);
+				// QA Issue 7 (MAJOR a11y) fix: id matches the label `for=` so
+				// screen readers and click-on-label both target this input.
+				ValueTextControl.Attributes.Add("id", primaryInputId);
 			}
 			#endregion
 
@@ -334,6 +351,9 @@ namespace WebVella.Erp.Web.TagHelpers
 				ValueNumberControl.Attributes.Add("value", (Value ?? "").ToString());
 				ValueNumberControl.Attributes.Add("type", "number");
 				ValueNumberControl.Attributes.Add("name", UrlQueryOfValue);
+				// QA Issue 7 (MAJOR a11y) fix: id matches the label `for=` so
+				// screen readers and click-on-label both target this input.
+				ValueNumberControl.Attributes.Add("id", primaryInputId);
 			}
 			#endregion
 
@@ -351,6 +371,13 @@ namespace WebVella.Erp.Web.TagHelpers
 				{
 					Value2NumberControl.AddCssClass("d-none");
 				}
+				// QA Issue 7 (MAJOR a11y) fix: secondary input gets a derived id so it
+				// is uniquely addressable in the DOM (no shared id collisions). The
+				// label always targets the primary input; the secondary input is
+				// described by aria-label since BETWEEN/NOTBETWEEN visually labels
+				// it as "and" via the divider element.
+				Value2NumberControl.Attributes.Add("id", $"erp-filter-input2-{FilterId}");
+				Value2NumberControl.Attributes.Add("aria-label", $"{(string.IsNullOrWhiteSpace(Label) ? Name : Label)} (upper bound)");
 			}
 			#endregion
 

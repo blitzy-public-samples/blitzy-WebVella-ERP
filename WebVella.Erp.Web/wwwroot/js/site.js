@@ -570,3 +570,98 @@ function StartTimer(elementSelector,startTime)
             startTimestamp.format('HH:mm:ss');
     }, 1000);
 }
+
+//////////////////////////////////////////////////
+// Accessibility Enhancements
+//
+// QA Issue 9 (MAJOR a11y) fix: WvGrid sortable column headers come from the
+// external WebVella.TagHelpers NuGet package and render as
+//   <a class="sort-link" data-dataname="{column}" href="javascript:void(0)">
+//     <span class="sort-marker"><span class="fa fa-caret-up"></span>
+//     <span class="fa fa-caret-down"></span></span><em></em>
+//   </a>
+// — they have no accessible text content, so screen readers announce them as
+// "link". Per WCAG 2.4.4 (Link Purpose, Level A) and 4.1.2 (Name, Role, Value,
+// Level A), each link must have an accessible name. Since we cannot modify the
+// vendored TagHelper source, we augment the rendered DOM at runtime by
+// reading the `data-dataname` attribute and applying both `aria-label` and
+// `title`. Run on DOM ready and re-apply whenever the grid re-renders (the
+// search drawer triggers AJAX reloads that swap grid markup).
+//
+// QA Issue 16 (MINOR UX) fix: Bootstrap modals dismiss on Escape only when
+// focus is inside the modal container. The external <wv-modal> TagHelper does
+// not auto-focus its container on show, so the document body retains focus and
+// the keydown event never reaches the modal handler. We listen for the
+// shown.bs.modal event and force focus into the modal so Bootstrap's default
+// data-keyboard="true" Escape behavior works as expected.
+//////////////////////////////////////////////////
+function ErpEnhanceA11y(rootEl) {
+    try {
+        var $root = rootEl ? $(rootEl) : $(document);
+
+        // Sortable column header links — derive accessible name from the data-dataname attribute
+        $root.find('a.sort-link').each(function () {
+            var $link = $(this);
+            if ($link.attr('aria-label')) {
+                return; // already enhanced
+            }
+            var dataname = $link.attr('data-dataname') || $link.data('dataname') || '';
+            // Normalize snake_case / camelCase column identifiers into a friendlier label
+            var pretty = ('' + dataname)
+                .replace(/[_-]+/g, ' ')
+                .replace(/([a-z])([A-Z])/g, '$1 $2')
+                .trim();
+            if (!pretty) {
+                pretty = 'column';
+            }
+            // Capitalize first letter of each word
+            pretty = pretty.replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); });
+            var label = 'Sort by ' + pretty;
+            $link.attr('aria-label', label);
+            if (!$link.attr('title')) {
+                $link.attr('title', label);
+            }
+            // Mark internal sort-marker icons as decorative
+            $link.find('.sort-marker').attr('aria-hidden', 'true');
+        });
+    } catch (e) {
+        // Defensive: never let a11y enhancement crash the page
+        if (window.console && console.warn) {
+            console.warn('ErpEnhanceA11y failed:', e);
+        }
+    }
+}
+
+$(function () {
+    // Initial enhancement on page load
+    ErpEnhanceA11y(document);
+
+    // Re-enhance after AJAX-driven grid re-renders. The platform's grid reloads
+    // typically trigger jQuery's ajaxComplete; we hook that to keep dynamic
+    // sort-links accessible without requiring callers to know about a11y.
+    $(document).ajaxComplete(function () {
+        ErpEnhanceA11y(document);
+    });
+
+    // QA Issue 16 (MINOR UX) fix: ensure focus enters modal on show so Bootstrap's
+    // default Escape-to-dismiss behavior works. We use the .modal class so we
+    // capture both wv-modal-rendered and native Bootstrap modals.
+    $(document).on('shown.bs.modal', '.modal', function () {
+        var $modal = $(this);
+        // Make modal container focusable if it lacks tabindex
+        if (!$modal.attr('tabindex')) {
+            $modal.attr('tabindex', '-1');
+        }
+        // Try to focus the first focusable element inside; fall back to the modal itself
+        var $firstFocusable = $modal.find(
+            'button:not([disabled]):visible, [href]:visible, input:not([disabled]):visible, ' +
+            'select:not([disabled]):visible, textarea:not([disabled]):visible, ' +
+            '[tabindex]:not([tabindex="-1"]):visible'
+        ).first();
+        if ($firstFocusable.length) {
+            $firstFocusable.trigger('focus');
+        } else {
+            $modal.trigger('focus');
+        }
+    });
+});

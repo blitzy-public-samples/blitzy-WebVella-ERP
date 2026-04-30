@@ -187,7 +187,17 @@ namespace WebVella.Erp.Web.TagHelpers
 							#region << Meta > Meta title > Label >>
 							if (PageSwitchItems.Count > 1 || !String.IsNullOrWhiteSpace(Title) || !String.IsNullOrWhiteSpace(SubTitle))
 							{
-								var metaLabelEl = new TagBuilder("div");
+								// QA Issue 5 (MAJOR a11y) fix: Render the page title as <h1>
+								// instead of <div> so screen readers can navigate by heading
+								// per WCAG 2.4.6 (Headings and Labels, Level AA) and 2.4.10
+								// (Section Headings, Level AAA). The 'meta-label' CSS class is
+								// preserved so all visual styling rules continue to apply
+								// unchanged. Per AAP §0.11.1.2 (preserve all observable
+								// behavior), the visible content is byte-for-byte equivalent;
+								// only the wrapping element type changes from <div> to <h1>.
+								// This also satisfies QA Issue 17 for the Web API doc page,
+								// which uses <wv-page-header> and now exposes an <h1>.
+								var metaLabelEl = new TagBuilder("h1");
 								metaLabelEl.AddCssClass("meta-label");
 
 

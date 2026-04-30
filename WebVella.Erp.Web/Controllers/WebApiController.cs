@@ -3367,7 +3367,16 @@ namespace WebVella.Erp.Web.Controllers
 
 		}
 
-		[AcceptVerbs(new[] { "DELETE" }, Route = "{*filepath}")]
+		// QA Issue 1 (CRITICAL) fix: Scope the catch-all DELETE route to the /fs/ prefix
+		// so it does not claim the entire URL namespace and shadow GET requests for
+		// embedded static assets such as `/_content/<RCL>/<asset>`. Aligns with the
+		// sibling file-system endpoints `/fs/upload/`, `/fs/move/`, and `/fs/{fileName}`.
+		// Verified safe: no in-tree caller (C#, .cshtml, JS) issues a DELETE request to
+		// the root URL space; the only DELETE call sites target explicit
+		// `/api/v3/en_US/record/...` endpoints. AAP §0.11.1.2 (preserve all observable
+		// behavior across the core ERP and all plugins) is honored — the file-deletion
+		// API contract is preserved, only its URL prefix is made explicit.
+		[AcceptVerbs(new[] { "DELETE" }, Route = "fs/{*filepath}")]
 		[ResponseCache(NoStore = true, Duration = 0)]
 		public IActionResult DeleteFile([FromRoute] string filepath)
 		{

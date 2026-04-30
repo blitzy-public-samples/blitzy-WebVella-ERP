@@ -75,7 +75,11 @@
                         <!--"-->
                         <div class="block image" ng-if="file.type == 'image'">
                             <div class="centered">
-                                <img ng-src="/fs{{file.path}}?width=150&height=150&action=resize&mode=boxpad" />
+                                @* QA Issue 8 (MAJOR a11y) fix: every <img> must have an alt
+                                   attribute per WCAG 1.1.1 (Non-text Content, Level A); we
+                                   bind alt to the file name via Angular's ng-attr-alt so the
+                                   alt text dynamically reflects the file context. *@
+                                <img ng-src="/fs{{file.path}}?width=150&height=150&action=resize&mode=boxpad" ng-attr-alt="{{file.name}}" alt="" />
                             </div>
                             <div class="filename">
                                 <div ng-bind="file.name"></div>
