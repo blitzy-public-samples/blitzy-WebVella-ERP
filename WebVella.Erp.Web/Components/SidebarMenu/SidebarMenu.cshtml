@@ -13,7 +13,13 @@
 	}
 </div>
 <div class="sidebar-footer">
-	<button type="button" class="btn btn-sm btn-dark sidebar-switch">
-		<i class="fas fa-fw fa-angle-double-right icon"></i>
+	@*
+		QA Issue 6 (MAJOR a11y) fix: Icon-only buttons must expose an accessible
+		name to assistive technology per WCAG 4.1.2 (Name, Role, Value, Level A).
+		The icon glyph is decorative once the button has an accessible name, so we
+		mark it with aria-hidden="true" so it isn't announced as duplicate text.
+	*@
+	<button type="button" class="btn btn-sm btn-dark sidebar-switch" aria-label="Toggle sidebar" title="Toggle sidebar">
+		<i class="fas fa-fw fa-angle-double-right icon" aria-hidden="true"></i>
 	</button>
 </div>

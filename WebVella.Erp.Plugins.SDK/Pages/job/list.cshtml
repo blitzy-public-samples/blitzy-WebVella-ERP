@@ -4,7 +4,10 @@
 @model WebVella.Erp.Plugins.SDK.Pages.Job.ListModel
 @{
     Layout = "~/Pages/_AppMaster.cshtml";
-    ViewData["Title"] = "Logs";
+    // QA Issue 10/11/15 family — fix copy-paste page title (was "Logs" by clone from log/list.cshtml).
+    // Title must align with the visible page header "Background Jobs" for browser-tab and
+    // accessibility (screen-reader-announced page title). Preserved Razor route.
+    ViewData["Title"] = "Background Jobs";
 }
 
 <wv-page-header color="#dc3545" area-label="Jobs" title="Background Jobs"
@@ -78,6 +81,9 @@
         <wv-filter-text label="Type Name" name="type_name" query-type="CONTAINS" query-options="@(new List<FilterType> { FilterType.CONTAINS })"></wv-filter-text>
         <wv-filter-text label="Type Id" name="type_id" query-type="EQ" query-options="@(new List<FilterType> { FilterType.EQ })"></wv-filter-text>
         <hr class="divider" />
-        <wv-button type="Submit" color="White" text="Search logs" size="Small"></wv-button>
+        @* QA Issue 15 (MINOR functional/UX) fix: button text was "Search logs" — a
+           copy-paste error from log/list.cshtml. Aligned to the page's actual
+           purpose (jobs) so the user is not confused by the mismatched verb. *@
+        <wv-button type="Submit" color="White" text="Search jobs" size="Small"></wv-button>
     </form>
 </wv-drawer>

@@ -7,20 +7,36 @@
 	<vc:render-hook placeholder="head-bottom" page-model="@Model"  model="null"></vc:render-hook>
 </head>
 <body class="@ViewData["BodyClass"]" style="border-color:@ViewData["BodyBorderColor"]">
+	@*
+		QA Issue 4 (MAJOR a11y) fix: Use HTML5 semantic landmarks (<header>, <aside>,
+		<main>) so screen readers can navigate by region per WCAG 2.4.1 (Bypass
+		Blocks, Level A) and 1.3.1 (Info and Relationships, Level A). The DOM
+		structure, IDs, classes, and Bootstrap grid behavior are preserved verbatim
+		— only the element type changes from <div> to the appropriate semantic
+		element. Per AAP §0.11.1.2 (preserve all observable behavior), no CSS
+		selector or JS hook is broken: every existing rule keyed on #nav,
+		#main-wrapper, #sidebar, #content, or #body-inner-wrapper continues to match
+		because the IDs are unchanged. ARIA role attributes are intentionally OMITTED
+		on <header>, <aside>, <main> because HTML5 elements provide implicit roles
+		that screen readers honor; adding redundant role attributes is an ARIA
+		antipattern (WAI-ARIA 1.2 §5.4 Implicit ARIA Semantics).
+	*@
 	<div id="body-inner-wrapper">
-		<vc:nav page-model="@Model"></vc:nav>
-		<vc:toobar-menu page-model="@Model"></vc:toobar-menu>
+		<header>
+			<vc:nav page-model="@Model"></vc:nav>
+			<vc:toobar-menu page-model="@Model"></vc:toobar-menu>
+		</header>
 		<div id="main-wrapper" class="row no-gutters">
-			<div id="sidebar" class="col-auto">
+			<aside id="sidebar" class="col-auto" aria-label="Sidebar">
 				<vc:sidebar-menu page-model="@Model"></vc:sidebar-menu>
-			</div>
-			<div id="content" class="col">
+			</aside>
+			<main id="content" class="col">
 				<div id="body-inner-wrapper-2">
 					<div class="container-fluid">
 						@RenderBody()
 					</div>
 				</div>
-			</div>
+			</main>
 		</div>
 	</div>
 	<vc:render-hook placeholder="body-top" page-model="@Model"  model="null"></vc:render-hook>

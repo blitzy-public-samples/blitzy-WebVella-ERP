@@ -126,6 +126,11 @@ namespace WebVella.Erp.Site.MicrosoftCDM
 
 			app.UseEndpoints(endpoints =>
 			{
+				// QA Issue 1 (CRITICAL) fix — see WebVella.Erp.Site/Startup.cs for full
+				// rationale. .NET 9 static-web-assets manifest endpoint registration is
+				// required for /_content/* paths from referenced Razor SDK projects to
+				// resolve under the Production hosting model.
+				endpoints.MapStaticAssets();
 				endpoints.MapRazorPages();
 				endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 			});

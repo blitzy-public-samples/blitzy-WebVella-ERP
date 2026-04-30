@@ -6,21 +6,37 @@
 }
 
 <div class="card login-card card-sm shadow-sm">
-	<div class="card-header text-center"><img src="@Model.BrandLogo"/> @ViewData["AppName"]</div>
+	@*
+		QA Issue 8 (MAJOR a11y) fix: <img> elements must have an alt attribute per
+		WCAG 1.1.1 (Non-text Content, Level A); the brand logo is informative so
+		alt describes the application.
+	*@
+	<div class="card-header text-center"><img src="@Model.BrandLogo" alt="@ViewData["AppName"] logo"/> @ViewData["AppName"]</div>
 	<div class="card-body pt-3 pb-3">
 		@if (!String.IsNullOrWhiteSpace(Model.Error))
 		{
-		<div class="alert alert-danger">@Model.Error</div>
+		@*
+			QA Issue 13 (MINOR a11y) error message must be announced live to screen
+			readers; role="alert" + aria-live="assertive" satisfies WCAG 4.1.3
+			(Status Messages, Level AA).
+		*@
+		<div class="alert alert-danger" role="alert" aria-live="assertive">@Model.Error</div>
 		}
 		<form method="post" name="form">
 			@Html.AntiForgeryToken()
 			<div class="form-group">
 				<label for="loginEmail">Email</label>
-				<input type="email" class="form-control form-control-sm" id="loginEmail" placeholder="" name="Username" value="">
+				@*
+					QA Issue 13 (MINOR a11y) fix: Add autocomplete attributes per
+					WHATWG HTML living standard so browsers and password managers
+					can offer credential autofill, and per WCAG 1.3.5 (Identify
+					Input Purpose, Level AA).
+				*@
+				<input type="email" class="form-control form-control-sm" id="loginEmail" placeholder="" name="Username" value="" autocomplete="username">
 			</div>
 			<div class="form-group">
 				<label for="loginPassword">Password</label>
-				<input type="password" class="form-control form-control-sm" id="loginPassword" placeholder="" name="Password" value="">
+				<input type="password" class="form-control form-control-sm" id="loginPassword" placeholder="" name="Password" value="" autocomplete="current-password">
 			</div>
 			<button class="btn btn-primary btn-block mt-4 btn-sm" type="submit">Login</button>
 		</form>

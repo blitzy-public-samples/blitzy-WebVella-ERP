@@ -56,7 +56,13 @@
 					</div>
 					@if (!String.IsNullOrWhiteSpace(appUrl))
 					{
-						<a class="app-link" href="@appUrl"><em></em></a>
+						@* QA Issue 9 — overlay link wrapping the entire app card to make it clickable.
+						   The labelled sub-links inside (pages, entities, apps, etc.) provide the
+						   real navigation, so this overlay is decorative. tabindex="-1" removes it
+						   from keyboard tab order (keyboard users use the inner labelled links);
+						   aria-hidden="true" hides it from screen-reader output to avoid duplicate
+						   announcements of the same destination. *@
+						<a class="app-link" href="@appUrl" aria-label="@app.Label" tabindex="-1" aria-hidden="true"><em></em></a>
 					}
 				</div>
 				<div class="card-footer">

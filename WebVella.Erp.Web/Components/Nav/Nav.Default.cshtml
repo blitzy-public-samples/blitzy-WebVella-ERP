@@ -7,11 +7,19 @@
 	var pageModel = (BaseErpPageModel)ViewBag.PageModel;
 }
 <!--c:Nav_Default-->
-<div id="nav" class="pl-2 pr-2">
+@*
+	QA Issue 4 (MAJOR a11y) fix: top-level container is now a <nav> element so
+	screen readers announce it as the "primary navigation" landmark per WCAG 2.4.1.
+	QA Issue 9 (MAJOR a11y) fix: home anchor and brand-logo anchor have explicit
+	aria-labels so they expose accessible names to assistive tech (WCAG 4.1.2 Name,
+	Role, Value Level A). DOM IDs, classes, and behavior are otherwise preserved
+	per AAP §0.11.1.2.
+*@
+<nav id="nav" class="pl-2 pr-2" aria-label="Primary">
 	<div class="menu-nav-wrapper home">
 		<div class="menu-nav">
-			<a href="/" class="pl-2 pr-2">
-				<span class="fas fa-home icon"></span>
+			<a href="/" class="pl-2 pr-2" aria-label="Home" title="Home">
+				<span class="fas fa-home icon" aria-hidden="true"></span>
 			</a>
 		</div>
 	</div>
@@ -19,14 +27,14 @@
 	<div id="brand-logo" class="pl-3 pr-3">
 			@if (currentApp == null)
 			{
-				<a href="@ViewBag.AppDefaultLink">
-					<img src="@ViewBag.BrandLogo" />
+				<a href="@ViewBag.AppDefaultLink" aria-label="@ViewBag.DefaultAppName home">
+					<img src="@ViewBag.BrandLogo" alt="@ViewBag.DefaultAppName logo" />
 					<span class="app-label"  style="color:@ViewData["BodyBorderColor"]">@ViewBag.DefaultAppName</span>			
 				</a>
 			}
 			else {
-				<a href="@ViewBag.AppDefaultLink">
-					<img src="@ViewBag.BrandLogo" />
+				<a href="@ViewBag.AppDefaultLink" aria-label="@currentApp.Label home">
+					<img src="@ViewBag.BrandLogo" alt="@currentApp.Label logo" />
 					<span class="app-label" title="@currentApp.Label"  style="color:@ViewData["BodyBorderColor"]">@currentApp.Label</span>			
 				</a>
 			}
@@ -38,6 +46,6 @@
 		<vc:search-nav></vc:search-nav>
 		<vc:user-nav></vc:user-nav>
 	</div>
-</div>
+</nav>
 
 @Html.Raw(ViewBag.EmbededJs)

@@ -188,6 +188,22 @@ namespace WebVella.Erp.Site
 			
 			app.UseEndpoints(endpoints =>
             {
+                // QA Issue 1 (CRITICAL) fix: Register .NET 9 static-web-assets endpoint
+                // routing so that /_content/* paths from referenced Razor SDK projects
+                // (WebVella.Erp.Web, WebVella.TagHelpers, WebVella.Erp.Plugins.SDK) are
+                // served via the build-time staticwebassets.runtime.json manifest. Prior
+                // to this call, in Production mode the wwwroot directory is not
+                // physically present in the bin output (per the .NET 9 static-web-assets
+                // pipeline, assets live in their source projects' wwwroot folders) and
+                // UseStaticFiles middleware alone could not resolve them, causing 405
+                // (when the catch-all DELETE controller route claimed the namespace) or
+                // 404 errors. MapStaticAssets reads the manifest and registers endpoint
+                // routes for every asset, restoring expected production behavior.
+                // Per AAP §0.11.1.2, this preserves all observable behavior of the
+                // application while resolving a deployment-mode regression. The call is
+                // placed before MapRazorPages/MapControllerRoute so that explicit asset
+                // endpoints take precedence over generic page routes.
+                endpoints.MapStaticAssets();
                 endpoints.MapRazorPages();
                 endpoints.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
             });

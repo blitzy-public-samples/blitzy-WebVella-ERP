@@ -4,7 +4,11 @@
 @using WebVella.Erp.Web.Utils;
 @{
 	Layout = "~/Pages/_AppMaster.cshtml";
-	ViewData["Title"] = "Manage Application";
+	// QA Issue 11-extension (MINOR functional) fix: Browser tab title was
+	// "Manage Application" — a copy-paste error from the application manage
+	// page. Corrected to match the page's actual purpose. Per AAP §0.11.1.2,
+	// no other observable behavior changes.
+	ViewData["Title"] = "Manage Role";
 
 }
 <wv-page-header color="#dc3545" area-label="Roles" title="Manage Role"

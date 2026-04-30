@@ -16,8 +16,12 @@
 		}
 	</wv-page-header-actions>
 	<wv-page-header-actions-aux>
-		<form id="wv-17726e93-fd63-4af2-8754-59bc2f1582c4" class="search-form" name="form" method="get" novalidate="novalidate" autocomplete="on">
-			<input class="form-control form-control-sm" id="input-0d0c248a-9027-4b0c-8fa7-bfb411dc4041" name="q_name_v" placeholder="Search in name" type="text" value="@Model.SearchString">
+		@* QA Issue 7 family — accessible name for inline search input. The visible placeholder
+		   provides hint text but does not satisfy WCAG 1.3.1 (label/role association required).
+		   aria-label gives the input a programmatic accessible name for screen readers. *@
+		<form id="wv-17726e93-fd63-4af2-8754-59bc2f1582c4" class="search-form" name="form" method="get" novalidate="novalidate" autocomplete="on" role="search">
+			<label for="input-0d0c248a-9027-4b0c-8fa7-bfb411dc4041" class="sr-only">Search in name</label>
+			<input class="form-control form-control-sm" id="input-0d0c248a-9027-4b0c-8fa7-bfb411dc4041" name="q_name_v" placeholder="Search in name" type="text" value="@Model.SearchString" aria-label="Search in name">
 			<input type="hidden" name="q_name_t" value="CONTAINS">
 		</form>
 	</wv-page-header-actions-aux>

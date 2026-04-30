@@ -71,6 +71,12 @@ namespace WebVella.Erp.Web.TagHelpers
 				var btnCloseEl = new TagBuilder("button");
 				btnCloseEl.Attributes.Add("type", "button");
 				btnCloseEl.AddCssClass("drawer-close");
+				// QA Issue 6 (MAJOR a11y) fix: Icon-only close button must expose
+				// an accessible name to assistive technology per WCAG 4.1.2 Name,
+				// Role, Value (Level A). Both aria-label and title are set so screen
+				// readers and mouse-hover tooltips both announce the purpose.
+				btnCloseEl.Attributes.Add("aria-label", "Close drawer");
+				btnCloseEl.Attributes.Add("title", "Close drawer");
 				if (String.IsNullOrWhiteSpace(Id))
 				{
 					btnCloseEl.Attributes.Add("onclick", "ErpEvent.DISPATCH('WebVella.Erp.Web.Components.WvDrawer','close')");
@@ -82,6 +88,10 @@ namespace WebVella.Erp.Web.TagHelpers
 
 				var btnCloseIconEl = new TagBuilder("span");
 				btnCloseIconEl.AddCssClass("fa fa-times fa-fw");
+				// QA Issue 6 (MAJOR a11y) fix companion: the icon glyph is purely
+				// decorative once the parent button has an accessible name; mark it
+				// aria-hidden so screen readers do not announce it as duplicate text.
+				btnCloseIconEl.Attributes.Add("aria-hidden", "true");
 				btnCloseEl.InnerHtml.AppendHtml(btnCloseIconEl);
 
 				dHeadEl.InnerHtml.AppendHtml(btnCloseEl);

@@ -30,6 +30,16 @@
 
 <wv-validation errors="@Model.Validation.ToErrorList()" message="@Model.Validation.Message"></wv-validation>
 
+@*
+	QA Issue 18 (MINOR responsive) fix: The entity DATA grid renders one column
+	per entity field, which exceeds typical viewport widths (1605px observed
+	against a 1280px viewport in QA report). Wrapping in Bootstrap's
+	`.table-responsive` confines the horizontal overflow to the grid container
+	(scroll inside the card) instead of spilling onto the document body. This
+	preserves the existing column layout while preventing whole-page horizontal
+	scroll and matches the Bootstrap convention used elsewhere in the platform.
+*@
+<div class="table-responsive">
 <wv-grid bordered="true" hover="true" columns="Model.Columns" page="Model.Pager" total-count="Model.TotalCount" page-size="Model.PagerSize" small="true">
 	@foreach (var record in Model.Records)
 	{
@@ -413,6 +423,7 @@
 		</tbody>
 	}
 </wv-grid>
+</div>
 
 <wv-drawer width="550px" title="Search Fields" title-action-html="@titleAction">
 	<form method="get" name="SearchEntities">

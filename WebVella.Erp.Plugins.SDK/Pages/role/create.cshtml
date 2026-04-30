@@ -4,7 +4,11 @@
 @using WebVella.Erp.Web.Utils;
 @{
 	Layout = "~/Pages/_AppMaster.cshtml";
-	ViewData["Title"] = "Create New Application";
+	// QA Issue 10 (MINOR functional) fix: Browser tab title was "Create New
+	// Application" — a copy-paste error from the application create page that
+	// did not match the page's actual purpose (creating a role). Per AAP
+	// §0.11.1.2 (preserve all observable behavior), nothing else changes.
+	ViewData["Title"] = "Create New Role";
 
 }
 

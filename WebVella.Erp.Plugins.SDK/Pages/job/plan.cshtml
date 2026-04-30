@@ -4,7 +4,10 @@
 @model WebVella.Erp.Plugins.SDK.Pages.Job.PlanModel
 @{
 	Layout = "~/Pages/_AppMaster.cshtml";
-	ViewData["Title"] = "Logs";
+	// QA Issue 10/11/15 family — fix copy-paste page title (was "Logs" by clone from log/list.cshtml).
+	// Title must align with the visible page header "Schedule Plans" for browser-tab and
+	// accessibility (screen-reader-announced page title). Preserved Razor route.
+	ViewData["Title"] = "Schedule Plans";
 }
 <wv-page-header color="#dc3545" area-label="Jobs" title="Schedule Plans"
 				icon-class="far fa-calendar-alt icon" return-url="@Model.ReturnUrl">

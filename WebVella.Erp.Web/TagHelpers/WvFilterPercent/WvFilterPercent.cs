@@ -46,6 +46,15 @@ namespace WebVella.Erp.Web.TagHelpers
 				}
 				valueFakeInputControl.Attributes.Add("value", fakeValueString);
 				valueFakeInputControl.Attributes.Add("type", "number");
+				// QA Issue 7 (MAJOR a11y) fix: WvFilterPercent uses two inputs (a
+				// visible "fake" input that the user types into, and a hidden
+				// canonical input). The JS in percent.js binds to the unique
+				// `erp-filter-fake-value-{FilterId}` id of the fake input, so the
+				// label rendered by WvFilterBase (which targets `erp-filter-input-
+				// {FilterId}`) cannot bind here without breaking JS. Use an explicit
+				// aria-label so screen readers still announce the label text on
+				// focus, per WCAG 4.1.2 (Name, Role, Value, Level A).
+				valueFakeInputControl.Attributes.Add("aria-label", string.IsNullOrWhiteSpace(Label) ? Name : Label);
 				inputGroupEl.InnerHtml.AppendHtml(valueFakeInputControl);
 
 				var valueHiddenInputControl = new TagBuilder("input");
@@ -77,6 +86,9 @@ namespace WebVella.Erp.Web.TagHelpers
 				{
 					value2FakeInputControl.AddCssClass("d-none");
 				}
+				// QA Issue 7 (MAJOR a11y) fix: explicit aria-label for the upper
+				// bound fake percent input (BETWEEN/NOTBETWEEN range).
+				value2FakeInputControl.Attributes.Add("aria-label", $"{(string.IsNullOrWhiteSpace(Label) ? Name : Label)} (upper bound)");
 				inputGroupEl.InnerHtml.AppendHtml(value2FakeInputControl);
 
 				var value2HiddenInputControl = new TagBuilder("input");

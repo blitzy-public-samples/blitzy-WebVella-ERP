@@ -4,7 +4,10 @@
 @using WebVella.Erp.Web.Utils;
 @{
 	Layout = "~/Pages/_AppMaster.cshtml";
-	ViewData["Title"] = "Manage Application";
+	// QA Issue 11 (MINOR functional) fix: Browser tab title was "Manage
+	// Application" — a copy-paste error. Corrected to match the page's purpose.
+	// Per AAP §0.11.1.2, no other observable behavior changes.
+	ViewData["Title"] = "Manage User";
 
 }
 <wv-page-header color="#dc3545" area-label="Users" title="Manage User"
@@ -31,7 +34,19 @@
 		</wv-row>
 		<wv-row>
 			<wv-column span="6">
-				<wv-field-password label-text="Password" value="@Model.Password" name="Password" required="true"></wv-field-password>
+				@*
+					QA Issue 12 (MINOR functional/UX) fix: The user manage form's
+					backend (SecurityManager.SaveUser, UPDATE branch) intentionally
+					treats a blank Password as "do not modify the existing
+					password" — only flags Email validation failures. Marking
+					Password as `required="true"` here misleads the user into
+					thinking they must re-enter the password to save other field
+					changes. Removing required="true" aligns the UI affordance with
+					the backend's preserve-existing-password semantic. The Password
+					field is still required when CREATING a user (separate Create
+					page model handles that branch).
+				*@
+				<wv-field-password label-text="Password" value="@Model.Password" name="Password" placeholder="Leave blank to keep existing password"></wv-field-password>
 			</wv-column>
 			<wv-column span="6">
 				<wv-field-multiselect label-text="Assign roles" value="@Model.Roles" name="Roles" options="Model.RoleOptions.ToWvSelectOption()"></wv-field-multiselect>
