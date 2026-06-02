@@ -180,6 +180,441 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
         }
 
         /// <summary>
+        /// Retrieves the count of pending approval requests awaiting action.
+        /// Discrete sub-resource of the aggregate dashboard metrics endpoint.
+        /// </summary>
+        /// <param name="from">Optional start date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <param name="to">Optional end date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <returns>ResponseModel whose Object carries the pending approvals count (int) on success, or error details on failure.</returns>
+        /// <response code="200">Returns the metric successfully.</response>
+        /// <response code="400">Invalid date range supplied.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="403">User does not have the required Manager role.</response>
+        /// <response code="500">Internal server error occurred while retrieving the metric.</response>
+        [Route("api/v3.0/p/approval/dashboard/metrics/pending")]
+        [HttpGet]
+        public ActionResult GetPendingApprovalsMetric(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var response = new ResponseModel();
+
+            try
+            {
+                // Validate user authentication
+                if (!CurrentUserId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Unauthorized(response);
+                }
+
+                // Validate Manager role
+                if (!IsManagerRole())
+                {
+                    response.Success = false;
+                    response.Message = "Access denied. Manager role is required to view dashboard metrics.";
+                    response.Errors = new List<ErrorModel>
+                    {
+                        new ErrorModel
+                        {
+                            Key = "authorization",
+                            Value = "manager_role_required",
+                            Message = "Access denied. Manager role is required to view dashboard metrics."
+                        }
+                    };
+                    return StatusCode(403, response);
+                }
+
+                // Set default date range (last 30 days) if not provided
+                DateTime toDate = to ?? DateTime.UtcNow;
+                DateTime fromDate = from ?? toDate.AddDays(-30);
+
+                // Validate date range
+                if (fromDate > toDate)
+                {
+                    response.Success = false;
+                    response.Message = "Invalid date range. 'from' date must be earlier than 'to' date.";
+                    return BadRequest(response);
+                }
+
+                // Get metric from service
+                var metricsService = new DashboardMetricsService();
+                var pendingApprovalsCount = metricsService.GetPendingApprovalsCount(CurrentUserId.Value);
+
+                response.Success = true;
+                response.Message = "Pending approvals count retrieved successfully.";
+                response.Object = pendingApprovalsCount;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while retrieving dashboard metrics: {ex.Message}";
+                response.Errors = new List<ErrorModel>
+                {
+                    new ErrorModel
+                    {
+                        Key = "exception",
+                        Value = ex.Message,
+                        Message = ex.Message
+                    }
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the average approval processing time for the specified date range.
+        /// Discrete sub-resource of the aggregate dashboard metrics endpoint.
+        /// </summary>
+        /// <param name="from">Optional start date (ISO 8601). Defaults to a 30-day window; used by this metric.</param>
+        /// <param name="to">Optional end date (ISO 8601). Defaults to a 30-day window; used by this metric.</param>
+        /// <returns>ResponseModel whose Object carries the average approval time (decimal) on success, or error details on failure.</returns>
+        /// <response code="200">Returns the metric successfully.</response>
+        /// <response code="400">Invalid date range supplied.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="403">User does not have the required Manager role.</response>
+        /// <response code="500">Internal server error occurred while retrieving the metric.</response>
+        [Route("api/v3.0/p/approval/dashboard/metrics/average-time")]
+        [HttpGet]
+        public ActionResult GetAverageApprovalTimeMetric(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var response = new ResponseModel();
+
+            try
+            {
+                // Validate user authentication
+                if (!CurrentUserId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Unauthorized(response);
+                }
+
+                // Validate Manager role
+                if (!IsManagerRole())
+                {
+                    response.Success = false;
+                    response.Message = "Access denied. Manager role is required to view dashboard metrics.";
+                    response.Errors = new List<ErrorModel>
+                    {
+                        new ErrorModel
+                        {
+                            Key = "authorization",
+                            Value = "manager_role_required",
+                            Message = "Access denied. Manager role is required to view dashboard metrics."
+                        }
+                    };
+                    return StatusCode(403, response);
+                }
+
+                // Set default date range (last 30 days) if not provided
+                DateTime toDate = to ?? DateTime.UtcNow;
+                DateTime fromDate = from ?? toDate.AddDays(-30);
+
+                // Validate date range
+                if (fromDate > toDate)
+                {
+                    response.Success = false;
+                    response.Message = "Invalid date range. 'from' date must be earlier than 'to' date.";
+                    return BadRequest(response);
+                }
+
+                // Get metric from service
+                var metricsService = new DashboardMetricsService();
+                var averageApprovalTime = metricsService.GetAverageApprovalTime(fromDate, toDate);
+
+                response.Success = true;
+                response.Message = "Average approval time retrieved successfully.";
+                response.Object = averageApprovalTime;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while retrieving dashboard metrics: {ex.Message}";
+                response.Errors = new List<ErrorModel>
+                {
+                    new ErrorModel
+                    {
+                        Key = "exception",
+                        Value = ex.Message,
+                        Message = ex.Message
+                    }
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the approval rate percentage for the specified date range.
+        /// Discrete sub-resource of the aggregate dashboard metrics endpoint.
+        /// </summary>
+        /// <param name="from">Optional start date (ISO 8601). Defaults to a 30-day window; used by this metric.</param>
+        /// <param name="to">Optional end date (ISO 8601). Defaults to a 30-day window; used by this metric.</param>
+        /// <returns>ResponseModel whose Object carries the approval rate (decimal) on success, or error details on failure.</returns>
+        /// <response code="200">Returns the metric successfully.</response>
+        /// <response code="400">Invalid date range supplied.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="403">User does not have the required Manager role.</response>
+        /// <response code="500">Internal server error occurred while retrieving the metric.</response>
+        [Route("api/v3.0/p/approval/dashboard/metrics/approval-rate")]
+        [HttpGet]
+        public ActionResult GetApprovalRateMetric(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var response = new ResponseModel();
+
+            try
+            {
+                // Validate user authentication
+                if (!CurrentUserId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Unauthorized(response);
+                }
+
+                // Validate Manager role
+                if (!IsManagerRole())
+                {
+                    response.Success = false;
+                    response.Message = "Access denied. Manager role is required to view dashboard metrics.";
+                    response.Errors = new List<ErrorModel>
+                    {
+                        new ErrorModel
+                        {
+                            Key = "authorization",
+                            Value = "manager_role_required",
+                            Message = "Access denied. Manager role is required to view dashboard metrics."
+                        }
+                    };
+                    return StatusCode(403, response);
+                }
+
+                // Set default date range (last 30 days) if not provided
+                DateTime toDate = to ?? DateTime.UtcNow;
+                DateTime fromDate = from ?? toDate.AddDays(-30);
+
+                // Validate date range
+                if (fromDate > toDate)
+                {
+                    response.Success = false;
+                    response.Message = "Invalid date range. 'from' date must be earlier than 'to' date.";
+                    return BadRequest(response);
+                }
+
+                // Get metric from service
+                var metricsService = new DashboardMetricsService();
+                var approvalRate = metricsService.GetApprovalRate(fromDate, toDate);
+
+                response.Success = true;
+                response.Message = "Approval rate retrieved successfully.";
+                response.Object = approvalRate;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while retrieving dashboard metrics: {ex.Message}";
+                response.Errors = new List<ErrorModel>
+                {
+                    new ErrorModel
+                    {
+                        Key = "exception",
+                        Value = ex.Message,
+                        Message = ex.Message
+                    }
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the count of overdue pending approval requests.
+        /// Discrete sub-resource of the aggregate dashboard metrics endpoint.
+        /// </summary>
+        /// <param name="from">Optional start date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <param name="to">Optional end date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <returns>ResponseModel whose Object carries the overdue requests count (int) on success, or error details on failure.</returns>
+        /// <response code="200">Returns the metric successfully.</response>
+        /// <response code="400">Invalid date range supplied.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="403">User does not have the required Manager role.</response>
+        /// <response code="500">Internal server error occurred while retrieving the metric.</response>
+        [Route("api/v3.0/p/approval/dashboard/metrics/overdue")]
+        [HttpGet]
+        public ActionResult GetOverdueRequestsMetric(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var response = new ResponseModel();
+
+            try
+            {
+                // Validate user authentication
+                if (!CurrentUserId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Unauthorized(response);
+                }
+
+                // Validate Manager role
+                if (!IsManagerRole())
+                {
+                    response.Success = false;
+                    response.Message = "Access denied. Manager role is required to view dashboard metrics.";
+                    response.Errors = new List<ErrorModel>
+                    {
+                        new ErrorModel
+                        {
+                            Key = "authorization",
+                            Value = "manager_role_required",
+                            Message = "Access denied. Manager role is required to view dashboard metrics."
+                        }
+                    };
+                    return StatusCode(403, response);
+                }
+
+                // Set default date range (last 30 days) if not provided
+                DateTime toDate = to ?? DateTime.UtcNow;
+                DateTime fromDate = from ?? toDate.AddDays(-30);
+
+                // Validate date range
+                if (fromDate > toDate)
+                {
+                    response.Success = false;
+                    response.Message = "Invalid date range. 'from' date must be earlier than 'to' date.";
+                    return BadRequest(response);
+                }
+
+                // Get metric from service
+                var metricsService = new DashboardMetricsService();
+                var overdueRequestsCount = metricsService.GetOverdueRequestsCount(CurrentUserId.Value);
+
+                response.Success = true;
+                response.Message = "Overdue requests count retrieved successfully.";
+                response.Object = overdueRequestsCount;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while retrieving dashboard metrics: {ex.Message}";
+                response.Errors = new List<ErrorModel>
+                {
+                    new ErrorModel
+                    {
+                        Key = "exception",
+                        Value = ex.Message,
+                        Message = ex.Message
+                    }
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
+        /// Retrieves the most recent approval activity items (limited to the last 5).
+        /// Discrete sub-resource of the aggregate dashboard metrics endpoint.
+        /// </summary>
+        /// <param name="from">Optional start date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <param name="to">Optional end date (ISO 8601). Parsed and range-validated for chain uniformity; not consumed by this metric.</param>
+        /// <returns>ResponseModel whose Object carries the recent activity feed (List&lt;RecentActivityItem&gt;) on success, or error details on failure.</returns>
+        /// <response code="200">Returns the metric successfully.</response>
+        /// <response code="400">Invalid date range supplied.</response>
+        /// <response code="401">User is not authenticated.</response>
+        /// <response code="403">User does not have the required Manager role.</response>
+        /// <response code="500">Internal server error occurred while retrieving the metric.</response>
+        [Route("api/v3.0/p/approval/dashboard/metrics/recent-activity")]
+        [HttpGet]
+        public ActionResult GetRecentActivityMetric(
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null)
+        {
+            var response = new ResponseModel();
+
+            try
+            {
+                // Validate user authentication
+                if (!CurrentUserId.HasValue)
+                {
+                    response.Success = false;
+                    response.Message = "User authentication required.";
+                    return Unauthorized(response);
+                }
+
+                // Validate Manager role
+                if (!IsManagerRole())
+                {
+                    response.Success = false;
+                    response.Message = "Access denied. Manager role is required to view dashboard metrics.";
+                    response.Errors = new List<ErrorModel>
+                    {
+                        new ErrorModel
+                        {
+                            Key = "authorization",
+                            Value = "manager_role_required",
+                            Message = "Access denied. Manager role is required to view dashboard metrics."
+                        }
+                    };
+                    return StatusCode(403, response);
+                }
+
+                // Set default date range (last 30 days) if not provided
+                DateTime toDate = to ?? DateTime.UtcNow;
+                DateTime fromDate = from ?? toDate.AddDays(-30);
+
+                // Validate date range
+                if (fromDate > toDate)
+                {
+                    response.Success = false;
+                    response.Message = "Invalid date range. 'from' date must be earlier than 'to' date.";
+                    return BadRequest(response);
+                }
+
+                // Get metric from service
+                var metricsService = new DashboardMetricsService();
+                var recentActivity = metricsService.GetRecentActivity(5);
+
+                response.Success = true;
+                response.Message = "Recent activity retrieved successfully.";
+                response.Object = recentActivity;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = $"An error occurred while retrieving dashboard metrics: {ex.Message}";
+                response.Errors = new List<ErrorModel>
+                {
+                    new ErrorModel
+                    {
+                        Key = "exception",
+                        Value = ex.Message,
+                        Message = ex.Message
+                    }
+                };
+
+                return StatusCode(500, response);
+            }
+        }
+
+        /// <summary>
         /// Health check endpoint for the approval dashboard API.
         /// Can be used to verify the API is operational.
         /// </summary>
