@@ -20,6 +20,12 @@ namespace WebVella.Erp.Plugins.Approval.Components
     /// Provides a dashboard view with pending approvals count, average approval time,
     /// approval rate percentage, overdue requests count, and recent activity feed.
     /// Supports auto-refresh capability and date range filtering.
+    /// Registers in the page builder as the [PageComponent] labeled "Approval Dashboard" in the
+    /// "WebVella" library under the "Approval Workflow" category.
+    /// Its InvokeAsync entry point dispatches five render modes — Display (runtime), Design (preview),
+    /// Options (configuration), and Help (documentation) — with a default fallback to the Error view.
+    /// Per ADR-004 it enforces the role allow-list independently of the controller because the
+    /// page-builder render path is a second reachable entry point (dual-layer authorization).
     /// </summary>
     [PageComponent(
         Label = "Approval Dashboard",
@@ -37,6 +43,10 @@ namespace WebVella.Erp.Plugins.Approval.Components
 
         /// <summary>
         /// List of role names that are authorized to view the dashboard.
+        /// This is one of two separately-declared (not shared) allow-lists; its counterpart is
+        /// AuthorizedDashboardRoles in Controllers/ApprovalController.cs (~L31).
+        /// Both hold the same {manager, administrator, admin} values to enforce the same policy at the
+        /// two reachable entry paths — page-builder render and direct REST URL — per ADR-004.
         /// </summary>
         private static readonly List<string> AuthorizedRoles = new List<string>
         {
@@ -63,6 +73,8 @@ namespace WebVella.Erp.Plugins.Approval.Components
             /// <summary>
             /// Interval in seconds between automatic metric refreshes.
             /// Default is 60 seconds. Minimum allowed is 30 seconds.
+            /// The 30-second minimum is enforced at runtime in InvokeAsync to bound the per-user
+            /// database query rate.
             /// </summary>
             [JsonProperty(PropertyName = "refresh_interval")]
             public int RefreshInterval { get; set; } = 60;
@@ -141,7 +153,8 @@ namespace WebVella.Erp.Plugins.Approval.Components
                         context.Options.ToString()) ?? new PcApprovalDashboardOptions();
                 }
 
-                // Ensure refresh interval is at least 30 seconds
+                // The 30-second floor bounds the per-user request rate against the database, and it
+                // mirrors MIN_REFRESH_INTERVAL in service.js (~L26) so both client and server enforce the same minimum.
                 if (options.RefreshInterval < 30)
                 {
                     options.RefreshInterval = 30;
@@ -283,6 +296,10 @@ namespace WebVella.Erp.Plugins.Approval.Components
 
         /// <summary>
         /// Calculates the start date based on the date range option.
+        /// "7d", "30d", and "90d" subtract 7, 30, and 90 days respectively, and any other value
+        /// (including "custom") falls back to a 30-day window.
+        /// This server-side seed computed on the initial render mirrors getDateRange in service.js
+        /// (~L50), which recomputes the same window client-side on AJAX refresh.
         /// </summary>
         /// <param name="dateRangeOption">The date range option (7d, 30d, 90d, custom).</param>
         /// <param name="toDate">The end date to calculate from.</param>
