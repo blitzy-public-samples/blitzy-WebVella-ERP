@@ -15,10 +15,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Embedded into the plugin assembly so the ERP host serves the dashboard client script via UseStaticFiles, with no loose static file to deploy. -->
 		<EmbeddedResource Include="Components\PcApprovalDashboard\service.js" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Sole NuGet dependency: supplies the Newtonsoft JSON serialization behind the [JsonProperty] snake_case contract on DashboardMetricsModel; every other ASP.NET Core type comes from the Microsoft.AspNetCore.App framework reference above. -->
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.10" />
 	</ItemGroup>
 
