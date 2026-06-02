@@ -26,8 +26,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Assembles every dashboard KPI into a single DashboardMetricsModel for the specified manager
-        /// and date range by delegating to the individual metric helpers below.
+        /// Retrieves all dashboard metrics for the specified user and date range.
         /// Stamps MetricsAsOf with the current UTC time so the dashboard can display how fresh the metrics are.
         /// </summary>
         /// <param name="userId">The ID of the manager requesting metrics.</param>
@@ -54,9 +53,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Answers the dashboard question "how many approval requests are currently awaiting action?"
-        /// by counting pending rows in the approval_request entity.
-        /// Returns 0 as the safe default when no rows match or the backing entity is unavailable.
+        /// Gets the count of approval requests in pending status where the user
+        /// is an authorized approver for the current step.
+        /// Queries the approval_request entity and returns 0 as the safe default when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="userId">The ID of the approver user.</param>
         /// <returns>Count of pending approval requests.</returns>
@@ -88,9 +87,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Answers "how many pending requests are past their deadline?" by counting pending rows in the
-        /// approval_request entity whose age exceeds the timeout threshold.
-        /// Returns 0 as the safe default when no rows match or the backing entity is unavailable.
+        /// Gets the count of pending requests that have exceeded their configured
+        /// timeout threshold from the approval step.
+        /// Queries the approval_request entity and returns 0 as the safe default when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="userId">The ID of the approver user.</param>
         /// <returns>Count of overdue approval requests.</returns>
@@ -146,9 +145,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Answers "what is the average processing time, in hours, for requests completed within the range?"
-        /// by averaging the completion-minus-creation duration of approved/rejected rows in the approval_request entity.
-        /// Returns 0 as the safe default when no rows match, and the orchestrator feeds this value into the AverageApprovalTimeHours model property.
+        /// Calculates the average time in hours from request creation to completion
+        /// for all processed requests within the date range.
+        /// Queries the approval_request entity, returns 0 as the safe default when no rows match, and feeds the AverageApprovalTimeHours model property.
         /// </summary>
         /// <param name="fromDate">Start of the date range.</param>
         /// <param name="toDate">End of the date range.</param>
@@ -207,9 +206,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Answers "what percent of processed requests were approved, on a 0-100 scale?" by dividing approved
-        /// rows by all completed rows in the approval_request entity.
-        /// Returns 0 as the safe default when no rows match or the backing entity is unavailable.
+        /// Calculates the percentage of approved requests out of total processed
+        /// requests within the date range.
+        /// Queries the approval_request entity and returns 0 as the safe default (on a 0-100 scale) when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="fromDate">Start of the date range.</param>
         /// <param name="toDate">End of the date range.</param>
@@ -257,9 +256,9 @@ namespace WebVella.Erp.Plugins.Approval.Services
         }
 
         /// <summary>
-        /// Answers "what are the most recent approval actions?" by reading the latest rows from the
-        /// approval_history entity, ordered newest first.
-        /// Returns an empty list as the safe default when no history exists or the backing entity is unavailable.
+        /// Retrieves the most recent approval history actions for display in the
+        /// activity feed.
+        /// Queries the approval_history entity and returns an empty list as the safe default when no history exists or the backing entity is unavailable.
         /// </summary>
         /// <param name="limit">Maximum number of activity items to return.</param>
         /// <returns>List of recent activity items ordered by most recent first.</returns>

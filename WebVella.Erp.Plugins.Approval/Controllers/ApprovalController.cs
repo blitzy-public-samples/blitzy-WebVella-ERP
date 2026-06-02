@@ -15,9 +15,8 @@ namespace WebVella.Erp.Plugins.Approval.Controllers
     /// <summary>
     /// Controller for Approval Workflow plugin API endpoints.
     /// Provides REST API access to approval operations and dashboard metrics.
-    /// All endpoints require authentication; dashboard metrics require Manager role.
     /// The REST surface is mounted under the route prefix <c>/api/v3.0/p/approval/</c> and authenticates requests with the <c>JWT_OR_COOKIE</c> scheme.
-    /// The class-level <c>[Authorize]</c> secures every action by default, a posture inverted only by <c>[AllowAnonymous]</c> on the health endpoint.
+    /// The class-level <c>[Authorize]</c> secures every action by default and the dashboard-metrics endpoint additionally requires an authorized dashboard role (manager, administrator, or admin); only the health endpoint relaxes this posture via <c>[AllowAnonymous]</c>.
     /// </summary>
     [Authorize]
     public class ApprovalController : Controller
