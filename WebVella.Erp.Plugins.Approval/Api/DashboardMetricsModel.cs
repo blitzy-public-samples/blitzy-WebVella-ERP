@@ -8,6 +8,10 @@ namespace WebVella.Erp.Plugins.Approval.Api
     /// Data transfer object containing all dashboard metric values for the manager approval dashboard.
     /// This model is returned by the dashboard metrics API endpoint and consumed by the UI component.
     /// </summary>
+    /// <remarks>
+    /// Concretely, this is the response body for GET /api/v3.0/p/approval/dashboard/metrics, which the controller wraps in ResponseModel.Object.
+    /// All [JsonProperty] keys are snake_case because the jQuery/service.js client reads them by those exact names (for example, pending_approvals_count), so the individual properties below do not repeat this serialization rationale.
+    /// </remarks>
     public class DashboardMetricsModel
     {
         /// <summary>
@@ -19,6 +23,7 @@ namespace WebVella.Erp.Plugins.Approval.Api
         /// <summary>
         /// Average time in hours taken to process (approve/reject) approval requests
         /// within the specified date range.
+        /// This decimal value is populated by the service's GetAverageApprovalTime method, which carries the "Hours" unit only in this property's name.
         /// </summary>
         [JsonProperty(PropertyName = "average_approval_time_hours")]
         public decimal AverageApprovalTimeHours { get; set; }
@@ -44,18 +49,19 @@ namespace WebVella.Erp.Plugins.Approval.Api
 
         /// <summary>
         /// Timestamp indicating when the metrics were calculated (UTC).
+        /// The client surfaces this as the data-freshness indicator so users can see how current the dashboard figures are.
         /// </summary>
         [JsonProperty(PropertyName = "metrics_as_of")]
         public DateTime MetricsAsOf { get; set; }
 
         /// <summary>
-        /// Start of the date range used for calculating time-based metrics.
+        /// Start of the date range (UTC) used for calculating time-based metrics.
         /// </summary>
         [JsonProperty(PropertyName = "date_range_start")]
         public DateTime DateRangeStart { get; set; }
 
         /// <summary>
-        /// End of the date range used for calculating time-based metrics.
+        /// End of the date range (UTC) used for calculating time-based metrics.
         /// </summary>
         [JsonProperty(PropertyName = "date_range_end")]
         public DateTime DateRangeEnd { get; set; }
@@ -63,6 +69,7 @@ namespace WebVella.Erp.Plugins.Approval.Api
 
     /// <summary>
     /// Represents a single item in the recent activity feed for the dashboard.
+    /// The feed is deliberately capped at five items for dashboard readability, with the cap applied at the service call site (GetRecentActivity(5)) rather than on this type.
     /// </summary>
     public class RecentActivityItem
     {
