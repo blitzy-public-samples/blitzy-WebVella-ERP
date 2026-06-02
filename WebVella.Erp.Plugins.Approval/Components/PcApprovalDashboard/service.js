@@ -8,7 +8,13 @@
  * - Auto-refresh timer management
  * - Date range filter handling
  * - UI update functions
- * 
+ *
+ * Polling is driven by setInterval but kept lifecycle-aware so it never runs needlessly: the Page
+ * Visibility API pauses refresh while the tab is hidden and resumes it on return, and beforeunload
+ * tears the timer down on navigation. The page-builder lifecycle hooks
+ * (WvPbManager_Design_Loaded/_Design_Unloaded/_Node_Moved) likewise stop design-time instances from
+ * polling once the component is unloaded.
+ *
  * @module PcApprovalDashboard/service
  */
 (function (window, $) {
@@ -21,6 +27,9 @@
 
     /**
      * Minimum refresh interval in milliseconds (30 seconds)
+     *
+     * Mirrors the server-side 30-second floor in PcApprovalDashboard.cs (~L145-147) so the minimum poll
+     * interval is enforced on both layers, bounding each user's request rate against the database.
      * @constant {number}
      */
     var MIN_REFRESH_INTERVAL = 30000;
@@ -31,6 +40,7 @@
      * @param {Object} options - Configuration options
      * @param {number} options.refreshInterval - Refresh interval in seconds
      * @param {string} options.dateRangeDefault - Default date range ('7d', '30d', '90d')
+     * @returns {void}
      */
     function initDashboard(nodeId, options) {
         var container = document.getElementById('approval-dashboard-' + nodeId);
@@ -44,6 +54,9 @@
 
         /**
          * Calculates the date range based on the selected option
+         *
+         * Mirrors CalculateFromDate in PcApprovalDashboard.cs (~L290): the client-side recompute of the
+         * window on AJAX refresh, versus the server-side seed computed on the initial render.
          * @param {string} range - Date range option ('7d', '30d', '90d')
          * @returns {Object} Object with from and to ISO date strings
          */
@@ -84,6 +97,7 @@
 
         /**
          * Fetches dashboard metrics from the API
+         * @returns {void}
          */
         function refreshMetrics() {
             var dateRangeSelector = document.getElementById('date-range-' + nodeId);
@@ -118,6 +132,8 @@
                     console.warn('Approval Dashboard: API returned unsuccessful response', data);
                 }
             })
+            // Transient refresh failures are logged but intentionally not surfaced to the user, so the
+            // dashboard keeps showing the last-known metrics instead of disrupting the manager.
             .catch(function (error) {
                 console.error('Approval Dashboard: Error refreshing metrics:', error);
             });
@@ -126,6 +142,7 @@
         /**
          * Updates the dashboard UI with new metrics data
          * @param {Object} metrics - Metrics data from API
+         * @returns {void}
          */
         function updateDisplay(metrics) {
             // Update pending approvals count
@@ -185,6 +202,7 @@
         /**
          * Updates the recent activity list UI
          * @param {Array} activities - Array of recent activity items
+         * @returns {void}
          */
         function updateRecentActivity(activities) {
             var activityContainer = document.getElementById('recent-activity-' + nodeId);
@@ -254,8 +272,11 @@
 
         /**
          * Starts the auto-refresh timer
+         * @returns {void}
          */
         function startAutoRefresh() {
+            // Clear any existing timer before creating a new one to prevent stacking multiple setInterval
+            // timers when refresh is (re)started, e.g. when the tab is re-shown via the Page Visibility handler.
             if (refreshTimer) {
                 clearInterval(refreshTimer);
             }
@@ -264,6 +285,7 @@
 
         /**
          * Stops the auto-refresh timer
+         * @returns {void}
          */
         function stopAutoRefresh() {
             if (refreshTimer) {
