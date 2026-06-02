@@ -583,6 +583,37 @@
 
     /* Lucide <i> placeholders collapse to their rendered svg cleanly */
     [data-lucide] { display: inline-flex; }
+
+    /* =========================================================================
+       ACCESSIBILITY — keyboard focus visibility + adequate touch-target size.
+       reveal.js default navigation arrows compute to 36x36px and expose no
+       high-contrast focus ring. The rules below enlarge each navigation
+       control's hit area to >=44px (52px here, centered) and add a clearly
+       visible, brand-aligned focus indicator for keyboard users. The purple
+       outline (var(--blitzy-primary)) carries strong contrast against the
+       light slide chrome, and the teal halo reinforces visibility.
+       ========================================================================= */
+    .reveal .controls button.navigate-left,
+    .reveal .controls button.navigate-right,
+    .reveal .controls button.navigate-up,
+    .reveal .controls button.navigate-down {
+      width: 52px;
+      height: 52px;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Visible focus ring for keyboard navigation (controls + in-slide links). */
+    .reveal .controls button:focus-visible,
+    .reveal .slides a:focus-visible {
+      outline: 3px solid var(--blitzy-primary);
+      outline-offset: 3px;
+      border-radius: 8px;
+      box-shadow: 0 0 0 6px rgba(148, 250, 213, .55);
+    }
   </style>
 </head>
 <body>
@@ -810,25 +841,25 @@
           </div>
         </div>
         <div class="accent-bar"></div>
-        <div class="mermaid" role="img" aria-label="Architecture before and after. Before: the aggregate metrics endpoint and a health endpoint, with metrics backed by the DashboardMetricsService. After: the unchanged aggregate and health endpoints plus five new discrete endpoints — pending, average-time, approval-rate, overdue, and recent-activity — all delegating to the same single DashboardMetricsService.">
+        <div class="mermaid" role="img" aria-label="Before and after architecture. The aggregate metrics and health endpoints are unchanged. Five new discrete endpoints — pending, average-time, approval-rate, overdue, recent-activity — all delegate to the same DashboardMetricsService.">
 flowchart LR
   subgraph BEFORE["Before"]
     direction TB
-    A1["/dashboard/metrics"] --> S1[("DashboardMetricsService")]
-    H1["/dashboard/health"]
+    A1["metrics"] --> S1[("Service")]
+    H1["health"]
   end
   subgraph AFTER["After"]
     direction TB
-    A2["/dashboard/metrics (unchanged)"] --> S2[("DashboardMetricsService")]
-    P2["…/metrics/pending"] --> S2
-    T2["…/metrics/average-time"] --> S2
-    R2["…/metrics/approval-rate"] --> S2
-    O2["…/metrics/overdue"] --> S2
-    V2["…/metrics/recent-activity"] --> S2
-    H2["/dashboard/health (unchanged)"]
+    A2["metrics"] --> S2[("Service")]
+    P2["pending"] --> S2
+    T2["average-time"] --> S2
+    R2["approval-rate"] --> S2
+    O2["overdue"] --> S2
+    V2["recent-activity"] --> S2
+    H2["health"]
   end
         </div>
-        <p class="caption">Metric routes share base /api/v3.0/p/approval/dashboard/metrics — all delegate to one service.</p>
+        <p class="caption">New routes added; aggregate and health unchanged.</p>
       </section>
 
       <!-- ============================================================= -->
@@ -879,13 +910,13 @@ flowchart LR
           </div>
         </div>
         <div class="accent-bar"></div>
-        <div class="mermaid" role="img" aria-label="Validation flow shared by every endpoint. Unauthenticated requests return 401. Non-manager roles return 403 with an error entry. A default 30-day window is applied, then an invalid date range returns 400. Otherwise the service is called, returning 200 on success or 500 with an error entry on an unhandled exception.">
+        <div class="mermaid" role="img" aria-label="Shared validation flow. Unauthenticated returns 401; non-manager returns 403 with an error; a default 30-day window applies; an invalid range returns 400; otherwise the service returns 200, or 500 with an error on exception.">
 flowchart LR
   A{"Authenticated?"} -- "No" --> E401["401"]
   A -- "Yes" --> B{"Manager?"}
   B -- "No" --> E403["403 + error"]
-  B -- "Yes" --> C["30-day window"]
-  C --> D{"Range valid?"}
+  B -- "Yes" --> C["Default window"]
+  C --> D{"Valid range?"}
   D -- "No" --> E400["400"]
   D -- "Yes" --> S["Service"]
   S --> OK["200 OK"]
@@ -893,7 +924,7 @@ flowchart LR
         </div>
         <div class="note-pill">
           <i data-lucide="info" aria-hidden="true"></i>
-          Denial adds an error entry; aggregate unchanged.
+          Denial adds an error; aggregate unchanged.
         </div>
       </section>
 
@@ -909,13 +940,13 @@ flowchart LR
           </div>
         </div>
         <div class="accent-bar"></div>
-        <div class="mermaid" role="img" aria-label="Route resolution tree. A six-segment path resolves by its sixth segment to either the unchanged aggregate metrics endpoint or the anonymous health endpoint. A seven-segment path resolves by its seventh segment to one of the five new endpoints — pending, average-time, approval-rate, overdue, or recent-activity — so each URL maps to exactly one endpoint.">
+        <div class="mermaid" role="img" aria-label="Route resolution. A six-segment path resolves by its sixth segment to the aggregate or health endpoint. A seven-segment path resolves by its seventh segment to one of the five new endpoints, so each URL maps to exactly one endpoint.">
 flowchart TD
-  R["Incoming GET path"] --> Q{"Seven segments?"}
-  Q -- "No · six" --> M{"Sixth segment"}
-  M -- "metrics" --> AGG["Aggregate (unchanged)"]
-  M -- "health" --> HL["Health (anonymous)"]
-  Q -- "Yes · seven" --> SEG{"Seventh segment"}
+  R["GET path"] --> Q{"7 segments?"}
+  Q -- "No · 6" --> M{"6th segment"}
+  M -- "metrics" --> AGG["Aggregate"]
+  M -- "health" --> HL["Health"]
+  Q -- "Yes · 7" --> SEG{"7th segment"}
   SEG --> P["pending"]
   SEG --> T["average-time"]
   SEG --> AR["approval-rate"]
@@ -1054,9 +1085,9 @@ flowchart TD
       <section class="slide-closing">
         <div class="hero-icon"><i data-lucide="rocket" aria-hidden="true"></i></div>
         <span class="eyebrow">In Summary</span>
-        <h2>Additive. Behavior-preserving. Production-ready.</h2>
+        <h2>Additive. Behavior-preserving. Build-verified.</h2>
         <div class="accent-bar"></div>
-        <p class="closing-next">Next step: publish the endpoints to external and headless consumers.</p>
+        <p class="closing-next">Next step: enable the plugin in the host, then publish to external and headless consumers.</p>
         <div class="brand-lockup">
           <span class="brand-mark"><i data-lucide="zap" aria-hidden="true"></i></span>
           <span class="brand-name">Blitzy</span>
