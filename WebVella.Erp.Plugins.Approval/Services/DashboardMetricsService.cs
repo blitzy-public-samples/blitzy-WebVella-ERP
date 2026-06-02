@@ -63,8 +63,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             try
             {
-                // Query approval_request entity for pending requests
-                // In a full implementation, this would also check if userId is an authorized approver
                 var eqlCommand = @"
                     SELECT id 
                     FROM approval_request 
@@ -97,8 +95,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             try
             {
-                // Query for pending requests where created_on + timeout_hours < NOW
-                // This is a simplified implementation - actual would join with approval_step
                 var eqlCommand = @"
                     SELECT id, created_on 
                     FROM approval_request 

@@ -81,7 +81,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
 
             /// <summary>
             /// Default date range for metrics display.
-            /// Valid values: "7d", "30d", "90d", "custom"
+            /// Valid values are "7d", "30d", "90d", and "custom".
             /// </summary>
             [JsonProperty(PropertyName = "date_range_default")]
             public string DateRangeDefault { get; set; } = "30d";
@@ -94,7 +94,7 @@ namespace WebVella.Erp.Plugins.Approval.Components
 
             /// <summary>
             /// Comma-separated list of metrics to display.
-            /// Valid values: "pending", "avg_time", "approval_rate", "overdue", "recent"
+            /// Valid values are "pending", "avg_time", "approval_rate", "overdue", and "recent".
             /// </summary>
             [JsonProperty(PropertyName = "metrics_to_display")]
             public string MetricsToDisplay { get; set; } = "pending,avg_time,approval_rate,overdue,recent";

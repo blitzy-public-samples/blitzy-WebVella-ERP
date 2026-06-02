@@ -39,7 +39,6 @@
      * @param {string} nodeId - Unique identifier for the dashboard instance
      * @param {Object} options - Configuration options
      * @param {number} options.refreshInterval - Refresh interval in seconds
-     * @param {string} options.dateRangeDefault - Default date range ('7d', '30d', '90d')
      * @returns {void}
      */
     function initDashboard(nodeId, options) {

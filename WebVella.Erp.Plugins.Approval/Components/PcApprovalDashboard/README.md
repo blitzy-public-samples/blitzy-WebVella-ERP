@@ -37,7 +37,7 @@ All options are read from `PcApprovalDashboardOptions`.
 
 ## Date range filtering
 
-The Options panel sets `date_range_default`, which `Display.cshtml` seeds onto the container via data-attributes. On refresh, `service.js` `getDateRange` converts the active preset (7d/30d/90d) into `from`/`to` timestamps sent as API query params, and `DashboardMetricsService` computes metrics over that window. On the initial server render, `CalculateFromDate` seeds the same window so the first paint matches the preset.
+The Options panel persists `date_range_default`, and `Display.cshtml` renders the matching preset as the pre-selected date-range option. On refresh, `service.js` `getDateRange` reads the selected preset (7d/30d/90d) and converts it into `from`/`to` timestamps sent as API query params, which `DashboardMetricsService` uses to compute metrics over that window. On the initial server render, `CalculateFromDate` seeds the same window so the first paint matches the preset.
 
 ## Auto-refresh
 

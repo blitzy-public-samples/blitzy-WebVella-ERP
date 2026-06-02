@@ -1,5 +1,4 @@
-@* Runtime dashboard view, rendered only for manager/administrator/admin roles after the component's access check passes. *@
-@* It seeds refreshInterval/dateRangeDefault onto the container via data-attributes (L31), after which the client script drives live polling. *@
+@* Runtime dashboard view, rendered only for manager/administrator/admin roles after the component's access check passes; the refresh interval is emitted as a container data-attribute while the configured date-range preset is rendered as the pre-selected date-range option. The client script then drives live polling once the DOM is ready. *@
 @addTagHelper *, WebVella.Erp.Web
 @addTagHelper *, WebVella.TagHelpers
 @using WebVella.Erp.Web.Utils
@@ -255,8 +254,7 @@
     }
 </style>
 
-@* This view's own inline script injects the options server-side (e.g., @options.RefreshInterval at L259) so polling can start immediately on first render. *@
-@* That avoids a first-load race with the external service.js, which initializes separately on DOM-ready. *@
+@* This view's own inline script injects the options server-side (e.g., @options.RefreshInterval) so polling can start immediately on first render, avoiding a first-load race with the external service.js that initializes separately on DOM-ready. *@
 <script>
     (function() {
         var nodeId = '@nodeId';
