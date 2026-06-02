@@ -227,6 +227,9 @@
       margin-bottom: 30px;
     }
 
+    /* title-slide hero-icon spacing modifier (keeps spacing rules in <style>) */
+    .hero-icon.hero-icon-title { margin-top: 40px; }
+
     .hero-icon svg {
       width: 70px;
       height: 70px;
@@ -417,6 +420,14 @@
       white-space: nowrap;
     }
 
+    /* full-path endpoint cells: slightly smaller mono so the longest path fits
+       on one line, with wrapping retained as a safety net against overflow */
+    .reveal table.blitzy-table .mono.path-cell {
+      white-space: normal;
+      word-break: break-all;
+      font-size: .86em;
+    }
+
     .reveal table.blitzy-table .ok {
       color: var(--blitzy-primary);
       font-weight: 600;
@@ -437,6 +448,16 @@
       height: auto;
       max-height: 720px;
     }
+
+    /* Mermaid renders HTML labels inside <foreignObject>; sub-pixel font
+       measurement can size the foreignObject a hair narrower than the label,
+       and foreignObject clips overflow by default. Allow visible overflow so
+       node/edge labels are never truncated. */
+    .reveal .mermaid svg foreignObject { overflow: visible; }
+    .reveal .mermaid svg .nodeLabel,
+    .reveal .mermaid svg .edgeLabel,
+    .reveal .mermaid svg .label,
+    .reveal .mermaid svg foreignObject > div { overflow: visible; }
 
     .caption {
       margin-top: 20px;
@@ -576,7 +597,7 @@
           <span class="brand-mark"><i data-lucide="zap"></i></span>
           <span class="brand-name">Blitzy</span>
         </div>
-        <div class="hero-icon" style="margin-top:40px;"><i data-lucide="layout-dashboard"></i></div>
+        <div class="hero-icon hero-icon-title"><i data-lucide="layout-dashboard"></i></div>
         <span class="eyebrow">Executive Summary</span>
         <h1>Approval Dashboard KPI Endpoints</h1>
         <div class="accent-bar"></div>
@@ -600,15 +621,15 @@
         </div>
         <div class="accent-bar"></div>
         <ul>
-          <li>A manager <strong>Approval Dashboard</strong> surfaces five live KPIs.</li>
-          <li>All five arrive together through <strong>one aggregate endpoint</strong>.</li>
-          <li>Access is restricted to manager-level roles.</li>
+          <li>A manager <strong>dashboard</strong> surfaces five live KPIs.</li>
+          <li>All five arrive through <strong>one aggregate endpoint</strong>.</li>
+          <li>Restricted to managers.</li>
         </ul>
         <div class="icon-row">
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="layout-dashboard"></i></span>
             <span class="icon-caption">One dashboard</span>
-            <span class="icon-sub">Five KPIs at a glance</span>
+            <span class="icon-sub">Five KPIs together</span>
           </div>
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="users"></i></span>
@@ -618,7 +639,7 @@
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="clock"></i></span>
             <span class="icon-caption">Live polling</span>
-            <span class="icon-sub">Refreshes on a timer</span>
+            <span class="icon-sub">Timed refresh</span>
           </div>
         </div>
       </section>
@@ -636,25 +657,25 @@
         </div>
         <div class="accent-bar"></div>
         <ul>
-          <li>Added <strong>five discrete GET endpoints</strong> — one per KPI.</li>
-          <li>Each returns a single value, not the full payload.</li>
-          <li>Purely additive: nothing existing was altered.</li>
+          <li>Added <strong>five GET endpoints</strong> — one per KPI.</li>
+          <li>Each returns one value, not the payload.</li>
+          <li>Purely additive: nothing was altered.</li>
         </ul>
         <div class="icon-row">
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="plus-circle"></i></span>
             <span class="icon-caption">Five new routes</span>
-            <span class="icon-sub">Sub-resources of the dashboard</span>
+            <span class="icon-sub">Dashboard sub-resources</span>
           </div>
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="shield-check"></i></span>
             <span class="icon-caption">Zero regressions</span>
-            <span class="icon-sub">Existing behavior preserved</span>
+            <span class="icon-sub">Behavior preserved</span>
           </div>
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="package"></i></span>
-            <span class="icon-caption">No new dependencies</span>
-            <span class="icon-sub">One source file touched</span>
+            <span class="icon-caption">No dependencies</span>
+            <span class="icon-sub">One file touched</span>
           </div>
         </div>
       </section>
@@ -686,28 +707,32 @@
           <div class="kpi-card">
             <span class="kpi-icon"><i data-lucide="inbox"></i></span>
             <span class="kpi-value">Pending</span>
-            <span class="kpi-label">/metrics/pending · int</span>
+            <span class="kpi-label">…/pending · int</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-icon"><i data-lucide="clock"></i></span>
             <span class="kpi-value">Avg Time</span>
-            <span class="kpi-label">/metrics/average-time · decimal</span>
+            <span class="kpi-label">…/average-time · decimal</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-icon"><i data-lucide="percent"></i></span>
             <span class="kpi-value">Approval Rate</span>
-            <span class="kpi-label">/metrics/approval-rate · decimal</span>
+            <span class="kpi-label">…/approval-rate · decimal</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-icon"><i data-lucide="alarm-clock"></i></span>
             <span class="kpi-value">Overdue</span>
-            <span class="kpi-label">/metrics/overdue · int</span>
+            <span class="kpi-label">…/overdue · int</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-icon"><i data-lucide="activity"></i></span>
             <span class="kpi-value">Recent Activity</span>
-            <span class="kpi-label">/metrics/recent-activity · list</span>
+            <span class="kpi-label">…/recent-activity · list</span>
           </div>
+        </div>
+        <div class="note-pill">
+          <i data-lucide="info"></i>
+          Every route shares the base /api/v3.0/p/approval/dashboard/metrics.
         </div>
       </section>
 
@@ -726,40 +751,40 @@
         <table class="blitzy-table">
           <thead>
             <tr>
-              <th>Endpoint (segment)</th>
+              <th>Endpoint (full path)</th>
               <th>Service method</th>
               <th>Returns</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td class="mono">/dashboard/metrics/pending</td>
+              <td class="mono path-cell">/api/v3.0/p/approval/dashboard/metrics/pending</td>
               <td class="mono">GetPendingApprovalsCount(userId)</td>
               <td class="mono">int</td>
             </tr>
             <tr>
-              <td class="mono">/dashboard/metrics/average-time</td>
-              <td class="mono">GetAverageApprovalTime(from, to)</td>
+              <td class="mono path-cell">/api/v3.0/p/approval/dashboard/metrics/average-time</td>
+              <td class="mono">GetAverageApprovalTime(from,to)</td>
               <td class="mono">decimal</td>
             </tr>
             <tr>
-              <td class="mono">/dashboard/metrics/approval-rate</td>
-              <td class="mono">GetApprovalRate(from, to)</td>
+              <td class="mono path-cell">/api/v3.0/p/approval/dashboard/metrics/approval-rate</td>
+              <td class="mono">GetApprovalRate(from,to)</td>
               <td class="mono">decimal</td>
             </tr>
             <tr>
-              <td class="mono">/dashboard/metrics/overdue</td>
+              <td class="mono path-cell">/api/v3.0/p/approval/dashboard/metrics/overdue</td>
               <td class="mono">GetOverdueRequestsCount(userId)</td>
               <td class="mono">int</td>
             </tr>
             <tr>
-              <td class="mono">/dashboard/metrics/recent-activity</td>
+              <td class="mono path-cell">/api/v3.0/p/approval/dashboard/metrics/recent-activity</td>
               <td class="mono">GetRecentActivity(5)</td>
               <td class="mono">List&lt;RecentActivityItem&gt;</td>
             </tr>
           </tbody>
         </table>
-        <p class="caption">Each endpoint returns one typed value inside the platform's standard response envelope &mdash; not the full dashboard payload.</p>
+        <p class="caption">Returns one typed value, not the full payload.</p>
       </section>
 
       <!-- ============================================================= -->
@@ -789,21 +814,21 @@
 flowchart LR
   subgraph BEFORE["Before"]
     direction TB
-    A1["GET /dashboard/metrics"] --> S1[("DashboardMetricsService")]
-    H1["GET /dashboard/health"]
+    A1["/dashboard/metrics"] --> S1[("DashboardMetricsService")]
+    H1["/dashboard/health"]
   end
   subgraph AFTER["After"]
     direction TB
-    A2["GET /dashboard/metrics (unchanged)"] --> S2[("DashboardMetricsService")]
-    P2["GET /metrics/pending"] --> S2
-    T2["GET /metrics/average-time"] --> S2
-    R2["GET /metrics/approval-rate"] --> S2
-    O2["GET /metrics/overdue"] --> S2
-    V2["GET /metrics/recent-activity"] --> S2
-    H2["GET /dashboard/health (unchanged)"]
+    A2["/dashboard/metrics (unchanged)"] --> S2[("DashboardMetricsService")]
+    P2["…/metrics/pending"] --> S2
+    T2["…/metrics/average-time"] --> S2
+    R2["…/metrics/approval-rate"] --> S2
+    O2["…/metrics/overdue"] --> S2
+    V2["…/metrics/recent-activity"] --> S2
+    H2["/dashboard/health (unchanged)"]
   end
         </div>
-        <p class="caption">Every metric route — old and new — delegates to the same service.</p>
+        <p class="caption">Metric routes share base /api/v3.0/p/approval/dashboard/metrics — all delegate to one service.</p>
       </section>
 
       <!-- ============================================================= -->
@@ -856,19 +881,19 @@ flowchart LR
         <div class="accent-bar"></div>
         <div class="mermaid">
 flowchart LR
-  A{"Authenticated?"} -- "No" --> E401["401 Unauthorized"]
-  A -- "Yes" --> B{"Manager role?"}
-  B -- "No" --> E403["403 Forbidden + error entry"]
-  B -- "Yes" --> C["Default 30-day window"]
+  A{"Authenticated?"} -- "No" --> E401["401"]
+  A -- "Yes" --> B{"Manager?"}
+  B -- "No" --> E403["403 + error"]
+  B -- "Yes" --> C["30-day window"]
   C --> D{"Range valid?"}
-  D -- "No" --> E400["400 Bad Request"]
-  D -- "Yes" --> S["Call service"]
-  S --> OK["200 OK · single value"]
-  S -. "exception" .-> E500["500 + error entry"]
+  D -- "No" --> E400["400"]
+  D -- "Yes" --> S["Service"]
+  S --> OK["200 OK"]
+  S -. "exception" .-> E500["500 + error"]
         </div>
         <div class="note-pill">
           <i data-lucide="info"></i>
-          New endpoints add a structured error on access denial; the aggregate is unchanged.
+          Denial adds an error entry; aggregate unchanged.
         </div>
       </section>
 
@@ -891,13 +916,13 @@ flowchart TD
   M -- "metrics" --> AGG["Aggregate (unchanged)"]
   M -- "health" --> HL["Health (anonymous)"]
   Q -- "Yes · seven" --> SEG{"Seventh segment"}
-  SEG -- "pending" --> P["Pending"]
-  SEG -- "average-time" --> T["Average Time"]
-  SEG -- "approval-rate" --> AR["Approval Rate"]
-  SEG -- "overdue" --> OV["Overdue"]
-  SEG -- "recent-activity" --> RA["Recent Activity"]
+  SEG --> P["pending"]
+  SEG --> T["average-time"]
+  SEG --> AR["approval-rate"]
+  SEG --> OV["overdue"]
+  SEG --> RA["recent-activity"]
         </div>
-        <p class="caption">Distinct literal segments make every URL map to exactly one endpoint.</p>
+        <p class="caption">Distinct segments map each URL to one endpoint.</p>
       </section>
 
       <!-- ============================================================= -->
@@ -1000,9 +1025,9 @@ flowchart TD
         </div>
         <div class="accent-bar"></div>
         <ul>
-          <li>Lives in one file — the <strong>ApprovalController</strong>.</li>
-          <li>Call as a manager; <code>from</code> / <code>to</code> are optional.</li>
-          <li>Extend by adding one sibling action per new KPI.</li>
+          <li>Lives in one file: <strong>ApprovalController</strong>.</li>
+          <li>Call as a manager; dates optional.</li>
+          <li>Add one sibling action per new KPI.</li>
         </ul>
         <div class="icon-row">
           <div class="icon-item">
@@ -1013,12 +1038,12 @@ flowchart TD
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="key-round"></i></span>
             <span class="icon-caption">How to call</span>
-            <span class="icon-sub">Manager role required</span>
+            <span class="icon-sub">Manager role</span>
           </div>
           <div class="icon-item">
             <span class="icon-badge"><i data-lucide="git-branch"></i></span>
             <span class="icon-caption">How to extend</span>
-            <span class="icon-sub">Add a sibling action</span>
+            <span class="icon-sub">One sibling action</span>
           </div>
         </div>
       </section>
@@ -1081,37 +1106,26 @@ flowchart TD
       }
     }
 
-    // Mermaid diagrams are produced with mermaid.render(), which lays each
-    // diagram out in a temporary node attached to <body> and returns finished
-    // SVG markup that we inject into the container. This is deliberately used
-    // instead of an in-place mermaid.run() for three robustness reasons:
-    //   1. reveal.js keeps inactive slides at display:none — an in-place run()
-    //      measures hidden text and emits "translate(undefined, NaN)" transforms.
-    //   2. reveal.js scales .slides with a CSS transform; in-place measurement
-    //      under that transform mis-sizes nodes and clips long labels.
-    //   3. Loading directly via a deep-link hash (e.g. #/7) fires no slidechanged,
-    //      so a visible-slide-scoped run() would never render that diagram.
-    // Rendering in <body> after fonts load sidesteps all three. The original
-    // diagram source is cached in data-src and processed nodes are flagged so
-    // repeated calls (ready + every slidechanged) are idempotent no-ops.
+    // Render Mermaid diagrams through the mandated mermaid.run() lifecycle.
+    // run() is invoked on Reveal 'ready' and every 'slidechanged' (see wiring
+    // below). To stay robust, each run() is scoped to the *currently visible*
+    // slide's unprocessed .mermaid nodes: reveal.js holds inactive slides at
+    // display:none, and measuring those would emit "translate(undefined, NaN)"
+    // transforms. Scoping to the active slide avoids that, while the 'ready'
+    // event covers the initial (including deep-linked) slide. mermaid.run()
+    // flags each processed node with data-processed, so the repeated ready +
+    // slidechanged calls are idempotent no-ops once a diagram is rendered.
     async function renderMermaid() {
       if (!window.mermaid) return;
       try { await document.fonts.ready; } catch (e) { /* fonts API optional */ }
-      const blocks = Array.from(document.querySelectorAll('.mermaid'));
-      for (let i = 0; i < blocks.length; i++) {
-        const el = blocks[i];
-        if (el.dataset.processed === 'true') continue;
-        // Capture the diagram source before any render replaces the content.
-        if (!el.dataset.src) el.dataset.src = el.textContent.trim();
-        try {
-          const id = 'mmd-' + i + '-' + Math.random().toString(36).slice(2);
-          const { svg, bindFunctions } = await window.mermaid.render(id, el.dataset.src);
-          el.innerHTML = svg;
-          if (typeof bindFunctions === 'function') bindFunctions(el);
-          el.dataset.processed = 'true';
-        } catch (err) {
-          console.error('Mermaid render error:', err);
-        }
+      const slide = (window.Reveal && Reveal.getCurrentSlide) ? Reveal.getCurrentSlide() : null;
+      const scope = slide || document;
+      const nodes = Array.from(scope.querySelectorAll('.mermaid:not([data-processed="true"])'));
+      if (nodes.length === 0) return;
+      try {
+        await window.mermaid.run({ nodes });
+      } catch (err) {
+        console.error('Mermaid run error:', err);
       }
     }
 
