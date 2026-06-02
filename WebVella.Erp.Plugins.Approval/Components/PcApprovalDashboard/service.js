@@ -11,9 +11,9 @@
  *
  * Polling is driven by setInterval but kept lifecycle-aware so it never runs needlessly: the Page
  * Visibility API pauses refresh while the tab is hidden and resumes it on return, and beforeunload
- * tears the timer down on navigation. The page-builder lifecycle hooks
- * (WvPbManager_Design_Loaded/_Design_Unloaded/_Node_Moved) likewise stop design-time instances from
- * polling once the component is unloaded.
+ * tears the timer down on browser navigation. Among the page-builder hooks only
+ * WvPbManager_Design_Unloaded stops design-time polling (via stopAutoRefresh); WvPbManager_Design_Loaded
+ * and WvPbManager_Node_Moved are observation-only and merely log their lifecycle events.
  *
  * @module PcApprovalDashboard/service
  */

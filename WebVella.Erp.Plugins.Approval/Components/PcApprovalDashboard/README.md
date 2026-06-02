@@ -8,7 +8,7 @@ The Approval Dashboard presents five approval KPIs for managers: pending approva
 
 ## Architecture
 
-`PcApprovalDashboard.cs` is the server-side PageComponent: it selects one of five Razor views by render mode and seeds the configured options into `Display.cshtml`. The client `service.js` polls the `ApprovalController` REST endpoint (`GET /api/v3.0/p/approval/dashboard/metrics`), which delegates to `DashboardMetricsService`, which returns the `DashboardMetricsModel` DTO (in `Api/`). The controller wraps that DTO in `ResponseModel.Object` with snake_case JSON keys the client reads by exact name. The runtime call and data flow is shown in Diagram 1.
+`PcApprovalDashboard.cs` is the server-side PageComponent: it selects one of five Razor views by render mode and seeds the configured options into `Display.cshtml`. The client `service.js` polls the `ApprovalController` REST endpoint (`GET /api/v3.0/p/approval/dashboard/metrics`), which delegates to `DashboardMetricsService`, which returns the `DashboardMetricsModel` DTO (in `Api/`). The controller wraps that DTO in `ResponseModel.Object` with snake_case JSON keys the client reads by exact name. The average-approval-time KPI is computed by the service's `GetAverageApprovalTime` method and feeds the DTO property `AverageApprovalTimeHours`. The runtime call and data flow is shown in Diagram 1.
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,7 @@ The Options panel sets `date_range_default`, which `Display.cshtml` seeds onto t
 
 ## Auto-refresh
 
-Polling is driven by `setInterval`. The Page Visibility API pauses polling when the tab is hidden and triggers an immediate refresh plus resume when it becomes visible again; the page-builder lifecycle hook (`beforeunload`) clears the timer on unload. A 30-second polling floor bounds each user's request rate against the database and is enforced on both the client (`MIN_REFRESH_INTERVAL`) and the server (the options clamp), so a misconfigured interval cannot overload the backend.
+Polling is driven by `setInterval`. The Page Visibility API pauses polling when the tab is hidden and triggers an immediate refresh plus resume when it becomes visible again. The browser `beforeunload` event clears the timer on navigation away from the page. Page-builder lifecycle hooks are observed separately: `WvPbManager_Design_Unloaded` stops design-time polling, while `WvPbManager_Design_Loaded` and `WvPbManager_Node_Moved` are observation-only. A 30-second polling floor bounds each user's request rate against the database and is enforced on both the client (`MIN_REFRESH_INTERVAL`) and the server (the options clamp), so a misconfigured interval cannot overload the backend.
 
 ## Authorization
 
