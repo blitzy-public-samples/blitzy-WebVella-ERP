@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Approval Dashboard KPI Endpoints — Executive Summary</title>
+
+  <!-- Inline data-URI favicon (Blitzy lightning mark) — keeps the deck fully
+       self-contained and prevents an automatic /favicon.ico request. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%235B39F3'/%3E%3Cpath d='M17 5 8 18h6l-1 9 9-13h-6z' fill='%2394FAD5'/%3E%3C/svg%3E">
+
+  <!--
+    Self-contained reveal.js executive summary deck.
+    Audience: non-technical leadership.
+    Subject: five discrete GET KPI endpoints added to the WebVella ERP
+             Approval plugin's ApprovalController (additive, behavior-preserving).
+    No build step. The ONLY external loads are the pinned CDN libraries and
+    Google Fonts below. All theme CSS and all behavior JS are embedded inline.
+    Pinned CDN versions: reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0.
+  -->
+
+  <!-- Google Fonts: Inter (body), Space Grotesk (display), Fira Code (mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap">
+
+  <!-- reveal.js 5.1.0 core CSS + reset (no stock theme — inline Blitzy theme governs visuals) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+
+  <!-- Lucide 0.460.0 (UMD) — exposes global `lucide`; rendered via lucide.createIcons() -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =========================================================================
+       BLITZY REVEAL THEME (inlined — canonical blitzy-deck/references/
+       blitzy-reveal-theme.css is not present in the repository, so its :root
+       custom properties and component classes are embedded here).
+       ========================================================================= */
+
+    :root {
+      /* Brand palette */
+      --blitzy-primary: #5B39F3;   /* primary purple   */
+      --blitzy-dark:    #2D1C77;   /* dark purple      */
+      --blitzy-teal:    #94FAD5;   /* teal accent      */
+      --blitzy-navy:    #1A105F;   /* deep navy        */
+
+      /* Documented brand gradients */
+      --blitzy-gradient-hero:   linear-gradient(135deg, #1A105F 0%, #2D1C77 45%, #5B39F3 100%);
+      --blitzy-gradient-accent: linear-gradient(90deg, #5B39F3 0%, #94FAD5 100%);
+      --blitzy-gradient-soft:   linear-gradient(160deg, #FFFFFF 0%, #F5F3FF 100%);
+
+      /* Neutrals */
+      --ink:         #15103A;
+      --muted:       #6B6590;
+      --surface:     #FFFFFF;
+      --surface-alt: #F5F3FF;
+      --border:      rgba(45, 28, 119, .14);
+      --on-dark:     #F4F2FF;
+      --on-dark-mut: #C8C0F2;
+
+      /* Typography */
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body:    'Inter', sans-serif;
+      --font-mono:    'Fira Code', monospace;
+
+      /* Elevation */
+      --shadow-card: 0 18px 44px rgba(26, 16, 95, .12);
+      --shadow-soft: 0 10px 30px rgba(26, 16, 95, .08);
+    }
+
+    /* ---- Reveal canvas defaults ---------------------------------------- */
+    .reveal {
+      font-family: var(--font-body);
+      font-size: 34px;
+      color: var(--ink);
+      font-weight: 400;
+    }
+
+    .reveal .slides {
+      text-align: left;
+    }
+
+    .reveal .slides section {
+      height: 100%;
+      box-sizing: border-box;
+      padding: 86px 110px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .reveal h1,
+    .reveal h2,
+    .reveal h3 {
+      font-family: var(--font-display);
+      color: var(--ink);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.01em;
+      margin: 0;
+      text-transform: none;
+    }
+
+    .reveal h2 { font-size: 2.0em; }
+    .reveal h3 { font-size: 1.28em; }
+
+    .reveal p { line-height: 1.45; margin: 0 0 .4em; }
+
+    .reveal a { color: var(--blitzy-primary); }
+
+    .reveal ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .reveal ul li {
+      position: relative;
+      padding: 14px 0 14px 52px;
+      line-height: 1.4;
+      color: var(--ink);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reveal ul li:last-child { border-bottom: none; }
+
+    /* Custom gradient bullet marker (no emoji, no list glyphs) */
+    .reveal ul li::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      transform: translateY(-50%);
+      border-radius: 5px;
+      background: var(--blitzy-gradient-accent);
+      box-shadow: 0 2px 8px rgba(91, 57, 243, .35);
+    }
+
+    .reveal strong { color: var(--blitzy-dark); font-weight: 600; }
+
+    .reveal code {
+      font-family: var(--font-mono);
+      font-size: .86em;
+      background: var(--surface-alt);
+      color: var(--blitzy-dark);
+      padding: .12em .42em;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    /* =========================================================================
+       SHARED COMPONENT CLASSES
+       ========================================================================= */
+
+    /* eyebrow — small uppercase kicker above titles */
+    .eyebrow {
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: .26em;
+      font-size: .52em;
+      font-weight: 600;
+      color: var(--blitzy-primary);
+      margin: 0 0 18px;
+      display: inline-block;
+    }
+
+    .slide-title .eyebrow,
+    .slide-divider .eyebrow,
+    .slide-closing .eyebrow { color: var(--blitzy-teal); }
+
+    /* accent-bar — short thick gradient rule under titles / on hero & closing */
+    .accent-bar {
+      width: 132px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--blitzy-gradient-accent);
+      margin: 22px 0 30px;
+      box-shadow: 0 4px 16px rgba(91, 57, 243, .4);
+    }
+
+    /* brand-lockup — the Blitzy wordmark lockup (text lockup; no external logo) */
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-lockup .brand-mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 13px;
+      background: var(--blitzy-gradient-accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(91, 57, 243, .45);
+    }
+
+    .brand-lockup .brand-mark svg {
+      width: 26px;
+      height: 26px;
+      stroke: var(--blitzy-navy);
+      stroke-width: 2.4;
+    }
+
+    .brand-lockup .brand-name { font-size: 1.05em; }
+
+    /* hero-icon — large rounded icon badge for title/divider/closing */
+    .hero-icon {
+      width: 132px;
+      height: 132px;
+      border-radius: 34px;
+      background: var(--blitzy-gradient-accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 22px 50px rgba(91, 57, 243, .45);
+      margin-bottom: 30px;
+    }
+
+    .hero-icon svg {
+      width: 70px;
+      height: 70px;
+      stroke: var(--blitzy-navy);
+      stroke-width: 2;
+    }
+
+    /* default-content title icon — compact tinted badge beside content titles */
+    .title-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+    }
+
+    .title-icon svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--blitzy-primary);
+      stroke-width: 2;
+    }
+
+    .content-head {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 6px;
+    }
+
+    /* icon-row — horizontal row of labeled Lucide icons (a non-text visual) */
+    .icon-row {
+      display: flex;
+      gap: 30px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+
+    .icon-row .icon-item {
+      flex: 1 1 0;
+      min-width: 240px;
+      background: var(--blitzy-gradient-soft);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .icon-row .icon-badge {
+      width: 66px;
+      height: 66px;
+      border-radius: 17px;
+      background: rgba(91, 57, 243, .1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-row .icon-badge svg {
+      width: 36px;
+      height: 36px;
+      stroke: var(--blitzy-primary);
+      stroke-width: 2;
+    }
+
+    .icon-row .icon-caption {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: .82em;
+      color: var(--ink);
+      line-height: 1.3;
+    }
+
+    .icon-row .icon-sub {
+      font-size: .64em;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* kpi-grid / kpi-card — KPI cards (a non-text visual) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 30px;
+      margin-top: 36px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 36px 32px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      content: "";
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%;
+      height: 6px;
+      background: var(--blitzy-gradient-accent);
+    }
+
+    .kpi-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 18px;
+      background: rgba(148, 250, 213, .26);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .kpi-icon svg {
+      width: 38px;
+      height: 38px;
+      stroke: var(--blitzy-dark);
+      stroke-width: 2;
+    }
+
+    .kpi-value {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.5em;
+      color: var(--blitzy-navy);
+      line-height: 1.05;
+    }
+
+    .kpi-label {
+      font-family: var(--font-mono);
+      font-size: .6em;
+      color: var(--muted);
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    /* styled table — header in navy, zebra rows, mono for endpoint/method cells */
+    .reveal table.blitzy-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 34px;
+      font-size: .74em;
+      box-shadow: var(--shadow-card);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .reveal table.blitzy-table thead th {
+      background: var(--blitzy-navy);
+      color: var(--on-dark);
+      font-family: var(--font-display);
+      font-weight: 600;
+      text-align: left;
+      padding: 20px 24px;
+      letter-spacing: .02em;
+    }
+
+    .reveal table.blitzy-table tbody td {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      color: var(--ink);
+      vertical-align: middle;
+    }
+
+    .reveal table.blitzy-table tbody tr:nth-child(even) td {
+      background: var(--surface-alt);
+    }
+
+    .reveal table.blitzy-table tbody tr:last-child td { border-bottom: none; }
+
+    .reveal table.blitzy-table .mono {
+      font-family: var(--font-mono);
+      color: var(--blitzy-dark);
+      font-size: .94em;
+      white-space: nowrap;
+    }
+
+    .reveal table.blitzy-table .ok {
+      color: var(--blitzy-primary);
+      font-weight: 600;
+    }
+
+    /* mermaid container — centered, fits the 1920x1080 canvas, transparent bg */
+    .reveal .mermaid {
+      background: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      margin-top: 26px;
+    }
+
+    .reveal .mermaid svg {
+      max-width: 100%;
+      height: auto;
+      max-height: 720px;
+    }
+
+    .caption {
+      margin-top: 20px;
+      font-size: .66em;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .note-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      padding: 14px 22px;
+      border-radius: 999px;
+      background: rgba(148, 250, 213, .28);
+      border: 1px solid rgba(45, 28, 119, .18);
+      font-size: .62em;
+      color: var(--blitzy-dark);
+      font-weight: 500;
+    }
+
+    .note-pill svg {
+      width: 22px;
+      height: 22px;
+      stroke: var(--blitzy-dark);
+      stroke-width: 2.2;
+      flex: 0 0 auto;
+    }
+
+    /* =========================================================================
+       SLIDE-TYPE TREATMENTS
+       ========================================================================= */
+
+    /* .slide-title — full-bleed hero */
+    .reveal .slides section.slide-title {
+      background: var(--blitzy-gradient-hero);
+      align-items: flex-start;
+    }
+
+    .reveal section.slide-title h1 {
+      color: #FFFFFF;
+      font-size: 2.7em;
+      max-width: 16ch;
+    }
+
+    .reveal section.slide-title .subtitle {
+      color: var(--on-dark-mut);
+      font-size: .96em;
+      margin-top: 26px;
+      max-width: 30ch;
+      font-weight: 400;
+    }
+
+    .reveal section.slide-title .brand-lockup { color: #FFFFFF; }
+
+    .reveal section.slide-title .hero-bottom {
+      margin-top: 54px;
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .reveal section.slide-title .meta-chip {
+      font-size: .5em;
+      color: var(--on-dark-mut);
+      font-family: var(--font-mono);
+      letter-spacing: .04em;
+    }
+
+    /* .slide-divider — section break */
+    .reveal .slides section.slide-divider {
+      background:
+        radial-gradient(1200px 700px at 78% 18%, rgba(91, 57, 243, .55) 0%, rgba(91, 57, 243, 0) 60%),
+        var(--blitzy-navy);
+      align-items: flex-start;
+    }
+
+    .reveal section.slide-divider h2 {
+      color: #FFFFFF;
+      font-size: 2.6em;
+      max-width: 18ch;
+    }
+
+    .reveal section.slide-divider .divider-index {
+      font-family: var(--font-display);
+      font-size: .82em;
+      color: var(--blitzy-teal);
+      font-weight: 600;
+      margin-top: 18px;
+    }
+
+    /* .slide-closing — mirrors the title hero */
+    .reveal .slides section.slide-closing {
+      background: var(--blitzy-gradient-hero);
+      align-items: center;
+      text-align: center;
+    }
+
+    .reveal section.slide-closing .hero-icon { margin-left: auto; margin-right: auto; }
+    .reveal section.slide-closing .accent-bar { margin-left: auto; margin-right: auto; }
+
+    .reveal section.slide-closing h2 {
+      color: #FFFFFF;
+      font-size: 2.5em;
+      max-width: 22ch;
+    }
+
+    .reveal section.slide-closing .closing-next {
+      color: var(--on-dark-mut);
+      font-size: .9em;
+      margin-top: 26px;
+    }
+
+    .reveal section.slide-closing .brand-lockup {
+      color: #FFFFFF;
+      margin-top: 48px;
+      justify-content: center;
+    }
+
+    /* keep slide content from overflowing the fixed 1920x1080 canvas */
+    .reveal .slides section > *:first-child { margin-top: 0; }
+
+    /* Lucide <i> placeholders collapse to their rendered svg cleanly */
+    [data-lucide] { display: inline-flex; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================================================= -->
+      <!-- Slide 1 — TITLE / HERO (slide-title)                          -->
+      <!-- ============================================================= -->
+      <section class="slide-title">
+        <div class="brand-lockup">
+          <span class="brand-mark"><i data-lucide="zap"></i></span>
+          <span class="brand-name">Blitzy</span>
+        </div>
+        <div class="hero-icon" style="margin-top:40px;"><i data-lucide="layout-dashboard"></i></div>
+        <span class="eyebrow">Executive Summary</span>
+        <h1>Approval Dashboard KPI Endpoints</h1>
+        <div class="accent-bar"></div>
+        <p class="subtitle">Five discrete, addressable metrics — additive and behavior-preserving.</p>
+        <div class="hero-bottom">
+          <span class="meta-chip">WebVella ERP · Approval Plugin</span>
+          <span class="meta-chip">REST API v3.0</span>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 2 — Today's Picture (content)                           -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="layout-dashboard"></i></span>
+          <div>
+            <span class="eyebrow">Where We Are</span>
+            <h2>Today's Picture</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <ul>
+          <li>A manager <strong>Approval Dashboard</strong> surfaces five live KPIs.</li>
+          <li>All five arrive together through <strong>one aggregate endpoint</strong>.</li>
+          <li>Access is restricted to manager-level roles.</li>
+        </ul>
+        <div class="icon-row">
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="layout-dashboard"></i></span>
+            <span class="icon-caption">One dashboard</span>
+            <span class="icon-sub">Five KPIs at a glance</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="users"></i></span>
+            <span class="icon-caption">Manager audience</span>
+            <span class="icon-sub">Role-gated access</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="clock"></i></span>
+            <span class="icon-caption">Live polling</span>
+            <span class="icon-sub">Refreshes on a timer</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 3 — What Changed (content)                              -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="git-branch"></i></span>
+          <div>
+            <span class="eyebrow">The Change</span>
+            <h2>What Changed</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <ul>
+          <li>Added <strong>five discrete GET endpoints</strong> — one per KPI.</li>
+          <li>Each returns a single value, not the full payload.</li>
+          <li>Purely additive: nothing existing was altered.</li>
+        </ul>
+        <div class="icon-row">
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="plus-circle"></i></span>
+            <span class="icon-caption">Five new routes</span>
+            <span class="icon-sub">Sub-resources of the dashboard</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="shield-check"></i></span>
+            <span class="icon-caption">Zero regressions</span>
+            <span class="icon-sub">Existing behavior preserved</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="package"></i></span>
+            <span class="icon-caption">No new dependencies</span>
+            <span class="icon-sub">One source file touched</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 4 — DIVIDER: The Five New Endpoints (slide-divider)     -->
+      <!-- ============================================================= -->
+      <section class="slide-divider">
+        <div class="hero-icon"><i data-lucide="route"></i></div>
+        <span class="eyebrow">Section One</span>
+        <h2>The Five New Endpoints</h2>
+        <div class="accent-bar"></div>
+        <p class="divider-index">One addressable metric per route</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 5 — The Five KPIs (content, kpi-grid)                   -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="gauge"></i></span>
+          <div>
+            <span class="eyebrow">The Catalog</span>
+            <h2>The Five KPIs</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-icon"><i data-lucide="inbox"></i></span>
+            <span class="kpi-value">Pending</span>
+            <span class="kpi-label">/metrics/pending · int</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon"><i data-lucide="clock"></i></span>
+            <span class="kpi-value">Avg Time</span>
+            <span class="kpi-label">/metrics/average-time · decimal</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon"><i data-lucide="percent"></i></span>
+            <span class="kpi-value">Approval Rate</span>
+            <span class="kpi-label">/metrics/approval-rate · decimal</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon"><i data-lucide="alarm-clock"></i></span>
+            <span class="kpi-value">Overdue</span>
+            <span class="kpi-label">/metrics/overdue · int</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-icon"><i data-lucide="activity"></i></span>
+            <span class="kpi-value">Recent Activity</span>
+            <span class="kpi-label">/metrics/recent-activity · list</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 6 — Endpoint -> Service -> Type (content, table)        -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="table-2"></i></span>
+          <div>
+            <span class="eyebrow">The Contract</span>
+            <h2>Endpoint, Service, Type</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <table class="blitzy-table">
+          <thead>
+            <tr>
+              <th>Endpoint (segment)</th>
+              <th>Service method</th>
+              <th>Returns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">/dashboard/metrics/pending</td>
+              <td class="mono">GetPendingApprovalsCount(userId)</td>
+              <td class="mono">int</td>
+            </tr>
+            <tr>
+              <td class="mono">/dashboard/metrics/average-time</td>
+              <td class="mono">GetAverageApprovalTime(from, to)</td>
+              <td class="mono">decimal</td>
+            </tr>
+            <tr>
+              <td class="mono">/dashboard/metrics/approval-rate</td>
+              <td class="mono">GetApprovalRate(from, to)</td>
+              <td class="mono">decimal</td>
+            </tr>
+            <tr>
+              <td class="mono">/dashboard/metrics/overdue</td>
+              <td class="mono">GetOverdueRequestsCount(userId)</td>
+              <td class="mono">int</td>
+            </tr>
+            <tr>
+              <td class="mono">/dashboard/metrics/recent-activity</td>
+              <td class="mono">GetRecentActivity(5)</td>
+              <td class="mono">List&lt;RecentActivityItem&gt;</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="caption">Each endpoint returns one typed value inside the platform's standard response envelope &mdash; not the full dashboard payload.</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 7 — DIVIDER: Architecture & Design (slide-divider)      -->
+      <!-- ============================================================= -->
+      <section class="slide-divider">
+        <div class="hero-icon"><i data-lucide="layers"></i></div>
+        <span class="eyebrow">Section Two</span>
+        <h2>Architecture &amp; Design</h2>
+        <div class="accent-bar"></div>
+        <p class="divider-index">How the pieces fit together</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 8 — Before vs After (content, Mermaid graph LR)         -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="network"></i></span>
+          <div>
+            <span class="eyebrow">Architecture</span>
+            <h2>Before and After</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <div class="mermaid">
+flowchart LR
+  subgraph BEFORE["Before"]
+    direction TB
+    A1["GET /dashboard/metrics"] --> S1[("DashboardMetricsService")]
+    H1["GET /dashboard/health"]
+  end
+  subgraph AFTER["After"]
+    direction TB
+    A2["GET /dashboard/metrics (unchanged)"] --> S2[("DashboardMetricsService")]
+    P2["GET /metrics/pending"] --> S2
+    T2["GET /metrics/average-time"] --> S2
+    R2["GET /metrics/approval-rate"] --> S2
+    O2["GET /metrics/overdue"] --> S2
+    V2["GET /metrics/recent-activity"] --> S2
+    H2["GET /dashboard/health (unchanged)"]
+  end
+        </div>
+        <p class="caption">Every metric route — old and new — delegates to the same service.</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 9 — Single Source of Truth (content, icon-row)         -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="git-merge"></i></span>
+          <div>
+            <span class="eyebrow">Consistency</span>
+            <h2>Single Source of Truth</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <ul>
+          <li>All routes delegate to one <strong>DashboardMetricsService</strong>.</li>
+          <li>Created fresh per request — no shared state.</li>
+          <li>Discrete values match the aggregate's components exactly.</li>
+        </ul>
+        <div class="icon-row">
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="layers"></i></span>
+            <span class="icon-caption">One service</span>
+            <span class="icon-sub">Shared computation</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="database"></i></span>
+            <span class="icon-caption">One data path</span>
+            <span class="icon-sub">Same queries</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="equal"></i></span>
+            <span class="icon-caption">Identical numbers</span>
+            <span class="icon-sub">No divergence</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 10 — Uniform Validation Chain (content, Mermaid flow)   -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="list-checks"></i></span>
+          <div>
+            <span class="eyebrow">Safety</span>
+            <h2>Uniform Validation Chain</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <div class="mermaid">
+flowchart LR
+  A{"Authenticated?"} -- "No" --> E401["401 Unauthorized"]
+  A -- "Yes" --> B{"Manager role?"}
+  B -- "No" --> E403["403 Forbidden + error entry"]
+  B -- "Yes" --> C["Default 30-day window"]
+  C --> D{"Range valid?"}
+  D -- "No" --> E400["400 Bad Request"]
+  D -- "Yes" --> S["Call service"]
+  S --> OK["200 OK · single value"]
+  S -. "exception" .-> E500["500 + error entry"]
+        </div>
+        <div class="note-pill">
+          <i data-lucide="info"></i>
+          New endpoints add a structured error on access denial; the aggregate is unchanged.
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 11 — No Route Collisions (content, Mermaid tree)        -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="git-fork"></i></span>
+          <div>
+            <span class="eyebrow">Routing</span>
+            <h2>No Route Collisions</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <div class="mermaid">
+flowchart TD
+  R["Incoming GET path"] --> Q{"Seven segments?"}
+  Q -- "No · six" --> M{"Sixth segment"}
+  M -- "metrics" --> AGG["Aggregate (unchanged)"]
+  M -- "health" --> HL["Health (anonymous)"]
+  Q -- "Yes · seven" --> SEG{"Seventh segment"}
+  SEG -- "pending" --> P["Pending"]
+  SEG -- "average-time" --> T["Average Time"]
+  SEG -- "approval-rate" --> AR["Approval Rate"]
+  SEG -- "overdue" --> OV["Overdue"]
+  SEG -- "recent-activity" --> RA["Recent Activity"]
+        </div>
+        <p class="caption">Distinct literal segments make every URL map to exactly one endpoint.</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 12 — DIVIDER: Business Value & Safety (slide-divider)   -->
+      <!-- ============================================================= -->
+      <section class="slide-divider">
+        <div class="hero-icon"><i data-lucide="shield-check"></i></div>
+        <span class="eyebrow">Section Three</span>
+        <h2>Business Value &amp; Safety</h2>
+        <div class="accent-bar"></div>
+        <p class="divider-index">Why it matters and why it is safe</p>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 13 — Business Value (content, icon-row)                 -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="briefcase"></i></span>
+          <div>
+            <span class="eyebrow">The Payoff</span>
+            <h2>Business Value</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <ul>
+          <li>Mobile and third-party clients fetch <strong>one metric</strong> at a time.</li>
+          <li>Lighter payloads mean faster, cheaper calls.</li>
+          <li>Each metric can be cached independently.</li>
+        </ul>
+        <div class="icon-row">
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="smartphone"></i></span>
+            <span class="icon-caption">Mobile-ready</span>
+            <span class="icon-sub">Smaller responses</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="plug"></i></span>
+            <span class="icon-caption">Integration-friendly</span>
+            <span class="icon-sub">Headless consumers</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="zap"></i></span>
+            <span class="icon-caption">Faster &amp; cacheable</span>
+            <span class="icon-sub">Per-metric control</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 14 — Backward Compatibility & Risk (content, table)     -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="shield"></i></span>
+          <div>
+            <span class="eyebrow">Risk Posture</span>
+            <h2>Backward Compatibility</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <table class="blitzy-table">
+          <thead>
+            <tr>
+              <th>Concern</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Aggregate metrics endpoint</td>
+              <td class="ok">Unchanged</td>
+            </tr>
+            <tr>
+              <td>Health probe</td>
+              <td class="ok">Unchanged · stays anonymous</td>
+            </tr>
+            <tr>
+              <td>Dashboard browser client</td>
+              <td class="ok">Endpoint pin unchanged</td>
+            </tr>
+            <tr>
+              <td>Dependencies, host, build</td>
+              <td class="ok">Zero changes</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 15 — Onboarding & Continuation (content, icon-row)      -->
+      <!-- ============================================================= -->
+      <section>
+        <div class="content-head">
+          <span class="title-icon"><i data-lucide="compass"></i></span>
+          <div>
+            <span class="eyebrow">Continuation</span>
+            <h2>Onboarding</h2>
+          </div>
+        </div>
+        <div class="accent-bar"></div>
+        <ul>
+          <li>Lives in one file — the <strong>ApprovalController</strong>.</li>
+          <li>Call as a manager; <code>from</code> / <code>to</code> are optional.</li>
+          <li>Extend by adding one sibling action per new KPI.</li>
+        </ul>
+        <div class="icon-row">
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="map-pin"></i></span>
+            <span class="icon-caption">Where it lives</span>
+            <span class="icon-sub">Single controller</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="key-round"></i></span>
+            <span class="icon-caption">How to call</span>
+            <span class="icon-sub">Manager role required</span>
+          </div>
+          <div class="icon-item">
+            <span class="icon-badge"><i data-lucide="git-branch"></i></span>
+            <span class="icon-caption">How to extend</span>
+            <span class="icon-sub">Add a sibling action</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- Slide 16 — CLOSING (slide-closing)                            -->
+      <!-- ============================================================= -->
+      <section class="slide-closing">
+        <div class="hero-icon"><i data-lucide="rocket"></i></div>
+        <span class="eyebrow">In Summary</span>
+        <h2>Additive. Behavior-preserving. Production-ready.</h2>
+        <div class="accent-bar"></div>
+        <p class="closing-next">Next step: publish the endpoints to external and headless consumers.</p>
+        <div class="brand-lockup">
+          <span class="brand-mark"><i data-lucide="zap"></i></span>
+          <span class="brand-name">Blitzy</span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js 5.1.0 core (classic script — exposes global `Reveal`) -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+
+  <!--
+    Behavior module. Mermaid 11.4.0 is imported as an ESM module and assigned
+    to window.mermaid BEFORE any initialization runs. Module scripts are
+    deferred, so the classic reveal.js script above has already executed and
+    `Reveal` is available here. Lucide (UMD) loaded in <head> exposes `lucide`.
+  -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.0/+esm';
+
+    // Make Mermaid available globally before initialization / lifecycle hooks.
+    window.mermaid = mermaid;
+
+    // Initialize Mermaid (do NOT auto-run on load — reveal lifecycle drives it).
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, sans-serif',
+      themeVariables: {
+        primaryColor: '#F5F3FF',
+        primaryBorderColor: '#5B39F3',
+        primaryTextColor: '#15103A',
+        lineColor: '#5B39F3',
+        secondaryColor: '#94FAD5',
+        tertiaryColor: '#FFFFFF'
+      }
+    });
+
+    // ---- Visual rendering (idempotent; safe to call repeatedly) ----
+    // Lucide replaces every remaining [data-lucide] placeholder with an inline
+    // SVG; calling it repeatedly is safe (materialized icons are left intact).
+    function renderIcons() {
+      if (window.lucide) {
+        try { window.lucide.createIcons(); } catch (err) { console.error('Lucide render error:', err); }
+      }
+    }
+
+    // Mermaid diagrams are produced with mermaid.render(), which lays each
+    // diagram out in a temporary node attached to <body> and returns finished
+    // SVG markup that we inject into the container. This is deliberately used
+    // instead of an in-place mermaid.run() for three robustness reasons:
+    //   1. reveal.js keeps inactive slides at display:none — an in-place run()
+    //      measures hidden text and emits "translate(undefined, NaN)" transforms.
+    //   2. reveal.js scales .slides with a CSS transform; in-place measurement
+    //      under that transform mis-sizes nodes and clips long labels.
+    //   3. Loading directly via a deep-link hash (e.g. #/7) fires no slidechanged,
+    //      so a visible-slide-scoped run() would never render that diagram.
+    // Rendering in <body> after fonts load sidesteps all three. The original
+    // diagram source is cached in data-src and processed nodes are flagged so
+    // repeated calls (ready + every slidechanged) are idempotent no-ops.
+    async function renderMermaid() {
+      if (!window.mermaid) return;
+      try { await document.fonts.ready; } catch (e) { /* fonts API optional */ }
+      const blocks = Array.from(document.querySelectorAll('.mermaid'));
+      for (let i = 0; i < blocks.length; i++) {
+        const el = blocks[i];
+        if (el.dataset.processed === 'true') continue;
+        // Capture the diagram source before any render replaces the content.
+        if (!el.dataset.src) el.dataset.src = el.textContent.trim();
+        try {
+          const id = 'mmd-' + i + '-' + Math.random().toString(36).slice(2);
+          const { svg, bindFunctions } = await window.mermaid.render(id, el.dataset.src);
+          el.innerHTML = svg;
+          if (typeof bindFunctions === 'function') bindFunctions(el);
+          el.dataset.processed = 'true';
+        } catch (err) {
+          console.error('Mermaid render error:', err);
+        }
+      }
+    }
+
+    // Render both visual layers; wired to reveal's ready + slidechanged events.
+    async function renderVisuals() {
+      await renderMermaid();
+      renderIcons();
+    }
+
+    // Initialize reveal.js with the mandated configuration.
+    Reveal.initialize({
+      hash: true,
+      transition: 'slide',
+      controlsTutorial: false,
+      width: 1920,
+      height: 1080,
+      margin: 0.04
+    }).then(renderVisuals);
+
+    // Re-render visuals when the deck is ready and on every slide change so
+    // diagrams and icons materialize as each slide becomes visible.
+    Reveal.on('ready', renderVisuals);
+    Reveal.on('slidechanged', renderVisuals);
+
+    // Materialize icons on first paint (idempotent with the handlers above).
+    if (window.lucide) { window.lucide.createIcons(); }
+  </script>
+</body>
+</html>
