@@ -1,3 +1,4 @@
+@* Configuration panel for PcApprovalDashboardOptions, shown in the page-builder Options mode; field values are persisted by the page builder and rehydrated into ViewBag.Options on the next render. *@
 @addTagHelper *, WebVella.Erp.Web
 @addTagHelper *, WebVella.TagHelpers
 @using WebVella.Erp.Web.Utils
@@ -26,6 +27,7 @@
         <div class="card-body">
             <wv-row>
                 <wv-column span="6">
+                    @* Backs PcApprovalDashboardOptions.DashboardTitle (default "Approval Dashboard"). *@
                     <wv-field-text 
                         name="dashboard_title" 
                         value="@options.DashboardTitle" 
@@ -34,6 +36,7 @@
                     </wv-field-text>
                 </wv-column>
                 <wv-column span="6">
+                    @* Backs RefreshInterval (default 60s); the component enforces a 30s minimum at runtime. *@
                     <wv-field-number 
                         name="refresh_interval" 
                         value="@options.RefreshInterval" 
@@ -54,6 +57,7 @@
         <div class="card-body">
             <wv-row>
                 <wv-column span="6">
+                    @* Backs DateRangeDefault (default "30d"); valid values 7d/30d/90d. *@
                     <wv-field-select 
                         name="date_range_default" 
                         value="@options.DateRangeDefault" 
@@ -74,6 +78,7 @@
         <div class="card-body">
             <wv-row>
                 <wv-column span="12">
+                    @* Backs MetricsToDisplay (default "pending,avg_time,approval_rate,overdue,recent"). *@
                     <wv-field-text 
                         name="metrics_to_display" 
                         value="@options.MetricsToDisplay" 
@@ -84,6 +89,7 @@
             </wv-row>
             <wv-row class="mt-3">
                 <wv-column span="6">
+                    @* Backs ShowOverdueAlert (default true). *@
                     <wv-field-checkbox 
                         name="show_overdue_alert" 
                         value="@options.ShowOverdueAlert" 

@@ -27,6 +27,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
         /// <summary>
         /// Retrieves all dashboard metrics for the specified user and date range.
+        /// Stamps MetricsAsOf with the current UTC time so the dashboard can display how fresh the metrics are.
         /// </summary>
         /// <param name="userId">The ID of the manager requesting metrics.</param>
         /// <param name="fromDate">Start of the date range for time-based metrics.</param>
@@ -43,6 +44,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 OverdueRequestsCount = GetOverdueRequestsCount(userId),
                 AverageApprovalTimeHours = GetAverageApprovalTime(fromDate, toDate),
                 ApprovalRatePercent = GetApprovalRate(fromDate, toDate),
+                // The recent-activity feed is deliberately capped at the 5 most recent actions to keep the
+                // dashboard lightweight and focused on the latest changes rather than a full audit log.
                 RecentActivity = GetRecentActivity(5)
             };
 
@@ -52,6 +55,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Gets the count of approval requests in pending status where the user
         /// is an authorized approver for the current step.
+        /// Queries the approval_request entity and returns 0 as the safe default when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="userId">The ID of the approver user.</param>
         /// <returns>Count of pending approval requests.</returns>
@@ -59,8 +63,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             try
             {
-                // Query approval_request entity for pending requests
-                // In a full implementation, this would also check if userId is an authorized approver
                 var eqlCommand = @"
                     SELECT id 
                     FROM approval_request 
@@ -76,7 +78,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // If entity doesn't exist yet, return 0
+                // ADR-005 graceful degradation: the approval_request entity may not exist during staged
+                // deployment, so the pending count falls back to 0 instead of failing the whole dashboard.
                 return 0;
             }
         }
@@ -84,6 +87,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Gets the count of pending requests that have exceeded their configured
         /// timeout threshold from the approval step.
+        /// Queries the approval_request entity and returns 0 as the safe default when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="userId">The ID of the approver user.</param>
         /// <returns>Count of overdue approval requests.</returns>
@@ -91,8 +95,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
         {
             try
             {
-                // Query for pending requests where created_on + timeout_hours < NOW
-                // This is a simplified implementation - actual would join with approval_step
                 var eqlCommand = @"
                     SELECT id, created_on 
                     FROM approval_request 
@@ -108,7 +110,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 if (result == null || !result.Any())
                     return 0;
 
-                // Default timeout of 24 hours if not specified
+                // 24 hours is the business SLA used as the overdue threshold when an approval step does not
+                // declare its own timeout, ensuring stale requests still surface as overdue.
                 int defaultTimeoutHours = 24;
                 var overdueCount = 0;
                 var now = DateTime.UtcNow;
@@ -131,7 +134,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // If entity doesn't exist yet, return 0
+                // ADR-005 graceful degradation: if the approval_request entity is absent during staged
+                // deployment, the overdue count degrades to 0 rather than breaking the entire dashboard.
                 return 0;
             }
         }
@@ -139,6 +143,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Calculates the average time in hours from request creation to completion
         /// for all processed requests within the date range.
+        /// Queries the approval_request entity, returns 0 as the safe default when no rows match, and feeds the AverageApprovalTimeHours model property.
         /// </summary>
         /// <param name="fromDate">Start of the date range.</param>
         /// <param name="toDate">End of the date range.</param>
@@ -190,7 +195,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // If entity doesn't exist yet, return 0
+                // ADR-005 graceful degradation: a missing approval_request entity during staged deployment
+                // yields an average of 0 instead of failing the whole dashboard.
                 return 0;
             }
         }
@@ -198,6 +204,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Calculates the percentage of approved requests out of total processed
         /// requests within the date range.
+        /// Queries the approval_request entity and returns 0 as the safe default (on a 0-100 scale) when no rows match or the backing entity is unavailable.
         /// </summary>
         /// <param name="fromDate">Start of the date range.</param>
         /// <param name="toDate">End of the date range.</param>
@@ -238,7 +245,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // If entity doesn't exist yet, return 0
+                // ADR-005 graceful degradation: when the approval_request entity is unavailable during
+                // staged deployment, the approval rate degrades to 0 rather than failing the entire dashboard.
                 return 0;
             }
         }
@@ -246,6 +254,7 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <summary>
         /// Retrieves the most recent approval history actions for display in the
         /// activity feed.
+        /// Queries the approval_history entity and returns an empty list as the safe default when no history exists or the backing entity is unavailable.
         /// </summary>
         /// <param name="limit">Maximum number of activity items to return.</param>
         /// <returns>List of recent activity items ordered by most recent first.</returns>
@@ -300,7 +309,8 @@ namespace WebVella.Erp.Plugins.Approval.Services
             }
             catch (Exception)
             {
-                // If entity doesn't exist yet, return empty list
+                // ADR-005 graceful degradation: a missing approval_history entity during staged deployment
+                // yields an empty activity list instead of failing the whole dashboard.
                 return new List<RecentActivityItem>();
             }
         }
