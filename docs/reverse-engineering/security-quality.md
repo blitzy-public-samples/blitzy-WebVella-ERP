@@ -65,8 +65,7 @@ The Site host registers a composite authentication scheme named `JWT_OR_COOKIE` 
 
 ```csharp
 // WebVella.Erp.Site/Startup.cs:120-123 — per-request scheme selection
-if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer "))
-    return JwtBearerDefaults.AuthenticationScheme;
+if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer ")) return JwtBearerDefaults.AuthenticationScheme;
 return CookieAuthenticationDefaults.AuthenticationScheme;
 ```
 
@@ -74,6 +73,8 @@ return CookieAuthenticationDefaults.AuthenticationScheme;
 
 A custom middleware resolves a token on every request in its `Invoke` method (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:21-65`). It first attempts to read the cookie-stored `access_token` via `GetTokenAsync` (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:23`); if that is empty it falls back to the `Authorization` header, stripping the seven-character `Bearer ` prefix with `.Substring(7)` (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:26-32`). A resolved token is validated by `AuthService.GetValidSecurityTokenAsync` (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:42`); on success the user is loaded and attached to `HttpContext.Items["User"]` and a native `ClaimsPrincipal` is built from the token claims (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:48-52`).
 
+> **Pipeline-order note (factual).** `JwtMiddleware` is registered **last**, in the chain `.UseErp().UseErpMiddleware().UseJwtMiddleware()`, which itself runs **after** `app.UseAuthentication()` / `app.UseAuthorization()` (`WebVella.Erp.Site/Startup.cs:179-186`). The principal that feeds the domain layer is therefore populated by **ASP.NET Core authentication** (the `JWT_OR_COOKIE` scheme of §1.1, which sets `context.User`) and consumed by **`ErpMiddleware`**, which opens the `SecurityContext` scope from `context.User` (`WebVella.Erp.Web/Middleware/ErpMiddleware.cs:32-35`) **before** `JwtMiddleware` executes. `JwtMiddleware` is thus a **supplemental/secondary token resolver**, not the primary bridge into `SecurityContext.CurrentUser`.
+>
 > **Finding (handled in §2.4).** Token-validation failures are swallowed by an empty `catch` block that intentionally leaves the user unattached (`WebVella.Erp.Web/Middleware/JwtMiddleware.cs:56-60`).
 
 ### 1.3 Sign-in, sign-out, and token issuance (`AuthService`)
@@ -94,7 +95,7 @@ Although the suite glossary names the `ErpPrincipal`/`ErpIdentity` types, the **
 
 Once a user is established, authorization decisions are made in the core layer:
 
-- **Ambient user** — `SecurityContext.CurrentUser` exposes the current user from an `AsyncLocal` stack (`WebVella.Erp/Api/SecurityContext.cs:34-43`); scopes are pushed/popped via `OpenScope`/`CloseScope` (`WebVella.Erp/Api/SecurityContext.cs:120-151`).
+- **Ambient user** — `SecurityContext.CurrentUser` exposes the current user from an `AsyncLocal` stack (`WebVella.Erp/Api/SecurityContext.cs:34-43`); scopes are pushed/popped via `OpenScope`/`CloseScope` (`WebVella.Erp/Api/SecurityContext.cs:120-151`). For a web request this scope is opened by **`ErpMiddleware`** from the authenticated `context.User` (`WebVella.Erp.Web/Middleware/ErpMiddleware.cs:32-35`) — the **active bridge** from ASP.NET Core authentication into the domain layer.
 - **Role checks** — `IsUserInRole(...)` overloads test the current user's roles (`WebVella.Erp/Api/SecurityContext.cs:45`, `:54`).
 - **Entity permissions** — `HasEntityPermission(permission, entity, user)` maps Read/Create/Update/Delete to the entity's `RecordPermissions` role lists (`WebVella.Erp/Api/SecurityContext.cs:63`, `:79-86`); when no user is present, the **guest role** is evaluated instead (`WebVella.Erp/Api/SecurityContext.cs:91-106`).
 - **Privileged bypass** — the built-in **system user** is granted unconditional permission (`WebVella.Erp/Api/SecurityContext.cs:74-75`); `OpenSystemScope()` opens a scope as that user (`WebVella.Erp/Api/SecurityContext.cs:134-137`), a pattern used internally for trusted operations such as credential lookup.
@@ -103,48 +104,43 @@ Once a user is established, authorization decisions are made in the core layer:
 ```csharp
 // WebVella.Erp/Api/SecurityManager.cs:84-86 — parameterized credential lookup (no string concatenation)
 var encryptedPassword = PasswordUtil.GetMd5Hash(password);
-var result = new EqlCommand("SELECT *, $user_role.* FROM user WHERE email ~* @email AND password = @password",
-    new List<EqlParameter> { new EqlParameter("email", email), new EqlParameter("password", encryptedPassword) }).Execute();
+var result = new EqlCommand("SELECT *, $user_role.* FROM user WHERE email ~* @email AND password = @password", eqlParams /* @email, @password */).Execute();
 ```
 
 ### 1.6 Authentication flow (sequence diagram)
 
-The diagram below traces a request from the client through token resolution, validation, principal attachment, and the domain-layer permission check used by the managers.
+The diagram below traces a request through **ASP.NET Core authentication** (which selects the cookie or JWT scheme and populates `context.User`), the **`ErpMiddleware`** scope bridge into `SecurityContext`, the **supplemental `JwtMiddleware`** token resolver, and the domain-layer permission check used by the managers. It follows the **actual** pipeline order registered at `WebVella.Erp.Site/Startup.cs:179-186` — `UseAuthentication`/`UseAuthorization` run first, and `ErpMiddleware` opens the `SecurityContext` scope **before** `JwtMiddleware` runs.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Client
-    participant JwtMiddleware as JwtMiddleware (Invoke)
-    participant AuthService as AuthService.GetValidSecurityTokenAsync
-    participant SecurityManager as SecurityManager.GetUser
-    participant HttpContext as HttpContext (ClaimsPrincipal)
-    participant SecurityContext as SecurityContext.CurrentUser
+    participant Auth as ASP.NET Core Auth (JWT_OR_COOKIE)
+    participant ErpMw as ErpMiddleware (Invoke)
+    participant JwtMw as JwtMiddleware (supplemental)
+    participant SecCtx as SecurityContext.CurrentUser
     participant Manager as Core Manager (Record/Entity)
 
-    Client->>JwtMiddleware: HTTP request
-    JwtMiddleware->>JwtMiddleware: Read cookie access_token (GetTokenAsync)
-    alt cookie token empty
-        JwtMiddleware->>JwtMiddleware: Read Authorization header, strip "Bearer " (Substring 7)
+    Client->>Auth: HTTP request (cookie or Bearer token)
+    Auth->>Auth: ForwardDefaultSelector picks Cookie vs JWT scheme (Startup.cs:117-123)
+    Auth->>Auth: UseAuthentication populates context.User as ClaimsPrincipal (Startup.cs:179)
+    Note over Auth,JwtMw: Order: UseAuthentication / UseAuthorization, then UseErp, UseErpMiddleware, UseJwtMiddleware (Startup.cs:179-186)
+    Auth->>ErpMw: next(context)
+    ErpMw->>ErpMw: AuthService.GetUser(context.User) (ErpMiddleware.cs:32)
+    alt user resolved from context.User
+        ErpMw->>SecCtx: SecurityContext.OpenScope(user) (ErpMiddleware.cs:35)
+    else authenticated cookie but no user
+        ErpMw->>Auth: SignOutAsync(cookie)
     end
-    alt token present
-        JwtMiddleware->>AuthService: Validate token (issuer, audience, lifetime, key)
-        alt token valid
-            AuthService-->>JwtMiddleware: JwtSecurityToken with claims
-            JwtMiddleware->>SecurityManager: GetUser(NameIdentifier)
-            SecurityManager-->>JwtMiddleware: ErpUser
-            JwtMiddleware->>HttpContext: Attach ClaimsPrincipal + Items[User]
-        else token invalid
-            AuthService-->>JwtMiddleware: null (empty catch, user not attached)
-        end
-    end
-    JwtMiddleware->>Manager: Continue pipeline (_next)
-    Manager->>SecurityContext: Read CurrentUser
-    SecurityContext->>SecurityContext: HasEntityPermission / IsUserInRole
+    ErpMw->>JwtMw: next(context)
+    JwtMw->>JwtMw: Resolve cookie access_token / Bearer header, validate, attach Items[User] (supplemental)
+    JwtMw->>Manager: next(context)
+    Manager->>SecCtx: Read CurrentUser
+    SecCtx->>SecCtx: HasEntityPermission / IsUserInRole (SecurityContext.cs:63)
     alt permitted
-        SecurityContext-->>Manager: allow operation
+        SecCtx-->>Manager: allow operation
     else denied
-        SecurityContext-->>Manager: deny (guest-role fallback if no user)
+        SecCtx-->>Manager: deny (guest-role fallback if no user)
     end
     Manager-->>Client: ResponseModel envelope
 ```
@@ -190,10 +186,10 @@ When no JWT key is supplied in configuration, the platform falls back to a **har
 
 ```csharp
 // WebVella.Erp/ErpSettings.cs:118 — hardcoded fallback when Settings:Jwt:Key is absent
-JwtKey = string.IsNullOrWhiteSpace(configuration["Settings:Jwt:Key"]) ? "ThisIsMySecretKey" : configuration["Settings:Jwt:Key"];
+JwtKey = string.IsNullOrWhiteSpace(configuration["Settings:Jwt:Key"]) ? "<redacted-hardcoded-fallback>" : configuration["Settings:Jwt:Key"];
 ```
 
-Because tokens are signed with this symmetric key via HMAC-SHA256 (`WebVella.Erp.Web/Services/AuthService.cs:155-156`), a deployment that does not override `Settings:Jwt:Key` would sign and validate tokens with a **publicly known constant**. This is reported as a finding only; the value shown is the literal default already present in the open-source code.
+In words: when `Settings:Jwt:Key` is unset, `ErpSettings` substitutes a **hardcoded fallback signing key** (`WebVella.Erp/ErpSettings.cs:118`). Because tokens are signed with this symmetric key via HMAC-SHA256 (`WebVella.Erp.Web/Services/AuthService.cs:155-156`), a deployment that does not override `Settings:Jwt:Key` would sign and validate tokens with a **publicly known constant**. The literal default value is **intentionally not reproduced in this document**; it can be inspected directly at the cited source line.
 
 ### 2.4 Silent exception handling on the authentication path
 
@@ -359,7 +355,8 @@ These notes are **factual** and **process-oriented**; they describe the controls
 ### 5.2 Data-at-rest and secrets
 
 - **Credential storage** is the unsalted-MD5 mechanism documented in §2.2 (`WebVella.Erp/Utilities/PasswordUtil.cs:9-23`).
-- **Connection string** is read from configuration (`WebVella.Erp/ErpSettings.cs:65`) rather than hardcoded; the cloud-blob connection string has a disk-path default (`WebVella.Erp/ErpSettings.cs:80`). The **JWT key** is the notable secret with an in-source fallback (§2.3).
+- **Runtime secret loading.** At runtime `ErpSettings` reads the database connection string from configuration (`WebVella.Erp/ErpSettings.cs:65`); the cloud-blob connection string has a disk-path default (`WebVella.Erp/ErpSettings.cs:80`), and the **JWT key** falls back to an in-source constant when unset (§2.3). Loading values *from* configuration is not the same as *securing* that configuration — see the next item.
+- **Committed configuration secrets (redacted).** The repository's per-host `Config.json` files **commit secret-bearing settings in plaintext**, including database **connection strings with embedded `User Id` / `Password`**, an **`EncryptionKey`**, and — in some hosts — a JWT **`Key`** entry. Examples (paths and line ranges only; the **values are deliberately not reproduced in this document**): `WebVella.Erp.Site/Config.json:3-4,23-24` and `WebVella.Erp.Site.Project/Config.json:3-4,19-20`. This is **distinct from** the `ErpSettings` in-source fallback of §2.3: here the actual deployment secrets are checked into source control. Reported factually; remediation (secret management / externalized config) is deferred to [`modernization-roadmap.md`](./modernization-roadmap.md).
 - **Committed environment posture.** The IIS host config sets `ASPNETCORE_ENVIRONMENT` to `Development` (`WebVella.Erp.Site/web.config:10`), which typically enables detailed diagnostics; this is a deployment-hygiene observation, reported factually.
 
 ### 5.3 Process gaps — no automated CI or security scanning (C5)
