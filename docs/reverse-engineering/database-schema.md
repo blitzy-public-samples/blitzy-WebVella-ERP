@@ -30,7 +30,7 @@ At a glance:
 | Schema evolution | `system_settings.version`-gated initialization patches + **date-versioned plugin patch methods** (`Patch20YYMMDD`) |
 | Observed plugin patch files | **25** dated `<Plugin>.YYYYMMDD.cs` files (2018-12-15 → 2021-10-13) |
 
-This document reports the system **as built**. Forward-looking schema recommendations are deliberately confined to [`modernization-roadmap.md`](./modernization-roadmap.md).
+This document reports the system **as built**. Forward-looking schema recommendations are deliberately confined to `modernization-roadmap.md`.
 
 ---
 
@@ -393,7 +393,7 @@ Nested page-builder nodes that compose a page's body. Self-referencing via `pare
 
 > `CREATE TABLE public.data_source` — `WebVella.Erp/ERPService.cs:1383`; `return_total` column added by `ALTER TABLE data_source ADD COLUMN return_total` — line 1435
 
-Stores reusable data sources. The `eql_text` is authored in EQL (the platform's query language) and `sql_text` holds the translated SQL — the on-disk evidence of the EQL→SQL path documented in [`architecture.md`](./architecture.md).
+Stores reusable data sources. The `eql_text` is authored in EQL (the platform's query language) and `sql_text` holds the translated SQL — the on-disk evidence of the EQL→SQL path documented in `architecture.md`.
 
 | Column | Data Type | Key | Nullable | Default | Constraints / Notes |
 |--------|-----------|-----|----------|---------|---------------------|
@@ -464,15 +464,15 @@ For non-system entities it also auto-creates two system relations linking the bu
 
 ### 5.5 Why this matters
 
-This metadata-driven approach means the **physical schema grows at runtime**: defining a new entity creates a new `rec_<entity_name>` table, and adding a field adds a column. Because these tables are created on demand from user/plugin actions, they are **not** part of the fixed DDL and are therefore **not** enumerated as fixed tables in [`data-dictionary.csv`](./data-dictionary.csv) (which catalogs the 17 bootstrap tables). They are represented illustratively in the ERD below as the `rec_entity_name` template.
+This metadata-driven approach means the **physical schema grows at runtime**: defining a new entity creates a new `rec_<entity_name>` table, and adding a field adds a column. Because these tables are created on demand from user/plugin actions, they are **not** part of the fixed DDL and are therefore **not** enumerated as fixed tables in [`data-dictionary.csv`](./data-dictionary.csv) (which catalogs the 17 bootstrap tables). They are illustrated separately as a conceptual pattern in §6.1 and are intentionally **not** part of the lockstep ERD in §6 (which is limited to the 17 fixed physical tables).
 
 ---
 
 ## 6. Entity-Relationship Diagram (Mermaid)
 
-The diagram renders all **17 fixed system tables** with their columns, primary keys, foreign keys, and unique keys, plus the **meta-model** relationship and an **illustrative `rec_entity_name`** template representing the dynamically created per-entity record tables.
+The diagram renders all **17 fixed system tables** with their columns, primary keys, foreign keys, and unique keys, plus the **meta-model** relationship between `entities` and `entity_relations`. It contains **only** these 17 physical tables, in exact lockstep with `data-dictionary.csv`. The dynamically created per-entity `rec_<entity_name>` record tables are illustrated separately in §6.1 as a conceptual pattern (they are runtime-created and are not part of the fixed schema).
 
-**Lockstep contract.** Every fixed-table name and column name below matches [`data-dictionary.csv`](./data-dictionary.csv) **exactly** (case and spelling). Attribute **types** are shown as Mermaid-safe single tokens (`timestamptz` = `timestamp with time zone`, `timestamptz0` = `timestamp(0) with time zone`, `timestamp` = `timestamp without time zone`, `uuid_array` = `uuid[]`, `numeric18` = `numeric(18)`); the **precise PostgreSQL types** are in the per-table tables of [§4](#4-fixed-system-tables--per-table-data-dictionary) and in the CSV. Relationship lines are **solid** for DDL-declared foreign keys and **dashed** for logical references that have no explicit FK in the DDL. `rec_entity_name` is an **illustrative template** (one such table exists per entity at runtime) and is intentionally **not** a CSV row.
+**Lockstep contract.** Every fixed-table name and column name below matches [`data-dictionary.csv`](./data-dictionary.csv) **exactly** (case and spelling). Attribute **types** are shown as Mermaid-safe single tokens (`timestamptz` = `timestamp with time zone`, `timestamptz0` = `timestamp(0) with time zone`, `timestamp` = `timestamp without time zone`, `uuid_array` = `uuid[]`, `numeric18` = `numeric(18)`); the **precise PostgreSQL types** are in the per-table tables of [§4](#4-fixed-system-tables--per-table-data-dictionary) and in the CSV. Relationship lines are **solid** for DDL-declared foreign keys and **dashed** for logical references that have no explicit FK in the DDL.
 
 ```mermaid
 erDiagram
@@ -661,10 +661,6 @@ erDiagram
         uuid page_id FK
         uuid data_source_id
     }
-    rec_entity_name {
-        uuid id PK
-        text field_per_entity_column
-    }
 
     app ||--o{ app_sitemap_area : "app_id"
     app ||--o{ app_page : "app_id"
@@ -679,12 +675,28 @@ erDiagram
     data_source ||..o{ app_page_data_source : "data_source_id (logical)"
     schedule_plan ||..o{ jobs : "schedule_plan_id (logical)"
     entities ||..o{ entity_relations : "origin/target entity in json (logical)"
-    entities ||..o{ rec_entity_name : "provisions rec_ table (dynamic)"
-    entity_relations ||..o{ rec_entity_name : "FK / N:N enforcement (dynamic)"
 ```
 
-> **Reading the diagram.** Solid connectors (`--`) are foreign keys declared in the embedded DDL via `ALTER TABLE ... ADD CONSTRAINT fkey_*`. Dashed connectors (`..`) are references that exist logically in code/data but have **no** explicit DDL foreign key: `jobs.schedule_plan_id → schedule_plan.id`, `app_page_data_source.data_source_id → data_source.id`, and the meta-model links from `entities`/`entity_relations` to the dynamic `rec_*` tables. The `rec_entity_name` box is a **template**: at runtime there is one `rec_<entity_name>` table per entity, each with `id` plus one typed column per field.
+> **Reading the diagram.** Solid connectors (`--`) are foreign keys declared in the embedded DDL via `ALTER TABLE ... ADD CONSTRAINT fkey_*`. Dashed connectors (`..`) are references that exist logically in code/data but have **no** explicit DDL foreign key: `jobs.schedule_plan_id → schedule_plan.id`, `app_page_data_source.data_source_id → data_source.id`, and the logical link from `entities` to `entity_relations`. This ERD contains **only** the 17 fixed physical tables and their columns, exactly matching `data-dictionary.csv` (the ERD↔CSV lockstep contract). The dynamically created `rec_<entity_name>` record tables are **not** physical fixed tables and are therefore **not** part of this lockstep ERD; they are illustrated separately as a conceptual pattern in §6.1 below.
 
+
+### 6.1 Conceptual: the dynamic `rec_<entity_name>` pattern (not in CSV lockstep)
+
+The §6 ERD above is the **authoritative, machine-checkable** view of the fixed schema and is kept in exact lockstep with `data-dictionary.csv`. Separately, the metadata-driven engine materializes **physical per-entity record tables at runtime**: one `rec_<entity_name>` table per user- or plugin-defined entity, each with an `id` column plus one typed column per field (see §5). These runtime tables are **not** part of the fixed DDL, are **not** enumerated in `data-dictionary.csv`, and are therefore **deliberately excluded** from the lockstep ERD in §6.
+
+The diagram below is **illustrative only**. `rec_entity_name` is a *template* standing in for the many concrete `rec_*` tables that exist at runtime; it is **not** a CSV row and is **not** claimed to be in lockstep with `data-dictionary.csv`. `entities` and `entity_relations` appear here only to show where the runtime provisioning originates (they are real fixed tables, fully specified in §6 and the CSV).
+
+```mermaid
+erDiagram
+    entities ||..o{ rec_entity_name : "provisions rec_ table (runtime)"
+    entity_relations ||..o{ rec_entity_name : "enforces FK / N:N (runtime)"
+    rec_entity_name {
+        uuid id PK
+        text field_per_entity_column
+    }
+```
+
+> **Why this is separate.** Keeping the runtime `rec_*` tables out of the §6 ERD preserves the hard **ERD ↔ `data-dictionary.csv` lockstep** — every box and column in §6 appears verbatim as a CSV row, and every CSV row appears in §6 — while still documenting the meta-model's runtime materialization here for completeness.
 
 ---
 
@@ -718,7 +730,7 @@ private static void Patch20YYMMDD(EntityManager entMan, EntityRelationManager re
 2. For each dated patch, in **ascending date order**, applies it only when `currentPluginSettings.Version < patchVersion`, then advances `currentPluginSettings.Version` to that patch's date.
 3. Persists the updated state via `ErpPlugin.SavePluginData(...)` — `INSERT INTO plugin_data (id,name,data) VALUES(...)` on first run or `UPDATE plugin_data SET data = @data WHERE name = @name` thereafter (`WebVella.Erp/ErpPlugin.cs`).
 
-All `plugin_data` access uses parameterized `NpgsqlParameter` values — consistent with the custom-Npgsql, injection-aware data layer noted in [`security-quality.md`](./security-quality.md).
+All `plugin_data` access uses parameterized `NpgsqlParameter` values — consistent with the custom-Npgsql, injection-aware data layer noted in `security-quality.md`.
 
 `ProcessPatches()` is defined in six plugins: `WebVella.Erp.Plugins.Crm/CrmPlugin._.cs`, `WebVella.Erp.Plugins.Mail/MailPlugin._.cs`, `WebVella.Erp.Plugins.MicrosoftCDM/MicrosoftCDMPlugin._.cs`, `WebVella.Erp.Plugins.Next/NextPlugin._.cs`, `WebVella.Erp.Plugins.Project/ProjectPlugin._.cs`, and `WebVella.Erp.Plugins.SDK/SdkPlugin._.cs`.
 
@@ -764,23 +776,23 @@ The earliest patch is `SdkPlugin.20181215.cs` (2018-12-15) and the most recent i
 
 This document honors the suite-wide consistency contracts established by [`code-inventory.md`](./code-inventory.md):
 
-1. **ERD ↔ CSV lockstep (hard contract).** Every fixed-table name and column name in the [ERD](#6-entity-relationship-diagram-mermaid) and the [per-table dictionary](#4-fixed-system-tables--per-table-data-dictionary) matches [`data-dictionary.csv`](./data-dictionary.csv) row-for-row (case and spelling). The CSV is the machine-readable form of this document.
+1. **ERD ↔ CSV lockstep (hard contract).** Every fixed-table name and column name in the [ERD](#6-entity-relationship-diagram-mermaid) and the [per-table dictionary](#4-fixed-system-tables--per-table-data-dictionary) matches [`data-dictionary.csv`](./data-dictionary.csv) row-for-row (case and spelling) — the §6 ERD contains exactly the 17 fixed physical tables, no more and no fewer. The CSV is the machine-readable form of this document. The illustrative conceptual diagram in §6.1 (the dynamic `rec_<entity_name>` template) is explicitly **outside** this lockstep and is not enumerated in the CSV.
 2. **Shared module taxonomy & canonical paths.** All citations use the repository-relative paths catalogued in `code-inventory.md`/`code-inventory.csv` (e.g., `WebVella.Erp/ERPService.cs`, `WebVella.Erp/Database/DbRecordRepository.cs`, `WebVella.Erp.Plugins.Project/ProjectPlugin.20190222.cs`), and resolve to real files/methods.
-3. **Reconciliation with sibling documents.** The table names and the meta-model concept reconcile with the Data Integrity rules in [`business-rules.md`](./business-rules.md) (relation/foreign-key constraints via `entity_relations`) and with the EQL→SQL path in [`architecture.md`](./architecture.md) (the `data_source.eql_text`/`sql_text` columns are the persisted evidence of that path).
-4. **Factual reporting.** This document describes the schema **as built** — custom Npgsql data layer, code-embedded DDL, dynamic JSON meta-model, dated patch methods, no EF Core, no migrations folder, no Docker. Aspirational schema guidance lives only in [`modernization-roadmap.md`](./modernization-roadmap.md).
+3. **Reconciliation with sibling documents.** The table names and the meta-model concept reconcile with the Data Integrity rules in `business-rules.md` (relation/foreign-key constraints via `entity_relations`) and with the EQL→SQL path in `architecture.md` (the `data_source.eql_text`/`sql_text` columns are the persisted evidence of that path).
+4. **Factual reporting.** This document describes the schema **as built** — custom Npgsql data layer, code-embedded DDL, dynamic JSON meta-model, dated patch methods, no EF Core, no migrations folder, no Docker. Aspirational schema guidance lives only in `modernization-roadmap.md`.
 
 ### 8.1 Suite navigation
 
 | # | Document | Contents |
 |---|----------|----------|
 | 1 | [`code-inventory.md`](./code-inventory.md) + [`code-inventory.csv`](./code-inventory.csv) | Module taxonomy, file/LOC tables, dependency tree |
-| 2 | [`architecture.md`](./architecture.md) | Layered + plugin model, EQL→SQL path, auth flow, page-builder lifecycle |
+| 2 | `architecture.md` | Layered + plugin model, EQL→SQL path, auth flow, page-builder lifecycle |
 | 3 | **`database-schema.md`** *(this file)* + [`data-dictionary.csv`](./data-dictionary.csv) | Schema from embedded DDL + patches; ERD |
-| 4 | [`functional-overview.md`](./functional-overview.md) | Module catalog, workflows, user roles |
-| 5 | [`business-rules.md`](./business-rules.md) | Catalogued business rules with citations |
-| 6 | [`security-quality.md`](./security-quality.md) | Vulnerabilities, code metrics, CVE audit |
-| 7 | [`modernization-roadmap.md`](./modernization-roadmap.md) | Current-state, target-state, 3-phase plan |
-| — | [`README.md`](./README.md) | Master index & executive overview |
+| 4 | `functional-overview.md` | Module catalog, workflows, user roles |
+| 5 | `business-rules.md` | Catalogued business rules with citations |
+| 6 | `security-quality.md` | Vulnerabilities, code metrics, CVE audit |
+| 7 | `modernization-roadmap.md` | Current-state, target-state, 3-phase plan |
+| — | `README.md` | Master index & executive overview |
 
 ---
 

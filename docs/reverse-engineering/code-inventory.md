@@ -4,13 +4,13 @@
 > **Generated (UTC):** 2026-06-05 15:02 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
 > **Companion data export:** [`code-inventory.csv`](./code-inventory.csv)
-> **Suite index:** [`README.md`](./README.md)
+> **Suite index:** `README.md`
 
 ---
 
 ## Executive Summary
 
-This report is the **foundational coverage map** for the entire reverse-engineering suite. It catalogs the WebVella ERP source tree, groups every file into a stable **module taxonomy**, and records per-module file counts, lines-of-code (LOC), and the inter-project dependency tree. The module names and canonical file paths established here are reused **verbatim** by [`architecture.md`](./architecture.md), [`functional-overview.md`](./functional-overview.md), [`business-rules.md`](./business-rules.md), and [`security-quality.md`](./security-quality.md), so that every document in the suite reconciles against a single source of truth.
+This report is the **foundational coverage map** for the entire reverse-engineering suite. It catalogs the WebVella ERP source tree, groups every file into a stable **module taxonomy**, and records per-module file counts, lines-of-code (LOC), and the inter-project dependency tree. The module names and canonical file paths established here are reused **verbatim** by `architecture.md`, `functional-overview.md`, `business-rules.md`, and `security-quality.md`, so that every document in the suite reconciles against a single source of truth.
 
 WebVella ERP is an **open-source, metadata-driven ERP platform** built on **ASP.NET Core 9** over **PostgreSQL 16**. The core library `WebVella.Erp` is versioned **1.7.4** and licensed **Apache-2.0**. The solution is organized as a classic **layered architecture** (Sites → Web → Core) wrapped in a **plugin-extensibility model** (SDK, CRM, Mail, Next, Project, MicrosoftCDM, Approval).
 
@@ -25,15 +25,15 @@ At a glance:
 | — JavaScript (`.js`) | **181** files |
 | — MSBuild project files (`.csproj`) | **20** files |
 | TypeScript (`.ts`) files | **0** (the front end is Razor + Blazor + plain JS, **not** Angular/React/TypeScript) |
-| Projects in the solution | **20** total — **18** target `net9.0`, **2** target `net7.0` |
-| Largest single file | `WebVella.Erp.Web/Controllers/WebApiController.cs` — **4,313 lines** |
+| Project files in the repository | **20** total — **18** registered in `WebVella.ERP3.sln` (all `net9.0`) + **2** outside the solution (`WebVella.Erp.WebAssembly/Server`, `/Shared`, both `net7.0`) |
+| Largest Web/API controller | `WebVella.Erp.Web/Controllers/WebApiController.cs` — **4,313 lines** (the largest single source file overall is `WebVella.Erp.Plugins.Next/NextPlugin.20190203.cs` at **11,502** lines) |
 | Data-access strategy | **Custom Npgsql data layer** (raw parameterized SQL + dynamic JSON record model) — **not** Entity Framework Core |
 | Database provisioning | **Code-embedded DDL** + **date-versioned plugin patch methods** — **no** `.sql` files and **no** EF Migrations folder |
 | Containerization | **None present** — no `Dockerfile` or `docker-compose` anywhere in the repository |
 
-The companion [`code-inventory.csv`](./code-inventory.csv) enumerates **every** primary source file (1,328 rows = the 1,315 primary files plus 13 host `Config.json`/`appsettings*.json` files), delivering **100% coverage** of in-scope primary files against the **≥95%** target. Each CSV row carries per-file `Module`, `File Path`, `Language`, `Dependencies`, `LOC`, `Last Modified`, `Primary Purpose`, and `Complexity Score`.
+The companion [`code-inventory.csv`](./code-inventory.csv) enumerates **every** primary source file (**1,315** rows, one per primary source file), delivering **100% coverage** of in-scope primary files against the **≥95%** target. Each CSV row carries per-file `Module`, `File Path`, `Language`, `Dependencies`, `LOC`, `Last Modified`, `Primary Purpose`, and `Complexity Score`.
 
-This document reports the system **as built**. Forward-looking recommendations (modular decomposition, containerization, dependency upgrades) are deliberately confined to [`modernization-roadmap.md`](./modernization-roadmap.md).
+This document reports the system **as built**. Forward-looking recommendations (modular decomposition, containerization, dependency upgrades) are deliberately confined to `modernization-roadmap.md`.
 
 ---
 
@@ -63,7 +63,7 @@ The **coverage denominator** is the set of **in-scope primary source files** —
 | MSBuild project | `.csproj` | 20 |
 | **Primary total** | | **1,315** |
 
-The companion `code-inventory.csv` catalogs **1,328 rows**: all **1,315** primary files **plus 13** host configuration files (`Config.json` per site, plus `appsettings*.json` in `Site.MicrosoftCDM` and `WebVella.Erp.WebAssembly`). Primary-file coverage is therefore **100%** (1,315 / 1,315), comfortably above the **≥95%** success criterion. Generated and embedded static assets under `wwwroot/` that are vendored third-party libraries are summarized in aggregate within their owning module while still counting toward coverage.
+The companion `code-inventory.csv` catalogs **1,315 rows**, one per in-scope primary file, so primary-file coverage is **100%** (1,315 / 1,315), comfortably above the **≥95%** success criterion. The 13 host configuration files (`Config.json` per site, plus `appsettings*.json` in `Site.MicrosoftCDM` and `WebVella.Erp.WebAssembly`) are analyzed read-only and summarized in §3.4 rather than enumerated in the primary-file CSV, whose `Language` column is restricted to the five primary source languages. Generated and embedded static assets under `wwwroot/` that are vendored third-party libraries are summarized in aggregate within their owning module while still counting toward coverage.
 
 > There are **0 TypeScript (`.ts`) files** in the repository. This is recorded explicitly because it corrects a common assumption: the WebVella ERP front end is delivered with server-rendered **Razor Pages (`.cshtml`)**, **ERP TagHelpers**, **Blazor WebAssembly (`.razor`)**, and **plain JavaScript (`.js`)** — there is no Angular, React, or TypeScript build.
 
@@ -127,7 +127,7 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 
 **Representative files.** `ERPService.cs` (1,472 lines — bootstrap; contains the embedded PostgreSQL DDL in `InitializeSystemEntities`), `ErpPlugin.cs` (the plugin base class), `ErpSettings.cs`, `IErpService.cs`, `IQueryRepository.cs`, `Database/DbRecordRepository.cs` (2,097 lines), `Eql/EqlBuilder.cs`, `Eql/EqlBuilder.Sql.cs`, `Eql/EqlGrammar.cs`.
 
-> **Correction 1 — Custom ORM, not EF Core.** The data layer is hand-written over the **Npgsql** ADO.NET driver. `Database/DbRecordRepository.cs` issues raw, parameterized SQL and serializes the dynamic record model as JSON; there is no `DbContext`, no `DbSet<T>`, and no Entity Framework Core dependency anywhere in `Core`.
+> **Correction 1 — Custom ORM, not EF Core.** The data layer is hand-written over the **Npgsql** ADO.NET driver. `Database/DbRecordRepository.cs` issues raw, parameterized SQL and serializes the dynamic record model as JSON; there is no Entity Framework Core **`DbContext`** or **`DbSet<T>`**, and no Entity Framework Core dependency anywhere in `Core`. (The platform does define its own lightweight, EF-unrelated `WebVella.Erp.Database.DbContext` — a custom Npgsql connection/transaction scope at `WebVella.Erp/Database/DbContext.cs` — which must not be confused with EF Core's type of the same short name.)
 
 ### 2.2 Web — `WebVella.Erp.Web`
 
@@ -146,12 +146,12 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 | `Services/` | 18 | Application services (rendering, datasource, security) |
 | `Pages/` | 18 | Razor Pages code-behind (`*.cshtml.cs`) |
 | `Repositories/` | 8 | Page/app/sitemap repositories |
-| `Security/` | 8 | Authentication & authorization plumbing (see [`security-quality.md`](./security-quality.md)) |
+| `Security/` | 8 | Authentication & authorization plumbing (see `security-quality.md`) |
 | `Middleware/` | 6 | Request pipeline middleware |
 | `Datasource/` | 3 | Datasource resolution & code-compiled datasources |
 | `Controllers/` | 2 | `WebApiController.cs` (**4,313 lines**) + `ApiControllerBase.cs` (64 lines) |
 
-**Representative files.** `Controllers/WebApiController.cs` (the **single, monolithic** Web API surface — the largest file in the solution at 4,313 lines), `Controllers/ApiControllerBase.cs`, `ErpMvcExtensions.cs` (174 lines — DI/middleware registration), `Theme/styles.css`, and the vendored client assets under `wwwroot/`.
+**Representative files.** `Controllers/WebApiController.cs` (the **single, monolithic** Web API surface — at 4,313 lines the **largest Web/API controller**, though not the largest source file overall), `Controllers/ApiControllerBase.cs`, `ErpMvcExtensions.cs` (174 lines — DI/middleware registration), `Theme/styles.css`, and the vendored client assets under `wwwroot/`.
 
 > **Correction 2 — Razor / Blazor / JavaScript front end, not a SPA framework.** The 282 `.cshtml`, 2 `.razor`, and 73 `.js` files in this module — and **0** `.ts` files solution-wide — confirm a server-rendered Razor + TagHelper UI augmented by plain JavaScript page-builder components, with Blazor WebAssembly used for specific interactive surfaces.
 
@@ -167,7 +167,7 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 | `Server/` | `net7.0` | 1 | 0 | Host; references `Client` + `Shared`; **out of support** |
 | `Shared/` | `net7.0` | 1 | 0 | Shared contracts; **out of support** |
 
-> **Out-of-support runtime.** The `Server` and `Shared` projects target **`net7.0`**, which is past Microsoft's support window, and `Server` pins `Microsoft.AspNetCore.Components.WebAssembly.Server` **7.0.13**. These two projects are **not** part of `WebVella.ERP3.sln` (which contains 18 `net9.0` projects); they are built independently. This is flagged for [`modernization-roadmap.md`](./modernization-roadmap.md).
+> **Out-of-support runtime.** The `Server` and `Shared` projects target **`net7.0`**, which is past Microsoft's support window, and `Server` pins `Microsoft.AspNetCore.Components.WebAssembly.Server` **7.0.13**. These two projects are **not** part of `WebVella.ERP3.sln` (which contains 18 `net9.0` projects); they are built independently. This is flagged for `modernization-roadmap.md`.
 
 ### 2.4 Console — `WebVella.Erp.ConsoleApp`
 
@@ -179,23 +179,23 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 
 ### 2.5 Plugins (7) — `WebVella.Erp.Plugins.*`
 
-**Purpose.** Optional capability modules loaded through the plugin-extensibility model. Every plugin **references `Web` and `Core`**, derives its entry class from `ErpPlugin`, and (except `Approval`) provisions and evolves its schema through a `ProcessPatches()` method that invokes **date-versioned patch files** named `<Plugin>.YYYYMMDD.cs`.
+**Purpose.** Optional capability modules loaded through the plugin-extensibility model. Every plugin **references `Web` and `Core`** and derives its entry class from `ErpPlugin`. Schema evolution differs by plugin: only **`Mail`, `Next`, `Project`, and `SDK`** provision and evolve their schema through a `ProcessPatches()` method that invokes **date-versioned patch files** named `<Plugin>.YYYYMMDD.cs` (**25** such files in total). **`Crm` and `MicrosoftCDM`** define a `ProcessPatches()` shell but ship **no** dated patch file — their only `Patch20190123` reference is a commented-out call — and **`Approval`** defines no `ProcessPatches()` at all. This matches the authoritative patch history in `database-schema.md` §7.3.
 
 | Plugin | Main class | Patch mechanism | `.cs` | Notable assets |
 |--------|-----------|-----------------|------:|----------------|
 | `Approval` | `PcApprovalDashboard` component + `ApprovalController` | *No* `ProcessPatches()` (newer plugin) | 4 | `Api/DashboardMetricsModel.cs`, `Services/DashboardMetricsService.cs`, 5 `.cshtml`, 1 `.js` |
-| `Crm` | `CrmPlugin` | `CrmPlugin._.cs` → `Patch20190123` | 3 | `Model/PluginSettings.cs` |
+| `Crm` | `CrmPlugin` | `ProcessPatches()` shell only — **no dated patch file** (commented-out `Patch20190123` call at `CrmPlugin._.cs:66`) | 3 | `Model/PluginSettings.cs` |
 | `Mail` | `MailPlugin` | `MailPlugin._.cs` + **7** dated patches (2019-02-15 … 2020-06-11) | 23 | IMAP/SMTP services (`MailKit`) |
-| `MicrosoftCDM` | `MicrosoftCDMPlugin` | `MicrosoftCDMPlugin._.cs` | 3 | CDM entity mapping |
+| `MicrosoftCDM` | `MicrosoftCDMPlugin` | `ProcessPatches()` shell only — **no dated patch file** (commented-out `Patch20190123` call at `MicrosoftCDMPlugin._.cs:68`) | 3 | CDM entity mapping |
 | `Next` | `NextPlugin` | `NextPlugin._.cs` + **5** dated patches (2019-02-03 … 2019-02-22) | 14 | `Configuration.cs`; large shared component library |
 | `Project` | `ProjectPlugin` | `ProjectPlugin._.cs` + **8** dated patches (2019-02-03 … 2021-10-13) | 45 | 56 `.cshtml`, 65 `.js` |
 | `SDK` | `SdkPlugin` | `SdkPlugin._.cs` + **5** dated patches (2018-12-15 … 2021-04-29) | 69 | 54 `.cshtml`, 42 `.js` — the app-builder UI |
 
-> **Correction 3 — Code-embedded DDL + dated patch methods, not a Migrations folder.** Schema is created by embedded PostgreSQL DDL in `Core`'s `ERPService.InitializeSystemEntities`, then extended at startup by each plugin's `ProcessPatches()` calling dated patch methods such as `WebVella.Erp.Plugins.Crm/CrmPlugin._.cs → Patch20190123`. There are **no** `.sql` files and **no** EF Core `Migrations/` folder anywhere in the repository.
+> **Correction 3 — Code-embedded DDL + dated patch methods, not a Migrations folder.** Schema is created by embedded PostgreSQL DDL in `Core`'s `ERPService.InitializeSystemEntities`, then extended at startup by the patch-bearing plugins' `ProcessPatches()` methods calling dated patch methods such as `WebVella.Erp.Plugins.SDK/SdkPlugin.20181215.cs → Patch20181215`. Only `Mail`, `Next`, `Project`, and `SDK` ship dated `<Plugin>.YYYYMMDD.cs` files (**25** in total; enumerated in `database-schema.md` §7.3); `Crm` and `MicrosoftCDM` carry a `ProcessPatches()` shell whose `Patch20190123` call is commented out, and `Approval` has no `ProcessPatches()`. There are **no** `.sql` files and **no** EF Core `Migrations/` folder anywhere in the repository.
 
 ### 2.6 Sites (7) — `WebVella.Erp.Site*`
 
-**Purpose.** Runnable ASP.NET Core **host sites**. Each is a thin shell that wires up `Core` + `Web` + a selection of plugins and supplies runtime configuration. Each site contains `Program.cs`, `Startup.cs`, and a plaintext `Config.json` (connection string, encryption key, JWT secret — analyzed in [`security-quality.md`](./security-quality.md)).
+**Purpose.** Runnable ASP.NET Core **host sites**. Each is a thin shell that wires up `Core` + `Web` + a selection of plugins and supplies runtime configuration. Each site contains `Program.cs`, `Startup.cs`, and a plaintext `Config.json` (connection string, encryption key, JWT secret — analyzed in `security-quality.md`).
 
 | Site | Plugins referenced (beyond Web + Core) | `.cs` | `.cshtml` |
 |------|----------------------------------------|------:|----------:|
@@ -209,7 +209,7 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 
 The reference `Site: Erp` is the richest host: beyond `Program.cs`/`Startup.cs` it includes diagnostic Razor Pages (`Pages/EQL.cshtml`, `Pages/debug.cshtml`, `Pages/search.cshtml`) and `Properties/AppSettings.cs`.
 
-> **Correction 4 — No containerization present.** Deployment is plain ASP.NET Core host sites (designed for IIS in-process hosting). There is **no `Dockerfile`, no `docker-compose`**, and no container manifest anywhere in the repository. Containerization appears only as a recommendation in [`modernization-roadmap.md`](./modernization-roadmap.md), never as existing state.
+> **Correction 4 — No containerization present.** Deployment is plain ASP.NET Core host sites (designed for IIS in-process hosting). There is **no `Dockerfile`, no `docker-compose`**, and no container manifest anywhere in the repository. Containerization appears only as a recommendation in `modernization-roadmap.md`, never as existing state.
 
 ---
 
@@ -217,31 +217,31 @@ The reference `Site: Erp` is the richest host: beyond `Program.cs`/`Startup.cs` 
 
 ### 3.1 File counts by language and module
 
-The table below is the authoritative per-module file matrix that backs `code-inventory.csv`. Columns are file **counts**. The `JSON` column holds host configuration files (`Config.json`, `appsettings*.json`); all other columns are primary source files. Row totals match the CSV's row distribution exactly.
+The table below is the authoritative per-module file matrix that backs `code-inventory.csv`. Columns are file **counts** of **primary source files only**. Host configuration files (`Config.json`, `appsettings*.json`) are **not** primary source files; they are excluded from this matrix and from `code-inventory.csv`, and are summarized separately in §3.4. Row totals match the CSV's row distribution exactly.
 
-| Module | C# `.cs` | Razor `.cshtml` | Blazor `.razor` | JS `.js` | MSBuild `.csproj` | JSON | Module total |
-|--------|---------:|----------------:|----------------:|---------:|------------------:|-----:|-------------:|
-| Core (WebVella.Erp) | 232 | 0 | 0 | 0 | 1 | 0 | 233 |
-| Web (WebVella.Erp.Web) | 252 | 282 | 2 | 73 | 1 | 0 | 610 |
-| WebAssembly | 36 | 0 | 9 | 0 | 3 | 3 | 51 |
-| ConsoleApp | 4 | 0 | 0 | 0 | 1 | 1 | 6 |
-| Plugin: Approval | 4 | 5 | 0 | 1 | 1 | 0 | 11 |
-| Plugin: Crm | 3 | 0 | 0 | 0 | 1 | 0 | 4 |
-| Plugin: Mail | 23 | 0 | 0 | 0 | 1 | 0 | 24 |
-| Plugin: MicrosoftCDM | 3 | 0 | 0 | 0 | 1 | 0 | 4 |
-| Plugin: Next | 14 | 0 | 0 | 0 | 1 | 0 | 15 |
-| Plugin: Project | 45 | 56 | 0 | 65 | 1 | 0 | 167 |
-| Plugin: SDK | 69 | 54 | 0 | 42 | 1 | 0 | 166 |
-| Site: Erp | 6 | 3 | 0 | 0 | 1 | 1 | 11 |
-| Site: Crm | 2 | 0 | 0 | 0 | 1 | 1 | 4 |
-| Site: Mail | 2 | 0 | 0 | 0 | 1 | 1 | 4 |
-| Site: MicrosoftCDM | 2 | 0 | 0 | 0 | 1 | 3 | 6 |
-| Site: Next | 2 | 0 | 0 | 0 | 1 | 1 | 4 |
-| Site: Project | 2 | 0 | 0 | 0 | 1 | 1 | 4 |
-| Site: Sdk | 2 | 0 | 0 | 0 | 1 | 1 | 4 |
-| **TOTALS** | **703** | **400** | **11** | **181** | **20** | **13** | **1,328** |
+| Module | C# `.cs` | Razor `.cshtml` | Blazor `.razor` | JS `.js` | MSBuild `.csproj` | Module total |
+|--------|---------:|----------------:|----------------:|---------:|------------------:|-------------:|
+| Core (WebVella.Erp) | 232 | 0 | 0 | 0 | 1 | 233 |
+| Web (WebVella.Erp.Web) | 252 | 282 | 2 | 73 | 1 | 610 |
+| WebAssembly | 36 | 0 | 9 | 0 | 3 | 48 |
+| ConsoleApp | 4 | 0 | 0 | 0 | 1 | 5 |
+| Plugin: Approval | 4 | 5 | 0 | 1 | 1 | 11 |
+| Plugin: Crm | 3 | 0 | 0 | 0 | 1 | 4 |
+| Plugin: Mail | 23 | 0 | 0 | 0 | 1 | 24 |
+| Plugin: MicrosoftCDM | 3 | 0 | 0 | 0 | 1 | 4 |
+| Plugin: Next | 14 | 0 | 0 | 0 | 1 | 15 |
+| Plugin: Project | 45 | 56 | 0 | 65 | 1 | 167 |
+| Plugin: SDK | 69 | 54 | 0 | 42 | 1 | 166 |
+| Site: Erp | 6 | 3 | 0 | 0 | 1 | 10 |
+| Site: Crm | 2 | 0 | 0 | 0 | 1 | 3 |
+| Site: Mail | 2 | 0 | 0 | 0 | 1 | 3 |
+| Site: MicrosoftCDM | 2 | 0 | 0 | 0 | 1 | 3 |
+| Site: Next | 2 | 0 | 0 | 0 | 1 | 3 |
+| Site: Project | 2 | 0 | 0 | 0 | 1 | 3 |
+| Site: Sdk | 2 | 0 | 0 | 0 | 1 | 3 |
+| **TOTALS** | **703** | **400** | **11** | **181** | **20** | **1,315** |
 
-**Reconciliation.** Primary files = 703 + 400 + 11 + 181 + 20 = **1,315**. Adding the 13 `JSON` configuration files gives the **1,328** rows in `code-inventory.csv`. The **20** `.csproj` files are the 20 projects; **18** target `net9.0` (all in `WebVella.ERP3.sln`) and **2** target `net7.0` (`WebVella.Erp.WebAssembly/Server`, `WebVella.Erp.WebAssembly/Shared`, both outside the `.sln`).
+**Reconciliation.** Primary files = 703 + 400 + 11 + 181 + 20 = **1,315**, which is exactly the row count of `code-inventory.csv` (one row per primary file; **100%** coverage). The **20** `.csproj` files are the 20 project files in the repository; **18** are registered in `WebVella.ERP3.sln` (all `net9.0`) and **2** are outside the solution (`WebVella.Erp.WebAssembly/Server`, `WebVella.Erp.WebAssembly/Shared`, both `net7.0`).
 
 ### 3.2 Approximate physical `.cs` LOC by module
 
@@ -271,9 +271,35 @@ In addition to the `.cs` baseline, the Razor views contribute approximately **17
 
 | File | Module | Lines | Why it matters |
 |------|--------|------:|----------------|
-| `Controllers/WebApiController.cs` | Web | 4,313 | The entire Web API in one monolithic controller — a primary decomposition target |
+| `WebVella.Erp.Plugins.Next/NextPlugin.20190203.cs` | Plugin: Next | 11,502 | **Largest single source file** — a dated plugin patch that seeds and evolves the "Next" schema and data |
+| `WebVella.Erp.Plugins.Project/ProjectPlugin.20190203.cs` | Plugin: Project | 11,035 | Second-largest file — a dated Project plugin patch |
+| `Services/CodeGenService.cs` | Plugin: SDK | 9,321 | Roslyn-based code-generation service for the app-builder SDK |
+| `WebVella.Erp.Plugins.Mail/MailPlugin.20190215.cs` | Plugin: Mail | 5,499 | Largest Mail plugin patch |
+| `Controllers/WebApiController.cs` | Web | 4,313 | The entire Web API in one monolithic controller — the **largest Web/API controller** and a primary decomposition target |
 | `Database/DbRecordRepository.cs` | Core | 2,097 | Heart of the custom Npgsql data layer |
 | `ERPService.cs` | Core | 1,472 | Bootstrap + embedded system-entity DDL (`InitializeSystemEntities`) |
+
+### 3.4 Host configuration files (excluded from the primary-file CSV)
+
+The following **13** host configuration files are analyzed read-only for the suite but are **not** primary source files, so they are intentionally excluded from `code-inventory.csv` (whose `Language` column is restricted to `C#`, `Razor (.cshtml)`, `Blazor (.razor)`, `JavaScript`, and `MSBuild/XML (.csproj)`). They are summarized here for completeness; their security-relevant contents (connection strings, encryption keys, JWT secrets) are analyzed in `security-quality.md`.
+
+| Module | Configuration file | Salient keys |
+|--------|--------------------|--------------|
+| ConsoleApp | `WebVella.Erp.ConsoleApp/Config.json` | ConnectionString |
+| Site: Erp | `WebVella.Erp.Site/Config.json` | ConnectionString; Jwt |
+| Site: Crm | `WebVella.Erp.Site.Crm/Config.json` | ConnectionString |
+| Site: Mail | `WebVella.Erp.Site.Mail/Config.json` | ConnectionString |
+| Site: MicrosoftCDM | `WebVella.Erp.Site.MicrosoftCDM/Config.json` | ConnectionString |
+| Site: MicrosoftCDM | `WebVella.Erp.Site.MicrosoftCDM/appsettings.json` | Logging; AllowedHosts |
+| Site: MicrosoftCDM | `WebVella.Erp.Site.MicrosoftCDM/appsettings.Development.json` | Logging |
+| Site: Next | `WebVella.Erp.Site.Next/Config.json` | ConnectionString |
+| Site: Project | `WebVella.Erp.Site.Project/Config.json` | ConnectionString; Jwt |
+| Site: Sdk | `WebVella.Erp.Site.Sdk/Config.json` | ConnectionString |
+| WebAssembly | `WebVella.Erp.WebAssembly/Client/wwwroot/appsettings.json` | serverUrl |
+| WebAssembly | `WebVella.Erp.WebAssembly/Server/appsettings.json` | Logging; AllowedHosts |
+| WebAssembly | `WebVella.Erp.WebAssembly/Server/appsettings.Development.json` | Logging |
+
+These 13 files correspond exactly to the configuration rows previously folded into the CSV; removing them keeps `code-inventory.csv` strictly limited to the five primary source languages while preserving full visibility of the host configuration surface here.
 
 ---
 
@@ -410,7 +436,7 @@ A native (non-NuGet) dependency is also present: **`ExternalLibraries/libwkhtmlt
 
 ### 4.3 Fidelity note — commented-out references and SDK pinning
 
-Several entries that might appear to be active dependencies are in fact **commented-out** in the manifests and therefore **not part of the build**. They are reported here for completeness and are revisited as dependency-hygiene findings in [`security-quality.md`](./security-quality.md):
+Several entries that might appear to be active dependencies are in fact **commented-out** in the manifests and therefore **not part of the build**. They are reported here for completeness and are revisited as dependency-hygiene findings in `security-quality.md`:
 
 | Commented-out reference | Version | Location (verified) | Status |
 |-------------------------|---------|---------------------|--------|
@@ -434,8 +460,8 @@ Several entries that might appear to be active dependencies are in fact **commen
 - **File walk.** The tree was enumerated recursively, **excluding** `bin/`, `obj/`, `.git/`, and `node_modules/`. Every C#, Razor, Blazor, JavaScript, and MSBuild project file was captured as a row, plus host `Config.json` / `appsettings*.json` files.
 - **`Module`.** Assigned from the canonical taxonomy in [§2](#2-functional-grouping--shared-module-taxonomy) based on the file's owning project directory (e.g., `Core (WebVella.Erp)`, `Web (WebVella.Erp.Web)`, `Plugin: SDK`, `Site: Erp`).
 - **`File Path`.** Repository-relative path, used verbatim as the citation key across the suite.
-- **`Language`.** Derived from extension: `C#`, `Razor (.cshtml)`, `Blazor (.razor)`, `JavaScript`, `MSBuild/XML (.csproj)`, or `JSON`.
-- **`Dependencies`.** For `.cs` files, the distinct set of `using` namespaces (truncated with a `(+N more)` suffix when long); for `.csproj` files, the `ProjectReference` / `PackageReference` targets; for `Config.json`, the salient configuration keys.
+- **`Language`.** Derived from extension; one of exactly five allowed values: `C#`, `Razor (.cshtml)`, `Blazor (.razor)`, `JavaScript`, or `MSBuild/XML (.csproj)`.
+- **`Dependencies`.** For `.cs` files, the distinct set of `using` namespaces (truncated with a `(+N more)` suffix when long); for `.csproj` files, the `ProjectReference` / `PackageReference` targets.
 - **`LOC`.** **Code-only** lines — physical lines **excluding blank lines and comment-only lines** (`//`, `/* … */`, and Razor `@* … *@`). This is measure **(b)** from [§1.2](#12-loc-measurement-method).
 - **`Last Modified`.** The date of the file's most recent commit, obtained via Git history (`git log -1 --format=%ci -- <path>`).
 - **`Complexity Score`.** Each file is assigned a band derived from **cyclomatic complexity (CC)**. The intended authoritative source is the .NET code-quality (Roslyn) analyzers — **CA1502** (cyclomatic complexity), **CA1505** (maintainability index), **CA1501** (inheritance depth), and **CA1506** (class coupling); where the analyzers are not run, a deterministic **LOC + decision-point heuristic** (counting branch/loop/boolean operators) yields a comparable estimate. The bands and thresholds are:
@@ -443,11 +469,11 @@ Several entries that might appear to be active dependencies are in fact **commen
 | Band | Cyclomatic complexity | Interpretation |
 |------|-----------------------|----------------|
 | `Low` | CC ≤ 10 | Within McCabe's recommended limit |
-| `Watch` | CC > 10 | Above the recommended limit; monitor |
-| `High` | CC > 15 | Hard to maintain |
+| `Watch` | 11 ≤ CC ≤ 15 | Above the recommended limit; monitor |
+| `High` | 16 ≤ CC ≤ 30 | Hard to maintain |
 | `Split` | CC > 30 | Should be decomposed |
 
-Across the 1,328 cataloged files the band distribution is approximately **Low 910**, **Watch 110**, **High 128**, **Split 180** — concentrating refactoring attention on the `Split`/`High` files (notably `Controllers/WebApiController.cs`), which feed directly into [`security-quality.md`](./security-quality.md) and [`modernization-roadmap.md`](./modernization-roadmap.md).
+Across the 1,315 cataloged files the band distribution is approximately **Low 897**, **Watch 110**, **High 128**, **Split 180** — concentrating refactoring attention on the `Split`/`High` files (notably `Controllers/WebApiController.cs`), which feed directly into `security-quality.md` and `modernization-roadmap.md`.
 
 > **Maintainability Index context.** Microsoft's composite Maintainability Index (a function of Halstead Volume, Cyclomatic Complexity, and LOC) is reported on a 0–100 scale where **20–100** is good, **10–19** moderate, and **0–9** low. It is referenced qualitatively here and quantified in `security-quality.md`.
 
@@ -467,13 +493,13 @@ This document is the **source of truth** for structure. To keep the suite intern
 | # | Document | Contents |
 |---|----------|----------|
 | 1 | **`code-inventory.md`** *(this file)* + [`code-inventory.csv`](./code-inventory.csv) | Module taxonomy, file/LOC tables, dependency tree |
-| 2 | [`architecture.md`](./architecture.md) | Layered + plugin model, EQL→SQL path, auth flow, page-builder lifecycle |
+| 2 | `architecture.md` | Layered + plugin model, EQL→SQL path, auth flow, page-builder lifecycle |
 | 3 | [`database-schema.md`](./database-schema.md) + [`data-dictionary.csv`](./data-dictionary.csv) | Schema from embedded DDL + patches; ERD |
-| 4 | [`functional-overview.md`](./functional-overview.md) | Module catalog, workflows, user roles |
-| 5 | [`business-rules.md`](./business-rules.md) | Catalogued business rules with citations |
-| 6 | [`security-quality.md`](./security-quality.md) | Vulnerabilities, code metrics, CVE audit |
-| 7 | [`modernization-roadmap.md`](./modernization-roadmap.md) | Current-state, target-state, 3-phase plan |
-| — | [`README.md`](./README.md) | Master index & executive overview |
+| 4 | `functional-overview.md` | Module catalog, workflows, user roles |
+| 5 | `business-rules.md` | Catalogued business rules with citations |
+| 6 | `security-quality.md` | Vulnerabilities, code metrics, CVE audit |
+| 7 | `modernization-roadmap.md` | Current-state, target-state, 3-phase plan |
+| — | `README.md` | Master index & executive overview |
 
 ---
 
