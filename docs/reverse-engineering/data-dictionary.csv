@@ -121,16 +121,16 @@ app_page,type,integer,,NO,,Page type code (enumeration).,
 app_page,weight,integer,,NO,'-1'::integer,Ordering weight of the page.,
 app_page,label_translations,text,,YES,,Serialized localized translations of the label.,
 app_page,razor_body,text,,YES,,Razor markup body used when the page is rendered as Razor.,
-app_page,area_id,uuid,FK,YES,,Sitemap area the page belongs to.,fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)
-app_page,node_id,uuid,FK,YES,,Sitemap node the page belongs to.,fkey_node_id FOREIGN KEY (node_id) REFERENCES app_sitemap_area_node(id)
-app_page,app_id,uuid,FK,YES,,Owning application identifier.,fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id)
-app_page,entity_id,uuid,,YES,,Associated entity identifier when the page is entity-bound (references the dynamic entities meta-model).,
+app_page,area_id,uuid,FK,YES,,Sitemap area the page belongs to.,fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id); indexed by fki_app_page_area_id
+app_page,node_id,uuid,FK,YES,,Sitemap node the page belongs to.,fkey_node_id FOREIGN KEY (node_id) REFERENCES app_sitemap_area_node(id); indexed by fki_app_page_node_id
+app_page,app_id,uuid,FK,YES,,Owning application identifier.,fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id); indexed by idx_app_page_app_id
+app_page,entity_id,uuid,,YES,,Associated entity identifier when the page is entity-bound (references the dynamic entities meta-model).,Indexed by fki_app_page_entity_id
 app_page,is_razor_body,boolean,,NO,false,Whether the page body is rendered from razor_body markup.,
 app_page,layout,text,,NO,'',Layout template name for the page; column added via ALTER TABLE during initialization.,
 app_page_body_node,id,uuid,PK,NO,,Primary key; unique identifier of the page body node.,app_page_body_node_pkey PRIMARY KEY (id)
-app_page_body_node,parent_id,uuid,FK,YES,,Self-referencing parent body node identifier for nested page layout.,fkey_app_page_body_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_page_body_node(id)
+app_page_body_node,parent_id,uuid,FK,YES,,Self-referencing parent body node identifier for nested page layout.,fkey_app_page_body_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_page_body_node(id); indexed by fki_app_page_body_node_parent_id
 app_page_body_node,node_id,uuid,,YES,,"Associated sitemap node identifier, if any.",
-app_page_body_node,page_id,uuid,FK,NO,,Owning page identifier.,fkey_app_page_body_node_page_id FOREIGN KEY (page_id) REFERENCES app_page(id)
+app_page_body_node,page_id,uuid,FK,NO,,Owning page identifier.,fkey_app_page_body_node_page_id FOREIGN KEY (page_id) REFERENCES app_page(id); indexed by idx_app_page_body_node_page_id
 app_page_body_node,weight,integer,,NO,'-1'::integer,Ordering weight of the node within its parent.,
 app_page_body_node,component_name,text,,YES,,Name of the page-builder component rendered at this node.,
 app_page_body_node,options,text,,YES,,Serialized component options/configuration.,

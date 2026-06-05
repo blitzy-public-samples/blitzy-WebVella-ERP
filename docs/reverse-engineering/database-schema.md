@@ -352,7 +352,7 @@ Navigation nodes (links). Five columns are added post-creation by the version-ga
 
 > `CREATE TABLE public.app_page` — `WebVella.Erp/ERPService.cs:1280`; `layout` column added by `ALTER TABLE public.app_page ADD COLUMN layout` — line 1381
 
-Pages within an app. `razor_body`/`is_razor_body` support Razor-rendered pages; `area_id`/`node_id`/`app_id` tie a page into the navigation hierarchy.
+Pages within an app. `razor_body`/`is_razor_body` support Razor-rendered pages; `area_id`/`node_id`/`app_id` tie a page into the navigation hierarchy. This table also carries four btree indexes — `idx_app_page_app_id` (`app_id`), `fki_app_page_area_id` (`area_id`), `fki_app_page_node_id` (`node_id`), and `fki_app_page_entity_id` (`entity_id`) — created in the embedded DDL.
 
 | Column | Data Type | Key | Nullable | Default | Constraints / Notes |
 |--------|-----------|-----|----------|---------|---------------------|
@@ -365,10 +365,10 @@ Pages within an app. `razor_body`/`is_razor_body` support Razor-rendered pages; 
 | `weight` | `integer` | — | NO | `'-1'::integer` | Ordering weight. |
 | `label_translations` | `text` | — | YES | — | Localized label translations. |
 | `razor_body` | `text` | — | YES | — | Razor markup body. |
-| `area_id` | `uuid` | FK | YES | — | `fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)` |
-| `node_id` | `uuid` | FK | YES | — | `fkey_node_id FOREIGN KEY (node_id) REFERENCES app_sitemap_area_node(id)` |
-| `app_id` | `uuid` | FK | YES | — | `fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id)` |
-| `entity_id` | `uuid` | — | YES | — | Bound entity id (references the dynamic `entities` meta-model). |
+| `area_id` | `uuid` | FK | YES | — | `fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)`; indexed by `fki_app_page_area_id` |
+| `node_id` | `uuid` | FK | YES | — | `fkey_node_id FOREIGN KEY (node_id) REFERENCES app_sitemap_area_node(id)`; indexed by `fki_app_page_node_id` |
+| `app_id` | `uuid` | FK | YES | — | `fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id)`; indexed by `idx_app_page_app_id` |
+| `entity_id` | `uuid` | — | YES | — | Bound entity id (references the dynamic `entities` meta-model). Indexed by `fki_app_page_entity_id`. |
 | `is_razor_body` | `boolean` | — | NO | `false` | Whether the body is rendered from `razor_body`. |
 | `layout` | `text` | — | NO | `''` | Layout template name; added via `ALTER TABLE` during initialization. |
 
@@ -376,14 +376,14 @@ Pages within an app. `razor_body`/`is_razor_body` support Razor-rendered pages; 
 
 > `CREATE TABLE public.app_page_body_node` — `WebVella.Erp/ERPService.cs:1298`; `container_id` column added by `ALTER TABLE public.app_page_body_node ADD COLUMN container_id` — line 1311
 
-Nested page-builder nodes that compose a page's body. Self-referencing via `parent_id`.
+Nested page-builder nodes that compose a page's body. Self-referencing via `parent_id`. This table also carries two btree indexes — `idx_app_page_body_node_page_id` (`page_id`) and `fki_app_page_body_node_parent_id` (`parent_id`) — created in the embedded DDL.
 
 | Column | Data Type | Key | Nullable | Default | Constraints / Notes |
 |--------|-----------|-----|----------|---------|---------------------|
 | `id` | `uuid` | PK | NO | — | `app_page_body_node_pkey PRIMARY KEY (id)` |
-| `parent_id` | `uuid` | FK | YES | — | `fkey_app_page_body_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_page_body_node(id)` (self-reference) |
+| `parent_id` | `uuid` | FK | YES | — | `fkey_app_page_body_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_page_body_node(id)` (self-reference); indexed by `fki_app_page_body_node_parent_id` |
 | `node_id` | `uuid` | — | YES | — | Associated sitemap node, if any. |
-| `page_id` | `uuid` | FK | NO | — | `fkey_app_page_body_node_page_id FOREIGN KEY (page_id) REFERENCES app_page(id)` |
+| `page_id` | `uuid` | FK | NO | — | `fkey_app_page_body_node_page_id FOREIGN KEY (page_id) REFERENCES app_page(id)`; indexed by `idx_app_page_body_node_page_id` |
 | `weight` | `integer` | — | NO | `'-1'::integer` | Ordering weight within the parent. |
 | `component_name` | `text` | — | YES | — | Page-builder component rendered at this node. |
 | `options` | `text` | — | YES | — | Serialized component options. |
@@ -682,18 +682,20 @@ erDiagram
 
 ### 6.1 Conceptual: the dynamic `rec_<entity_name>` pattern (not in CSV lockstep)
 
-The §6 ERD above is the **authoritative, machine-checkable** view of the fixed schema and is kept in exact lockstep with `data-dictionary.csv`. Separately, the metadata-driven engine materializes **physical per-entity record tables at runtime**: one `rec_<entity_name>` table per user- or plugin-defined entity, each with an `id` column plus one typed column per field (see §5). These runtime tables are **not** part of the fixed DDL, are **not** enumerated in `data-dictionary.csv`, and are therefore **deliberately excluded** from the lockstep ERD in §6.
+The §6 ERD above is the **authoritative, machine-checkable** view of the fixed schema and is kept in exact lockstep with `data-dictionary.csv`. Separately, the metadata-driven engine materializes **physical per-entity record tables at runtime**: one `rec_<entity_name>` table per user- or plugin-defined entity, each with an `id` primary-key column plus one typed column per field (see §5). These runtime tables are **not** part of the fixed DDL, are **not** enumerated in `data-dictionary.csv`, and are therefore **deliberately excluded** from the lockstep ERD in §6.
 
 The diagram below is **illustrative only**. `rec_entity_name` is a *template* standing in for the many concrete `rec_*` tables that exist at runtime; it is **not** a CSV row and is **not** claimed to be in lockstep with `data-dictionary.csv`. `entities` and `entity_relations` appear here only to show where the runtime provisioning originates (they are real fixed tables, fully specified in §6 and the CSV).
 
 ```mermaid
-erDiagram
-    entities ||..o{ rec_entity_name : "provisions rec_ table (runtime)"
-    entity_relations ||..o{ rec_entity_name : "enforces FK / N:N (runtime)"
-    rec_entity_name {
-        uuid id PK
+classDiagram
+    class entities
+    class entity_relations
+    class rec_entity_name {
+        uuid id
         text field_per_entity_column
     }
+    entities ..> rec_entity_name : provisions rec_ table at runtime
+    entity_relations ..> rec_entity_name : enforces FK and many-to-many links at runtime
 ```
 
 > **Why this is separate.** Keeping the runtime `rec_*` tables out of the §6 ERD preserves the hard **ERD ↔ `data-dictionary.csv` lockstep** — every box and column in §6 appears verbatim as a CSV row, and every CSV row appears in §6 — while still documenting the meta-model's runtime materialization here for completeness.
