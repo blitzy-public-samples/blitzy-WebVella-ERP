@@ -96,7 +96,7 @@ CREATE TABLE public.entities ( id uuid NOT NULL, "json" json NOT NULL,
   CONSTRAINT entities_pkey PRIMARY KEY (id) );
 ```
 
-> **Factual note (corrects a common assumption).** The `entities` table does **not** have separate `created_by`/`last_modified_by` columns — the entire entity definition, including its field list and permissions, lives **inside the serialized `json` column**. Writes serialize the `DbEntity` object to JSON (`WebVella.Erp/Database/DbEntityRepository.cs:74` insert, `:163` update); reads deserialize `SELECT json FROM entities` (`WebVella.Erp/Database/DbEntityRepository.cs:205`). Deleting an entity both removes its row and `DROP TABLE rec_<name>` for its physical table (`WebVella.Erp/Database/DbEntityRepository.cs:275`).
+> **Factual note (corrects a common assumption).** The `entities` table does **not** have separate `created_by`/`last_modified_by` columns — the entire entity definition, including its field list and permissions, lives **inside the serialized `json` column**. Writes serialize the `DbEntity` object to JSON (`WebVella.Erp/Database/DbEntityRepository.cs:74` insert, `WebVella.Erp/Database/DbEntityRepository.cs:163` update); reads deserialize `SELECT json FROM entities` (`WebVella.Erp/Database/DbEntityRepository.cs:205`). Deleting an entity both removes its row and `DROP TABLE rec_<name>` for its physical table (`WebVella.Erp/Database/DbEntityRepository.cs:275`).
 
 The JSON payload deserializes into `DbEntity` (`WebVella.Erp/Database/DbEntity.cs`), whose `Id` comes from `DbDocumentBase` (`WebVella.Erp/Database/DbDocumentBase.cs:13`):
 
@@ -120,7 +120,7 @@ CREATE TABLE public.entity_relations ( id uuid NOT NULL, "json" json NOT NULL,
   CONSTRAINT entity_relations_pkey PRIMARY KEY (id) );
 ```
 
-Writes serialize a `DbEntityRelation` to the `json` column (`WebVella.Erp/Database/DbRelationRepository.cs:78` insert, `:126` update, `:169` read, `:214` delete). The JSON deserializes into `DbEntityRelation` (`WebVella.Erp/Database/DbEntityRelation.cs`):
+Writes serialize a `DbEntityRelation` to the `json` column (`WebVella.Erp/Database/DbRelationRepository.cs:78` insert, `WebVella.Erp/Database/DbRelationRepository.cs:126` update, `WebVella.Erp/Database/DbRelationRepository.cs:169` read, `WebVella.Erp/Database/DbRelationRepository.cs:214` delete). The JSON deserializes into `DbEntityRelation` (`WebVella.Erp/Database/DbEntityRelation.cs`):
 
 | `DbEntityRelation` property | JSON key | Notes |
 |-----------------------------|----------|-------|
@@ -221,7 +221,6 @@ When a field is added to a `rec_*` table, its logical type is converted to a phy
 | `DbDateTimeField` | `DateTimeField` | `timestamptz` | `TimestampTz` |
 | `DbSelectField` | `SelectField` | `varchar(200)` | `Varchar` |
 | `DbMultiSelectField` | `MultiSelectField` | `text[]` | `Array \| Text` |
-| `DbTreeSelectField` | *(via `GetDatabaseFieldType`)* | `uuid[]` | `Array \| Uuid` |
 | `DbEmailField` | `EmailField` | `varchar(500)` | `Varchar` |
 | `DbPasswordField` | `PasswordField` | `varchar(500)` | `Varchar` |
 | `DbPhoneField` | `PhoneField` | `varchar(100)` | `Varchar` |
@@ -232,6 +231,7 @@ When a field is added to a `rec_*` table, its logical type is converted to a phy
 
 Notes:
 
+- **`DbTreeSelectField`** has **no DDL SQL column type** and is **not persisted** through the standard column path: `DbBaseField.GetFieldType()` does not handle it and throws `Unknown field type` (`WebVella.Erp/Database/FieldTypes/DbBaseField.cs:159`), and `DBTypeConverter.ConvertToDatabaseSqlType` has no `TreeSelect`/`uuid[]` branch. A `DbTreeSelectField` branch exists **only** in the parameter-binding helper `GetDatabaseFieldType(DbBaseField)` (`WebVella.Erp/Database/DBTypeConverter.cs:201`), which returns `NpgsqlDbType.Array | NpgsqlDbType.Uuid` for ADO.NET parameter binding — this is **separate from the DDL column-type mapping** in the table above and does not define a persisted column.
 - **`DbFormulaField`** is commented out in source ("Not supported at the moment", `WebVella.Erp/Database/FieldTypes/DbFormulaField.cs`); formula values are computed, not stored, so no column is generated.
 - **`RelationField`** (`FieldType` value `20`, `WebVella.Erp/Api/Models/FieldTypes/FieldType.cs:45`) is a *virtual* projection used by EQL relation expansion and does not produce a physical column.
 - Every field definition derives from the abstract `DbBaseField`, which carries the common attributes `id`, `name`, `label`, `required`, `unique`, `searchable`, `auditable`, `system`, and `permissions` (`WebVella.Erp/Database/FieldTypes/DbBaseField.cs:8-47`); the concrete subtype is resolved by `GetFieldType()` (`WebVella.Erp/Database/FieldTypes/DbBaseField.cs:114`).
@@ -334,6 +334,8 @@ erDiagram
         uuid performed_by
         timestamptz performed_on
         text comments
+        text previous_status
+        text new_status
     }
 
     entities ||..o{ entity_relations : "origin/target_entity_id (in json)"
@@ -440,18 +442,18 @@ The Approval domain schema is **specified in `jira-stories/STORY-002` but not im
 
 ## 6. Migration History — the Patch-Class Model
 
-WebVella has **no Entity Framework `Migrations/` folder** and **no EF Core** (corrects **C4** and **C3**). Schema evolution is instead implemented as **date-versioned plugin partial classes**. Each plugin is a `partial class XPlugin : ErpPlugin`; its `._.cs` file defines `ProcessPatches()`, and each dated file (e.g., `MailPlugin.20190419.cs`) contributes one `static void PatchYYYYMMDD(EntityManager, EntityRelationManager, RecordManager)` method to that partial class.
+WebVella has **no Entity Framework `Migrations/` folder** and **no EF Core** (corrects **C4** and **C3**). Schema evolution is instead implemented as **date-versioned plugin partial classes**. **Plugins that implement schema patches** are each a `partial class XPlugin : ErpPlugin` whose `._.cs` file defines `ProcessPatches()`, and each dated file (e.g., `MailPlugin.20190419.cs`) contributes one `static void PatchYYYYMMDD(EntityManager, EntityRelationManager, RecordManager)` method to that partial class. This applies to the **six plugin projects with a `*Plugin._.cs` bootstrap** (CRM, Mail, Microsoft CDM, Next, Project, SDK); the **Approval project is an exception** — it has no `ApprovalPlugin` subclass, no bootstrap, and no migration at this commit (see [§7](#7-approval-domain-story-specified) and [`functional-overview.md` §2.4](./functional-overview.md#24-approval-webvellaerppluginsapproval)).
 
 ### 6.1 How patches run
 
 The mechanism is identical across plugins; using the SDK plugin as the reference implementation (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:19`):
 
-1. **Open a system security scope** — `using (SecurityContext.OpenSystemScope())` bypasses per-user authorization for bootstrap work (`SdkPlugin._.cs:21`).
-2. **Instantiate the managers** — `new EntityManager()`, `new EntityRelationManager()`, `new RecordManager()` (`SdkPlugin._.cs:24-26`).
-3. **Read the version cursor** — `DbContext.Current.SettingsRepository.Read()` loads `system_settings.version` (`SdkPlugin._.cs:27-28`), and the plugin's own version is read from the `plugin_data` table (`SdkPlugin._.cs:68-71`).
-4. **Begin a transaction** — `connection.BeginTransaction()` (`SdkPlugin._.cs:35`).
-5. **Apply patches in date order** — a guarded `if (currentPluginSettings.Version < YYYYMMDD) { currentPluginSettings.Version = YYYYMMDD; PatchYYYYMMDD(entMan, relMan, recMan); }` block per patch (`SdkPlugin._.cs:79-145`).
-6. **Persist and commit** — `SavePluginData(...)` writes the new version JSON, then `connection.CommitTransaction()` (`SdkPlugin._.cs:151-153`); any exception triggers `RollbackTransaction()` (`SdkPlugin._.cs:158`).
+1. **Open a system security scope** — `using (SecurityContext.OpenSystemScope())` bypasses per-user authorization for bootstrap work (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:21`).
+2. **Instantiate the managers** — `new EntityManager()`, `new EntityRelationManager()`, `new RecordManager()` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:24-26`).
+3. **Read the version cursor** — `DbContext.Current.SettingsRepository.Read()` loads `system_settings.version` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:27-28`), and the plugin's own version is read from the `plugin_data` table (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:68-71`).
+4. **Begin a transaction** — `connection.BeginTransaction()` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:35`).
+5. **Apply patches in date order** — a guarded `if (currentPluginSettings.Version < YYYYMMDD) { currentPluginSettings.Version = YYYYMMDD; PatchYYYYMMDD(entMan, relMan, recMan); }` block per patch (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:79-145`).
+6. **Persist and commit** — `SavePluginData(...)` writes the new version JSON, then `connection.CommitTransaction()` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:151-153`); any exception triggers `RollbackTransaction()` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:158`).
 
 The comparison `Version < YYYYMMDD` makes patches **idempotent**: already-applied patches are skipped on subsequent startups. Note the two distinct version cursors — the **global** `system_settings.version` ([§2.3](#23-system_settings--the-schema-version-cursor)) and the **per-plugin** version stored in `plugin_data.data` ([Appendix A](#appendix-a-complete-system-table-reference)) — the latter is what gates each plugin's patch sequence.
 

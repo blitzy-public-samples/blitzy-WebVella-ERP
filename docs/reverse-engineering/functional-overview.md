@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-WebVella ERP is a **customizable, plugin-driven Enterprise Resource Planning platform** built on **ASP.NET Core 9**. Its defining trait is an **entity-centric meta-model**: entities, fields, and relations are stored as data and managed at runtime by a core *manager layer*, rather than being fixed compile-time POCOs (see the **meta-model** entry in the [Glossary & Acronyms](./README.md#glossary--acronyms)). Functional capability is delivered through **seven feature plugins** — Approval, CRM, Mail, Microsoft CDM, Next, Project, and SDK — each implemented as an `ErpPlugin` subclass that bootstraps itself and applies its own dated schema patches at startup (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:11`, `WebVella.Erp.Plugins.Project/ProjectPlugin._.cs:11`). These plugins are composed into runnable applications by **seven `WebVella.Erp.Site*` host shells**, each of which wires dependency injection, hybrid authentication, and a specific plugin set (`WebVella.Erp.Site/Startup.cs:183`).
+WebVella ERP is a **customizable, plugin-driven Enterprise Resource Planning platform** built on **ASP.NET Core 9**. Its defining trait is an **entity-centric meta-model**: entities, fields, and relations are stored as data and managed at runtime by a core *manager layer*, rather than being fixed compile-time POCOs (see the **meta-model** entry in the [Glossary & Acronyms](./README.md#glossary--acronyms)). Functional capability is delivered through **seven feature plugin projects** — Approval, CRM, Mail, Microsoft CDM, Next, Project, and SDK. **Most** of them (CRM, Mail, Microsoft CDM, Next, Project, and SDK) are implemented as an `ErpPlugin` subclass with a `*Plugin._.cs` bootstrap that applies its own dated schema patches at startup (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:11`, `WebVella.Erp.Plugins.Project/ProjectPlugin._.cs:11`). **Approval is the exception**: at the pinned commit it is a plugin *project* containing only dashboard code — it has **no `ApprovalPlugin` subclass, no `*Plugin._.cs` bootstrap, and no migration** (see [§2.4](#24-approval-webvellaerppluginsapproval)). These plugins are composed into runnable applications by **seven `WebVella.Erp.Site*` host shells**, each of which wires dependency injection, hybrid authentication, and a specific plugin set (`WebVella.Erp.Site/Startup.cs:183`).
 
 This document catalogs each functional module, the platform's **role-based access model**, the **key business workflows** an administrator or end user performs, the **interdependencies** between modules, and the **multi-site host-shell pattern** used to assemble and deploy the system. Where a module's behavior is only partially built, this overview states so explicitly and separates *implemented code* from *story-specified design* (most notably for the **Approval** plugin — see [§2.4](#24-approval-webvellaerppluginsapproval)).
 
@@ -63,9 +63,9 @@ WebVella is organized as a layered, plugin-extensible system. A **core platform*
 | **jQuery / Bootstrap 4 / StencilJs** | Host-bundled scripts and web components | `WebVella.Erp.Web/wwwroot/js/`, `WebVella.Erp.Web/wwwroot/js/wv-lazyload/` |
 | **No** Angular / React / `package.json` | — (assumption C1 corrected) | repo scan: 0 `package.json` outside `bin`/`obj` |
 
-**Versioned REST surface.** Functionality is reached over a stable, versioned API rooted at `/api/v3.0/...`. The core web layer exposes generic record/datasource/page endpoints, and each plugin contributes its own endpoints under `/api/v3.0/p/{plugin}/...` (for example, the SDK admin endpoints under `api/v3.0/p/sdk/...` at `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39` and the Project endpoints under `api/v3.0/p/project/...` at `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:56`). All controller actions return the standard `ResponseModel` envelope (`WebVella.Erp/Api/Models/BaseModels.cs:40`).
+**Versioned REST surface.** Functionality is reached over a stable, versioned API rooted at `/api/v3.0/...`. The core web layer exposes generic record/datasource/page endpoints, and each plugin contributes its own endpoints under `/api/v3.0/p/{plugin}/...` (for example, the SDK admin endpoints under `api/v3.0/p/sdk/...` at `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39` and the Project endpoints under `api/v3.0/p/project/...` at `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:56`). Most record/manager JSON API actions return the standard `ResponseModel` envelope (`WebVella.Erp/Api/Models/BaseModels.cs:40`), but **some actions are exceptions** — for example `ProjectController.TimeTrackJs` returns a `ContentResult` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:466`), `ProjectController.GetCurrentUser` returns a raw JSON user record (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:488`), and `AdminController.DataSourceAction` returns a raw datasource list (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39`).
 
-**Plugin bootstrap pattern.** Every feature module is a partial class deriving from `ErpPlugin` whose `ProcessPatches()` method runs at startup inside a system security scope and a database transaction, applying that plugin's schema patches in version order (`WebVella.Erp.Plugins.Mail/MailPlugin._.cs:10`, `WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:10`). The platform has **no Entity Framework `Migrations/` folder**; schema history is carried by ~25 **date-versioned plugin partial classes** (the *patch-class migration* convention — see [Glossary](./README.md#glossary--acronyms) and [`database-schema.md`](./database-schema.md)).
+**Plugin bootstrap pattern.** Plugins that own schema patches are implemented as a partial class deriving from `ErpPlugin` whose `ProcessPatches()` method runs at startup inside a system security scope and a database transaction, applying that plugin's schema patches in version order (`WebVella.Erp.Plugins.Mail/MailPlugin._.cs:10`, `WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:10`). **Six of the seven** plugin projects follow this pattern; **Approval does not** — it has no `*Plugin._.cs` bootstrap and contributes no patches (see [§2.4](#24-approval-webvellaerppluginsapproval)). The platform has **no Entity Framework `Migrations/` folder**; schema history is carried by ~25 **date-versioned plugin partial classes** (the *patch-class migration* convention — see [Glossary](./README.md#glossary--acronyms) and [`database-schema.md`](./database-schema.md)).
 
 ---
 
@@ -89,7 +89,7 @@ The seven feature plugins are summarized below, then described individually. Siz
 
 CRM is the **customer / contact domain** module. It is a small plugin (3 `.cs` files) whose bootstrap `CrmPlugin._.cs` follows the standard `ErpPlugin.ProcessPatches()` pattern — opening a system scope, instantiating the `EntityManager`/`EntityRelationManager`/`RecordManager`, reading system settings, and committing within a transaction (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:11-101`). Its initialization version constant is `WEBVELLA_CRM_INIT_VERSION = 20190101` (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:13`).
 
-Notably, CRM's schema patches are written **inline in the bootstrap** rather than as separate dated partial files, and the only versioned patch (`Patch20190123`) is **commented out** — the call `Patch20190123(entMan, relMan, recMan);` and its surrounding block are disabled (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:66`, block `:58-79`). As an as-built fact, CRM therefore initializes plugin settings but **applies no active schema patch** at the pinned commit.
+Notably, CRM's schema patches are written **inline in the bootstrap** rather than as separate dated partial files, and the only versioned patch (`Patch20190123`) is **commented out** — the call `Patch20190123(entMan, relMan, recMan);` and its surrounding block are disabled (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:66`, block `WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:58-79`). As an as-built fact, CRM therefore initializes plugin settings but **applies no active schema patch** at the pinned commit.
 
 > **Excerpt** — the disabled patch call (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:66`):
 > ```csharp
@@ -100,21 +100,21 @@ Notably, CRM's schema patches are written **inline in the bootstrap** rather tha
 
 Project is the **largest feature plugin** (45 `.cs`, 56 `.cshtml`, 65 `.js`) and the most functionally complete. It covers **projects, tasks, time logs, and activity feeds/comments**, and is organized into `Components/`, `Controllers/`, `Datasource/`, `Files/`, `Hooks/`, `Jobs/`, `Model/`, `Services/`, `Theme/`, `Utils/`, and `wwwroot/` directories. Its bootstrap `ProjectPlugin._.cs` uses the standard pattern with `WEBVELLA_PROJECT_INIT_VERSION = 20190101` (`WebVella.Erp.Plugins.Project/ProjectPlugin._.cs:11-13`), and its schema evolves through **8 dated patch classes** (`ProjectPlugin.20190203.cs` … `ProjectPlugin.20190222.cs`, then `ProjectPlugin.20211012.cs` and `ProjectPlugin.20211013.cs`).
 
-**REST endpoints** are exposed by `ProjectController` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:19`) under the `api/v3.0/p/project/...` route family. All actions return the `ResponseModel` envelope.
+**REST endpoints** are exposed by `ProjectController` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:19`) under the `api/v3.0/p/project/...` route family. **Most** actions return the `ResponseModel` envelope; the two `GET` actions in the table below are exceptions — `files/javascript` returns a `ContentResult` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:466`) and `user/get-current` returns a raw JSON user record (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:488`).
 
 | HTTP | Route | Action | Citation |
 |------|-------|--------|----------|
-| POST | `api/v3.0/p/project/pc-post-list/create` | Create a feed/comment post-list item | `ProjectController.cs:56` |
-| POST | `api/v3.0/p/project/pc-post-list/delete` | Delete a post-list item | `ProjectController.cs:142` |
-| POST | `api/v3.0/p/project/pc-timelog-list/create` | Create a time-log list item | `ProjectController.cs:177` |
-| POST | `api/v3.0/p/project/pc-timelog-list/delete` | Delete a time-log list item | `ProjectController.cs:257` |
-| POST | `api/v3.0/p/project/timelog/start` | Start a task's time log | `ProjectController.cs:295` |
-| POST | `api/v3.0/p/project/task/status` | Set a task's status | `ProjectController.cs:362` |
-| POST | `api/v3.0/p/project/task/watch` | Toggle task watch for a user | `ProjectController.cs:396` |
-| GET | `api/v3.0/p/project/files/javascript` | Serve plugin JavaScript | `ProjectController.cs:463` |
-| GET | `api/v3.0/p/project/user/get-current` | Return the current user | `ProjectController.cs:486` |
+| POST | `api/v3.0/p/project/pc-post-list/create` | Create a feed/comment post-list item | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:56` |
+| POST | `api/v3.0/p/project/pc-post-list/delete` | Delete a post-list item | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:142` |
+| POST | `api/v3.0/p/project/pc-timelog-list/create` | Create a time-log list item | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:177` |
+| POST | `api/v3.0/p/project/pc-timelog-list/delete` | Delete a time-log list item | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:257` |
+| POST | `api/v3.0/p/project/timelog/start` | Start a task's time log | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:295` |
+| POST | `api/v3.0/p/project/task/status` | Set a task's status | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:362` |
+| POST | `api/v3.0/p/project/task/watch` | Toggle task watch for a user | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:396` |
+| GET | `api/v3.0/p/project/files/javascript` | Serve plugin JavaScript | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:463` |
+| GET | `api/v3.0/p/project/user/get-current` | Return the current user | `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:486` |
 
-> **As-built note — time-log "stop".** A `timelog/stop` endpoint (`StopTimeLog`) is **present but entirely commented out** in the controller (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:328-360`); only `timelog/start` is active at the pinned commit. The active `StartTimeLog` validates that the task exists and is not already running before delegating to `TaskService` (`ProjectController.cs:295-326`).
+> **As-built note — time-log "stop".** A `timelog/stop` endpoint (`StopTimeLog`) is **present but entirely commented out** in the controller (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:328-360`); only `timelog/start` is active at the pinned commit. The active `StartTimeLog` validates that the task exists and is not already running before delegating to `TaskService` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:295-326`).
 
 **Service layer.** Business logic lives in service classes that all extend a shared `BaseService`, which centralizes the core managers (`RecordManager`, `EntityManager`, `SecurityManager`, `EntityRelationManager`, `DbFileRepository`) as protected properties (`WebVella.Erp.Plugins.Project/Services/BaseService.cs:10-16`):
 
@@ -145,24 +145,24 @@ The shipped functionality corresponds to **STORY-009** (Manager Approval Dashboa
 
 | HTTP | Route | Action | Citation |
 |------|-------|--------|----------|
-| GET | `api/v3.0/p/approval/dashboard/metrics` | Return aggregated dashboard metrics | `ApprovalController.cs:113` |
-| GET | `api/v3.0/p/approval/dashboard/health` | Lightweight health/status payload | `ApprovalController.cs:187` |
+| GET | `api/v3.0/p/approval/dashboard/metrics` | Return aggregated dashboard metrics | `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:113` |
+| GET | `api/v3.0/p/approval/dashboard/health` | Lightweight health/status payload | `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:187` |
 
-**Role gating (implemented).** Access to the dashboard is restricted to a fixed allow-list of role names — `manager`, `administrator`, and `admin` (`ApprovalController.cs:30-35`). The check `IsManagerRole()` compares the current user's roles (lower-cased) against that list (`ApprovalController.cs:92`); unauthenticated callers receive `401` (`ApprovalController.cs:124-127`) and authenticated-but-unauthorized callers receive `403` (`ApprovalController.cs:131-134`). 
+**Role gating (implemented).** Access to the dashboard is restricted to a fixed allow-list of role names — `manager`, `administrator`, and `admin` (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:30-35`). The check `IsManagerRole()` compares the current user's roles (lower-cased) against that list (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:92`); unauthenticated callers receive `401` (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:124-127`) and authenticated-but-unauthorized callers receive `403` (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:131-134`). 
 
 > **Story-vs-implemented nuance.** STORY-009 specified access for the **Manager** role only (`jira-stories/STORY-009-manager-dashboard-metrics.md`), but the shipped controller **broadens** the allow-list to `manager`/`administrator`/`admin`. This is also catalogued as authorization rule `AUTHZ-013` in [`business-rules.md`](./business-rules.md#5-authorization-rules-authz-).
 
-**Metric computation (implemented).** `DashboardMetricsService` (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:16`) computes each metric by running **EQL** against the (story-defined) approval entities via `new EqlCommand(...).Execute()` over a `RecordManager` (`DashboardMetricsService.cs:23-25`). The aggregator `GetDashboardMetrics(userId, fromDate, toDate)` (`:35`) calls:
+**Metric computation (implemented).** `DashboardMetricsService` (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:16`) computes each metric by running **EQL** against the (story-defined) approval entities via `new EqlCommand(...).Execute()` over a `RecordManager` (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:23-25`). The aggregator `GetDashboardMetrics(userId, fromDate, toDate)` (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:35`) calls:
 
 | Metric | Method | Citation |
 |--------|--------|----------|
-| Pending approvals (for the user) | `GetPendingApprovalsCount` | `DashboardMetricsService.cs:58` |
-| Overdue requests | `GetOverdueRequestsCount` | `DashboardMetricsService.cs:90` |
-| Average approval time (hours, 2 dp) | `GetAverageApprovalTime` | `DashboardMetricsService.cs:146` |
-| Approval rate (%, 1 dp) | `GetApprovalRate` | `DashboardMetricsService.cs:205` |
-| Recent activity feed | `GetRecentActivity` | `DashboardMetricsService.cs:252` |
+| Pending approvals (for the user) | `GetPendingApprovalsCount` | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:58` |
+| Overdue requests | `GetOverdueRequestsCount` | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:90` |
+| Average approval time (hours, 2 dp) | `GetAverageApprovalTime` | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:146` |
+| Approval rate (%, 1 dp) | `GetApprovalRate` | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:205` |
+| Recent activity feed | `GetRecentActivity` | `WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:252` |
 
-The dashboard's user-facing surface is the page component `PcApprovalDashboard` (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), with its Razor views and `service.js` (5 `.cshtml`, 1 `.js`). The metric formulas (e.g., average-time and rate rounding) are catalogued as calculation rules `CALC-004`/`CALC-005` in [`business-rules.md`](./business-rules.md#4-calculation--derivation-rules-calc-).
+The dashboard's user-facing surface is the page component `PcApprovalDashboard` (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), with its Razor views and `WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js` (5 `.cshtml`, 1 `.js`). The metric formulas (e.g., average-time and rate rounding) are catalogued as calculation rules `CALC-004`/`CALC-005` in [`business-rules.md`](./business-rules.md#4-calculation--derivation-rules-calc-).
 
 > **Important:** the metric methods query approval entities (e.g., `approval_request`, `approval_history`) that are **defined by the stories, not by an implemented migration**. The dashboard code exists and compiles, but the entities it reads are part of the design-stage schema described below.
 
@@ -196,18 +196,18 @@ Microsoft CDM provides **Common Data Model migration scaffolding** — aligning 
 
 The SDK is the platform's **administration and design tooling** (69 `.cs`, 54 `.cshtml`, 42 `.js`) — the module behind the screenshots under `doc-images/sdk-*.png`. It lets administrators design entities, fields, and relations; build applications, sitemaps, and pages; define datasources (EQL- or code-backed); and manage background jobs, schedule plans, roles, users, and the system log. Its bootstrap `SdkPlugin._.cs` defines the SDK application identity (app name `"sdk"`, fixed GUIDs for the app and its areas) and uses the standard `ProcessPatches()` pattern with `WEBVELLA_SDK_INIT_VERSION = 20181001` (`WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:10-16`); it evolves through **5 dated patches** (`SdkPlugin.20181215.cs`, `SdkPlugin.20190227.cs`, `SdkPlugin.20200610.cs`, `SdkPlugin.20201221.cs`, `SdkPlugin.20210429.cs`).
 
-**REST endpoints** are provided by `AdminController` (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:17`), which is guarded for cookie-authenticated users at the class level (`[Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]`, `AdminController.cs:16`); sitemap mutations additionally require the `administrator` role (`[Authorize(Roles = "administrator")]`, `AdminController.cs:53`). The controller mixes `[Route]` and `[AcceptVerbs(..., Route = ...)]` styles:
+**REST endpoints** are provided by `AdminController` (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:17`), which is guarded for cookie-authenticated users at the class level (`[Authorize(AuthenticationSchemes = CookieAuthenticationDefaults.AuthenticationScheme)]`, `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:16`); sitemap mutations additionally require the `administrator` role (`[Authorize(Roles = "administrator")]`, `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:53`). The controller mixes `[Route]` and `[AcceptVerbs(..., Route = ...)]` styles:
 
 | HTTP | Route | Action | Citation |
 |------|-------|--------|----------|
-| GET | `api/v3.0/p/sdk/datasource/list` | List all datasources | `AdminController.cs:39` |
-| POST | `api/v3.0/p/sdk/sitemap/area` | Create a sitemap area | `AdminController.cs:54` |
-| POST | `api/v3.0/p/sdk/sitemap/area/{areaId}` | Update a sitemap area | `AdminController.cs:104` |
-| POST | `api/v3.0/p/sdk/sitemap/area/{areaId}/delete` | Delete a sitemap area | `AdminController.cs:156` |
-| POST | `api/v3.0/p/sdk/sitemap/node` | Create a sitemap node | `AdminController.cs:203` |
-| POST | `api/v3.0/p/sdk/sitemap/node/{nodeId}` | Update a sitemap node | `AdminController.cs:274` |
-| POST | `api/v3.0/p/sdk/sitemap/node/{nodeId}/delete` | Delete a sitemap node | `AdminController.cs:378` |
-| GET | `api/v3.0/p/sdk/sitemap/node/get-aux-info` | Auxiliary node metadata | `AdminController.cs:424` |
+| GET | `api/v3.0/p/sdk/datasource/list` | List all datasources | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39` |
+| POST | `api/v3.0/p/sdk/sitemap/area` | Create a sitemap area | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:54` |
+| POST | `api/v3.0/p/sdk/sitemap/area/{areaId}` | Update a sitemap area | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:104` |
+| POST | `api/v3.0/p/sdk/sitemap/area/{areaId}/delete` | Delete a sitemap area | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:156` |
+| POST | `api/v3.0/p/sdk/sitemap/node` | Create a sitemap node | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:203` |
+| POST | `api/v3.0/p/sdk/sitemap/node/{nodeId}` | Update a sitemap node | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:274` |
+| POST | `api/v3.0/p/sdk/sitemap/node/{nodeId}/delete` | Delete a sitemap node | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:378` |
+| GET | `api/v3.0/p/sdk/sitemap/node/get-aux-info` | Auxiliary node metadata | `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:424` |
 
 The SDK's design surfaces are the subject of the workflow walkthroughs in [§4](#4-key-business-workflows).
 
@@ -223,9 +223,9 @@ WebVella's access model is **role-based**, with permissions attached to **entity
 
 | Check | Behavior | Citation |
 |-------|----------|----------|
-| `IsUserInRole(...)` | True when the current user holds any of the supplied roles (overloads for `ErpRole[]` and `Guid[]`) | `SecurityContext.cs:45`, `:54` |
-| `HasEntityPermission(permission, entity, user)` | Switches on `Read`/`Create`/`Update`/`Delete` and tests the user's roles against the entity's `RecordPermissions`; the **system user** has unlimited rights, and an unauthenticated caller is evaluated against the **guest** role | `SecurityContext.cs:63` |
-| `HasMetaPermission(user)` | True only when the user holds the **administrator** role — gating meta-model (schema) operations | `SecurityContext.cs:109` |
+| `IsUserInRole(...)` | True when the current user holds any of the supplied roles (overloads for `ErpRole[]` and `Guid[]`) | `WebVella.Erp/Api/SecurityContext.cs:45`, `WebVella.Erp/Api/SecurityContext.cs:54` |
+| `HasEntityPermission(permission, entity, user)` | Switches on `Read`/`Create`/`Update`/`Delete` and tests the user's roles against the entity's `RecordPermissions`; the **system user** has unlimited rights, and an unauthenticated caller is evaluated against the **guest** role | `WebVella.Erp/Api/SecurityContext.cs:63` |
+| `HasMetaPermission(user)` | True only when the user holds the **administrator** role — gating meta-model (schema) operations | `WebVella.Erp/Api/SecurityContext.cs:109` |
 
 > **Excerpt** — read-permission test (`WebVella.Erp/Api/SecurityContext.cs:63`):
 > ```csharp
@@ -233,7 +233,7 @@ WebVella's access model is **role-based**, with permissions attached to **entity
 >     return user.Roles.Any(x => entity.RecordPermissions.CanRead.Any(z => z == x.Id));
 > ```
 
-**User & role management.** Users and roles are administered through `SecurityManager` (`WebVella.Erp/Api/SecurityManager.cs`), which provides `GetUser(...)` lookups by id, email, or email+password (`SecurityManager.cs:36`, `:49`, `:77`), `GetAllRoles()` (`SecurityManager.cs:186`), and `SaveRole(...)` (`SecurityManager.cs:295`), among others. The base service shared by Project's services exposes a `SecurityManager` instance for convenience (`WebVella.Erp.Plugins.Project/Services/BaseService.cs:12`).
+**User & role management.** Users and roles are administered through `SecurityManager` (`WebVella.Erp/Api/SecurityManager.cs`), which provides `GetUser(...)` lookups by id, email, or email+password (`WebVella.Erp/Api/SecurityManager.cs:36`, `WebVella.Erp/Api/SecurityManager.cs:49`, `WebVella.Erp/Api/SecurityManager.cs:77`), `GetAllRoles()` (`WebVella.Erp/Api/SecurityManager.cs:186`), and `SaveRole(...)` (`WebVella.Erp/Api/SecurityManager.cs:295`), among others. The base service shared by Project's services exposes a `SecurityManager` instance for convenience (`WebVella.Erp.Plugins.Project/Services/BaseService.cs:12`).
 
 > **Identity model (cross-doc alignment).** Authentication is performed by the framework's claims-based identity (`ClaimsPrincipal`/`ClaimsIdentity`), populated by the host authentication schemes (cookie + JWT — see [§6](#6-multi-site-host-shell-pattern)); the platform's `ErpPrincipal`/`ErpIdentity`/`AuthorizeAttribute` types under `WebVella.Erp.Web/Security/` are **legacy and commented out** and do **not** enforce authorization at runtime (see the [`ErpPrincipal`/`ErpIdentity` glossary entry](./README.md#glossary--acronyms) and [`security-quality.md`](./security-quality.md)). Authorization at the domain level is the `SecurityContext` + `RecordPermissions` mechanism described above.
 
@@ -271,7 +271,7 @@ Administrators model the domain by defining **entities**, their **fields**, and 
 
 ### 4.2 Applications, sitemap & home pages
 
-Entities and pages are organized into **applications**, each with a **sitemap** (areas and nodes) and **home pages**. Sitemap areas/nodes are created and edited through the SDK admin endpoints in [§2.7](#27-sdk-webvellaerppluginssdk) (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:54`, `:203`).
+Entities and pages are organized into **applications**, each with a **sitemap** (areas and nodes) and **home pages**. Sitemap areas/nodes are created and edited through the SDK admin endpoints in [§2.7](#27-sdk-webvellaerppluginssdk) (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:54`, `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:203`).
 
 | Step | Figure |
 |------|--------|
@@ -316,7 +316,7 @@ Operational administration covers **background jobs** (units of work derived fro
 
 ### 4.6 Project time-tracking (runtime)
 
-A core Project workflow is **task time-tracking**. A user starts a task's timer via `POST api/v3.0/p/project/timelog/start`, which validates that the task exists and is not already running before delegating to `TaskService` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:295-326`). Task status changes (`task/status`, `:362`) and watch toggling (`task/watch`, `:396`) are sibling operations. *As-built caveat:* the matching `timelog/stop` endpoint is **commented out** (`ProjectController.cs:328-360`), so stopping a timer is not available through that route at the pinned commit.
+A core Project workflow is **task time-tracking**. A user starts a task's timer via `POST api/v3.0/p/project/timelog/start`, which validates that the task exists and is not already running before delegating to `TaskService` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:295-326`). Task status changes (`task/status`, `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:362`) and watch toggling (`task/watch`, `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:396`) are sibling operations. *As-built caveat:* the matching `timelog/stop` endpoint is **commented out** (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:328-360`), so stopping a timer is not available through that route at the pinned commit.
 
 ```mermaid
 sequenceDiagram
@@ -337,7 +337,7 @@ sequenceDiagram
 
 ### 4.7 Manager approval dashboard (runtime, implemented)
 
-A manager opens the **approval dashboard** to monitor team workload. The page component requests `GET api/v3.0/p/approval/dashboard/metrics` (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:113`); the controller enforces the `manager`/`administrator`/`admin` allow-list (`ApprovalController.cs:30-35`, `:92`) and returns `403` to other authenticated users (`:131-134`). On success, `DashboardMetricsService` returns pending, overdue, average-time, rate, and recent-activity values computed via EQL (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:35`). This is the implemented slice of **STORY-009**; the broader approval workflow it would sit atop is design-stage (see [§2.4](#24-approval-webvellaerppluginsapproval)).
+A manager opens the **approval dashboard** to monitor team workload. The page component requests `GET api/v3.0/p/approval/dashboard/metrics` (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:113`); the controller enforces the `manager`/`administrator`/`admin` allow-list (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:30-35`, `WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:92`) and returns `403` to other authenticated users (`WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs:131-134`). On success, `DashboardMetricsService` returns pending, overdue, average-time, rate, and recent-activity values computed via EQL (`WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs:35`). This is the implemented slice of **STORY-009**; the broader approval workflow it would sit atop is design-stage (see [§2.4](#24-approval-webvellaerppluginsapproval)).
 
 ---
 
@@ -384,7 +384,7 @@ graph TD
 
 WebVella does not ship a single monolithic web application. Instead, **seven `WebVella.Erp.Site*` host shells** each compose a chosen **plugin set** into a runnable ASP.NET Core app. Each host contains the same four files — `Program.cs`, `Startup.cs`, `Config.json`, and a `.csproj` — and wires **dependency injection**, **hybrid authentication**, and **plugin registration**.
 
-**Host bootstrapping.** `Program.cs` builds the default web host and points it at `Startup` (`WebVella.Erp.Site/Program.cs:14-17`). `Startup.ConfigureServices` registers **hybrid authentication** — a cookie scheme plus JWT bearer — via `AddAuthentication(...)` (`WebVella.Erp.Site/Startup.cs:88`), `.AddCookie(...)` (`:93`), and `.AddJwtBearer(...)` (`:102`), then calls `services.AddErp()` (`:128`). `Startup.Configure` enables `UseAuthentication()`/`UseAuthorization()` (`:179-180`) and registers the plugin set and ERP middleware pipeline, e.g. `.UseErpPlugin<SdkPlugin>().UseErp().UseErpMiddleware().UseJwtMiddleware()` (`WebVella.Erp.Site/Startup.cs:183-186`).
+**Host bootstrapping.** `Program.cs` builds the default web host and points it at `Startup` (`WebVella.Erp.Site/Program.cs:14-17`). `Startup.ConfigureServices` registers **hybrid authentication** — a cookie scheme plus JWT bearer — via `AddAuthentication(...)` (`WebVella.Erp.Site/Startup.cs:88`), `.AddCookie(...)` (`WebVella.Erp.Site/Startup.cs:93`), and `.AddJwtBearer(...)` (`WebVella.Erp.Site/Startup.cs:102`), then calls `services.AddErp()` (`WebVella.Erp.Site/Startup.cs:128`). `Startup.Configure` enables `UseAuthentication()`/`UseAuthorization()` (`WebVella.Erp.Site/Startup.cs:179-180`) and registers the plugin set and ERP middleware pipeline, e.g. `.UseErpPlugin<SdkPlugin>().UseErp().UseErpMiddleware().UseJwtMiddleware()` (`WebVella.Erp.Site/Startup.cs:183-186`).
 
 > **Excerpt** — plugin + middleware registration (`WebVella.Erp.Site/Startup.cs:183`):
 > ```csharp
@@ -398,13 +398,13 @@ WebVella does not ship a single monolithic web application. Instead, **seven `We
 
 | Site host | Registered plugins (in order) | Citations |
 |-----------|-------------------------------|-----------|
-| `WebVella.Erp.Site` (default) | SDK | `Site/Startup.cs:183` |
-| `WebVella.Erp.Site.Crm` | Next, SDK, CRM | `Site.Crm/Startup.cs:120-122` |
-| `WebVella.Erp.Site.Mail` | SDK, Mail *(Next commented out)* | `Site.Mail/Startup.cs:121-122` (`:120`) |
-| `WebVella.Erp.Site.MicrosoftCDM` | Microsoft CDM, SDK | `Site.MicrosoftCDM/Startup.cs:122-123` |
-| `WebVella.Erp.Site.Next` | Next | `Site.Next/Startup.cs:123` |
-| `WebVella.Erp.Site.Project` | Next, SDK, Project | `Site.Project/Startup.cs:167-169` |
-| `WebVella.Erp.Site.Sdk` | SDK *(Next commented out)* | `Site.Sdk/Startup.cs:123` (`:122`) |
+| `WebVella.Erp.Site` (default) | SDK | `WebVella.Erp.Site/Startup.cs:183` |
+| `WebVella.Erp.Site.Crm` | Next, SDK, CRM | `WebVella.Erp.Site.Crm/Startup.cs:120-122` |
+| `WebVella.Erp.Site.Mail` | SDK, Mail *(Next commented out)* | `WebVella.Erp.Site.Mail/Startup.cs:121-122` (`WebVella.Erp.Site.Mail/Startup.cs:120`) |
+| `WebVella.Erp.Site.MicrosoftCDM` | Microsoft CDM, SDK | `WebVella.Erp.Site.MicrosoftCDM/Startup.cs:122-123` |
+| `WebVella.Erp.Site.Next` | Next | `WebVella.Erp.Site.Next/Startup.cs:123` |
+| `WebVella.Erp.Site.Project` | Next, SDK, Project | `WebVella.Erp.Site.Project/Startup.cs:167-169` |
+| `WebVella.Erp.Site.Sdk` | SDK *(Next commented out)* | `WebVella.Erp.Site.Sdk/Startup.cs:123` (`WebVella.Erp.Site.Sdk/Startup.cs:122`) |
 
 > **As-built observation.** **No Site host registers the Approval plugin.** Combined with the absence of an `ApprovalPlugin._.cs` bootstrap, this confirms that the Approval workflow engine is design-stage; only its dashboard controller/service are present in the tree (see [§2.4](#24-approval-webvellaerppluginsapproval)). Note also that the SDK plugin appears in almost every host, reflecting its role as shared design tooling.
 
@@ -420,13 +420,13 @@ WebVella does not ship a single monolithic web application. Instead, **seven `We
 | `EnableFileSystemStorage`, `FileSystemStorageFolder` | File-storage backend selection and path |
 | `EmailEnabled`, `EmailSMTP*`, `EmailFrom`, `EmailTo` | SMTP settings consumed by the Mail plugin |
 | `AppName`, `NavLogoUrl` | Branding |
-| `Jwt` → `Key`, `Issuer`, `Audience` | JWT bearer settings *(key redacted)* — paired with `.AddJwtBearer(...)` in `Startup.cs:102` |
+| `Jwt` → `Key`, `Issuer`, `Audience` | JWT bearer settings *(key redacted)* — paired with `.AddJwtBearer(...)` in `WebVella.Erp.Site/Startup.cs:102` |
 
 > **Security note.** `Config.json` contains a database password, an `EncryptionKey`, and a `Jwt:Key`. Per the suite's secret-handling policy these values are **redacted** in this documentation; the broader secrets-in-configuration discussion lives in [`security-quality.md`](./security-quality.md).
 
 ### 6.1 Console harness (`WebVella.Erp.ConsoleApp`)
 
-Alongside the web hosts, the solution includes a **console harness** that exercises the platform API outside of ASP.NET Core. Its `Program.Main()` opens a system security scope, initializes the ERP engine (culture setup, loading `config.json`, `DbContext.CreateContext(...)`, `ErpService`, and AutoMapper configuration), then demonstrates a record query and a record-hook sample (`WebVella.Erp.ConsoleApp/Program.cs:16-45`). The harness also ships example record hooks — `RoleRecordHooks.cs` and `UserRecordHooks.cs` — together with `StringExtensions.cs` and its own `Config.json` and `.csproj`. It is useful for bootstrap/maintenance tasks and as a minimal, self-contained illustration of the manager layer and hook mechanism.
+Alongside the web hosts, the solution includes a **console harness** that exercises the platform API outside of ASP.NET Core. Its `Program.Main()` opens a system security scope, initializes the ERP engine (culture setup, loading `config.json`, `DbContext.CreateContext(...)`, `ErpService`, and AutoMapper configuration), then demonstrates a record query and a record-hook sample (`WebVella.Erp.ConsoleApp/Program.cs:16-45`). The harness also ships example record hooks — `WebVella.Erp.ConsoleApp/RoleRecordHooks.cs` and `WebVella.Erp.ConsoleApp/UserRecordHooks.cs` — together with `WebVella.Erp.ConsoleApp/StringExtensions.cs` and its own `Config.json` and `.csproj`. It is useful for bootstrap/maintenance tasks and as a minimal, self-contained illustration of the manager layer and hook mechanism.
 
 ---
 
