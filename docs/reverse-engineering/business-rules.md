@@ -2,7 +2,7 @@
 
 *Generated 2026-06-05 18:51 UTC by read-only static analysis of `WebVella.ERP3.sln`. No production code, configuration, or schema artifact was modified in the production of this report.*
 
-> **Deliverable 5 of the WebVella ERP reverse-engineering suite.** This catalog documents the business rules **as they are actually implemented** in the codebase. Every rule resolves to a real file, class, and method (line numbers included wherever practical). It is a factual "what-exists" record, not a specification of desired behavior; recommendations belong only to [`modernization-roadmap.md`](./modernization-roadmap.md).
+> **Deliverable 5 of the WebVella ERP reverse-engineering suite.** This catalog documents the business rules **as they are actually implemented** in the codebase. Every rule resolves to a real file, class, and method (line numbers included wherever practical). It is a factual "what-exists" record, not a specification of desired behavior; recommendations belong only to `modernization-roadmap.md` (a forthcoming deliverable).
 
 ---
 
@@ -136,8 +136,8 @@ Data-integrity rules are enforced at the **database** level by constraints in th
 | INTEG-009 | `app_page_body_node` rows are referentially bound by foreign keys to their parent node (`parent_id → app_page_body_node(id)`) and owning page (`page_id → app_page(id)`). | `WebVella.Erp/ERPService.cs:1345-1350` |
 | INTEG-010 | Sitemap structures are referentially bound: `app_id → app(id)`, `area_id → app_sitemap_area(id)`, and `node_id → app_sitemap_area_node(id)` foreign keys tie areas, groups, and nodes to their owners. | `WebVella.Erp/ERPService.cs:1353-1374` |
 | INTEG-011 | Sitemap area nodes support **self-referencing hierarchy** via `fkey_app_sitemap_area_node_parent_id (parent_id → app_sitemap_area_node(id))`. | `WebVella.Erp/ERPService.cs:1464-1465` |
-| INTEG-012 | A field flagged **`Unique` generates a database `UNIQUE` constraint `idx_u_<entity>_<field>`** on the dynamic `rec_<entity>` record table. | `WebVella.Erp/Database/DbRecordRepository.cs:DbRecordRepository.CreateRecordField:309-310` |
-| INTEG-013 | A field flagged **`Required` is enforced `NOT NULL` at the column level** on the `rec_<entity>` table (nullable is set to `!field.Required`). | `WebVella.Erp/Database/DbRecordRepository.cs:DbRecordRepository.UpdateRecordField:326` |
+| INTEG-012 | A field flagged **`Unique` generates a database `UNIQUE` constraint `idx_u_<entity>_<field>`** on the dynamic `rec_<entity_name>` record table. | `WebVella.Erp/Database/DbRecordRepository.cs:DbRecordRepository.CreateRecordField:309-310` |
+| INTEG-013 | A field flagged **`Required` is enforced `NOT NULL` at the column level** on the `rec_<entity_name>` table (nullable is set to `!field.Required`). | `WebVella.Erp/Database/DbRecordRepository.cs:DbRecordRepository.UpdateRecordField:326` |
 | INTEG-014 | Unique indexes are created via `CREATE UNIQUE INDEX IF NOT EXISTS`, and **geography fields receive a GIST spatial index** rather than a btree index. | `WebVella.Erp/Database/DbRepository.cs:DbRepository.CreateIndex:469-472` |
 | INTEG-015 | A relation's **origin and target field must each be a Unique Identifier (GUID) field** — relations may only be anchored on primary-key columns. | `WebVella.Erp/Api/EntityRelationManager.cs:117,128` |
 | INTEG-016 | A relation's **origin/target entity and field must exist** before the relation is accepted ("The origin entity do not exist." / "The target field do not exist."). | `WebVella.Erp/Api/EntityRelationManager.cs:110-126` |
@@ -189,9 +189,9 @@ Authorization is enforced at three layers: **transport** (the hybrid JWT-or-Cook
 This catalog is one node in a cross-referential suite; the following contracts hold:
 
 - **Module taxonomy** — module and file references use the canonical taxonomy defined in [`code-inventory.md`](./code-inventory.md) (Core, Web, WebAssembly, ConsoleApp, the 7 Plugins, the 7 Sites).
-- **Schema names** — every table and constraint named in the Data Integrity table (e.g. `plugin_data`, `idx_u_plugin_data_name`, `entity_relations`, `rec_<entity>`) matches [`database-schema.md`](./database-schema.md) and [`data-dictionary.csv`](./data-dictionary.csv) exactly.
+- **Schema names** — every table and constraint named in the Data Integrity table (e.g. `plugin_data`, `idx_u_plugin_data_name`, `entity_relations`, `rec_<entity_name>`) matches [`database-schema.md`](./database-schema.md) and [`data-dictionary.csv`](./data-dictionary.csv) exactly.
 - **Citations** — every `Source` path resolves to a real file catalogued in [`code-inventory.csv`](./code-inventory.csv).
-- **Findings flow** — the authorization and integrity findings here feed the assessment in [`security-quality.md`](./security-quality.md) and the phased plan in [`modernization-roadmap.md`](./modernization-roadmap.md).
+- **Findings flow** — the authorization and integrity findings here will feed the assessment in `security-quality.md` and the phased plan in `modernization-roadmap.md` (both forthcoming deliverables).
 
 ---
 

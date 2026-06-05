@@ -3,8 +3,8 @@
 > **Deliverable 2 of 7** · Reverse-Engineering Documentation Suite
 > **Generated (UTC):** 2026-06-05 18:10 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
-> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
-> **Suite index:** [`README.md`](./README.md)
+> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · `security-quality.md` _(forthcoming)_ · `modernization-roadmap.md` _(forthcoming)_
+> **Suite index:** `README.md` _(forthcoming)_
 
 ---
 
@@ -129,7 +129,7 @@ Plugins that own schema evolve it through a `ProcessPatches()` method that calls
 
 Patch coverage differs by plugin (consistent with [`code-inventory.md`](./code-inventory.md) §2.5 and [`database-schema.md`](./database-schema.md) §7.3): only **`SDK`, `Mail`, `Next`, and `Project`** ship dated `<Plugin>.YYYYMMDD.cs` files (25 in total). **`Crm`** and **`MicrosoftCDM`** define a `ProcessPatches()` shell whose `Patch20190123` call is commented out, and **`Approval`** defines no `ProcessPatches()` at all.
 
-`Approval` is nonetheless representative of a full plugin's structure: it ships a page component (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), a controller (`Controllers/ApprovalController.cs`), an API model (`Api/DashboardMetricsModel.cs`), and a service (`Services/DashboardMetricsService.cs`) — the same Component/Controller/Service/Api shape any plugin uses to extend the platform.
+`Approval` nonetheless demonstrates **one** of the available plugin extension patterns: it ships a page component (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), a controller (`Controllers/ApprovalController.cs`), an API model (`Api/DashboardMetricsModel.cs`), and a service (`Services/DashboardMetricsService.cs`). This Component/Controller/Service/Api combination is **not** a universal plugin shape — plugin structure varies across the suite: `Crm` ships a `Model` folder only and `MicrosoftCDM` ships `Model` + `wwwroot` (neither has Controllers, Services, or Api folders); `Mail` ships `Services` + `Api` but no controllers; `Next` ships `Services` only; and `Project` and `SDK` ship `Controllers` + `Services` but no `Api` folder.
 
 ### 2.5 Diagram 1 — System component diagram (C4-style)
 
@@ -226,7 +226,7 @@ Because every row arrives as a JSON document, `EqlCommand` parses each row with 
 
 ### 3.5 API entry point — `datasource/test`
 
-The EQL→SQL path is exposed for tooling through the monolithic Web API. In `WebVella.Erp.Web/Controllers/WebApiController.cs`, the route `[Route("api/v3.0/datasource/test")]` (`WebApiController.cs:511`) accepts a `DataSourceTestModel` and, via a `DataSourceManager`, either returns the generated SQL — `dataSourceManager.GenerateSql(model.Eql, model.Parameters, model.ReturnTotal)` (`WebApiController.cs:525`) — or executes it and serializes the records — `dataSourceManager.Execute(...)` (`:527`). A sibling route `[Route("api/v3.0/datasource/code-compile")]` (`:494`) compiles C# data-source code at runtime via `CodeEvalService.Compile(...)` (analyzed as a remote-code-execution surface in [`security-quality.md`](./security-quality.md)).
+The EQL→SQL path is exposed for tooling through the monolithic Web API. In `WebVella.Erp.Web/Controllers/WebApiController.cs`, the route `[Route("api/v3.0/datasource/test")]` (`WebApiController.cs:511`) accepts a `DataSourceTestModel` and, via a `DataSourceManager`, either returns the generated SQL — `dataSourceManager.GenerateSql(model.Eql, model.Parameters, model.ReturnTotal)` (`WebApiController.cs:525`) — or executes it and serializes the records — `dataSourceManager.Execute(...)` (`:527`). A sibling route `[Route("api/v3.0/datasource/code-compile")]` (`:494`) compiles C# data-source code at runtime via `CodeEvalService.Compile(...)` (analyzed as a remote-code-execution surface in `security-quality.md`, a forthcoming deliverable).
 
 ### 3.6 Diagram 2 — EQL query lifecycle (request data-flow)
 
@@ -268,11 +268,13 @@ WebVella ERP supports two credential styles on the same endpoints: **cookie** se
 
 The policy scheme's `ForwardDefaultSelector` (`Startup.cs:117`) inspects the inbound `Authorization` header: if it is non-empty and starts with `"Bearer "`, the request is forwarded to the JWT bearer scheme (`Startup.cs:120–121`); otherwise it falls through to the cookie scheme (`:123`). This is what allows a single set of routes to serve both browser sessions and token-bearing API calls.
 
-### 4.3 `JwtMiddleware` and the `SecurityContext` bridge
+### 4.3 `ErpMiddleware`, custom `JwtMiddleware`, and the `SecurityContext` bridge
 
-Token-bearing requests are further processed by `WebVella.Erp.Web/Middleware/JwtMiddleware.cs`. `Invoke(HttpContext)` (`JwtMiddleware.cs:21`) obtains a token from `GetTokenAsync("access_token")` or by stripping the 7-character `"Bearer "` prefix off the `Authorization` header (`:32`), validates it via `AuthService.GetValidSecurityTokenAsync(token)` (`:42`), loads the user with `new SecurityManager().GetUser(...)` (`:48`), and attaches it to `context.Items["User"]` and `context.User` as a JWT `ClaimsPrincipal` (`:49–52`). Validation failures are swallowed (`:56–60`), leaving the request unauthenticated rather than throwing.
+The `ClaimsPrincipal` that the ERP-specific middleware consumes is the one already produced by ASP.NET `UseAuthentication` (§4.1–4.2) — built by whichever handler the policy scheme selected (the JwtBearer handler for `Bearer` requests, otherwise the cookie handler). Both custom middleware components run **after** `UseAuthentication`/`UseAuthorization`, and `ErpMiddleware` runs **before** the custom `JwtMiddleware` (`Startup.cs:185` then `:186`; see §4.4).
 
-The ASP.NET principal is then translated into the ERP authorization world by `ErpMiddleware` (`WebVella.Erp.Web/Middleware/ErpMiddleware.cs`): it opens a per-request `DbContext` (`ErpMiddleware.cs:29`), resolves the `ErpUser` via `AuthService.GetUser(context.User)` (`:32`), and opens a security scope with `SecurityContext.OpenScope(user)` (`:35`); if the principal is authenticated but no ERP user resolves, it signs the cookie out (`:41`). Both the DB and security scopes are disposed after the request completes (`:46–52`).
+`ErpMiddleware` (`WebVella.Erp.Web/Middleware/ErpMiddleware.cs`) runs first and bridges the ASP.NET principal into the ERP authorization world. `Invoke(HttpContext)` opens a per-request `DbContext` (`ErpMiddleware.cs:29`), resolves the `ErpUser` from the already-authenticated principal via `AuthService.GetUser(context.User)` (`:32`), and — when a user resolves — opens a security scope with `SecurityContext.OpenScope(user)` (`:35`); if the principal is authenticated but no ERP user resolves, it signs the cookie out (`:41`). It then invokes the remainder of the pipeline with `await next(context)` (`:45`) and disposes both the DB and security scopes after the request completes (`:46–52`). Because this runs before the custom `JwtMiddleware`, the principal it reads is the one created by `UseAuthentication`, **not** by the custom middleware.
+
+The custom `WebVella.Erp.Web/Middleware/JwtMiddleware.cs` runs next, inside `ErpMiddleware`'s `next(context)` call. `Invoke(HttpContext)` (`JwtMiddleware.cs:21`) obtains a token from `GetTokenAsync("access_token")` (`:23`) or by stripping the 7-character `"Bearer "` prefix off the `Authorization` header (`:26–32`); when a token is present it validates it via `AuthService.GetValidSecurityTokenAsync(token)` (`:42`), loads the user with `new SecurityManager().GetUser(...)` (`:48`), sets `context.Items["User"]`, and replaces `context.User` with a JWT `ClaimsPrincipal` built from the token's claims (`:49–52`). Validation failures are swallowed (`:56–60`), leaving the existing principal in place rather than throwing.
 
 ### 4.4 Pipeline order
 
@@ -286,28 +288,33 @@ The ASP.NET principal is then translated into the ERP authorization world by `Er
 sequenceDiagram
     autonumber
     actor C as Client
+    participant AUTH as UseAuthentication
     participant PS as Policy Selector JWT_OR_COOKIE
     participant JWT as JwtBearer Handler
     participant CK as Cookie Handler
-    participant MW as JwtMiddleware
     participant ERP as ErpMiddleware
+    participant MW as Custom JwtMiddleware
 
-    C->>PS: HTTP request (default scheme, Startup.cs:90)
+    C->>AUTH: HTTP request reaches UseAuthentication (Startup.cs:179)
+    AUTH->>PS: resolve default scheme (Startup.cs:90-91)
     Note over PS: ForwardDefaultSelector inspects Authorization header<br/>Startup.cs:115-125
     alt Authorization header starts with Bearer prefix
         PS->>JWT: forward to JwtBearer (Startup.cs:120-121)
         JWT->>JWT: validate issuer/audience/lifetime/key<br/>Startup.cs:102-114
-        JWT-->>C: ClaimsPrincipal (JWT identity)
+        JWT-->>AUTH: ClaimsPrincipal (JWT identity)
     else No Bearer header
         PS->>CK: forward to Cookie (Startup.cs:123)
         CK->>CK: read erp_auth_base cookie<br/>Startup.cs:93-101
-        CK-->>C: ClaimsPrincipal (cookie identity)
+        CK-->>AUTH: ClaimsPrincipal (cookie identity)
     end
-    C->>MW: request continues down pipeline (Startup.cs:186)
-    MW->>MW: AuthService.GetValidSecurityTokenAsync<br/>JwtMiddleware.cs:42
-    MW->>ERP: set context.User + ErpUser<br/>JwtMiddleware.cs:49-52
+    AUTH-->>C: context.User established
+    C->>ERP: pipeline reaches ErpMiddleware first (Startup.cs:185)
+    ERP->>ERP: AuthService.GetUser(context.User)<br/>ErpMiddleware.cs:32
     ERP->>ERP: SecurityContext.OpenScope(user)<br/>ErpMiddleware.cs:35
-    ERP-->>C: response
+    ERP->>MW: next() reaches custom JwtMiddleware (Startup.cs:186)
+    MW->>MW: AuthService.GetValidSecurityTokenAsync<br/>JwtMiddleware.cs:42
+    MW->>MW: set context.Items[User] + context.User<br/>JwtMiddleware.cs:49-52
+    MW-->>C: response
 ```
 
 ---
@@ -385,7 +392,7 @@ Background processing lives in `WebVella.Erp/Jobs/**` — `ErpBackgroundServices
 
 ### 6.3 API surface — a single monolithic controller
 
-The HTTP API is delivered through **one** controller, `WebVella.Erp.Web/Controllers/WebApiController.cs`, which is **4,313 lines** long and inherits the 64-line base `ApiControllerBase.cs`. Rather than per-resource controllers, it concentrates record CRUD, data-source testing/compilation (§3.5), UI-state, file, and administrative endpoints in a single type. This is recorded here as an architectural fact; its maintainability implications are quantified in [`security-quality.md`](./security-quality.md) and addressed in [`modernization-roadmap.md`](./modernization-roadmap.md).
+The HTTP API is delivered through **one** controller, `WebVella.Erp.Web/Controllers/WebApiController.cs`, which is **4,313 lines** long and inherits the 64-line base `ApiControllerBase.cs`. Rather than per-resource controllers, it concentrates record CRUD, data-source testing/compilation (§3.5), UI-state, file, and administrative endpoints in a single type. This is recorded here as an architectural fact; its maintainability implications will be quantified in `security-quality.md` and addressed in `modernization-roadmap.md` (both forthcoming deliverables).
 
 ### 6.4 Diagram 5 — Request middleware pipeline
 
@@ -429,7 +436,7 @@ flowchart TB
     HOST --> DB
 ```
 
-> **No containerization.** There is no `Dockerfile` or `docker-compose` anywhere in the repository; containerization appears only as a recommendation in [`modernization-roadmap.md`](./modernization-roadmap.md), never as existing state.
+> **No containerization.** There is no `Dockerfile` or `docker-compose` anywhere in the repository; containerization appears only as a recommendation in `modernization-roadmap.md` (a forthcoming deliverable), never as existing state.
 
 ---
 
@@ -451,10 +458,10 @@ Reverse-engineering surfaced four points where the system's actual architecture 
 
 This deliverable upholds the suite-wide consistency contracts defined in [`code-inventory.md`](./code-inventory.md) §6:
 
-- **Module taxonomy.** Component/layer names used here — Core (`WebVella.Erp`), Web (`WebVella.Erp.Web`), WebAssembly (`WebVella.Erp.WebAssembly`), Console (`WebVella.Erp.ConsoleApp`), the 7 Plugins (`SDK`, `CRM`, `Mail`, `Next`, `Project`, `MicrosoftCDM`, `Approval`), and the 7 Sites (`WebVella.Erp.Site*`) — are identical to [`code-inventory.md`](./code-inventory.md) §2 and will match the module catalog in [`functional-overview.md`](./functional-overview.md).
+- **Module taxonomy.** Component/layer names used here — Core (`WebVella.Erp`), Web (`WebVella.Erp.Web`), WebAssembly (`WebVella.Erp.WebAssembly`), ConsoleApp (`WebVella.Erp.ConsoleApp`), the 7 Plugins (`SDK`, `CRM`, `Mail`, `Next`, `Project`, `MicrosoftCDM`, `Approval`), and the 7 Sites (`WebVella.Erp.Site*`) — are identical to [`code-inventory.md`](./code-inventory.md) §2 and will match the module catalog in [`functional-overview.md`](./functional-overview.md).
 - **File paths.** Every path cited here is catalogued in [`code-inventory.md`](./code-inventory.md).
 - **Schema names.** The tables referenced in §2.2 and §5.1 (`entities`, `app_page`, `app_page_body_node`, `jobs`, `schedule_plan`, `data_source`, …) match the per-table dictionary in [`database-schema.md`](./database-schema.md) §4 and the rows of [`data-dictionary.csv`](./data-dictionary.csv).
-- **Findings hand-off.** The structural observations here (monolithic `WebApiController`; the `datasource/code-compile` runtime-compilation surface; `net7.0` WebAssembly projects) feed the assessments in [`security-quality.md`](./security-quality.md) and the phases of [`modernization-roadmap.md`](./modernization-roadmap.md).
+- **Findings hand-off.** The structural observations here (monolithic `WebApiController`; the `datasource/code-compile` runtime-compilation surface; `net7.0` WebAssembly projects) will feed the assessments in `security-quality.md` and the phases of `modernization-roadmap.md` (both forthcoming deliverables).
 
 ---
 

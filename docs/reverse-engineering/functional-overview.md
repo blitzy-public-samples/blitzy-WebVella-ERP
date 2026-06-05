@@ -3,8 +3,8 @@
 > **Deliverable 4 of 7** · Reverse-Engineering Documentation Suite
 > **Generated (UTC):** 2026-06-05 18:31 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
-> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
-> **Suite index:** [`README.md`](./README.md)
+> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`business-rules.md`](./business-rules.md) · `security-quality.md` _(forthcoming)_ · `modernization-roadmap.md` _(forthcoming)_
+> **Suite index:** `README.md` _(forthcoming)_
 
 ---
 
@@ -20,7 +20,7 @@ Functionally, the system is organized into three tiers:
 
 The platform runs on **ASP.NET Core 9** over **PostgreSQL 16**; the Core library `WebVella.Erp` is versioned **1.7.4** (`WebVella.Erp/WebVella.Erp.csproj`). Of the 20 projects, 18 target `net9.0`; the two Blazor WebAssembly `Server`/`Shared` projects target the out-of-support `net7.0`.
 
-This document catalogs the seven plugin-modules (each cited to its project and main class), enumerates the platform capabilities and maps them to the existing `docs/developer/**` topic taxonomy (for cross-check consistency only), derives representative **workflows** from the 18 Web service classes plus the Approval plugin's submit → review → approve/reject flow, and documents the **user roles** seeded by the security model. Every claim resolves to a real file, class, or method, and module names are kept identical to the shared taxonomy established in [`code-inventory.md`](./code-inventory.md) and [`architecture.md`](./architecture.md).
+This document catalogs the seven plugin-modules (each cited to its project and main class), enumerates the platform capabilities and maps them to the existing `docs/developer/**` topic taxonomy (for cross-check consistency only), derives representative **workflows** from the 18 Web service classes plus the Approval plugin's read-only dashboard/KPI model, and documents the **user roles** seeded by the security model. Every claim resolves to a real file, class, or method, and module names are kept identical to the shared taxonomy established in [`code-inventory.md`](./code-inventory.md) and [`architecture.md`](./architecture.md).
 
 Four "what-exists" characteristics are honored throughout this suite and are relevant to the functional picture:
 
@@ -29,7 +29,7 @@ Four "what-exists" characteristics are honored throughout this suite and are rel
 3. **Code-embedded DDL + date-versioned plugin patch methods**, not an EF Core `Migrations/` folder (there are no `.sql` files anywhere).
 4. **No Docker.** Deployment is plain ASP.NET Core host sites designed for IIS in-process hosting.
 
-> This is a factual description of the system **as built**. It contains **no** time or effort estimates; forward-looking guidance lives only in [`modernization-roadmap.md`](./modernization-roadmap.md).
+> This is a factual description of the system **as built**. It contains **no** time or effort estimates; forward-looking guidance lives only in `modernization-roadmap.md` (a forthcoming deliverable).
 
 ---
 
@@ -88,7 +88,7 @@ This suite uses one **canonical taxonomy** of **18 logical modules**, defined au
 | `Web (WebVella.Erp.Web)` | `WebVella.Erp.Web/` | Web app: Web API, page-builder rendering, TagHelpers, application services |
 | `WebAssembly` | `WebVella.Erp.WebAssembly/` | Blazor WebAssembly Client / Server / Shared interactive surfaces |
 | `ConsoleApp` | `WebVella.Erp.ConsoleApp/` | Console bootstrap & sample record-hook harness |
-| `Plugin: Approval` | `WebVella.Erp.Plugins.Approval/` | Approval workflows, dashboard metrics & KPIs |
+| `Plugin: Approval` | `WebVella.Erp.Plugins.Approval/` | Approval dashboard & KPI metrics (read-only over `approval_request`/`approval_history`) |
 | `Plugin: Crm` | `WebVella.Erp.Plugins.Crm/` | Customer/relationship management entities & pages |
 | `Plugin: Mail` | `WebVella.Erp.Plugins.Mail/` | Email send/receive (SMTP/IMAP) integration |
 | `Plugin: MicrosoftCDM` | `WebVella.Erp.Plugins.MicrosoftCDM/` | Microsoft Common Data Model mapping |
@@ -177,16 +177,16 @@ Every ERP capability beyond the bare platform is delivered by a **plugin**. A pl
 
 ### 2.7 Approval — `WebVella.Erp.Plugins.Approval`
 
-**Purpose.** Approval **workflows** plus a manager **dashboard** of approval KPIs. Functionally it adds an approval request lifecycle (submit → review → approve/reject) and surfaces metrics over it.
+**Purpose.** A manager **dashboard** of approval KPIs. Functionally the plugin is a **read-only metrics/KPI reader**: it queries approval data and computes dashboard metrics over it. It does **not** itself implement request submission, review, or approve/reject state transitions — no lifecycle-mutating endpoints or code exist in the plugin (see **Behavior** below).
 
-**Entry points.** Unlike the other plugins, Approval has **no** `*Plugin.cs` entry class and **no** `ProcessPatches()`. It is structured around four pieces that together represent the standard "full plugin" shape (Component / Controller / Api / Service):
+**Entry points.** Unlike the other plugins, Approval has **no** `*Plugin.cs` entry class and **no** `ProcessPatches()`. It is structured around four pieces that together demonstrate **one** available plugin extension pattern (Component / Controller / Api / Service) — not a universal plugin shape, since plugin structure varies across the suite (see [`architecture.md`](./architecture.md) §2.4):
 
 - a page component — `Components/PcApprovalDashboard/PcApprovalDashboard.cs`;
 - a controller — `Controllers/ApprovalController.cs`;
 - an API model — `Api/DashboardMetricsModel.cs`;
 - a service — `Services/DashboardMetricsService.cs`.
 
-**Behavior.** `ApprovalController` is annotated `[Authorize]` and exposes `GET api/v3.0/p/approval/dashboard/metrics` (restricted to manager/administrator roles) and an `[AllowAnonymous]` `GET api/v3.0/p/approval/dashboard/health` probe. `DashboardMetricsService` queries the `approval_request` and `approval_history` entities to compute the dashboard KPIs. The full workflow and KPI formulas are documented in [§4.12](#412-approval-workflow-plugin-approval).
+**Behavior.** `ApprovalController` is annotated `[Authorize]` and exposes exactly two endpoints — `GET api/v3.0/p/approval/dashboard/metrics` (restricted to manager/administrator roles) and an `[AllowAnonymous]` `GET api/v3.0/p/approval/dashboard/health` probe; there are **no** submit/review/approve/reject (or other state-changing) actions. `DashboardMetricsService` issues **read-only EQL `SELECT` queries** over the `approval_request` and `approval_history` entities to compute the dashboard KPIs — it creates and mutates no records. The KPI formulas are documented in [§4.12](#412-approval-dashboard-and-kpis-plugin-approval).
 
 ---
 
@@ -251,7 +251,7 @@ Two services cover files. `FileService` (a static helper) resolves **embedded** 
 
 ### 4.6 Runtime code evaluation (`CodeEvalService`)
 
-`WebVella.Erp.Web/Services/CodeEvalService.cs` (a static class) compiles and runs C# at runtime: `Evaluate(string sourceCode, BaseErpPageModel pageModel)` (`:51`). This powers code-defined data sources and dynamic page logic. Because it executes arbitrary C# on the server, it is also a **security-relevant** surface — its remote-code-execution implications are assessed in [`security-quality.md`](./security-quality.md) (see also the `datasource/code-compile` endpoint in [`architecture.md`](./architecture.md) §3.5).
+`WebVella.Erp.Web/Services/CodeEvalService.cs` (a static class) compiles and runs C# at runtime: `Evaluate(string sourceCode, BaseErpPageModel pageModel)` (`:51`). This powers code-defined data sources and dynamic page logic. Because it executes arbitrary C# on the server, it is also a **security-relevant** surface — its remote-code-execution implications are assessed in `security-quality.md` (a forthcoming deliverable; see also the `datasource/code-compile` endpoint in [`architecture.md`](./architecture.md) §3.5).
 
 ### 4.7 Search (`AppSearchService`)
 
@@ -273,9 +273,9 @@ Two services cover files. `FileService` (a static helper) resolves **embedded** 
 
 `UserPreferencies` persists per-user UI state: `SetSidebarSize(userId, size)` (`:14`), `SdkUseComponent(userId, componentFullName)` (`:31`), and the component-data trio `GetComponentData(...)` (`:67`) / `SetComponentData(...)` (`:86`) / `RemoveComponentData(...)` (`:106`). `WebSettingsService.Get()` (`:9`) returns global web settings; `SnippetService` (an internal static cache) exposes reusable snippets via `GetSnippet(name)` (`:36`). All record-backed services derive from `BaseService` (`BaseService.cs`), whose constructor accepts a `DbContext` (`:14`) so they share the per-request Npgsql connection scope.
 
-### 4.12 Approval workflow (`Plugin: Approval`)
+### 4.12 Approval dashboard and KPIs (`Plugin: Approval`)
 
-The Approval plugin implements an approval **request lifecycle** and a manager **dashboard** over it. The lifecycle is **submit → review → approve/reject**, tracked across two entities — `approval_request` (carrying a `status` of `pending`, `approved`, or `rejected`, plus `created_on` / `completed_on`) and `approval_history` (an append-only audit of actions: `action`, `performed_by`, `performed_on`, `request_id`).
+The Approval plugin provides a manager **dashboard** that **reads** approval data and computes KPIs over it. It does **not** implement a submit/review/approve-reject lifecycle: the plugin contains no request-mutating endpoints or state-transition code (its controller exposes only the metrics and health endpoints — see §2.7 and [`code-inventory.md`](./code-inventory.md)). Its read queries reference two **dynamic, EQL-referenced entities**: `approval_request` (the `SELECT`s filter on a `status` of `pending`, `approved`, or `rejected` and read `created_on` / `completed_on`) and `approval_history` (read as an activity feed of `action`, `performed_by`, `performed_on`, `request_id`). These names appear only inside the plugin's EQL `SELECT` statements; they are **not** part of the fixed bootstrap schema (see the schema-consistency note in §6, and the conceptual dynamic-entity pattern in [`database-schema.md`](./database-schema.md) §6.1).
 
 **API surface (`Controllers/ApprovalController.cs`).** The controller is `[Authorize]`. `GetDashboardMetrics([FromQuery] DateTime? from, DateTime? to)` is mapped to `GET api/v3.0/p/approval/dashboard/metrics`; it requires a manager-class role (it validates the caller against the `{ "manager", "administrator", "admin" }` allow-list before returning data), defaults the window to the last 30 days when no dates are supplied, validates that `from <= to`, and returns a `ResponseModel` wrapping a `DashboardMetricsModel`. `GetDashboardHealth()` is mapped to `GET api/v3.0/p/approval/dashboard/health` and is `[AllowAnonymous]`.
 
@@ -381,7 +381,7 @@ This deliverable upholds the suite-wide consistency contracts defined in [`code-
 
 - **Module taxonomy.** The module names used here — Core (`WebVella.Erp`), Web (`WebVella.Erp.Web`), WebAssembly, ConsoleApp, the 7 Plugins (`SDK`, `CRM`, `Mail`, `Next`, `Project`, `MicrosoftCDM`, `Approval`), and the 7 Sites (`WebVella.Erp.Site*`) — are **identical** to the canonical taxonomy in [`code-inventory.md`](./code-inventory.md) §2 and the component names in [`architecture.md`](./architecture.md).
 - **File paths.** Every file path cited here is catalogued in [`code-inventory.md`](./code-inventory.md) / [`code-inventory.csv`](./code-inventory.csv); citations resolve to real files (e.g., `WebVella.Erp.Plugins.Crm/CrmPlugin.cs`, `WebVella.Erp.Web/Services/AuthService.cs`, `WebVella.Erp/Api/SecurityContext.cs`).
-- **Schema names.** Entity/table names referenced here (`approval_request`, `approval_history`, `app_page`, `app_page_body_node`, `jobs`, `schedule_plan`, `system_search`, `system_log`, `files`, `entities`, `entity_relations`) match the per-table dictionary in [`database-schema.md`](./database-schema.md) §4 and the rows of [`data-dictionary.csv`](./data-dictionary.csv).
+- **Schema names.** The **fixed system tables** referenced here (`app_page`, `app_page_body_node`, `jobs`, `schedule_plan`, `system_search`, `system_log`, `files`, `entities`, `entity_relations`) match the per-table dictionary in [`database-schema.md`](./database-schema.md) §4 and the rows of [`data-dictionary.csv`](./data-dictionary.csv). The Approval entity names (`approval_request`, `approval_history`) are **dynamic, EQL-referenced entities** — they appear only in the Approval plugin's EQL `SELECT` statements and are **not** fixed bootstrap tables, so they are intentionally **not** enumerated in [`database-schema.md`](./database-schema.md) / [`data-dictionary.csv`](./data-dictionary.csv) (which catalog the 17 fixed tables); they follow the conceptual dynamic `rec_<entity_name>` record-table pattern documented in [`database-schema.md`](./database-schema.md) §6.1.
 - **Patch lifecycle.** The per-plugin patch facts here (Mail/Next/Project/SDK ship 25 dated patches; Crm/MicrosoftCDM carry a commented-out `Patch20190123` shell; Approval has no `ProcessPatches()`) match [`code-inventory.md`](./code-inventory.md) §2.5, [`architecture.md`](./architecture.md) §2.4, and the patch/version history in [`database-schema.md`](./database-schema.md) §7.3.
 - **Rule reconciliation.** The role allow-lists and KPI calculations described here feed the **Authorization** and **Calculation** categories of [`business-rules.md`](./business-rules.md).
 
@@ -394,9 +394,9 @@ This deliverable upholds the suite-wide consistency contracts defined in [`code-
 | 3 | [`database-schema.md`](./database-schema.md) + [`data-dictionary.csv`](./data-dictionary.csv) | Schema from embedded DDL + patches; ERD |
 | 4 | **`functional-overview.md`** *(this file)* | Module catalog, platform capabilities, workflows, user roles |
 | 5 | [`business-rules.md`](./business-rules.md) | Catalogued business rules with citations |
-| 6 | [`security-quality.md`](./security-quality.md) | Vulnerabilities, code metrics, CVE audit |
-| 7 | [`modernization-roadmap.md`](./modernization-roadmap.md) | Current-state, target-state, 3-phase plan |
-| — | [`README.md`](./README.md) | Master index & executive overview |
+| 6 | `security-quality.md` _(forthcoming)_ | Vulnerabilities, code metrics, CVE audit |
+| 7 | `modernization-roadmap.md` _(forthcoming)_ | Current-state, target-state, 3-phase plan |
+| — | `README.md` _(forthcoming)_ | Master index & executive overview |
 
 ---
 
