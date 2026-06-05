@@ -120,7 +120,7 @@ app.UseErpPlugin<SdkPlugin>()   // WebVella.Erp.Site/Startup.cs:183 — adds the
    .UseJwtMiddleware();         // WebVella.Erp.Site/Startup.cs:186 — registers JwtMiddleware
 ```
 
-`AddErp()` (`WebVella.Erp.Web/ErpMvcExtensions.cs:26`) registers the singleton `IErpService`, the scoped `ErpRequestContext`, the two background hosted services (`ErpJobScheduleService`, `ErpJobProcessService`), and the Blazor `SecuritityCircuitHandler` (spelling as-is in source). `UseErp()` (`WebVella.Erp.Web/ErpMvcExtensions.cs:39`) opens a system security scope, initializes `ErpSettings` from `config.json`, creates the `DbContext`, configures AutoMapper, initializes the system entities, and finally calls `service.InitializePlugins(app.ApplicationServices)` (`WebVella.Erp.Web/ErpMvcExtensions.cs:100`).
+`AddErp()` (`WebVella.Erp.Web/ErpMvcExtensions.cs:26`) registers the singleton `IErpService`, the scoped `ErpRequestContext`, the two background hosted services (`ErpJobScheduleService`, `ErpJobProcessService`), and the Blazor `SecuritityCircuitHandler` (spelling as-is in source). `UseErp()` (`WebVella.Erp.Web/ErpMvcExtensions.cs:39`) opens a system security scope, initializes `ErpSettings` from `config.json`, creates the `DbContext`, configures AutoMapper, initializes the system entities, and finally calls `service.InitializePlugins(app.ApplicationServices)` (`WebVella.Erp.Web/ErpMvcExtensions.cs:101`).
 
 ---
 
@@ -324,7 +324,7 @@ The diagram traces a plugin from host registration through patch application. Re
 flowchart TD
     Start["Host startup — Startup.Configure<br/>WebVella.Erp.Site/Startup.cs:132"]
     Reg["UseErpPlugin&lt;SdkPlugin&gt;()<br/>WebVella.Erp.Site/Startup.cs:183 → IErpService.Plugins.Add (WebVella.Erp.Web/ErpMvcExtensions.cs:123)"]
-    UseErp["UseErp() → service.InitializePlugins<br/>WebVella.Erp.Site/Startup.cs:184 · WebVella.Erp.Web/ErpMvcExtensions.cs:100"]
+    UseErp["UseErp() → service.InitializePlugins<br/>WebVella.Erp.Site/Startup.cs:184 · WebVella.Erp.Web/ErpMvcExtensions.cs:101"]
     Init["plugin.Initialize()<br/>WebVella.Erp.Plugins.SDK/SdkPlugin.cs:15 → SetSchedulePlans (:19) + ProcessPatches (:20)"]
     PP["ProcessPatches()<br/>WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:19"]
     Scope["SecurityContext.OpenSystemScope()<br/>WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:21"]

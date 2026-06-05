@@ -217,7 +217,7 @@ The SDK's design surfaces are the subject of the workflow walkthroughs in [§4](
 
 WebVella's access model is **role-based**, with permissions attached to **entity definitions** and enforced centrally by the security context. Users belong to one or more **roles** (each identified by a GUID), and each entity carries a `RecordPermissions` object listing the role GUIDs allowed to perform each operation.
 
-**Per-entity record permissions.** Every entity definition stores a `RecordPermissions` value (`WebVella.Erp/Database/DbEntity.cs:27`); the `DbRecordPermissions` type holds four lists of role GUIDs — `CanRead`, `CanCreate`, `CanUpdate`, and `CanDelete` (`WebVella.Erp/Database/DbEntity.cs:38-52`). Granting a role access to an operation is therefore as simple as adding its GUID to the corresponding list on the entity.
+**Per-entity record permissions.** Every entity definition stores a `RecordPermissions` value (`WebVella.Erp/Database/DbEntity.cs:27`); the `DbRecordPermissions` type holds four lists of role GUIDs — `CanRead`, `CanCreate`, `CanUpdate`, and `CanDelete` (`WebVella.Erp/Database/DbEntity.cs:37-50`). Granting a role access to an operation is therefore as simple as adding its GUID to the corresponding list on the entity.
 
 **Enforcement via `SecurityContext`.** Authorization decisions are made by the static `SecurityContext` (`WebVella.Erp/Api/SecurityContext.cs:11`), which the platform consults on the record and meta paths:
 

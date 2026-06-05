@@ -132,7 +132,7 @@ Writes serialize a `DbEntityRelation` to the `json` column (`WebVella.Erp/Databa
 | `OriginEntityId` / `OriginFieldId` | `origin_entity_id` / `origin_field_id` | The "one" side |
 | `TargetEntityId` / `TargetFieldId` | `target_entity_id` / `target_field_id` | The "many" / join side |
 
-The `RelationType` enum has three members (`WebVella.Erp/Api/Models/EntityRelation.cs:9`):
+The `EntityRelationType` enum (exposed via the `RelationType` property) has three members (`WebVella.Erp/Api/Models/EntityRelation.cs:9`):
 
 | Member | Value | Physical realization |
 |--------|-------|----------------------|
