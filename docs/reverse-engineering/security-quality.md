@@ -268,7 +268,7 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 
 | Package | Version | Notes / known-CVE considerations |
 |---------|---------|----------------------------------|
-| Microsoft.CodeAnalysis.CSharp.Scripting | 4.14.0 | Roslyn scripting for dynamic data sources. **Dynamic-code attack surface** (§2.5). Also references `Microsoft.CodeAnalysis.Common`, `.CSharp`, `.CSharp.Workspaces` at 4.14.0 (`:128-131`). |
+| Microsoft.CodeAnalysis.CSharp.Scripting | 4.14.0 | Roslyn scripting for dynamic data sources. **Dynamic-code attack surface** (§2.5). Also references `Microsoft.CodeAnalysis.Common`, `.CSharp`, `.CSharp.Workspaces` at 4.14.0 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:128-131`). |
 | CS-Script | 4.11.2 | Dynamic C# script execution (`CodeEvalService`). **RCE surface** if definitions are untrusted (§2.5). |
 | HtmlAgilityPack | 1.12.4 | HTML parsing. Parses externally sourced HTML — treat input as untrusted. |
 | System.IdentityModel.Tokens.Jwt | 8.14.0 | JWT creation/validation in `AuthService`. Keep current with Microsoft IdentityModel advisories. |
@@ -278,21 +278,33 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 | WebVella.TagHelpers | 1.7.2 | Platform UI tag helpers. |
 | Microsoft.Extensions.FileProviders.Embedded | 9.0.10 | Embedded static-file provider. |
 | Newtonsoft.Json | 13.0.4 | JSON serialization (see §3.2 note). |
-| SixLabors.ImageSharp / .Drawing | 3.1.6 / 2.1.5 | **Commented out** in the manifest (`:139-140`) — declared but **not active**; listed for completeness. |
+| SixLabors.ImageSharp / .Drawing | 3.1.6 / 2.1.5 | **Commented out** in the manifest (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:139-140`) — declared but **not active**; listed for completeness. |
 
 ### 3.4 Host, plugin, and Blazor dependencies
 
 | Package | Version | Project / manifest | Notes |
 |---------|---------|--------------------|-------|
-| Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:57` | JWT bearer scheme for the host (§1.1). |
-| Microsoft.AspNetCore.Mvc.NewtonsoftJson | 9.0.10 | `WebVella.Erp.Site/...csproj:49` | MVC JSON formatter (host). |
-| Microsoft.Web.LibraryManager.Build | 3.0.71 | `WebVella.Erp.Site/...csproj:50` | Client-library (`libman`) restore at build. |
-| morelinq | 4.4.0 | `WebVella.Erp.Site/...csproj:55` | LINQ extensions (host). |
-| MailKit | 4.14.1 | `WebVella.Erp.Plugins.Mail/...csproj:28` | SMTP/IMAP for the Mail plugin; handles external mail servers/credentials. |
-| Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | `WebVella.Erp.WebAssembly/Client/...csproj:16` | Blazor WASM client runtime. |
-| Blazored.LocalStorage | 4.5.0 | `WebVella.Erp.WebAssembly/Client/...csproj:20` | Browser local-storage access (WASM client). |
-| System.IdentityModel.Tokens.Jwt | 8.14.0 | `WebVella.Erp.WebAssembly/Client/...csproj:21` | JWT handling (WASM client). |
-| Microsoft.AspNetCore.Components.WebAssembly.Server | 7.0.13 | `WebVella.Erp.WebAssembly/Server/...csproj:10` | **On `net7.0`** — see §3.5. |
+| Microsoft.AspNetCore.Mvc.NewtonsoftJson | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:49` | MVC JSON formatter (host). Recurs at the same version across the other Site hosts and Approval/Project plugins — see the deduplication note below. |
+| Microsoft.Web.LibraryManager.Build | 3.0.71 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:50` | Client-library (`libman`) restore at build. |
+| System.Linq | 4.3.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:51` | Legacy `netstandard1.x`-era reference package; resolves into the .NET 9 BCL — no third-party surface. |
+| System.Threading | 4.3.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:52` | Legacy `netstandard1.x`-era reference package; resolves into the .NET 9 BCL — no third-party surface. |
+| morelinq | 4.4.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:55` | LINQ extensions (host). |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:57` | JWT bearer scheme for the host (§1.1). Also referenced by `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:14`. |
+| Microsoft.AspNetCore.Components | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:10` | Blazor component runtime for the Microsoft CDM plugin UI. |
+| Microsoft.AspNetCore.Components.Web | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:11` | Blazor web bindings for the Microsoft CDM plugin UI. |
+| MailKit | 4.14.1 | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` | SMTP/IMAP for the Mail plugin; handles external mail servers/credentials. |
+| Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:16` | Blazor WASM client runtime. |
+| Microsoft.AspNetCore.Components.WebAssembly.DevServer | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:17` | Dev-time WASM host (`PrivateAssets="all"` — development-only, not shipped to production). |
+| Microsoft.Extensions.Http | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:18` | `HttpClient` factory for the WASM client. |
+| Microsoft.AspNetCore.Components.WebAssembly.Authentication | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:19` | Token/OIDC auth plumbing for the WASM client. |
+| Blazored.LocalStorage | 4.5.0 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:20` | Browser local-storage access (WASM client). |
+| System.IdentityModel.Tokens.Jwt | 8.14.0 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:21` | JWT handling (WASM client). |
+| Microsoft.AspNetCore.Components.WebAssembly.Server | 7.0.13 | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:10` | **On `net7.0`** — see §3.5. |
+
+> **Audit completeness — deduplication & exclusions (synchronized with [`code-inventory.md` §4](./code-inventory.md#4-nuget-dependency-tree-summary)).** §3.2–§3.4 audit **every active direct `PackageReference`** across all 20 `.csproj` files, deduplicated by the rules below; the two documents cover the identical package set.
+>
+> - **Commented-out references are excluded** (declared but not built, so not an attack surface): `Microsoft.AspNetCore.ResponseCompression` 2.2.0 (`WebVella.Erp.Site/WebVella.Erp.Site.csproj:56`), `SixLabors.ImageSharp` 3.1.6 / `SixLabors.ImageSharp.Drawing` 2.1.5 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:139-140`, also noted in §3.3), `Microsoft.AspNetCore.Mvc.ViewFeatures` 2.2.0 and `Microsoft.AspNetCore.StaticFiles` 2.2.0 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:136-137`), and `Microsoft.AspNetCore.Http.Abstractions` 2.2.0 (`WebVella.Erp/WebVella.Erp.csproj:51`).
+> - **Cross-project duplicates are audited once, at the primary owner above.** `Microsoft.AspNetCore.Mvc.NewtonsoftJson` 9.0.10 also appears — at the same version — at `WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj:22`, `WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj:52`, `WebVella.Erp.Site.Crm/WebVella.Erp.Site.Crm.csproj:12`, `WebVella.Erp.Site.Mail/WebVella.Erp.Site.Mail.csproj:12`, `WebVella.Erp.Site.MicrosoftCDM/WebVella.Erp.Site.MicrosoftCDM.csproj:9`, `WebVella.Erp.Site.Next/WebVella.Erp.Site.Next.csproj:12`, `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:13`, and `WebVella.Erp.Site.Sdk/WebVella.Erp.Site.Sdk.csproj:12`. `System.IdentityModel.Tokens.Jwt` 8.14.0 also appears in Web (§3.3). `Newtonsoft.Json` 13.0.4 and `MimeMapping` 3.1.0 recur across Core/Web/Host at the versions already audited in §3.2–§3.3. Each such package carries one advisory-tracking obligation regardless of how many projects reference it.
 
 ### 3.5 Runtime risk — two projects on out-of-support `net7.0`
 

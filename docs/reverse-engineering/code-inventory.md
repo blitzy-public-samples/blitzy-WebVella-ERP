@@ -58,7 +58,7 @@ These are the **canonical module names** for the entire suite; [`architecture.md
 | **Web application** | `WebVella.Erp.Web` | 1 | Versioned REST controllers (`/api/v3.0/...`), middleware, Razor Pages, page components, tag helpers, and the `Security/` constructs |
 | **Blazor client** | `WebVella.Erp.WebAssembly` (Client / Server / Shared) | 3 | Blazor WebAssembly client and its supporting server/shared projects (the two `net7.0` projects in the solution) |
 | **Console harness** | `WebVella.Erp.ConsoleApp` | 1 | Console host for bootstrap/maintenance tasks |
-| **Plugins** | `WebVella.Erp.Plugins.{Approval, Crm, Mail, MicrosoftCDM, Next, Project, SDK}` | 7 | Feature modules — services, hooks, jobs, components, controllers, and (for six of them) dated migration partials |
+| **Plugins** | `WebVella.Erp.Plugins.{Approval, Crm, Mail, MicrosoftCDM, Next, Project, SDK}` | 7 | Feature modules — services, hooks, jobs, components, controllers; six ship a `*Plugin._.cs` bootstrap, and (for four of them — Mail, Next, Project, SDK) dated migration partials |
 | **Site hosts** | `WebVella.Erp.Site{, .Crm, .Mail, .MicrosoftCDM, .Next, .Project, .Sdk}` | 7 | ASP.NET Core host shells, each wiring DI, authentication, plugin registration, and `Config.json` |
 | | **Total** | **20** | |
 
@@ -156,7 +156,7 @@ A small console host for bootstrap and maintenance tasks: **4 `.cs` files (~318 
 
 ### 3.5 Plugins (7)
 
-The seven feature plugins are independent `WebVella.Erp.Plugins.*` projects, all targeting `net9.0`. **Six** of them (Crm, Mail, MicrosoftCDM, Next, Project, SDK) ship a **`*Plugin._.cs` bootstrap** partial class whose initialization applies that plugin's dated migration partials during startup. **Approval is the exception**: it is a plugin *project* containing **only dashboard code** at this commit — there is **no `ErpPlugin` subclass, no bootstrap, and no migration** (see the suite [`README.md`](./README.md) glossary entry for *plugin*). Verified sizes:
+The seven feature plugins are independent `WebVella.Erp.Plugins.*` projects, all targeting `net9.0`. **Six** of them (Crm, Mail, MicrosoftCDM, Next, Project, SDK) ship a **`*Plugin._.cs` bootstrap** partial class whose `ProcessPatches()` initialization runs at startup. Of those six, **four** (Mail, Next, Project, SDK) actually own **dated migration partials** — **25** in total (Mail 7, Next 5, Project 8, SDK 5) — while **Crm** and **MicrosoftCDM** have bootstraps but **no dated partial classes** (Crm's only inline patch, `Patch20190123`, is commented out — `WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:58-79`). **Approval is a further exception**: it is a plugin *project* containing **only dashboard code** at this commit — there is **no `ErpPlugin` subclass, no bootstrap, and no migration** (see the suite [`README.md`](./README.md) glossary entry for *plugin*). Verified sizes:
 
 | Plugin | `.cs` | `.cshtml` | `.js` | `.cs` LOC | Notes |
 |--------|------:|----------:|------:|----------:|-------|
@@ -240,6 +240,8 @@ The platform adds **no production NuGet dependency beyond those declared in the 
 | Package | Version | Owning project (citation) |
 |---------|---------|---------------------------|
 | MailKit | 4.14.1 | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` |
+| Microsoft.AspNetCore.Components | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:10` |
+| Microsoft.AspNetCore.Components.Web | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:11` |
 | Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:16` |
 | Microsoft.AspNetCore.Components.WebAssembly.DevServer | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:17` |
 | Microsoft.Extensions.Http | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:18` |
@@ -256,12 +258,19 @@ The platform adds **no production NuGet dependency beyond those declared in the 
 |---------|---------|----------|
 | Microsoft.AspNetCore.Mvc.NewtonsoftJson | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:49` |
 | Microsoft.Web.LibraryManager.Build | 3.0.71 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:50` |
+| System.Linq | 4.3.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:51` |
+| System.Threading | 4.3.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:52` |
 | MimeMapping | 3.1.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:53` |
 | Newtonsoft.Json | 13.0.4 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:54` |
 | morelinq | 4.4.0 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:55` |
 | Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:57` |
 
-> **`Microsoft.Web.LibraryManager.Build` (libman)** restores client-side libraries from `libman.json` at build time — this is how front-end assets are managed in lieu of NPM.
+> **`Microsoft.Web.LibraryManager.Build` (libman)** restores client-side libraries from `libman.json` at build time — this is how front-end assets are managed in lieu of NPM. **`System.Linq` 4.3.0** and **`System.Threading` 4.3.0** (`WebVella.Erp.Site/WebVella.Erp.Site.csproj:51-52`) are legacy `netstandard1.x`-era reference packages carried on the host; they resolve into the .NET 9 BCL at build and add no third-party surface.
+>
+> **Completeness & exclusions (synchronized with [`security-quality.md` §3](./security-quality.md#3-dependency--cve-audit)).** The tables in §4.1–§4.4 list **every active direct `PackageReference`** across the 20 `.csproj` files, deduplicated by the rules below; the [security-quality dependency/CVE audit](./security-quality.md#3-dependency--cve-audit) covers the identical set.
+>
+> - **Commented-out references are excluded** (declared but not built): `Microsoft.AspNetCore.ResponseCompression` 2.2.0 (`WebVella.Erp.Site/WebVella.Erp.Site.csproj:56`), `SixLabors.ImageSharp` 3.1.6 / `SixLabors.ImageSharp.Drawing` 2.1.5 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:139-140`), `Microsoft.AspNetCore.Mvc.ViewFeatures` 2.2.0 and `Microsoft.AspNetCore.StaticFiles` 2.2.0 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:136-137`), and `Microsoft.AspNetCore.Http.Abstractions` 2.2.0 (`WebVella.Erp/WebVella.Erp.csproj:51`).
+> - **Cross-project duplicates are listed once, at their primary owner.** `Microsoft.AspNetCore.Mvc.NewtonsoftJson` 9.0.10 (this table) is also referenced — at the same version — by `WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj:22`, `WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj:52`, `WebVella.Erp.Site.Crm/WebVella.Erp.Site.Crm.csproj:12`, `WebVella.Erp.Site.Mail/WebVella.Erp.Site.Mail.csproj:12`, `WebVella.Erp.Site.MicrosoftCDM/WebVella.Erp.Site.MicrosoftCDM.csproj:9`, `WebVella.Erp.Site.Next/WebVella.Erp.Site.Next.csproj:12`, `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:13`, and `WebVella.Erp.Site.Sdk/WebVella.Erp.Site.Sdk.csproj:12`. `Microsoft.AspNetCore.Authentication.JwtBearer` 9.0.10 (this table) is also referenced by `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:14`. `Newtonsoft.Json` 13.0.4 and `MimeMapping` 3.1.0 likewise recur across Core/Web/Host at the versions already audited in §4.1–§4.2.
 
 ### 4.5 Front-end libraries (host-bundled; corrects C1)
 

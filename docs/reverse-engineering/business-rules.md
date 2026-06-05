@@ -32,7 +32,7 @@ Two findings deserve emphasis because they describe **what the system does *not*
 
 | Field | Value |
 |-------|-------|
-| **Documentation Generated** | 2026-06-05 16:19 UTC |
+| **Documentation Generated** | 2026-06-05 15:15 UTC |
 | **Source commit** | `bfe15661c7f0c1dae57288d789b854186793b157` |
 | **Branch** | `master` |
 | **Catalogued rules** | **74** (≥ 50 required) |
@@ -211,4 +211,4 @@ Every `path:line` citation in this document was verified to resolve against the 
 
 ---
 
-*Generated 2026-06-05 16:19 UTC from source commit `bfe15661c7f0c1dae57288d789b854186793b157` (branch `master`). This is an analysis-only, reverse-engineering artifact — no production source, schema, configuration, build, or test file was modified, and all output is confined to `docs/reverse-engineering/`. **74** business rules catalogued across 5 categories, each with an inline `path:line` (or `jira-stories/STORY-00X`) citation.*
+*Generated 2026-06-05 15:15 UTC from source commit `bfe15661c7f0c1dae57288d789b854186793b157` (branch `master`). This is an analysis-only, reverse-engineering artifact — no production source, schema, configuration, build, or test file was modified, and all output is confined to `docs/reverse-engineering/`. **74** business rules catalogued across 5 categories, each with an inline `path:line` (or `jira-stories/STORY-00X`) citation.*

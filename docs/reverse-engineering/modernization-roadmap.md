@@ -47,7 +47,7 @@ The corrections below are inherited verbatim from the suite's [master index](./R
 | **C1** | Frontend is Angular and/or React | Server-rendered **Razor** `.cshtml` + **Blazor WASM** `.razor` + **jQuery/Bootstrap 4/StencilJs**; **no** `package.json` (root `README.md:18`) | A SPA migration is an **OPTIONAL** Phase-3 item, framed as a *choice with trade-offs* — **not** a stated current fact |
 | **C2** | Target a ".NET 8" upgrade | Already on **.NET 9** — **18 of 20** projects target `net9.0`; the 2 exceptions are `net7.0` (`WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`, `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4`) | **No ".NET 8 upgrade."** Calibrate to the **.NET 9 baseline**; the real runtime work is **`net7.0` → `net9.0`** for the 2 WASM projects |
 | **C3** | Uses Entity Framework Core (or another ORM) | Custom **`Db*` DAL** over **Npgsql 9.0.4** (`WebVella.Erp/Database/`); **no EF Core** | EF/ORM adoption is an **OPTIONAL** Phase-3 consideration; the custom **EQL** engine + **meta-model** would need bridging |
-| **C4** | Schema migrations live in a `Migrations/` folder | **No** EF `Migrations/` folder; schema evolves via **~25 date-versioned plugin partial classes** (patch-class migrations) | A formal migration framework is an **OPTIONAL** improvement; Phase 2 formalizes the *existing* patch-class process first |
+| **C4** | Schema migrations live in a `Migrations/` folder | **No** EF `Migrations/` folder; schema evolves via **25 date-versioned plugin partial classes** (patch-class migrations) | A formal migration framework is an **OPTIONAL** improvement; Phase 2 formalizes the *existing* patch-class process first |
 | **C5** | Docker containerization / CI pipelines exist | **None present** — `.github/` holds only `FUNDING.yml`; no Dockerfile/compose; packaging via `create-nuget-pkgs.bat`; **IIS InProcess** hosting (`WebVella.Erp.Site/web.config:7`) | **Containerization + CI/CD are the headline opportunities** — front-loaded into **Phase 1** |
 
 ---
@@ -63,13 +63,13 @@ Every value below was confirmed against the codebase at commit `bfe15661`; figur
 | Aspect | Verified Finding | Primary Evidence |
 |--------|------------------|------------------|
 | **Runtime** | ASP.NET Core 9 / .NET 9 — **18 of 20** projects target `net9.0`; **2** target `net7.0` | root `README.md:18`; `*.csproj` `<TargetFramework>` |
-| **Database** | PostgreSQL 16, via a **custom `Db*` DAL** over **Npgsql 9.0.4** — **no EF Core** | root `README.md:18`; `WebVella.Erp/Database/`, `WebVella.Erp/WebVella.Erp.csproj` |
+| **Database** | PostgreSQL 16, via a **custom `Db*` DAL** over **Npgsql 9.0.4** — **no EF Core** | root `README.md:18`; `WebVella.Erp/Database/`, `WebVella.Erp/WebVella.Erp.csproj:61` |
 | **Query engine** | Custom **Entity Query Language (EQL)**, parsed with **Irony.NetCore 1.1.11** | `WebVella.Erp/Eql/`, `WebVella.Erp/Api/RecordManager.cs:15` |
 | **Frontend** | Server-rendered **Razor** + **Blazor WASM** + **jQuery/Bootstrap 4/StencilJs**; **no** `package.json` | root `README.md:18`; `WebVella.Erp.Web/wwwroot/` |
 | **Hosting** | ASP.NET Core; **IIS InProcess**; **tested only on Windows** | root `README.md:18`; `WebVella.Erp.Site/web.config:7` |
 | **Auth model** | Hybrid **cookie + JWT bearer**, wired per Site host | `WebVella.Erp.Site/Startup.cs` |
-| **Schema evolution** | **Patch-class migrations** — ~25 date-versioned plugin partial classes; **no** EF `Migrations/` | e.g. `WebVella.Erp.Plugins.Mail/MailPlugin.20190419.cs` |
-| **Containerization / CI** | **Not present** — no Dockerfile/compose, no `.github/workflows`; packaging via `create-nuget-pkgs.bat` | repository scan; `.github/FUNDING.yml`; `create-nuget-pkgs.bat` |
+| **Schema evolution** | **Patch-class migrations** — 25 date-versioned plugin partial classes; **no** EF `Migrations/` | e.g. `WebVella.Erp.Plugins.Mail/MailPlugin.20190419.cs` |
+| **Containerization / CI** | **Not present** — no Dockerfile/compose, no `.github/workflows`; packaging via `create-nuget-pkgs.bat` | `.github/FUNDING.yml` (only file under `.github/`, no `workflows/`); `create-nuget-pkgs.bat:1` |
 | **SDK pin** | `global.json` exists but its `sdk.version` is **commented out** — no SDK is pinned | `global.json:3` |
 | **Source size** | ~**703** `.cs`, ~**400** `.cshtml`, ~**11** `.razor`, ~**181** `.js` → ~**1,295** primary files across **20** modules | full source tree; see [`code-inventory.csv`](./code-inventory.csv) |
 
@@ -89,8 +89,8 @@ These are the verified weak points the roadmap addresses. They are **described, 
 | # | Hotspot / Gap | Evidence (`path:line`) | Why it matters |
 |---|---------------|------------------------|----------------|
 | H1 | **No CI/CD pipeline** | `.github/` contains only `FUNDING.yml` | No automated build/test gate on changes; regressions can merge silently |
-| H2 | **No containerization** | repository scan — no Dockerfile/compose; `create-nuget-pkgs.bat` | Manual, Windows/IIS-bound deployment; hard to reproduce environments |
-| H3 | **2 projects on out-of-support `net7.0`** | `WebVella.Erp.WebAssembly/Server/...csproj:4`, `WebVella.Erp.WebAssembly/Shared/...csproj:4` | `net7.0` is end-of-life; no security patches for the runtime |
+| H2 | **No containerization** | `create-nuget-pkgs.bat:1`; `WebVella.Erp.Site/web.config:7` (IIS InProcess) — no Dockerfile/compose present | Manual, Windows/IIS-bound deployment; hard to reproduce environments |
+| H3 | **2 projects on out-of-support `net7.0`** | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`, `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4` | `net7.0` is end-of-life; no security patches for the runtime |
 | H4 | **SDK not pinned** | `global.json:3` (`//"version": "7.0.103"` commented out) | Non-deterministic builds across machines/CI; the only version hint points at an old SDK |
 | H5 | **Very large controller** | `WebVella.Erp.Web/Controllers/WebApiController.cs` — **4,313** lines (class at `:37`) | Hard to navigate, test, and review; concentrates risk |
 | H6 | **Very large manager** | `WebVella.Erp/Api/RecordManager.cs` — **2,109** lines (class at `:15`) | Central read/write logic in one unit; change-risk and merge-conflict magnet |
@@ -124,7 +124,7 @@ The component shape stays the same; the **surrounding platform** gains a pipelin
 | **Packaging / hosting** | IIS InProcess (`WebVella.Erp.Site/web.config:7`), `create-nuget-pkgs.bat` | **Container images** + orchestration; IIS remains a supported option | Linux/container path is currently **untested** (root `README.md:18`); needs validation |
 | **Frontend** *(optional, C1)* | Razor + Blazor WASM + jQuery | *Optionally* extract a SPA (Angular/React) behind the existing API; or modernize Blazor incrementally | A SPA is a large rewrite; the **server-rendered** model already works and is simpler to operate |
 | **Data access** *(optional, C3)* | Custom `Db*` DAL over Npgsql 9.0.4 | *Optionally* introduce an **ORM bridge** for new modules while keeping EQL | EF Core would have to coexist with **EQL + meta-model**; bridging cost is non-trivial |
-| **Schema migrations** *(optional, C4)* | ~25 date-versioned patch classes (no EF `Migrations/`) | Formalize the **existing** patch-class process; *optionally* adopt a migration framework later | A framework swap touches every plugin's schema history; formalizing first is lower-risk |
+| **Schema migrations** *(optional, C4)* | 25 date-versioned patch classes (no EF `Migrations/`) | Formalize the **existing** patch-class process; *optionally* adopt a migration framework later | A framework swap touches every plugin's schema history; formalizing first is lower-risk |
 | **Observability** | Ad-hoc logging via `Microsoft.Extensions.Logging` | Structured logs + metrics + traces (OpenTelemetry-style) | Adds dependencies/operational surface; high payoff for diagnosis and scale |
 | **Scale-out** | Single-host, IIS InProcess | Stateless app tier behind a load balancer; externalized session/cache | Requires auditing in-process state and background-job scheduling for multi-instance safety |
 
@@ -138,7 +138,7 @@ The table below enumerates **candidate** upgrades with their rationale. Priority
 
 | # | Upgrade candidate | Current state (citation) | Target | Rationale | Priority |
 |---|-------------------|--------------------------|--------|-----------|----------|
-| U1 | **`net7.0` → `net9.0`** for the 2 WASM projects | `WebVella.Erp.WebAssembly/Server/...csproj:4`, `WebVella.Erp.WebAssembly/Shared/...csproj:4` | `net9.0` | Removes the only **out-of-support** runtimes; aligns the whole solution on one TFM | **High** |
+| U1 | **`net7.0` → `net9.0`** for the 2 WASM projects | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`, `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4` | `net9.0` | Removes the only **out-of-support** runtimes; aligns the whole solution on one TFM | **High** |
 | U2 | **Pin a current .NET SDK** in `global.json` | `global.json:3` — `sdk.version` commented out (`//"version": "7.0.103"`) | A pinned **current .NET 9** SDK (with `rollForward`) | Deterministic builds locally and in CI; the only existing hint points at an old SDK and must **not** be used as the target | **High** |
 | U3 | **Add CI/CD** | `.github/` has only `FUNDING.yml` | Build + test + scan on every PR; packaged CD | Establishes a quality gate; prerequisite for safe refactoring | **High** |
 | U4 | **Containerize** | No Dockerfile/compose; IIS InProcess (`WebVella.Erp.Site/web.config:7`) | Reproducible container image(s) | Environment-as-artifact; enables the Linux/scale-out options; reduces deploy drift | **High** |
@@ -198,7 +198,7 @@ The plan has **exactly three phases**, sequenced so that each one de-risks the n
 
 - **Controller decomposition (U8).** Carve `WebVella.Erp.Web/Controllers/WebApiController.cs` (**4,313** lines, class at `:37`) into feature-aligned partials/area controllers (e.g., datasource, page-node, file-serving), preserving every existing route (`/api/v3.0/...`).
 - **Manager decomposition (U8).** Extract cohesive responsibilities from `WebVella.Erp/Api/RecordManager.cs` (**2,109** lines, class at `:15`) — e.g., separate the EQL read path from the write/validation path — while keeping the public manager contract stable.
-- **Formalize schema migrations (C4).** Document and tool the patch-class convention (~25 date-versioned plugin partials such as `WebVella.Erp.Plugins.Mail/MailPlugin.20190419.cs`): a deterministic ordering check, an idempotency guard, and a catalog generated from [`database-schema.md`](./database-schema.md). A formal migration framework remains **optional** and deferred.
+- **Formalize schema migrations (C4).** Document and tool the patch-class convention (25 date-versioned plugin partials such as `WebVella.Erp.Plugins.Mail/MailPlugin.20190419.cs`): a deterministic ordering check, an idempotency guard, and a catalog generated from [`database-schema.md`](./database-schema.md). A formal migration framework remains **optional** and deferred.
 - **Test coverage.** Add unit/integration tests around the manager layer and the highest-traffic endpoints so refactoring is safe; gate coverage in CI.
 - **Dynamic-script governance (H7).** Document and constrain the Roslyn/CS-Script execution path (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:128,132`) — authorization, sandboxing, and audit — per [`security-quality.md`](./security-quality.md).
 
@@ -246,7 +246,7 @@ The risks below are derived from the §1.3 hotspots and the suite's analysis. Ea
 | R5 | **Unpatched dependency CVEs** go unnoticed across the NuGet set (e.g., `Web.csproj:128,132`) | Medium | High | Automated SCA/vulnerability scanning in CI (U5); see [`security-quality.md`](./security-quality.md) | **Phase 1** |
 | R6 | **Dynamic-script execution** (Roslyn/CS-Script, `Web.csproj:128,132`) is an injection/abuse surface | Medium | High | Authorization + sandboxing + audit of the script path | **Phase 2** |
 | R7 | **Refactoring regressions** when splitting `WebApiController.cs` (`:37`, 4,313 LOC) / `RecordManager.cs` (`:15`, 2,109 LOC) | Medium | High | Behavior-preserving decomposition behind the Phase-1 test gate; keep routes/contracts stable (U8) | **Phase 2** |
-| R8 | **Schema drift** from the informal patch-class process (~25 partials, no EF `Migrations/`) | Medium | Medium | Formalize ordering/idempotency checks for the existing patch model (C4) | **Phase 2** |
+| R8 | **Schema drift** from the informal patch-class process (25 partials, no EF `Migrations/`) | Medium | Medium | Formalize ordering/idempotency checks for the existing patch model (C4) | **Phase 2** |
 | R9 | **Dead/disabled authorization code** (`AuthorizeAttribute.cs:1-147`) misleads maintainers about the security model | Low | Medium | Remove or intentionally reinstate (U7); document the real auth model from `Site/Startup.cs` | **Phase 1** |
 | R10 | **Production diagnostics leakage** from `ASPNETCORE_ENVIRONMENT=Development` in host config (`web.config:10`) | Medium | Medium | Environment-specific config; `Production` defaults for shipped hosts (U6) | **Phase 1** |
 | R11 | **Multi-instance correctness** issues (in-process state, job scheduling) when scaling out | Medium | High | Audit/externalize state before enabling horizontal scale | **Phase 3** |
@@ -267,7 +267,7 @@ Each metric is measurable, tied to a phase, and traceable to the current-state b
 | M5 | **Automated vulnerability scan** of dependencies | **None** | Scheduled SCA; **0** unaddressed High/Critical CVEs | Phase 1 |
 | M6 | **Fully-commented "ghost" source files** | **≥1** (`AuthorizeAttribute.cs:1-147`) | **0** | Phase 1 |
 | M7 | **Max single-file LOC** (flagged hotspots) | **4,313** (`WebApiController.cs`) | Materially reduced (e.g., no file > ~1,000 LOC) with contracts intact | Phase 2 |
-| M8 | **Documented, repeatable schema-migration process** | **Informal** (~25 patch classes) | **Documented + CI-checked** ordering/idempotency | Phase 2 |
+| M8 | **Documented, repeatable schema-migration process** | **Informal** (25 patch classes) | **Documented + CI-checked** ordering/idempotency | Phase 2 |
 | M9 | **Automated-test coverage** gate | **Not gated** | Agreed threshold enforced in CI | Phase 2 |
 | M10 | **Observability** (structured logs + metrics + traces) | **Ad-hoc logging** | Emitted + dashboarded; health checks present | Phase 3 |
 | M11 | **Horizontal scale** (stateless multi-instance) | **Single-host, IIS InProcess** | Runs stateless across **≥2** instances, no regressions | Phase 3 |

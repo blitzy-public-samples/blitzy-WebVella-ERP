@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-WebVella ERP is a **customizable, plugin-driven Enterprise Resource Planning platform** built on **ASP.NET Core 9**. Its defining trait is an **entity-centric meta-model**: entities, fields, and relations are stored as data and managed at runtime by a core *manager layer*, rather than being fixed compile-time POCOs (see the **meta-model** entry in the [Glossary & Acronyms](./README.md#glossary--acronyms)). Functional capability is delivered through **seven feature plugin projects** — Approval, CRM, Mail, Microsoft CDM, Next, Project, and SDK. **Most** of them (CRM, Mail, Microsoft CDM, Next, Project, and SDK) are implemented as an `ErpPlugin` subclass with a `*Plugin._.cs` bootstrap that applies its own dated schema patches at startup (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:11`, `WebVella.Erp.Plugins.Project/ProjectPlugin._.cs:11`). **Approval is the exception**: at the pinned commit it is a plugin *project* containing only dashboard code — it has **no `ApprovalPlugin` subclass, no `*Plugin._.cs` bootstrap, and no migration** (see [§2.4](#24-approval-webvellaerppluginsapproval)). These plugins are composed into runnable applications by **seven `WebVella.Erp.Site*` host shells**, each of which wires dependency injection, hybrid authentication, and a specific plugin set (`WebVella.Erp.Site/Startup.cs:183`).
+WebVella ERP is a **customizable, plugin-driven Enterprise Resource Planning platform** built on **ASP.NET Core 9**. Its defining trait is an **entity-centric meta-model**: entities, fields, and relations are stored as data and managed at runtime by a core *manager layer*, rather than being fixed compile-time POCOs (see the **meta-model** entry in the [Glossary & Acronyms](./README.md#glossary--acronyms)). Functional capability is delivered through **seven feature plugin projects** — Approval, CRM, Mail, Microsoft CDM, Next, Project, and SDK. **Six** of them (CRM, Mail, Microsoft CDM, Next, Project, and SDK) are implemented as an `ErpPlugin` subclass with a `*Plugin._.cs` bootstrap (`WebVella.Erp.Plugins.Crm/CrmPlugin._.cs:11`, `WebVella.Erp.Plugins.Project/ProjectPlugin._.cs:11`); of those six, **four** (Mail, Next, Project, and SDK) apply their own dated schema patches at startup, while **CRM** and **Microsoft CDM** have bootstraps but no dated partials. **Approval is the exception**: at the pinned commit it is a plugin *project* containing only dashboard code — it has **no `ApprovalPlugin` subclass, no `*Plugin._.cs` bootstrap, and no migration** (see [§2.4](#24-approval-webvellaerppluginsapproval)). These plugins are composed into runnable applications by **seven `WebVella.Erp.Site*` host shells**, each of which wires dependency injection, hybrid authentication, and a specific plugin set (`WebVella.Erp.Site/Startup.cs:183`).
 
 This document catalogs each functional module, the platform's **role-based access model**, the **key business workflows** an administrator or end user performs, the **interdependencies** between modules, and the **multi-site host-shell pattern** used to assemble and deploy the system. Where a module's behavior is only partially built, this overview states so explicitly and separates *implemented code* from *story-specified design* (most notably for the **Approval** plugin — see [§2.4](#24-approval-webvellaerppluginsapproval)).
 
@@ -17,7 +17,7 @@ This document catalogs each functional module, the platform's **role-based acces
 | Console harness | **1** (`WebVella.Erp.ConsoleApp`) | `WebVella.Erp.ConsoleApp/Program.cs` |
 | Largest plugin | **Project** — 45 `.cs` / 56 `.cshtml` / 65 `.js` | file scan of `WebVella.Erp.Plugins.Project` |
 | Access-control model | Role-based; per-entity `RecordPermissions` enforced via `SecurityContext` | `WebVella.Erp/Api/SecurityContext.cs:63` |
-| Frontend stack | Razor `.cshtml` + Blazor `.razor` + jQuery/Bootstrap 4/StencilJs (no SPA, no `package.json`) | `WebVella.Erp.Web/wwwroot/`, repo scan |
+| Frontend stack | Razor `.cshtml` + Blazor `.razor` + jQuery/Bootstrap 4/StencilJs (no SPA, no `package.json`) | `WebVella.Erp.Web/wwwroot/js/wv-lazyload/`; `code-inventory.csv` (file manifest lists 0 `package.json`); root `README.md:18` |
 
 ---
 
@@ -25,7 +25,7 @@ This document catalogs each functional module, the platform's **role-based acces
 
 | Field | Value |
 |-------|-------|
-| **Documentation Generated** | 2026-06-05 17:30 UTC |
+| **Documentation Generated** | 2026-06-05 15:15 UTC |
 | **Source commit** | `bfe15661c7f0c1dae57288d789b854186793b157` |
 | **Branch** | `master` |
 | **Scope** | Functional / module overview (modules, roles, workflows, interdependencies, host-shell pattern) |
@@ -61,17 +61,17 @@ WebVella is organized as a layered, plugin-extensible system. A **core platform*
 | Server-rendered **Razor** (`.cshtml`) | Pages, components, and page-builder views across Web and plugins (e.g., 56 `.cshtml` in Project, 54 in SDK) | `WebVella.Erp.Plugins.Project/`, `WebVella.Erp.Plugins.SDK/` |
 | **Blazor WebAssembly** (`.razor`) | `WebVella.Erp.WebAssembly` (`Client`/`Server`/`Shared`) — 11 `.razor` components | `WebVella.Erp.WebAssembly/` |
 | **jQuery / Bootstrap 4 / StencilJs** | Host-bundled scripts and web components | `WebVella.Erp.Web/wwwroot/js/`, `WebVella.Erp.Web/wwwroot/js/wv-lazyload/` |
-| **No** Angular / React / `package.json` | — (assumption C1 corrected) | repo scan: 0 `package.json` outside `bin`/`obj` |
+| **No** Angular / React / `package.json` | — (assumption C1 corrected) | `code-inventory.csv` (file manifest: 0 `package.json` rows); root `README.md:18` |
 
 **Versioned REST surface.** Functionality is reached over a stable, versioned API rooted at `/api/v3.0/...`. The core web layer exposes generic record/datasource/page endpoints, and each plugin contributes its own endpoints under `/api/v3.0/p/{plugin}/...` (for example, the SDK admin endpoints under `api/v3.0/p/sdk/...` at `WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39` and the Project endpoints under `api/v3.0/p/project/...` at `WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:56`). Most record/manager JSON API actions return the standard `ResponseModel` envelope (`WebVella.Erp/Api/Models/BaseModels.cs:40`), but **some actions are exceptions** — for example `ProjectController.TimeTrackJs` returns a `ContentResult` (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:466`), `ProjectController.GetCurrentUser` returns a raw JSON user record (`WebVella.Erp.Plugins.Project/Controllers/ProjectController.cs:488`), and `AdminController.DataSourceAction` returns a raw datasource list (`WebVella.Erp.Plugins.SDK/Controllers/AdminController.cs:39`).
 
-**Plugin bootstrap pattern.** Plugins that own schema patches are implemented as a partial class deriving from `ErpPlugin` whose `ProcessPatches()` method runs at startup inside a system security scope and a database transaction, applying that plugin's schema patches in version order (`WebVella.Erp.Plugins.Mail/MailPlugin._.cs:10`, `WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:10`). **Six of the seven** plugin projects follow this pattern; **Approval does not** — it has no `*Plugin._.cs` bootstrap and contributes no patches (see [§2.4](#24-approval-webvellaerppluginsapproval)). The platform has **no Entity Framework `Migrations/` folder**; schema history is carried by ~25 **date-versioned plugin partial classes** (the *patch-class migration* convention — see [Glossary](./README.md#glossary--acronyms) and [`database-schema.md`](./database-schema.md)).
+**Plugin bootstrap pattern.** A plugin is implemented as a partial class deriving from `ErpPlugin` whose `*Plugin._.cs` bootstrap defines a `ProcessPatches()` method that runs at startup inside a system security scope and a database transaction, applying that plugin's dated schema patches in version order (`WebVella.Erp.Plugins.Mail/MailPlugin._.cs:10`, `WebVella.Erp.Plugins.SDK/SdkPlugin._.cs:10`). **Six of the seven** plugin projects ship such a bootstrap (CRM, Mail, Microsoft CDM, Next, Project, SDK); of those six, **four** (Mail, Next, Project, SDK) actually own dated patch files, while **CRM** and **Microsoft CDM** run `ProcessPatches()` but contribute no dated partials. **Approval does not** ship a bootstrap and contributes no patches (see [§2.4](#24-approval-webvellaerppluginsapproval)). The platform has **no Entity Framework `Migrations/` folder**; schema history is carried by **25 date-versioned plugin partial classes** (the *patch-class migration* convention — see [Glossary](./README.md#glossary--acronyms) and [`database-schema.md`](./database-schema.md)).
 
 ---
 
 ## 2. ERP Module Catalog
 
-The seven feature plugins are summarized below, then described individually. Sizes are physical file counts (excluding `bin`/`obj`); each plugin ships a `*Plugin._.cs` **bootstrap** and, where applicable, `Controllers/`, `Services/`, `Hooks/`, `Jobs/`, `Components/`, and dated migration partials.
+The seven feature plugins are summarized below, then described individually. Sizes are physical file counts (excluding `bin`/`obj`). **Six** of the seven (CRM, Mail, Microsoft CDM, Next, Project, SDK) ship a `*Plugin._.cs` **bootstrap** and, where applicable, `Controllers/`, `Services/`, `Hooks/`, `Jobs/`, and `Components/`; of those six, **four** (Mail, Next, Project, SDK) also ship **dated migration partials**, while CRM and Microsoft CDM have bootstraps but none. **Approval** ships no bootstrap and is dashboard-only.
 
 | Module (canonical name) | Project | `.cs` | `.cshtml` | `.js` | Dated patches | Primary domain |
 |-------------------------|---------|------:|----------:|------:|--------------:|----------------|
@@ -443,5 +443,5 @@ This overview is one of ten artifacts in the suite indexed by [`README.md`](./RE
 
 ---
 
-*Generated 2026-06-05 17:30 UTC from source commit `bfe15661c7f0c1dae57288d789b854186793b157` (branch `master`). This is an analysis-only, reverse-engineering artifact — no production source, schema, configuration, build, or test file was modified, and all output is confined to `docs/reverse-engineering/`. All technical claims carry an inline `path:line` (or `path` / `jira-stories/STORY-00X`) citation; user-interface figures reference pre-existing screenshots under `doc-images/` and none were created or recaptured.*
+*Generated 2026-06-05 15:15 UTC from source commit `bfe15661c7f0c1dae57288d789b854186793b157` (branch `master`). This is an analysis-only, reverse-engineering artifact — no production source, schema, configuration, build, or test file was modified, and all output is confined to `docs/reverse-engineering/`. All technical claims carry an inline `path:line` (or `path` / `jira-stories/STORY-00X`) citation; user-interface figures reference pre-existing screenshots under `doc-images/` and none were created or recaptured.*
 
