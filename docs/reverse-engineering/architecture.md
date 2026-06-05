@@ -129,7 +129,7 @@ Plugins that own schema evolve it through a `ProcessPatches()` method that calls
 
 Patch coverage differs by plugin (consistent with [`code-inventory.md`](./code-inventory.md) §2.5 and [`database-schema.md`](./database-schema.md) §7.3): only **`SDK`, `Mail`, `Next`, and `Project`** ship dated `<Plugin>.YYYYMMDD.cs` files (25 in total). **`Crm`** and **`MicrosoftCDM`** define a `ProcessPatches()` shell whose `Patch20190123` call is commented out, and **`Approval`** defines no `ProcessPatches()` at all.
 
-`Approval` nonetheless demonstrates **one** of the available plugin extension patterns: it ships a page component (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), a controller (`Controllers/ApprovalController.cs`), an API model (`Api/DashboardMetricsModel.cs`), and a service (`Services/DashboardMetricsService.cs`). This Component/Controller/Service/Api combination is **not** a universal plugin shape — plugin structure varies across the suite: `Crm` ships a `Model` folder only and `MicrosoftCDM` ships `Model` + `wwwroot` (neither has Controllers, Services, or Api folders); `Mail` ships `Services` + `Api` but no controllers; `Next` ships `Services` only; and `Project` and `SDK` ship `Controllers` + `Services` but no `Api` folder.
+`Approval` nonetheless demonstrates **one** of the available plugin extension patterns: it ships a page component (`WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/PcApprovalDashboard.cs`), a controller (`Controllers/ApprovalController.cs`), an API model (`Api/DashboardMetricsModel.cs`), and a service (`Services/DashboardMetricsService.cs`). This Component/Controller/Service/Api combination is **not** a universal plugin shape — plugin structure varies across the suite: `Crm` ships a `Model` folder only and `MicrosoftCDM` ships `Model` + `wwwroot` (neither has Controllers, Services, or Api folders); `Mail` ships `Services` + `Api` but no controllers; `Next` ships `Hooks` + `Model` + `Services` (no `Controllers`/`Api`/`Components`); and `Project` and `SDK` ship `Controllers` + `Services` but no `Api` folder.
 
 ### 2.5 Diagram 1 — System component diagram (C4-style)
 
@@ -148,7 +148,7 @@ flowchart TB
     subgraph WebLayer["Application Layer — WebVella.Erp.Web"]
         MVC["MVC + Razor Pages"]
         API["WebApiController<br/>monolithic, 4,313 lines"]
-        COMP["Page Components<br/>64 Pc* ViewComponents"]
+        COMP["Page Components<br/>49 Pc* (64 ViewComponent files)"]
         MW["Middleware<br/>Erp / Jwt / ErrorHandling / DebugLog"]
         WSVC["Web Services<br/>Page / Render / Auth / Meta ..."]
     end
@@ -330,7 +330,7 @@ Pages and their content are stored in the fixed system tables `app_page` and `ap
 
 ### 5.2 Page components are ViewComponents
 
-A page component is an ASP.NET Core **ViewComponent** that derives from the base `PageComponent` (`WebVella.Erp.Web/Models/PageComponent.cs`) and is decorated with a `[PageComponent(...)]` attribute (`Models/PageComponentAttribute.cs`) carrying its label, library, and version metadata. There are **64** such components under `WebVella.Erp.Web/Components/**`, conventionally prefixed `Pc` (page component). The reference component `WebVella.Erp.Web/Components/PcApplications/PcApplications.cs` shows the contract: a `[PageComponent(Label = "Application list", Library = "WebVella", ...)]` class implementing `public async Task<IViewComponentResult> InvokeAsync(PageComponentContext context)`, where `context.Node` is the persisted body node whose `options` JSON the component binds to.
+A page component is an ASP.NET Core **ViewComponent** that derives from the base `PageComponent` (`WebVella.Erp.Web/Models/PageComponent.cs`) and is decorated with a `[PageComponent(...)]` attribute (`Models/PageComponentAttribute.cs`) carrying its label, library, and version metadata. There are **64** ViewComponent files under `WebVella.Erp.Web/Components/**`, of which **49** are `Pc`-prefixed page components (**48** decorated with `[PageComponent]`); the remaining **15** are infrastructure ViewComponents (menus, includes, nav). The reference component `WebVella.Erp.Web/Components/PcApplications/PcApplications.cs` shows the contract: a `[PageComponent(Label = "Application list", Library = "WebVella", ...)]` class implementing `public async Task<IViewComponentResult> InvokeAsync(PageComponentContext context)`, where `context.Node` is the persisted body node whose `options` JSON the component binds to.
 
 Each component ships a set of mode-specific Razor views and a client script — for example `PcApplications` includes `Display.cshtml` (runtime), `Design.cshtml` (builder canvas), `Options.cshtml` (configuration), `Help.cshtml`, `Error.cshtml`, and `service.js`. Rendering uses **ERP TagHelpers** (`WebVella.TagHelpers 1.7.2`) and plain JavaScript — there is no Angular/React/TypeScript layer.
 
