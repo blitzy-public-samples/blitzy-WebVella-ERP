@@ -1,0 +1,152 @@
+Table,Column,Data Type,Key Type,Nullable,Default,Description,Constraints
+entities,id,uuid,PK,NO,,Primary key; unique identifier of the entity meta-definition record.,entities_pkey PRIMARY KEY (id)
+entities,json,json,,NO,,"Serialized JSON document holding the dynamic entity meta-model definition (entity name, label, fields, system flags). Physical record data for each entity is stored in a separately created rec_<entity_name> table. Column name is the reserved word ""json"" (double-quoted in DDL).",
+entity_relations,id,uuid,PK,NO,,Primary key; unique identifier of the entity-relation meta-definition record.,entity_relations_pkey PRIMARY KEY (id)
+entity_relations,json,json,,NO,,"Serialized JSON document holding the dynamic entity-relation definition (origin/target entity and field, relation type, name). Column name is the reserved word ""json"" (double-quoted in DDL).",
+system_settings,id,uuid,PK,NO,,Primary key; unique identifier of the singleton system settings record.,system_settings_pkey PRIMARY KEY (id)
+system_settings,version,integer,,NO,,"System schema version used to drive incremental initialization patches (e.g., UpdateSitemapNodeTable1/2).",
+system_search,id,uuid,PK,NO,,Primary key of the full-text search index row.,system_search_pkey PRIMARY KEY (id)
+system_search,entities,text,,NO,''::text,Identifiers/names of entities associated with the indexed item.,
+system_search,apps,text,,NO,''::text,Identifiers/names of apps associated with the indexed item.,
+system_search,records,text,,NO,''::text,Identifiers of the records associated with the indexed item.,
+system_search,content,text,,NO,''::text,Original textual content that was indexed.,
+system_search,snippet,text,,NO,''::text,Short preview snippet shown in search results.,
+system_search,url,text,,NO,''::text,Target URL navigated to from the search result.,
+system_search,aux_data,text,,NO,''::text,Auxiliary metadata associated with the search entry.,
+system_search,timestamp,timestamp(0) with time zone,,NO,,"Timestamp the search entry was indexed. Column name is the reserved word ""timestamp"" (double-quoted in DDL).",
+system_search,stem_content,text,,NO,''::text,Stemmed content used to build the GIN full-text index (system_search_fts_idx).,"system_search_fts_idx GIN index on to_tsvector('english', stem_content)"
+files,id,uuid,PK,NO,,Primary key; unique identifier of the file record.,files_pkey PRIMARY KEY (id)
+files,object_id,numeric(18),,NO,,Numeric object identifier of the stored file; for file-system storage this is 0 for all files. Its original UNIQUE constraint is dropped during initialization to support FS storage.,udx_object_id UNIQUE (object_id) declared then dropped during initialization
+files,filepath,text,Unique,NO,,Logical path/location of the stored file.,udx_filepath UNIQUE (filepath); unique index idx_filepath on (filepath)
+files,created_on,timestamp without time zone,,NO,,Timestamp the file record was created.,
+files,modified_on,timestamp without time zone,,NO,,Timestamp the file record was last modified.,
+files,created_by,uuid,,YES,,Identifier of the user who created the file record.,
+files,modified_by,uuid,,YES,,Identifier of the user who last modified the file record.,
+jobs,id,uuid,PK,NO,,Primary key; unique identifier of the background job.,jobs_pkey PRIMARY KEY (id)
+jobs,type_id,uuid,,NO,,Identifier of the registered job type.,
+jobs,type_name,text,,NO,,Name of the registered job type.,
+jobs,complete_class_name,text,,NO,,Fully-qualified .NET class name that implements the job.,
+jobs,attributes,text,,YES,,Serialized input attributes/parameters passed to the job.,
+jobs,status,integer,,NO,,Job execution status code (enumeration).,
+jobs,priority,integer,,NO,,Job priority used by the scheduler.,
+jobs,started_on,timestamp with time zone,,YES,,Timestamp the job started executing.,
+jobs,finished_on,timestamp with time zone,,YES,,Timestamp the job finished executing.,
+jobs,aborted_by,uuid,,YES,,Identifier of the user who aborted the job.,
+jobs,canceled_by,uuid,,YES,,Identifier of the user who canceled the job.,
+jobs,error_message,text,,YES,,Error message captured if the job failed.,
+jobs,schedule_plan_id,uuid,,YES,,"Identifier of the schedule plan that triggered the job, if any (logically references schedule_plan.id; no explicit FK declared in DDL).",
+jobs,created_on,timestamp with time zone,,NO,,Timestamp the job record was created.,
+jobs,last_modified_on,timestamp with time zone,,NO,,Timestamp the job record was last modified.,
+jobs,created_by,uuid,,YES,,Identifier of the user who created the job record.,
+jobs,last_modified_by,uuid,,YES,,Identifier of the user who last modified the job record.,
+jobs,result,text,,YES,,Serialized job result payload; column added via ALTER TABLE during initialization.,
+schedule_plan,id,uuid,PK,NO,,Primary key; unique identifier of the schedule plan.,schedule_plan_pkey PRIMARY KEY (id)
+schedule_plan,name,text,,NO,,Human-readable name of the schedule plan.,
+schedule_plan,type,integer,,NO,,"Schedule type code (enumeration, e.g., interval/daily).",
+schedule_plan,start_date,timestamp with time zone,,YES,,Date/time the schedule becomes active.,
+schedule_plan,end_date,timestamp with time zone,,YES,,Date/time the schedule stops being active.,
+schedule_plan,schedule_days,json,,YES,,JSON describing the days/recurrence on which the plan triggers.,
+schedule_plan,interval_in_minutes,integer,,YES,,Trigger interval in minutes for interval-based schedules.,
+schedule_plan,start_timespan,integer,,YES,,Start time-of-day boundary (timespan) for triggering.,
+schedule_plan,end_timespan,integer,,YES,,End time-of-day boundary (timespan) for triggering.,
+schedule_plan,last_trigger_time,timestamp with time zone,,YES,,Timestamp the plan last triggered a job.,
+schedule_plan,next_trigger_time,timestamp with time zone,,YES,,Computed timestamp the plan will next trigger.,
+schedule_plan,job_type_id,uuid,,NO,,Identifier of the job type to enqueue when the plan triggers.,
+schedule_plan,job_attributes,text,,YES,,Serialized attributes/parameters supplied to the triggered job.,
+schedule_plan,enabled,boolean,,NO,,Whether the schedule plan is currently enabled.,
+schedule_plan,last_started_job_id,uuid,,YES,,Identifier of the most recent job started by this plan.,
+schedule_plan,created_on,timestamp with time zone,,NO,,Timestamp the schedule plan was created.,
+schedule_plan,last_modified_on,timestamp with time zone,,NO,,Timestamp the schedule plan was last modified.,
+schedule_plan,last_modified_by,uuid,,YES,,Identifier of the user who last modified the schedule plan.,
+system_log,id,uuid,PK,NO,,Primary key; unique identifier of the log entry.,system_log_pkey PRIMARY KEY (id)
+system_log,created_on,timestamp with time zone,,NO,'2011-11-11 02:11:11+02'::timestamp with time zone,Timestamp the log entry was created.,Indexed by idx_system_log_created_on
+system_log,type,integer,,NO,1,Log entry type/severity code (enumeration).,Indexed by idx_system_log_type
+system_log,message,text,,NO,'message'::text,Log message text.,Indexed by idx_system_log_message
+system_log,source,text,,NO,'source'::text,Source/component that produced the log entry.,Indexed by idx_system_log_source
+system_log,details,text,,YES,,"Detailed payload (e.g., stack trace) for the log entry.",
+system_log,notification_status,integer,,NO,1,Notification dispatch status for the log entry.,Indexed by idx_system_log_notification_status
+plugin_data,id,uuid,PK,NO,,Primary key; unique identifier of the plugin data record. NOTE: this table is created WITHOUT the public. schema prefix in the DDL (unlike the other system tables).,plugin_data_pkey PRIMARY KEY (id)
+plugin_data,name,text,Unique,NO,''::text,"Unique key/name under which the plugin/patch payload is stored (e.g., applied date-versioned patch markers).",idx_u_plugin_data_name UNIQUE (name)
+plugin_data,data,text,,YES,''::text,Serialized plugin/patch payload persisted by plugin ProcessPatches().,
+app,id,uuid,PK,NO,,Primary key; unique identifier of the application.,app_pkey PRIMARY KEY (id)
+app,name,text,Unique,NO,''::text,Unique system name of the application.,ux_app_name UNIQUE (name)
+app,label,text,,NO,,Display label of the application.,
+app,description,text,,YES,,Description of the application.,
+app,icon_class,text,,YES,,CSS icon class used for the application.,
+app,author,text,,YES,,Author/owner of the application.,
+app,color,text,,YES,,Theme color associated with the application.,
+app,weight,integer,,NO,'-1'::integer,Ordering weight used when listing applications.,
+app,access,uuid[],,YES,,Array of role identifiers granted access to the application.,
+app_sitemap_area,id,uuid,PK,NO,,Primary key; unique identifier of the sitemap area.,app_sitemap_area_pkey PRIMARY KEY (id)
+app_sitemap_area,name,text,,NO,''::text,System name of the sitemap area.,
+app_sitemap_area,label,text,,YES,,Display label of the sitemap area.,
+app_sitemap_area,label_translations,text,,YES,,Serialized localized translations of the label.,
+app_sitemap_area,description,text,,YES,,Description of the sitemap area.,
+app_sitemap_area,description_translations,text,,YES,,Serialized localized translations of the description.,
+app_sitemap_area,icon_class,text,,YES,,CSS icon class used for the sitemap area.,
+app_sitemap_area,weight,integer,,NO,'-1'::integer,Ordering weight of the area within the app.,
+app_sitemap_area,color,text,,YES,,Theme color of the sitemap area.,
+app_sitemap_area,show_group_names,boolean,,NO,false,Whether group names are displayed within the area.,
+app_sitemap_area,access_roles,uuid[],,NO,,Array of role identifiers permitted to access the area.,
+app_sitemap_area,app_id,uuid,FK,NO,,Owning application identifier.,fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id)
+app_sitemap_area_group,id,uuid,PK,NO,,Primary key; unique identifier of the sitemap area group.,app_sitemap_area_group_pkey PRIMARY KEY (id)
+app_sitemap_area_group,area_id,uuid,FK,NO,,Owning sitemap area identifier.,fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)
+app_sitemap_area_group,weight,integer,,NO,'-1'::integer,Ordering weight of the group within the area.,
+app_sitemap_area_group,name,text,,NO,,System name of the group.,
+app_sitemap_area_group,label,text,,YES,,Display label of the group.,
+app_sitemap_area_group,label_translations,text,,YES,,Serialized localized translations of the label.,
+app_sitemap_area_group,render_roles,uuid[],,NO,,Array of role identifiers for which the group is rendered.,
+app_sitemap_area_node,id,uuid,PK,NO,,Primary key; unique identifier of the sitemap node.,app_sitemap_area_node_pkey PRIMARY KEY (id)
+app_sitemap_area_node,area_id,uuid,FK,NO,,Owning sitemap area identifier.,fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)
+app_sitemap_area_node,name,text,,NO,,System name of the node.,
+app_sitemap_area_node,label,text,,YES,,Display label of the node.,
+app_sitemap_area_node,label_translations,text,,YES,,Serialized localized translations of the label.,
+app_sitemap_area_node,icon_class,text,,YES,,CSS icon class used for the node.,
+app_sitemap_area_node,url,text,,YES,,Navigation URL associated with the node.,
+app_sitemap_area_node,weight,integer,,NO,,Ordering weight of the node within the area.,
+app_sitemap_area_node,access_roles,uuid[],,NO,,Array of role identifiers permitted to access the node.,
+app_sitemap_area_node,type,integer,,NO,,Node type code (enumeration).,
+app_sitemap_area_node,entity_id,uuid,,YES,,Associated entity identifier when the node is entity-bound (references the dynamic entities meta-model).,
+app_sitemap_area_node,entity_list_pages,uuid[],,NO,array[]::uuid[],Array of page identifiers used as entity list pages; column added via UpdateSitemapNodeTable1() during initialization.,
+app_sitemap_area_node,entity_create_pages,uuid[],,NO,array[]::uuid[],Array of page identifiers used as entity create pages; column added via UpdateSitemapNodeTable1() during initialization.,
+app_sitemap_area_node,entity_details_pages,uuid[],,NO,array[]::uuid[],Array of page identifiers used as entity details pages; column added via UpdateSitemapNodeTable1() during initialization.,
+app_sitemap_area_node,entity_manage_pages,uuid[],,NO,array[]::uuid[],Array of page identifiers used as entity manage pages; column added via UpdateSitemapNodeTable1() during initialization.,
+app_sitemap_area_node,parent_id,uuid,FK,YES,NULL,Self-referencing parent node identifier for hierarchical sitemaps; column added via UpdateSitemapNodeTable2() during initialization.,fkey_app_sitemap_area_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_sitemap_area_node(id)
+app_page,id,uuid,PK,NO,,Primary key; unique identifier of the page.,app_page_pkey PRIMARY KEY (id)
+app_page,name,text,,NO,,System name of the page.,
+app_page,label,text,,YES,,Display label of the page.,
+app_page,icon_class,text,,YES,,CSS icon class used for the page.,
+app_page,system,boolean,,YES,false,Whether the page is a protected system page.,
+app_page,type,integer,,NO,,Page type code (enumeration).,
+app_page,weight,integer,,NO,'-1'::integer,Ordering weight of the page.,
+app_page,label_translations,text,,YES,,Serialized localized translations of the label.,
+app_page,razor_body,text,,YES,,Razor markup body used when the page is rendered as Razor.,
+app_page,area_id,uuid,FK,YES,,Sitemap area the page belongs to.,fkey_area_id FOREIGN KEY (area_id) REFERENCES app_sitemap_area(id)
+app_page,node_id,uuid,FK,YES,,Sitemap node the page belongs to.,fkey_node_id FOREIGN KEY (node_id) REFERENCES app_sitemap_area_node(id)
+app_page,app_id,uuid,FK,YES,,Owning application identifier.,fkey_app_id FOREIGN KEY (app_id) REFERENCES app(id)
+app_page,entity_id,uuid,,YES,,Associated entity identifier when the page is entity-bound (references the dynamic entities meta-model).,
+app_page,is_razor_body,boolean,,NO,false,Whether the page body is rendered from razor_body markup.,
+app_page,layout,text,,NO,'',Layout template name for the page; column added via ALTER TABLE during initialization.,
+app_page_body_node,id,uuid,PK,NO,,Primary key; unique identifier of the page body node.,app_page_body_node_pkey PRIMARY KEY (id)
+app_page_body_node,parent_id,uuid,FK,YES,,Self-referencing parent body node identifier for nested page layout.,fkey_app_page_body_node_parent_id FOREIGN KEY (parent_id) REFERENCES app_page_body_node(id)
+app_page_body_node,node_id,uuid,,YES,,"Associated sitemap node identifier, if any.",
+app_page_body_node,page_id,uuid,FK,NO,,Owning page identifier.,fkey_app_page_body_node_page_id FOREIGN KEY (page_id) REFERENCES app_page(id)
+app_page_body_node,weight,integer,,NO,'-1'::integer,Ordering weight of the node within its parent.,
+app_page_body_node,component_name,text,,YES,,Name of the page-builder component rendered at this node.,
+app_page_body_node,options,text,,YES,,Serialized component options/configuration.,
+app_page_body_node,container_id,text,,YES,,Container/region identifier the node is placed in; column added via ALTER TABLE during initialization.,
+data_source,id,uuid,PK,NO,,Primary key; unique identifier of the data source.,data_source_pkey PRIMARY KEY (id)
+data_source,name,text,Unique,NO,,Unique system name of the data source.,ux_data_source_name UNIQUE (name)
+data_source,description,text,,NO,,Description of the data source.,
+data_source,weight,integer,,NO,,Ordering weight of the data source.,
+data_source,eql_text,text,,NO,,EQL query text defining the data source.,
+data_source,sql_text,text,,NO,,SQL text generated/translated from the EQL query.,
+data_source,parameters_json,text,,NO,,Serialized JSON definition of the data source parameters.,
+data_source,fields_json,text,,NO,,Serialized JSON definition of the data source fields.,
+data_source,entity_name,text,,NO,,Name of the primary entity the data source queries.,
+data_source,return_total,boolean,,NO,true,Whether the data source also returns a total record count; column added via ALTER TABLE during initialization.,
+app_page_data_source,parameters,text,,NO,,Serialized parameter bindings supplied to the data source for this page.,
+app_page_data_source,name,text,,NO,,Name of the data source binding on the page (unique together with page_id).,"Part of app_page_data_uxc_name_page_id UNIQUE (name, page_id)"
+app_page_data_source,id,uuid,PK,NO,,Primary key; unique identifier of the page-to-data-source binding.,app_page_data_source_pkey PRIMARY KEY (id)
+app_page_data_source,page_id,uuid,FK,NO,,Owning page identifier (unique together with name).,"fkey_page_id FOREIGN KEY (page_id) REFERENCES app_page(id) ON DELETE NO ACTION ON UPDATE NO ACTION; part of app_page_data_uxc_name_page_id UNIQUE (name, page_id); indexed by fki_app_page_data_fkc_page_id"
+app_page_data_source,data_source_id,uuid,,NO,,Identifier of the bound data source (logically references data_source.id; no explicit FK declared in DDL).,
