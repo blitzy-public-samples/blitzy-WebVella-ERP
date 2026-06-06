@@ -13,7 +13,7 @@ WebVella.Erp.Plugins.Approval,WebVella.Erp.Plugins.Approval/Components/PcApprova
 WebVella.Erp.Plugins.Approval,WebVella.Erp.Plugins.Approval/Components/PcApprovalDashboard/service.js,JavaScript,None,343,2026-01-20,Client-side script for a page component,Moderate
 WebVella.Erp.Plugins.Approval,WebVella.Erp.Plugins.Approval/Controllers/ApprovalController.cs,C#,"WebVella.Erp.Api, WebVella.Erp.Api.Models, Microsoft.AspNetCore.Authorization, Microsoft.AspNetCore.Mvc",209,2026-01-20,MVC/API controller 'ApprovalController',Moderate
 WebVella.Erp.Plugins.Approval,WebVella.Erp.Plugins.Approval/Services/DashboardMetricsService.cs,C#,"WebVella.Erp.Api, WebVella.Erp.Api.Models",308,2026-01-20,Service class 'DashboardMetricsService',Moderate
-WebVella.Erp.Plugins.Crm,WebVella.Erp.Plugins.Crm/CrmPlugin._.cs,C#,"WebVella.Erp.Api, WebVella.Erp.Api.Models",103,2022-11-06,Plugin bootstrap partial; registration and dated-migration application,Low
+WebVella.Erp.Plugins.Crm,WebVella.Erp.Plugins.Crm/CrmPlugin._.cs,C#,"WebVella.Erp.Api, WebVella.Erp.Api.Models",103,2022-01-27,Plugin bootstrap partial; registration and dated-migration application,Low
 WebVella.Erp.Plugins.Crm,WebVella.Erp.Plugins.Crm/CrmPlugin.cs,C#,"WebVella.Erp.Api, WebVella.Erp.Jobs",23,2019-01-31,Plugin entry class; ErpPlugin definition and metadata,Low
 WebVella.Erp.Plugins.Crm,WebVella.Erp.Plugins.Crm/Model/PluginSettings.cs,C#,None,10,2019-01-31,Model/DTO type 'PluginSettings',Low
 WebVella.Erp.Plugins.Mail,WebVella.Erp.Plugins.Mail/Api/AutoMapper/AutoMapperConfiguration.cs,C#,"WebVella.Erp.Web.Models.AutoMapper.Profiles, AutoMapper.Configuration, AutoMapper",34,2022-01-27,Class 'MailPluginAutoMapperConfiguration' in WebVella.Erp.Plugins.Mail.Api.AutoMapper,Low

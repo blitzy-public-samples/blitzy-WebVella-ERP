@@ -251,7 +251,7 @@ Record/manager CRUD actions and most JSON API actions return the platform's stan
 | `Message` | `string` | Human-readable status/error message | `WebVella.Erp/Api/Models/BaseModels.cs:17` |
 | `Errors` | `List<ErrorModel>` | Field-level / operation errors | `WebVella.Erp/Api/Models/BaseModels.cs:23` |
 | `Timestamp` | `DateTime` | Server timestamp of the response | `WebVella.Erp/Api/Models/BaseModels.cs:11` |
-| `StatusCode` | `HttpStatusCode` | Intended HTTP status (mapped on the way out) | `WebVella.Erp/Api/Models/BaseModels.cs:30` |
+| `StatusCode` | `HttpStatusCode` | Intended HTTP status (mapped on the way out) | `WebVella.Erp/Api/Models/BaseModels.cs:29` |
 
 The base controller serializes this envelope and maps its status to HTTP in `ApiControllerBase.DoResponse` (`WebVella.Erp.Web/Controllers/ApiControllerBase.cs:16`): when `Errors` is non-empty or `Success` is `false`, the response status is set to `400 Bad Request` (or the envelope's explicit `StatusCode`) before the JSON is written. For `RecordManager.Find`, `QueryResponse.Object` is set to a `QueryResult` (`WebVella.Erp/Api/Models/QueryResult.cs:6`) that carries `fieldsMeta` (`List<Field>`) and `data` (`List<EntityRecord>`) (`WebVella.Erp/Api/RecordManager.cs:1789`). Direct EQL execution via `EqlCommand.Execute()` instead returns an `EntityRecordList` (`WebVella.Erp/Eql/EqlCommand.cs:190`, `WebVella.Erp/Api/Models/EntityRecordList.cs:6`).
 
