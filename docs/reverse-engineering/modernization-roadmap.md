@@ -1,7 +1,7 @@
 # Modernization Roadmap — WebVella ERP
 
 > **Deliverable 7 of 7** · Reverse-Engineering Documentation Suite
-> **Generated (UTC):** 2026-06-06 18:52 UTC
+> **Generated (UTC):** 2026-06-06 19:32 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md)
 > **Suite index:** [`README.md`](./README.md)
@@ -23,6 +23,7 @@ The system's debt is **concentrated, not pervasive**. A small number of high-lev
 - A **runtime code-compilation endpoint** (`POST api/v3.0/datasource/code-compile`) compiles and loads arbitrary user-supplied C# (`SEC-001`).
 - **Two Blazor WebAssembly projects target the out-of-support `net7.0` runtime** while 18 of 20 projects target `net9.0` (`DEP-001`).
 - The active **`AutoMapper 14.0.0`** mapper carries a **known High-severity advisory** (DoS via uncontrolled recursion) for which there is **no fix on the free `14.x` line** (`DEP-004`).
+- The **`MailKit 4.14.1`** mail library (`DEP-005`, `CVE-2026-41319`) and its **transitive `MimeKit 4.14.0`** dependency (`DEP-006`, `CVE-2026-30227`) carry **Medium-severity** email-protocol-injection advisories (STARTTLS / SASL downgrade and CRLF / SMTP command injection), both remediated by a single **free** `MailKit 4.16.0`+ upgrade.
 - **Secrets are stored in cleartext** in each host site's `Config.json` (`SEC-003`).
 - The **`global.json` SDK version is commented out**, so builds float to the latest installed SDK.
 - **No automated tests** and **no containerization** exist anywhere in the repository (`QA-001`; Docker absence).
@@ -71,7 +72,7 @@ The platform has real, load-bearing strengths that a modernization effort should
 - **Consistent custom data layer with parameterized SQL.** Rather than an off-the-shelf ORM, the platform uses a **hand-written Npgsql data layer** (`WebVella.Erp/Database/**`). Crucially, it **parameterizes values** via `NpgsqlParameter` throughout (the assessment counted 50 parameter constructions), which is the correct primary defense against SQL injection — recorded as a **strength** in `SEC-006`.
 - **Dynamic entity meta-model enabling runtime schema.** Beyond the fixed system tables created by embedded DDL, applications and plugins define **entities and fields as records** (JSON-serialized) at runtime, without database migrations. This metadata-driven model — detailed in [`database-schema.md`](./database-schema.md) — is a distinctive capability that gives the product its low-code character and must be **preserved through any data-layer change**.
 - **Broad, coherent feature coverage.** The seven plugins plus the core deliver CRM, project management, email (IMAP/SMTP), a developer SDK / app-builder, Microsoft Common Data Model mapping, an approval workflow, and a "Next" application framework. The functional breadth is catalogued in [`functional-overview.md`](./functional-overview.md).
-- **A largely current dependency baseline for active packages.** Most active third-party NuGet packages are pinned to current major versions (for example `Npgsql 9.0.4` and `Newtonsoft.Json 13.0.4`; see `WebVella.Erp/WebVella.Erp.csproj`), which is a favorable starting point for the framework-alignment work recommended below. **One active package is a notable exception:** `AutoMapper 14.0.0` carries a **known High-severity advisory** (`DEP-004` — DoS via uncontrolled recursion) with **no fix on the free `14.x` line**, so it is **excluded from this favorable baseline** and is addressed in the hardening work in §3.2.
+- **A largely current dependency baseline for active packages.** Most active third-party NuGet packages are pinned to current major versions (for example `Npgsql 9.0.4` and `Newtonsoft.Json 13.0.4`; see `WebVella.Erp/WebVella.Erp.csproj`), which is a favorable starting point for the framework-alignment work recommended below. **Three active packages are notable exceptions**, each carrying a verified published advisory: `AutoMapper 14.0.0` (`DEP-004` — High-severity DoS via uncontrolled recursion, with **no fix on the free `14.x` line**), the direct `MailKit 4.14.1` (`DEP-005` — Medium-severity STARTTLS response-injection / SASL-downgrade advisory, `CVE-2026-41319`), and its transitive `MimeKit 4.14.0` (`DEP-006` — Medium-severity CRLF / SMTP-command-injection advisory, `CVE-2026-30227`). The `MailKit`/`MimeKit` pair is remediated together by a single **free** upgrade to `MailKit 4.16.0`+, whereas `AutoMapper` has no free fix; all three are **excluded from this favorable baseline** and addressed in the hardening work in §3.2.
 
 These strengths frame the modernization stance: this is an **incremental hardening and decomposition** effort over a sound foundation — **not** a rationale for a ground-up rewrite.
 
@@ -109,6 +110,10 @@ The following are **present in the repository today**. Severity ratings, full ev
 
 - **Known-vulnerable active dependency — `AutoMapper 14.0.0` (`DEP-004`, High).** The DTO ↔ entity mapper `AutoMapper` is pinned to `14.0.0` (`WebVella.Erp/WebVella.Erp.csproj:47`) and wired into the runtime mapping pipeline (`WebVella.Erp/ERPService.cs:900`, `SetAutoMapperConfiguration`). That version is affected by a **High-severity advisory** (`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`, CVSS 7.5) — a **denial-of-service via uncontrolled recursion**: a deeply nested object graph mapped without a `MaxDepth` limit can exhaust the thread stack and crash the process with a `StackOverflowException`. Critically, there is **no fix on the free `14.x` line** — the maintainer will not patch `14.x`, and the fix ships only in the **paid** `15.1.1` / `16.1.1` releases — so remediation is **not a trivial version bump**. See [`security-quality.md`](./security-quality.md) §4.5.
 
+- **Known-vulnerable active dependency — `MailKit 4.14.1` (`DEP-005`, Medium).** The Mail plugin's email library is pinned to `4.14.1` (`WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`). That version is affected by `CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr` (CVSS 6.5) — a **STARTTLS response-injection** flaw that lets a network man-in-the-middle inject pre-TLS data treated as trusted post-TLS responses, enabling a **SASL authentication-mechanism downgrade** across SMTP/IMAP/POP3. Unlike `DEP-004`, the fix is **free and in-line**: upgrade `MailKit` to `4.16.0`+. See [`security-quality.md`](./security-quality.md) §4.6.
+
+- **Known-vulnerable transitive dependency — `MimeKit 4.14.0` (`DEP-006`, Medium).** `MimeKit` is pulled in **transitively by `MailKit`** and resolves to `4.14.0` (`WebVella.Erp.Plugins.Mail/obj/project.assets.json`). That version is affected by `CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx` (CVSS 6.9) — a **CRLF injection** in the quoted local-part that enables **SMTP command injection and email forgery** when an attacker can influence a `MailboxAddress`. Upgrading `MailKit` to `4.16.0`+ transitively pulls a fixed `MimeKit` (≥ `4.15.1`). See [`security-quality.md`](./security-quality.md) §4.7.
+
 
 ### 1.3 Qualitative Risk Matrix
 
@@ -125,6 +130,8 @@ The matrix below ranks each current-state finding **qualitatively** by **likelih
 | `QA-002` | 4,313-line monolithic `WebApiController` | High | Medium | **Medium–High** | Phase 2 |
 | `DEP-003` | `System.Drawing.Common` Windows-only | Medium | Medium | **Medium** | Phase 3 |
 | `DEP-004` | `AutoMapper 14.0.0` known High advisory (DoS via uncontrolled recursion); no fix on free 14.x line | Medium | High | **High** | Phase 1 |
+| `DEP-005` | `MailKit 4.14.1` STARTTLS response-injection / SASL-downgrade advisory (`CVE-2026-41319`); free fix in 4.16.0 | Medium | Medium | **Medium** | Phase 1 |
+| `DEP-006` | `MimeKit 4.14.0` (transitive) CRLF / SMTP-command-injection advisory (`CVE-2026-30227`); fixed via MailKit 4.16.0+ | Medium | Medium | **Medium** | Phase 1 |
 | `global.json` | SDK version commented out (non-deterministic builds) | Medium | Medium | **Medium** | Phase 1 |
 | `SEC-006` | SQL identifiers interpolated from metadata; FTS-language literal (`query.FtsLanguage`) concatenated unparameterized (`DbRecordRepository.cs:1503,1511`) | Medium | High | **Medium–High** | Phase 3 |
 | `SEC-005` | Npgsql legacy-timestamp switch retained | Low | Low | **Low** | Phase 3 |
@@ -150,6 +157,8 @@ Every finding above maps forward to a concrete initiative. This table is the **t
 | `DEP-002` | `*.csproj` comment lines | Remove commented-out legacy references during cleanup — Phase 3 |
 | `DEP-003` | `WebVella.Erp/WebVella.Erp.csproj:63` | Migrate imaging to a cross-platform library (e.g., the commented-out SixLabors path) — Phase 3 |
 | `DEP-004` | `WebVella.Erp/WebVella.Erp.csproj:47` (`AutoMapper [14.0.0]`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) | Interim: configure a global `MaxDepth` on the AutoMapper profiles; durable: upgrade to the paid `15.1.1`+ **or** migrate to a maintained mapper (e.g., Mapperly) / hand-mapping — Phase 1 |
+| `DEP-005` | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` (`MailKit 4.14.1`; `CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr`) | Upgrade `MailKit` to `4.16.0`+ (free, in-line) to close the STARTTLS response-injection advisory — Phase 1 |
+| `DEP-006` | `WebVella.Erp.Plugins.Mail/obj/project.assets.json` (transitive `MimeKit 4.14.0`; `CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx`) | Upgrade `MailKit` to `4.16.0`+ to transitively pull a fixed `MimeKit` (≥ `4.15.1`); optionally pin `MimeKit` directly — Phase 1 |
 | `QA-001` | solution-wide | Stand up a test project and CI gate; backfill tests around decomposition seams — Phase 2 (enabled in Phase 1) |
 | `QA-002` | `WebVella.Erp.Web/Controllers/WebApiController.cs` (4,313 LOC) | Apply the Strangler Fig pattern to carve into per-resource controllers/services — Phase 2 |
 | `global.json` | `global.json` | Pin the SDK version for deterministic builds — Phase 1 |
@@ -237,6 +246,7 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 - **Constrain deserialization (`SEC-002`).** Introduce a `SerializationBinder` / type allow-list (or change serializer configuration) for the `TypeNameHandling` usages in `JobDataService.cs` and `DbRelationRepository.cs`.
 - **Tighten CORS (`SEC-004`).** Replace the `AllowAnyOrigin` default policy with an explicit origin allow-list, and confirm HTTPS/HSTS enforcement.
 - **Mitigate the `AutoMapper` DoS advisory (`DEP-004`).** As an immediate, low-cost step, configure a **global `MaxDepth`** on the AutoMapper profiles to bound recursive mapping; in parallel, plan the **durable** remediation — upgrade to the paid `AutoMapper 15.1.1`+ or migrate to a maintained mapper (e.g., Mapperly) — since the free `14.x` line will not be patched.
+- **Remediate the `MailKit` / `MimeKit` advisories (`DEP-005`, `DEP-006`).** Upgrade the Mail plugin's `MailKit` reference from `4.14.1` to `4.16.0`+ — a **free, in-line** bump that closes the STARTTLS response-injection advisory (`CVE-2026-41319`) and **transitively** pulls a fixed `MimeKit` (≥ `4.15.1`), closing the CRLF / SMTP-command-injection advisory (`CVE-2026-30227`); optionally pin `MimeKit` directly as defense-in-depth.
 - **Establish the test and CI scaffold (enabler for `QA-001`).** Create an (initially small) automated-test project and a continuous-integration build so that subsequent phases have a place to add coverage and a gate to enforce it. *(Authoring the bulk of tests is Phase 2; standing up the capability here is what makes Phase 2 safe.)*
 
 **Exit criteria.**
@@ -248,6 +258,7 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 - `TypeNameHandling` deserialization is type-constrained.
 - The default CORS policy enumerates explicit origins.
 - The `AutoMapper` DoS advisory (`DEP-004`) is mitigated (a global `MaxDepth` is configured to bound recursive mapping) and a durable remediation — paid upgrade or migration to a maintained mapper — is decided and scheduled.
+- The `MailKit` / `MimeKit` advisories (`DEP-005`, `DEP-006`) are remediated by upgrading `MailKit` to `4.16.0`+ (which transitively updates `MimeKit` to ≥ `4.15.1`).
 - A test project builds and runs in CI, even if coverage is initially minimal.
 
 ### 3.3 Phase 2 — Decompose & Harden
@@ -389,6 +400,8 @@ Current-state claims in this document resolve to the following real files (line 
 | Commented-out 2.2.0 reference | `WebVella.Erp/WebVella.Erp.csproj:51` | `DEP-002` |
 | Windows-only imaging dependency | `WebVella.Erp/WebVella.Erp.csproj:63` | `DEP-003` |
 | Known-vulnerable mapper (`AutoMapper [14.0.0]`) | `WebVella.Erp/WebVella.Erp.csproj:47`; runtime wiring `WebVella.Erp/ERPService.cs:900` | `DEP-004` (`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) |
+| Known-vulnerable mail library (`MailKit 4.14.1`) | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` | `DEP-005` (`CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr`) |
+| Known-vulnerable transitive dep (`MimeKit 4.14.0`) | `WebVella.Erp.Plugins.Mail/obj/project.assets.json` (via `MailKit 4.14.1`) | `DEP-006` (`CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx`) |
 | Core library version & license | `WebVella.Erp/WebVella.Erp.csproj` (`Version 1.7.4`, Apache-2.0) | Executive summary, §1.1 |
 | SDK version commented out | `global.json` | Non-deterministic builds (§1.2, §3.2) |
 | IIS in-process hosting | `WebVella.Erp.Site/web.config` (`hostingModel="InProcess"`) | No-Docker baseline (§1.2, §3.4) |

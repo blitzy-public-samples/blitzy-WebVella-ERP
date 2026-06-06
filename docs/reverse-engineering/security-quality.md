@@ -1,7 +1,7 @@
 # Security & Quality Assessment — WebVella ERP
 
 > **Deliverable 6 of 7** · Reverse-Engineering Documentation Suite
-> **Generated (UTC):** 2026-06-06 18:52 UTC
+> **Generated (UTC):** 2026-06-06 19:32 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
 > **Suite index:** [`README.md`](./README.md)
@@ -18,7 +18,7 @@ The headline observations are:
 - **Two High-severity classes.** (1) **Insecure-deserialization** configuration — Newtonsoft `TypeNameHandling.All` / `.Auto` is used in background-job and relation serialization (`WebVella.Erp/Jobs/JobDataService.cs`, `WebVella.Erp/Database/DbRelationRepository.cs`). (2) **Plaintext secrets** — every host site's `Config.json` stores a database connection string, an encryption key, and (in two sites) a weak hardcoded JWT signing key in cleartext.
 - **A genuine data-layer strength, with two residuals.** The custom Npgsql data layer **parameterizes ordinary values** with `NpgsqlParameter` throughout `WebVella.Erp/Database/**` (50 parameter constructions), which is the correct defense against SQL injection. Two residuals remain: **SQL identifiers** (table/column names sourced from entity metadata) are composed via string interpolation, and the **full-text-search language literal** — `query.FtsLanguage`, an externally-bindable query-model property — is concatenated **unparameterized** into the SQL at `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`.
 - **A pervasive code-hygiene signal.** The entire `WebVella.Erp.Web/Security/**` folder consists almost entirely of **commented-out** legacy authentication/authorization code (for example, `WebSecurityUtil.cs` is **~193 of 232** lines commented).
-- **Dependency hygiene is mostly current, with three real findings.** Most active NuGet packages are pinned to current versions, but three exceptions stand out: the **`AutoMapper` 14.0.0** mapper carries a **known High-severity advisory** (DoS via uncontrolled recursion, `DEP-004`) for which there is **no fix on the free `14.x` line**; **two projects target the out-of-support `net7.0` runtime** (`DEP-001`); and the active imaging dependency (`System.Drawing.Common`) is **Windows-only since .NET 6** (`DEP-003`). Several legacy package references (the ASP.NET Core **2.2.0** packages and the **SixLabors.ImageSharp** packages) are **commented out**, i.e. *not* active dependencies — reported here as a code-hygiene observation rather than as live end-of-life dependencies.
+- **Dependency hygiene is mostly current, but a comprehensive direct-plus-transitive advisory audit surfaces five real findings.** Most active NuGet packages are pinned to current versions; five exceptions stand out. **Three carry confirmed, published security advisories:** the **`AutoMapper` 14.0.0** mapper has a **High-severity** advisory (DoS via uncontrolled recursion, `DEP-004`) for which there is **no fix on the free `14.x` line**; the direct **`MailKit` 4.14.1** mail library has a **Medium-severity** STARTTLS response-injection / SASL-downgrade advisory (`DEP-005`, `CVE-2026-41319`); and its **transitive `MimeKit` 4.14.0** dependency has a **Medium-severity** CRLF / SMTP-command-injection advisory (`DEP-006`, `CVE-2026-30227`) — the `MailKit` / `MimeKit` pair is remediated together by a single **free** `MailKit` upgrade to `4.16.0`+. **Two further findings are framework/portability issues:** **two projects target the out-of-support `net7.0` runtime** (`DEP-001`), and the active imaging dependency (`System.Drawing.Common`) is **Windows-only since .NET 6** (`DEP-003`). Several legacy package references (the ASP.NET Core **2.2.0** packages and the **SixLabors.ImageSharp** packages) are **commented out**, i.e. *not* active dependencies — reported as a code-hygiene observation rather than as live end-of-life dependencies.
 - **Concentrated complexity and no automated tests.** Complexity is concentrated in a handful of very large files, anchored by the **4,313-line** monolithic `WebApiController.cs`. The solution contains **no automated test project** of any kind, which is itself a quality risk.
 
 The findings below feed directly into the phased plan in `modernization-roadmap.md`.
@@ -75,7 +75,7 @@ Severities are **qualitative** risk ratings only; they carry no time or effort e
 
 ### 1.4 CVE-audit method & disclaimer
 
-The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact pinned versions** read from the `.csproj` manifests and discusses class-of-risk for security-relevant packages. A **targeted advisory cross-check** of the active pinned packages against the **GitHub Advisory Database / NVD** surfaced **one confirmed High-severity advisory on an active dependency** — `AutoMapper 14.0.0` — documented below as `DEP-004` with its verified `CVE` / `GHSA` identifiers. **A specific CVE identifier is asserted only where it was verified against those public advisory sources; none is fabricated.** This was deliberately **not an exhaustive sweep**: a full `dotnet list package --vulnerable --include-transitive` run — covering transitive dependencies and any newly-published advisories — remains the **recommended live audit during modernization**, and the packages whose *class* or *support status* most warrant that check are flagged throughout [§4](#4-dependency--cve-audit).
+The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact pinned versions** read from the `.csproj` manifests, then performs a **comprehensive advisory cross-check** — covering **direct *and* transitive** packages — against the **GitHub Advisory Database / NVD**. That cross-check surfaced **three confirmed advisories on active dependencies**: `AutoMapper 14.0.0` (`DEP-004`, High), the direct `MailKit 4.14.1` mail library (`DEP-005`, Medium), and its transitive `MimeKit 4.14.0` dependency (`DEP-006`, Medium) — each documented below with its verified `CVE` / `GHSA` identifiers, affected range, and remediation, and consolidated in the **direct + transitive vulnerability matrix** in §4.8. **A specific CVE identifier is asserted only where it was verified against those public advisory sources; none is fabricated**; conversely, packages for which no applicable advisory was found are recorded explicitly as *none identified* (a bounded statement about public advisory databases, not a guarantee of absolute safety). The matrix also flags components — notably the proprietary `WebVella.TagHelpers` — whose advisory visibility in public databases is limited and which therefore warrant vendor/private-feed confirmation. The standing control that keeps this audit current in CI is a `dotnet list package --vulnerable --include-transitive` run cross-referenced against the same advisory sources, carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as a Phase 1 dependency-hardening control.
 
 ---
 
@@ -94,6 +94,8 @@ The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact p
 | `DEP-002` | 🟦 Low/Info | Commented-out legacy package references (2.2.0, SixLabors) | `*.csproj` (verified comment lines) |
 | `DEP-003` | 🟨 Medium | `System.Drawing.Common` is Windows-only since .NET 6 (portability) | `WebVella.Erp/WebVella.Erp.csproj:63` |
 | `DEP-004` | 🟧 High | `AutoMapper` 14.0.0 — known High-severity DoS advisory (uncontrolled recursion); no fix on the free 14.x line | `WebVella.Erp/WebVella.Erp.csproj:47` |
+| `DEP-005` | 🟨 Medium | `MailKit` 4.14.1 — STARTTLS response-injection advisory (SASL downgrade); free fix in 4.16.0 | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` (`CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr`) |
+| `DEP-006` | 🟨 Medium | `MimeKit` 4.14.0 (transitive via MailKit) — CRLF / SMTP-command-injection advisory; fix in 4.15.1 | `WebVella.Erp.Plugins.Mail/obj/project.assets.json` (`CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx`) |
 | `QA-001` | 🟧 High | No automated tests anywhere in the solution | solution-wide |
 | `QA-002` | 🟨 Medium | Extreme-size files concentrate complexity | `WebApiController.cs` (4,313 LOC) + hotspots |
 
@@ -329,7 +331,8 @@ The table below lists the principal **active** (non-commented) third-party depen
 | WebVella.TagHelpers | 1.7.2 | Proprietary ERP UI tag-helper library (ships Bootstrap/jQuery assets). |
 | System.IdentityModel.Tokens.Jwt | 8.14.0 | JWT token handling. |
 | Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | JWT bearer authentication. |
-| MailKit | 4.14.1 | Email (Mail plugin). |
+| **MailKit** | **4.14.1** | Email (Mail plugin). **Known Medium-severity STARTTLS response-injection advisory affects this version — see `DEP-005`.** |
+| **MimeKit** *(transitive via MailKit)* | **4.14.0** | MIME parsing/serialization pulled in by MailKit. **Known Medium-severity CRLF / SMTP-command-injection advisory affects this version — see `DEP-006`.** |
 | Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | Blazor WebAssembly runtime (Client project, `net9.0`). |
 | Blazored.LocalStorage | 4.5.0 | Blazor local-storage helper. |
 | Microsoft.Web.LibraryManager.Build | 3.0.71 | LibMan client-library restore. |
@@ -398,11 +401,64 @@ It is wired into the runtime mapping pipeline through `WebVella.Erp/ERPService.c
 
 A targeted cross-check against the **GitHub Advisory Database / NVD** confirms that this version is affected by **`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`** — *"Denial of Service (DoS) via Uncontrolled Recursion"*, rated **High (CVSS 7.5)**, network-exploitable with **low attack complexity** and **no privileges or user interaction**. When mapping a deeply nested object graph (for example a type that eventually references itself), the mapping engine recurses **without a default maximum-depth limit**; a sufficiently nested graph (on the order of 25,000+ levels) exhausts the thread's stack and raises a `StackOverflowException`, terminating the entire process.
 
-**Affected range and remediation.** The advisory affects **all versions before `15.1.1`** (and `16.0.0` before `16.1.1`), so `14.0.0` is affected. There is **no free remediation path**: the maintainer has stated that **no patch will be issued for the `14.x` (MIT-licensed) line** (AutoMapper issue #4618), and the fix ships only in the **paid** `15.1.1` / `16.1.1` releases. The live tooling recommended in §4.6 (`dotnet list package --vulnerable`) emits **`NU1903` (High)** for `AutoMapper 14.0.0`. No `MaxDepth` limit is configured anywhere in the solution, so the default-unbounded behavior applies. This is the **one active pinned dependency** for which this audit asserts a specific, verified advisory; the remediation options — an **interim global `MaxDepth`** on the AutoMapper profiles, a **paid upgrade** to `15.1.1`+, or **migration to a maintained alternative** (e.g. Mapperly or hand-mapping) — are carried into the hardening phase of [`modernization-roadmap.md`](./modernization-roadmap.md) as `DEP-004`.
+**Affected range and remediation.** The advisory affects **all versions before `15.1.1`** (and `16.0.0` before `16.1.1`), so `14.0.0` is affected. There is **no free remediation path**: the maintainer has stated that **no patch will be issued for the `14.x` (MIT-licensed) line** (AutoMapper issue #4618), and the fix ships only in the **paid** `15.1.1` / `16.1.1` releases. The live tooling recommended in §4.8 (`dotnet list package --vulnerable`) emits **`NU1903` (High)** for `AutoMapper 14.0.0`. No `MaxDepth` limit is configured anywhere in the solution, so the default-unbounded behavior applies. It is one of **three active dependencies** for which this audit asserts a specific, verified advisory (alongside `MailKit` / `DEP-005` and the transitive `MimeKit` / `DEP-006` below); the remediation options — an **interim global `MaxDepth`** on the AutoMapper profiles, a **paid upgrade** to `15.1.1`+, or **migration to a maintained alternative** (e.g. Mapperly or hand-mapping) — are carried into the hardening phase of [`modernization-roadmap.md`](./modernization-roadmap.md) as `DEP-004`.
 
-### 4.6 CVE-audit method (verified scope)
+### 4.6 `DEP-005` — `MailKit` 4.14.1 STARTTLS response-injection advisory 🟨 Medium
 
-As stated in [§1.4](#14-cve-audit-method--disclaimer), a **targeted advisory cross-check** of the active pinned packages surfaced **one confirmed High-severity advisory** — `AutoMapper 14.0.0` (`DEP-004`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`). **CVE identifiers are asserted only where verified against the GitHub Advisory Database / NVD; none is fabricated.** This was deliberately **not an exhaustive sweep**: the recommended full live audit during modernization is `dotnet list package --vulnerable --include-transitive`, cross-referenced against the GitHub Advisory Database / NVD, to cover transitive dependencies and any newly-published advisories. The highest-priority targets for that live audit, based on this inspection, are: the already-confirmed **`AutoMapper 14.0.0`** advisory (`DEP-004`), the **`net7.0` projects** (`DEP-001`, unsupported framework), **Newtonsoft.Json** usage with `TypeNameHandling` (`SEC-002`), and the **Roslyn / CS-Script** runtime-compilation stack (`SEC-001`). Apart from the confirmed `AutoMapper` advisory, the remaining active packages are pinned to current major versions and **this targeted check did not surface a further confirmed advisory**; that observation is **bounded by the non-exhaustive method above** and is **not** an all-clear — a definitive determination for those packages (and for transitive dependencies) is **deferred to the full sweep** recommended here.
+`MailKit` is the email client library used by the Mail plugin and is an **active, direct** dependency pinned to an exact version:
+
+```text
+WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj
+28:   <PackageReference Include="MailKit" Version="4.14.1" />
+```
+
+A cross-check against the **GitHub Advisory Database / NVD** confirms that `4.14.1` is affected by **`CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr`** — *"STARTTLS Response Injection via unflushed stream buffer that enables SASL mechanism downgrade"*, rated **Medium (CVSS 3.1 base 6.5; `CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N`; CWE-74)** and reviewed in the GitHub Advisory Database as **Moderate**. The internal read buffer in `SmtpStream`, `ImapStream`, and `Pop3Stream` is **not flushed** when the underlying stream is replaced with `SslStream` during the STARTTLS upgrade, so plaintext data injected by a network man-in-the-middle **before** the TLS handshake is processed as a **trusted post-TLS response**. The practical impact is a **SASL authentication-mechanism downgrade** (for example forcing `PLAIN` instead of `SCRAM-SHA-256`) and protocol-capability manipulation across SMTP, IMAP, and POP3.
+
+**Affected range and remediation.** The advisory affects **all versions before `4.16.0`**, so `4.14.1` is affected; it is **fixed in `4.16.0`**. Unlike `DEP-004`, this is a **free, in-line upgrade**: raising the `MailKit` `PackageReference` to `4.16.0` (or later) resolves it and, as noted in `DEP-006`, transitively updates `MimeKit` to a fixed version. The remediation is carried into the hardening phase of [`modernization-roadmap.md`](./modernization-roadmap.md) as `DEP-005`. *(Per the zero-modification constraint of this documentation task, no manifest was changed; the upgrade is a roadmap recommendation only.)*
+
+### 4.7 `DEP-006` — `MimeKit` 4.14.0 (transitive) CRLF / SMTP-command-injection advisory 🟨 Medium
+
+`MimeKit` is **not a direct dependency** — it is pulled in **transitively by `MailKit`** and resolves to **`4.14.0`** in the restored package graph:
+
+```text
+WebVella.Erp.Plugins.Mail/obj/project.assets.json  (restored package graph)
+  "MailKit/4.14.1"  →  "MimeKit": "4.14.0"   (transitive resolution)
+```
+
+A cross-check against the **GitHub Advisory Database / NVD** confirms that the resolved `4.14.0` is affected by **`CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx`** — *"CRLF Injection in Quoted Local-Part that Enables SMTP Command Injection and Email Forgery"*, rated **Medium (CVSS v4 base 6.9; CWE-93)** and reviewed in the GitHub Advisory Database as **Moderate** (EPSS ≈ 82%). When the SMTP envelope address local-part is a quoted-string, an attacker who can influence a `MailboxAddress` (`MAIL FROM` / `RCPT TO`) can embed `CRLF` sequences, in violation of RFC 5321, enabling **SMTP command injection** (for example injecting additional `RCPT TO` / `DATA` / `RSET` commands) and/or **mail-header injection / email forgery**.
+
+**Affected range and remediation.** The advisory affects **all versions before `4.15.1`**, so the resolved `4.14.0` is affected; it is **fixed in `4.15.1`**. Because `MimeKit` arrives transitively, the **preferred remediation is to upgrade `MailKit` to `4.16.0`+** (which depends on a fixed `MimeKit` ≥ `4.15.1`); pinning a direct `MimeKit` `PackageReference` to `4.15.1`+ is an optional defense-in-depth. The remediation is carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as `DEP-006`. *(No manifest was changed by this task; the upgrade is a roadmap recommendation only.)*
+
+### 4.8 Comprehensive dependency vulnerability matrix
+
+This matrix records the **complete** advisory cross-check of every **active** pinned dependency — **direct and transitive** — against the **GitHub Advisory Database / NVD**. A specific `CVE` / `GHSA` is asserted **only where verified** against those public sources; where no applicable advisory was identified, the cell reads *None identified* — a bounded statement about public advisory databases, not a guarantee of absolute safety. Transitive packages are included via the restored `project.assets.json` graph. The standing CI control that keeps this current is `dotnet list package --vulnerable --include-transitive`, cross-referenced against the same sources and carried into [`modernization-roadmap.md`](./modernization-roadmap.md) Phase 1.
+
+| Package | Version | Scope | Advisory (verified) | Severity | Fixed in | Finding |
+|---------|---------|-------|---------------------|----------|----------|---------|
+| AutoMapper | 14.0.0 | Direct | `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x` — DoS via uncontrolled recursion | 🟧 High (CVSS 7.5) | 15.1.1 (paid line) | `DEP-004` |
+| MailKit | 4.14.1 | Direct | `CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr` — STARTTLS response injection / SASL downgrade | 🟨 Medium (CVSS 6.5) | 4.16.0 (free) | `DEP-005` |
+| MimeKit | 4.14.0 | Transitive (via MailKit) | `CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx` — CRLF / SMTP command injection | 🟨 Medium (CVSS 6.9) | 4.15.1 (free) | `DEP-006` |
+| Microsoft.AspNetCore.Components.WebAssembly.Server | 7.0.13 | Direct (orphan `net7.0`) | Framework lifecycle: `net7.0` out of support — no further security patches | 🟧 High (lifecycle) | retarget to LTS | `DEP-001` |
+| System.Drawing.Common | 9.0.10 | Direct | Platform constraint (Windows-only since .NET 6) — not a CVE | 🟨 Medium (portability) | cross-platform lib | `DEP-003` |
+| Newtonsoft.Json | 13.0.4 | Direct | No package CVE; **risky usage** (`TypeNameHandling`) documented as `SEC-002` | — (usage risk) | n/a | `SEC-002` |
+| Microsoft.CodeAnalysis.* | 4.14.0 | Direct | No package CVE; runtime-compilation risk documented as `SEC-001` | — (usage risk) | n/a | `SEC-001` |
+| CS-Script | 4.11.2 | Direct | No package CVE; runtime-scripting risk documented as `SEC-001` | — (usage risk) | n/a | `SEC-001` |
+| Npgsql | 9.0.4 | Direct | None identified | — | n/a | — |
+| Microsoft.AspNetCore.* / Microsoft.Extensions.* | 9.0.10 | Direct | None identified (current `9.0.10` aligns with the patched ASP.NET Core 9 runtime) | — | n/a | — |
+| System.IdentityModel.Tokens.Jwt | 8.14.0 | Direct | None identified | — | n/a | — |
+| Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | Direct | None identified | — | n/a | — |
+| Irony.NetCore | 1.1.11 | Direct | None identified | — | n/a | — |
+| Ical.Net | 4.3.1 | Direct | None identified | — | n/a | — |
+| CsvHelper | 33.1.0 | Direct | None identified | — | n/a | — |
+| Storage.Net | 9.3.0 | Direct | None identified | — | n/a | — |
+| MimeMapping | 3.1.0 | Direct | None identified | — | n/a | — |
+| HtmlAgilityPack | 1.12.4 | Direct | None identified | — | n/a | — |
+| Wangkanai.Detection | 8.20.0 | Direct | None identified | — | n/a | — |
+| Blazored.LocalStorage | 4.5.0 | Direct | None identified | — | n/a | — |
+| Microsoft.Web.LibraryManager.Build | 3.0.71 | Direct | None identified | — | n/a | — |
+| WebVella.TagHelpers | 1.7.2 | Direct (proprietary) | **Limited public advisory visibility** — confirm via vendor/private feed | ⚠️ Unverified (vendor) | n/a | note |
+
+**Reading the matrix.** Three active dependencies carry confirmed, published advisories — `AutoMapper` (`DEP-004`), `MailKit` (`DEP-005`), and the transitive `MimeKit` (`DEP-006`); the `MailKit` / `MimeKit` pair is remediated together by a single **free** `MailKit` upgrade to `4.16.0`+, whereas `AutoMapper 14.0.0` has **no free fix**. The `net7.0` runtime (`DEP-001`) and the Windows-only `System.Drawing.Common` (`DEP-003`) are framework/portability findings rather than package CVEs. `Newtonsoft.Json`, the Roslyn / CS-Script stack, and similar entries have **no package-level CVE** but carry **usage-level** risk captured under `SEC-001` / `SEC-002`. The proprietary `WebVella.TagHelpers` has **limited visibility** in public advisory databases and must be confirmed against the vendor's own advisory channel — a production-grade audit cannot treat *absence of a public advisory* as *absence of risk* for a closed-source component.
 
 ---
 
@@ -497,7 +553,7 @@ This section summarizes the posture **qualitatively** against the dimensions com
 | Dangerous-capability control (runtime compile) | ⚠️ Review (authn-only gate on RCE surface) | `SEC-001` |
 | Restrictive CORS | ⚠️ Review (`AllowAnyOrigin` default) | `SEC-004` |
 | Supported runtime/dependencies | ⚠️ Review (`net7.0` projects) | `DEP-001` |
-| Components free of known vulnerabilities | ❌ Gap (`AutoMapper 14.0.0` High advisory; no fix on free 14.x line) | `DEP-004` |
+| Components free of known vulnerabilities | ❌ Gap (`AutoMapper 14.0.0` High advisory, no free fix; `MailKit 4.14.1` + transitive `MimeKit 4.14.0` Medium advisories, fixed by a free `MailKit 4.16.0` upgrade) | `DEP-004`, `DEP-005`, `DEP-006` |
 | Automated test coverage / regression safety | ❌ Gap (no tests) | `QA-001` |
 
 > These rows are a **factual gap inventory**, not a formal certification result. They are the direct inputs to the security-hardening track of `modernization-roadmap.md`.
@@ -553,6 +609,8 @@ Every finding above resolves to a real file. The table consolidates the citation
 | `DEP-002` SixLabors (commented) | `WebVella.Erp.Web/WebVella.Erp.Web.csproj` | 139–140 |
 | `DEP-003` portability | `WebVella.Erp/WebVella.Erp.csproj` | 63 (`System.Drawing.Common` 9.0.10) |
 | `DEP-004` AutoMapper advisory | `WebVella.Erp/WebVella.Erp.csproj` | 47 (`AutoMapper` `[14.0.0]`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) |
+| `DEP-005` MailKit advisory | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj` | 28 (`MailKit` 4.14.1; `CVE-2026-41319` / `GHSA-9j88-vvj5-vhgr`) |
+| `DEP-006` MimeKit advisory (transitive) | `WebVella.Erp.Plugins.Mail/obj/project.assets.json` | `MimeKit/4.14.0` via `MailKit/4.14.1` (`CVE-2026-30227` / `GHSA-g7hc-96xr-gvvx`) |
 | SDK pin (commented) | `global.json` | 3 (`//"version": "7.0.103"`) |
 | `QA-002` anchor | `WebVella.Erp.Web/Controllers/WebApiController.cs` | 4,313 lines total |
 
