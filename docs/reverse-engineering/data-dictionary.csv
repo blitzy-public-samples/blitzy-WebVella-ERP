@@ -1,0 +1,209 @@
+Table Name,Column Name,Data Type,Key Type,Nullable,Default Value,Description,Constraints
+entities,id,uuid,PK,No,,Primary key; entity-definition GUID sourced from DbDocumentBase.Id (DbDocumentBase.cs:13),NOT NULL; PRIMARY KEY entities_pkey (ERPService.cs:937)
+entities,json,json,,No,,"Serialized DbEntity document holding the entity definition: name, label, label_plural, system, icon_name, color, record_permissions{can_read,can_create,can_update,can_delete = lists of role GUIDs}, fields[] (List of DbBaseField), record_screen_id_field","NOT NULL; JSON document (DbEntity.cs:7-50; DbEntityRepository.cs:74,163,205)"
+entity_relations,id,uuid,PK,No,,Primary key; relation-definition GUID,NOT NULL; PRIMARY KEY entity_relations_pkey (ERPService.cs:952)
+entity_relations,json,json,,No,,"Serialized DbEntityRelation document: name, label, description, system, relation_type (OneToOne=1, OneToMany=2, ManyToMany=3), origin_entity_id, origin_field_id, target_entity_id, target_field_id","NOT NULL; JSON document (DbEntityRelation.cs; EntityRelation.cs:9; DbRelationRepository.cs:78,126,169,214)"
+system_settings,id,uuid,PK,No,,Primary key of the single system-settings row,NOT NULL; PRIMARY KEY system_settings_pkey (ERPService.cs:968)
+system_settings,version,integer,,No,,Global database schema-version cursor read by the patch-class migration model,"NOT NULL; mapped by DbSystemSettingsRepository.Read (DbSystemSettingsRepository.cs:42,49-50)"
+rec_<entity_name>,id,uuid,PK,No,,System primary key auto-added to every entity (GuidField),NOT NULL; UNIQUE; PRIMARY KEY; System field (EntityManager.cs:1707)
+rec_<entity_name>,created_by,uuid,,Yes,,System field: user who created the record; logical reference to rec_user.id (no enforced FK on system fields),System field; nullable (EntityManager.cs:1734)
+rec_<entity_name>,last_modified_by,uuid,,Yes,,System field: user who last modified the record; logical reference to rec_user.id,System field; nullable (EntityManager.cs:1759)
+rec_<entity_name>,created_on,timestamptz,,No,now(),System field: record creation timestamp,"System field; default current time (EntityManager.cs:1784; DbRepository.cs:357,367)"
+rec_<entity_name>,last_modified_on,timestamptz,,No,now(),System field: record last-modified timestamp,System field; default current time (EntityManager.cs:1811)
+rel_<relation_name>,origin_id,uuid,PK,No,,Origin-side record ID of a ManyToMany relation,"NOT NULL; part of composite PRIMARY KEY (origin_id, target_id); FK to origin entity rec_* table (DbRepository.cs:412-419; DbRelationRepository.cs:265)"
+rel_<relation_name>,target_id,uuid,PK,No,,Target-side record ID of a ManyToMany relation,"NOT NULL; part of composite PRIMARY KEY (origin_id, target_id); FK to target entity rec_* table (DbRecordRepository.cs:1343-1345)"
+rec_user,id,uuid,PK,No,,User record primary key,NOT NULL; UNIQUE; PRIMARY KEY; System field
+rec_user,username,text,Unique,No,,"Login user name (seeded users: system, administrator)","TextField; Required, Unique (ERPService.cs:160,165-166)"
+rec_user,email,varchar(500),Unique,No,,User email address,"EmailField mapped to varchar(500) per schema section 3; Required, Unique (ERPService.cs:183,188-189)"
+rec_user,first_name,text,,Yes,,User first name,"TextField; optional (ERPService.cs:114,119-120)"
+rec_user,last_name,text,,Yes,,User last name,"TextField; optional (ERPService.cs:137,142-143)"
+rec_user,password,varchar(500),,No,,Hashed user password,"PasswordField mapped to varchar(500) per schema section 3; Required (ERPService.cs:206,211-212)"
+rec_user,created_by,uuid,FK,Yes,,User who created this record; logical reference to rec_user.id,System field; nullable
+rec_user,last_modified_by,uuid,FK,Yes,,User who last modified this record; logical reference to rec_user.id,System field; nullable
+rec_user,created_on,timestamptz,,No,now(),Record creation timestamp,System field; default current time
+rec_user,last_modified_on,timestamptz,,No,now(),Record last-modified timestamp,System field; default current time
+rec_role,id,uuid,PK,No,,Role record primary key,NOT NULL; UNIQUE; PRIMARY KEY; System field
+rec_role,name,text,,No,,"Role name (seeded roles: administrator, regular, guest)","TextField; Required, not Unique (ERPService.cs:380-381)"
+rec_role,created_by,uuid,FK,Yes,,User who created this record; logical reference to rec_user.id,System field; nullable
+rec_role,last_modified_by,uuid,FK,Yes,,User who last modified this record; logical reference to rec_user.id,System field; nullable
+rec_role,created_on,timestamptz,,No,now(),Record creation timestamp,System field; default current time
+rec_role,last_modified_on,timestamptz,,No,now(),Record last-modified timestamp,System field; default current time
+rec_task,id,uuid,PK,No,,Task record primary key,NOT NULL; UNIQUE; PRIMARY KEY; System field
+rec_task,subject,text,,No,,Task subject / title,"TextField; Required (NextPlugin.20190203.cs:1577,1582)"
+rec_task,body,text,,Yes,,Task description / body,Verified present in task data-source SQL (ProjectPlugin.20211012.cs:1192-1215)
+rec_task,owner_id,uuid,FK,No,,Owning user; FK realized by the user_1n_task relation,"GuidField; Required (NextPlugin.20190203.cs:1518,1523); FK to rec_user.id"
+rec_task,status_id,uuid,FK,No,,Task status; FK realized by the task_status_1n_task relation,"GuidField; Required (NextPlugin.20190203.cs:1734,1739); FK to rec_task_status.id"
+rec_task,type_id,uuid,FK,No,,Task type; FK realized by the task_type_1n_task relation,"GuidField; Required (NextPlugin.20190203.cs:1764,1769); FK to rec_task_type.id"
+rec_task,created_by,uuid,FK,Yes,,User who created the task; logical reference to rec_user.id,System field; nullable
+rec_task,created_on,timestamptz,,No,now(),Task creation timestamp,System field; default current time
+rel_user_nn_task_watchers,origin_id,uuid,PK,No,,Watcher user ID (origin side of user_nn_task_watchers),"NOT NULL; part of composite PRIMARY KEY (origin_id, target_id); FK to rec_user.id"
+rel_user_nn_task_watchers,target_id,uuid,PK,No,,Watched task ID (target side of user_nn_task_watchers),"NOT NULL; part of composite PRIMARY KEY (origin_id, target_id); FK to rec_task.id"
+rec_approval_workflow,id,uuid,PK,No,,Primary key identifier,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required, Unique"
+rec_approval_workflow,name,text,Unique,No,,Workflow display name (max 200 chars),"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; Required, Unique"
+rec_approval_workflow,target_entity,text,,No,,Entity name this workflow applies to (e.g. purchase_order),"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; Required"
+rec_approval_workflow,is_enabled,boolean,,No,true,Whether the workflow is active,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; CheckboxField; Required; default true"
+rec_approval_workflow,created_on,timestamptz,,No,now(),Timestamp of workflow creation,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; DateTimeField; Required"
+rec_approval_workflow,created_by,uuid,,No,,User ID of workflow creator; logical reference to rec_user.id,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required"
+rec_approval_step,id,uuid,PK,No,,Primary key identifier,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required, Unique"
+rec_approval_step,workflow_id,uuid,FK,No,,Foreign key to approval_workflow,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required; FK realized by approval_workflow_approval_step relation"
+rec_approval_step,step_order,numeric,,No,1,"Execution order (1, 2, 3 ...)","STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; NumberField; Required"
+rec_approval_step,approver_type,varchar(200),,No,,"Type of approver: role, user, or department_head","STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; SelectField mapped to varchar(200) per schema section 3; Required"
+rec_approval_step,threshold_config,text,,Yes,,JSON configuration for amount thresholds and approver IDs,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; optional"
+rec_approval_step,timeout_hours,numeric,,Yes,0,Hours before escalation (0 = no timeout),"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; NumberField; optional"
+rec_approval_rule,id,uuid,PK,No,,Primary key identifier,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required, Unique"
+rec_approval_rule,workflow_id,uuid,FK,No,,Foreign key to approval_workflow,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required; FK realized by approval_workflow_approval_rule relation"
+rec_approval_rule,field_name,text,,No,,Source entity field to evaluate (e.g. amount),"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; Required"
+rec_approval_rule,operator,varchar(200),,No,,"Comparison operator: eq, ne, gt, gte, lt, lte","STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; SelectField mapped to varchar(200) per schema section 3; Required"
+rec_approval_rule,threshold_value,numeric,,No,,Threshold value for comparison (decimal),"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; NumberField; Required"
+rec_approval_rule,next_step_id,uuid,FK,Yes,,Optional FK to approval_step for rule-based routing,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; optional; FK to rec_approval_step.id"
+rec_approval_request,id,uuid,PK,No,,Primary key identifier,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required, Unique"
+rec_approval_request,source_record_id,uuid,,No,,ID of the record being approved,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required"
+rec_approval_request,source_entity,text,,No,,Entity name of the source record,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; Required"
+rec_approval_request,workflow_id,uuid,FK,No,,Foreign key to approval_workflow,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required; FK to rec_approval_workflow.id"
+rec_approval_request,current_step_id,uuid,FK,Yes,,Foreign key to the current approval_step,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; optional; FK to rec_approval_step.id"
+rec_approval_request,status,varchar(200),,No,pending,"Current status: pending, approved, rejected, escalated","STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; SelectField mapped to varchar(200) per schema section 3; Required"
+rec_approval_request,created_on,timestamptz,,No,now(),Timestamp of request creation,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; DateTimeField; Required"
+rec_approval_request,created_by,uuid,,No,,User ID of request creator; logical reference to rec_user.id,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required"
+rec_approval_history,id,uuid,PK,No,,Primary key identifier,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required, Unique"
+rec_approval_history,request_id,uuid,FK,No,,Foreign key to approval_request,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required; FK realized by approval_request_approval_history relation"
+rec_approval_history,action_type,varchar(200),,No,,"Action performed: submitted, approved, rejected, escalated, delegated, recalled, commented","STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; SelectField mapped to varchar(200) per schema section 3; Required"
+rec_approval_history,performed_by,uuid,,No,,User ID who performed the action; logical reference to rec_user.id,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; GuidField; Required"
+rec_approval_history,performed_on,timestamptz,,No,now(),Timestamp of action,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; DateTimeField; Required"
+rec_approval_history,comments,text,,Yes,,Optional comments or justification,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; MultiLineTextField; optional"
+rec_approval_history,previous_status,text,,Yes,,Status before the action,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; optional"
+rec_approval_history,new_status,text,,Yes,,Status after the action,"STORY-SPECIFIED (jira-stories/STORY-002), not implemented in the shipped codebase; TextField; optional"
+system_search,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY system_search_pkey
+system_search,entities,text,,No,''::text,Comma/space-separated entity identifiers covered by the index entry,NOT NULL
+system_search,apps,text,,No,''::text,App identifiers associated with the index entry,NOT NULL
+system_search,records,text,,No,''::text,Record identifiers associated with the index entry,NOT NULL
+system_search,content,text,,No,''::text,Indexed full-text content,NOT NULL
+system_search,snippet,text,,No,''::text,Result preview snippet,NOT NULL
+system_search,url,text,,No,''::text,Target URL for the search result,NOT NULL
+system_search,aux_data,text,,No,''::text,Auxiliary data payload for the result,NOT NULL
+system_search,timestamp,timestamptz,,No,,Index-entry timestamp (column name is quoted in DDL),NOT NULL; timestamp(0) with time zone
+system_search,stem_content,text,,No,''::text,Stemmed content used for full-text search,NOT NULL; GIN index system_search_fts_idx (to_tsvector english)
+files,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY files_pkey
+files,object_id,numeric(18),,No,,Stored-object identifier (0 for filesystem-stored files),NOT NULL; UNIQUE udx_object_id created then dropped to support FS storage
+files,filepath,text,Unique,No,,Virtual file path,NOT NULL; UNIQUE udx_filepath; index idx_filepath
+files,created_on,timestamp,,No,,Creation timestamp,NOT NULL; timestamp without time zone
+files,modified_on,timestamp,,No,,Last-modified timestamp,NOT NULL; timestamp without time zone
+files,created_by,uuid,,Yes,,User who created the file; logical reference to rec_user.id,nullable
+files,modified_by,uuid,,Yes,,User who last modified the file; logical reference to rec_user.id,nullable
+jobs,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY jobs_pkey
+jobs,type_id,uuid,,No,,Job-type identifier,NOT NULL
+jobs,type_name,text,,No,,Job-type name,NOT NULL
+jobs,complete_class_name,text,,No,,Fully-qualified job class name,NOT NULL
+jobs,attributes,text,,Yes,,Serialized job attributes/parameters,nullable
+jobs,status,integer,,No,,Job status code,NOT NULL
+jobs,priority,integer,,No,,Job priority,NOT NULL
+jobs,started_on,timestamptz,,Yes,,Execution start time,nullable
+jobs,finished_on,timestamptz,,Yes,,Execution finish time,nullable
+jobs,aborted_by,uuid,,Yes,,User who aborted the job,nullable
+jobs,canceled_by,uuid,,Yes,,User who canceled the job,nullable
+jobs,error_message,text,,Yes,,"Failure message, if any",nullable
+jobs,schedule_plan_id,uuid,,Yes,,Originating schedule plan; logical reference to schedule_plan.id,nullable
+jobs,created_on,timestamptz,,No,,Creation timestamp,NOT NULL
+jobs,last_modified_on,timestamptz,,No,,Last-modified timestamp,NOT NULL
+jobs,created_by,uuid,,Yes,,User who created the job,nullable
+jobs,last_modified_by,uuid,,Yes,,User who last modified the job,nullable
+jobs,result,text,,Yes,,Serialized job result,nullable; added via ALTER TABLE
+schedule_plan,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY schedule_plan_pkey
+schedule_plan,name,text,,No,,Schedule-plan name,NOT NULL
+schedule_plan,type,integer,,No,,Schedule type code,NOT NULL
+schedule_plan,start_date,timestamptz,,Yes,,Plan start date,nullable
+schedule_plan,end_date,timestamptz,,Yes,,Plan end date,nullable
+schedule_plan,schedule_days,json,,Yes,,JSON list of active days,nullable; JSON document
+schedule_plan,interval_in_minutes,integer,,Yes,,Recurrence interval in minutes,nullable
+schedule_plan,start_timespan,integer,,Yes,,Daily window start (minutes),nullable
+schedule_plan,end_timespan,integer,,Yes,,Daily window end (minutes),nullable
+schedule_plan,last_trigger_time,timestamptz,,Yes,,Last time the plan triggered,nullable
+schedule_plan,next_trigger_time,timestamptz,,Yes,,Next scheduled trigger time,nullable
+schedule_plan,job_type_id,uuid,,No,,Job-type identifier to enqueue,NOT NULL
+schedule_plan,job_attributes,text,,Yes,,Serialized attributes passed to the job,nullable
+schedule_plan,enabled,boolean,,No,,Whether the plan is active,NOT NULL
+schedule_plan,last_started_job_id,uuid,,Yes,,Most recently started job; logical reference to jobs.id,nullable
+schedule_plan,created_on,timestamptz,,No,,Creation timestamp,NOT NULL
+schedule_plan,last_modified_on,timestamptz,,No,,Last-modified timestamp,NOT NULL
+schedule_plan,last_modified_by,uuid,,Yes,,User who last modified the plan,nullable
+system_log,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY system_log_pkey
+system_log,created_on,timestamptz,,No,'2011-11-11 02:11:11+02',Log-entry timestamp,NOT NULL; btree index idx_system_log_created_on
+system_log,type,integer,,No,1,Log-entry type/severity code,NOT NULL; btree index idx_system_log_type
+system_log,message,text,,No,'message'::text,Log message,NOT NULL; btree index idx_system_log_message
+system_log,source,text,,No,'source'::text,Log source,NOT NULL; btree index idx_system_log_source
+system_log,details,text,,Yes,,Detailed log payload,nullable
+system_log,notification_status,integer,,No,1,Notification dispatch status,NOT NULL; btree index idx_system_log_notification_status
+plugin_data,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY plugin_data_pkey
+plugin_data,name,text,Unique,No,''::text,Plugin identifier/name,NOT NULL; UNIQUE idx_u_plugin_data_name
+plugin_data,data,text,,Yes,''::text,Per-plugin settings/version JSON (per-plugin patch version cursor),nullable
+app,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_pkey
+app,name,text,Unique,No,''::text,Application machine name,NOT NULL; UNIQUE ux_app_name
+app,label,text,,No,,Application display label,NOT NULL
+app,description,text,,Yes,,Application description,nullable
+app,icon_class,text,,Yes,,Icon CSS class,nullable
+app,author,text,,Yes,,Application author,nullable
+app,color,text,,Yes,,Theme color,nullable
+app,weight,integer,,No,-1,Ordering weight,NOT NULL
+app,access,uuid[],,Yes,,Role GUIDs allowed to access the app,nullable
+app_sitemap_area,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_sitemap_area_pkey
+app_sitemap_area,name,text,,No,''::text,Area machine name,NOT NULL
+app_sitemap_area,label,text,,Yes,,Area display label,nullable
+app_sitemap_area,description,text,,Yes,,Area description,nullable
+app_sitemap_area,icon_class,text,,Yes,,Icon CSS class,nullable
+app_sitemap_area,weight,integer,,No,-1,Ordering weight,NOT NULL
+app_sitemap_area,color,text,,Yes,,Theme color,nullable
+app_sitemap_area,show_group_names,boolean,,No,false,Whether group names are rendered,NOT NULL
+app_sitemap_area,access_roles,uuid[],,No,,Role GUIDs allowed to access the area,NOT NULL
+app_sitemap_area,app_id,uuid,FK,No,,Owning application,NOT NULL; FK fkey_app_id references app(id)
+app_sitemap_area_group,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_sitemap_area_group_pkey
+app_sitemap_area_group,area_id,uuid,FK,No,,Owning sitemap area,NOT NULL; FK fkey_area_id references app_sitemap_area(id)
+app_sitemap_area_group,weight,integer,,No,-1,Ordering weight,NOT NULL
+app_sitemap_area_group,name,text,,No,,Group machine name,NOT NULL
+app_sitemap_area_group,label,text,,Yes,,Group display label,nullable
+app_sitemap_area_group,render_roles,uuid[],,No,,Role GUIDs for which the group renders,NOT NULL
+app_sitemap_area_node,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_sitemap_area_node_pkey
+app_sitemap_area_node,area_id,uuid,FK,No,,Owning sitemap area,NOT NULL; FK references app_sitemap_area(id)
+app_sitemap_area_node,name,text,,No,,Node machine name,NOT NULL
+app_sitemap_area_node,label,text,,Yes,,Node display label,nullable
+app_sitemap_area_node,icon_class,text,,Yes,,Icon CSS class,nullable
+app_sitemap_area_node,url,text,,Yes,,Target URL,nullable
+app_sitemap_area_node,weight,integer,,No,,Ordering weight,NOT NULL
+app_sitemap_area_node,access_roles,uuid[],,No,,Role GUIDs allowed to access the node,NOT NULL
+app_sitemap_area_node,type,integer,,No,,Node type code,NOT NULL
+app_sitemap_area_node,entity_id,uuid,,Yes,,"Associated entity, if any",nullable
+app_page,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_page_pkey
+app_page,name,text,,No,,Page machine name,NOT NULL
+app_page,label,text,,Yes,,Page display label,nullable
+app_page,icon_class,text,,Yes,,Icon CSS class,nullable
+app_page,system,boolean,,Yes,false,Whether the page is system-defined,default false
+app_page,type,integer,,No,,Page type code,NOT NULL
+app_page,weight,integer,,No,-1,Ordering weight,NOT NULL
+app_page,razor_body,text,,Yes,,Razor markup body,nullable
+app_page,area_id,uuid,FK,Yes,,Owning sitemap area,nullable; FK fkey_area_id references app_sitemap_area(id)
+app_page,node_id,uuid,FK,Yes,,Associated sitemap node,nullable; FK fkey_node_id references app_sitemap_area_node(id)
+app_page,app_id,uuid,FK,Yes,,Owning application,nullable; FK fkey_app_id references app(id)
+app_page,entity_id,uuid,,Yes,,"Associated entity, if any",nullable
+app_page,is_razor_body,boolean,,No,false,Whether the body is Razor markup,NOT NULL
+app_page,layout,text,,No,'',Page layout name,NOT NULL; added via ALTER TABLE
+app_page_body_node,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_page_body_node_pkey
+app_page_body_node,parent_id,uuid,FK,Yes,,Parent body node (self reference),nullable; FK fkey_app_page_body_node_parent_id references app_page_body_node(id)
+app_page_body_node,node_id,uuid,,Yes,,Logical node identifier,nullable
+app_page_body_node,page_id,uuid,FK,No,,Owning page,NOT NULL; FK fkey_app_page_body_node_page_id references app_page(id)
+app_page_body_node,weight,integer,,No,-1,Ordering weight,NOT NULL
+app_page_body_node,component_name,text,,Yes,,Rendered component name,nullable
+app_page_body_node,options,text,,Yes,,Serialized component options,nullable
+app_page_body_node,container_id,text,,Yes,,Container identifier,nullable; added via ALTER TABLE
+data_source,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY data_source_pkey
+data_source,name,text,Unique,No,,Data-source name,NOT NULL; UNIQUE ux_data_source_name
+data_source,description,text,,No,,Data-source description,NOT NULL
+data_source,weight,integer,,No,,Ordering weight,NOT NULL
+data_source,eql_text,text,,No,,EQL query text,NOT NULL
+data_source,sql_text,text,,No,,Raw SQL query text,NOT NULL
+data_source,parameters_json,text,,No,,JSON-encoded parameter definitions,NOT NULL
+data_source,fields_json,text,,No,,JSON-encoded field definitions,NOT NULL
+data_source,entity_name,text,,No,,Backing entity name,NOT NULL
+data_source,return_total,boolean,,No,true,Whether the data source returns a total count,NOT NULL; added via ALTER TABLE
+app_page_data_source,id,uuid,PK,No,,Primary key,NOT NULL; PRIMARY KEY app_page_data_source_pkey
+app_page_data_source,page_id,uuid,FK,No,,Owning page,NOT NULL; FK fkey_page_id references app_page(id)
+app_page_data_source,data_source_id,uuid,,No,,Bound data source; logical reference to data_source.id,NOT NULL
+app_page_data_source,name,text,,No,,Binding name on the page,"NOT NULL; UNIQUE (name, page_id) app_page_data_uxc_name_page_id"
+app_page_data_source,parameters,text,,No,,Serialized binding parameters,NOT NULL
