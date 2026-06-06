@@ -158,9 +158,9 @@ The flagship finding is that **all eight files** in `WebVella.Erp.Web/Security/`
 | File | Lines | Status |
 |------|-------|--------|
 | `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` | 1–147 | Entirely commented out; **duplicated `class AuthorizeAttribute : ActionFilterAttribute` block** at `:13` and `:86` |
-| `WebVella.Erp.Web/Security/AuthToken.cs` | 1–146 | Entirely commented out (JWT build/verify/encrypt/decrypt scaffolding) |
+| `WebVella.Erp.Web/Security/AuthToken.cs` | 1–147 | Entirely commented out (JWT build/verify/encrypt/decrypt scaffolding) |
 | `WebVella.Erp.Web/Security/WebSecurityUtil.cs` | 1–232 | Entirely commented out |
-| `WebVella.Erp.Web/Security/AuthCache.cs` | 1–61 | Entirely commented out |
+| `WebVella.Erp.Web/Security/AuthCache.cs` | 1–62 | Entirely commented out |
 | `WebVella.Erp.Web/Security/ErpIdentity.cs` | 1–28 | Entirely commented out |
 | `WebVella.Erp.Web/Security/ErpPrincipal.cs` | 1–12 | Entirely commented out |
 | `WebVella.Erp.Web/Security/HttpForbiddenResult.cs` | 1–19 | Entirely commented out |
@@ -241,11 +241,12 @@ Two type/file names carry spelling errors that propagate into their public type 
 
 ### 3.1 Audit methodology
 
-The versions below were read **directly from the `.csproj` manifests** at commit `bfe15661`; they are reported verbatim and **none is changed by this task**. Because the repository has **no CI and no automated dependency scanning** (`.github/` holds only `FUNDING.yml`, per C5), there is no committed lockfile-driven advisory report to cite. Rather than assert specific CVE identifiers that cannot be substantiated from the source, this audit:
+The versions below were read **directly from the `.csproj` manifests** at commit `bfe15661`; they are reported verbatim and **none is changed by this task**. Because the repository has **no CI and no automated dependency scanning** (`.github/` holds only `FUNDING.yml`, per C5), there is no committed lockfile-driven advisory report to cite. To balance fabrication-avoidance with completeness, this audit reports **only** advisories that are **independently verifiable against authoritative advisory databases** (the GitHub Advisory Database and the NVD) and cites each to its source; concretely, it:
 
 1. **Anchors every package to its exact pinned/declared version** (the authoritative fact in the repo).
 2. **Flags version- and platform-level risks** that are determinable from the manifests and runtime (e.g., an out-of-support TFM, a platform-restricted library).
-3. **Recommends a repeatable version-tracking step** — running `dotnet list package --vulnerable --include-transitive` (or an equivalent advisory database lookup) against these pinned versions in a CI job — as the mechanism to attach live CVE data. This recommendation is advisory and is carried into [`modernization-roadmap.md`](./modernization-roadmap.md); it is **not** performed as a code change here.
+3. **Surfaces known advisories that apply to a pinned (or transitively-resolved) version** — when, and only when, the advisory is independently verifiable against an authoritative database — citing the advisory ID and source URL (see the MailKit/MimeKit advisory note in §3.4 and the .NET 9 servicing-currency note in §3.2). **No CVE/GHSA identifier appears in this document without such a citation**, and the absence of an advisory note on a row means none was substantiated at the pinned version as of the generation date, **not** that the package was proven clean.
+4. **Recommends a repeatable version-tracking step** — running `dotnet list package --vulnerable --include-transitive` (or an equivalent advisory-database lookup) against these pinned versions in a CI job — as the mechanism to attach **live, continuously-updated** CVE data. This recommendation is advisory and is carried into [`modernization-roadmap.md`](./modernization-roadmap.md); it is **not** performed as a code change here.
 
 > **Pinned vs. floating.** AutoMapper and Ical.Net are declared with exact-version brackets (`[14.0.0]`, `[4.3.1]`), i.e. **hard-pinned**; the remaining packages use minimum-version semantics. Hard-pinning aids reproducibility but can delay security patch uptake — a factual trade-off.
 
@@ -261,8 +262,10 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 | Newtonsoft.Json | 13.0.4 | JSON serialization across core/web/host. Historically a deserialization-gadget surface — avoid `TypeNameHandling.All` on untrusted input. |
 | Storage.Net | 9.3.0 | Storage abstraction. |
 | System.Drawing.Common | 9.0.10 | Image handling. **Platform risk:** unsupported on non-Windows since .NET 6 — see §3.6. |
-| Microsoft.Extensions.* | 9.0.10 | Caching (`Abstractions`, `Memory`), `Configuration.Json`, `Hosting.Abstractions`, `Logging` (+ `Console`, `Debug`). Aligned to the .NET 9 BCL. |
+| Microsoft.Extensions.* | 9.0.10 | Caching (`Abstractions`, `Memory`), `Configuration.Json`, `Hosting.Abstractions`, `Logging` (+ `Console`, `Debug`). Aligned to the .NET 9 BCL at the `9.0.10` servicing level — see the servicing-currency note below. |
 | MimeMapping | 3.1.0 | MIME-type lookup utility. |
+
+> **Servicing currency of the `9.0.10` packages (applies across §3.2–§3.4).** Every `Microsoft.AspNetCore.*` / `Microsoft.Extensions.*` package in this audit is pinned at **`9.0.10`**, the **October 2025 .NET 9 security release**. That release is **already patched** for the headline ASP.NET Core advisory **CVE-2025-55315** — an HTTP request/response-smuggling / security-feature-bypass flaw scored **CVSS 9.9 (Critical)**, fixed in `9.0.10` after affecting ASP.NET Core `9.0.0`–`9.0.9` — so this solution is **not** exposed to that specific issue ([MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5)). However, `9.0.10` is **not the current .NET 9 servicing level**: Microsoft ships cumulative monthly patches (`9.0.11`, `9.0.12`, …) whose later, separately-tracked advisories a `9.0.10` consumer does not yet carry. The authoritative, continuously-updated list is the [dotnet/core .NET 9 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md). The practical exposure of shared-framework (Kestrel) advisories is further **reduced — not eliminated —** by the IIS **InProcess** hosting posture (`WebVella.Erp.Site/web.config:7`), under which Kestrel is not the public-facing listener. This is a **servicing-currency** observation, **not** a confirmed unpatched vulnerability at `9.0.10`; tracking the latest `9.0.x` patch level is carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as advisory-only.
 
 ### 3.3 Web application — `WebVella.Erp.Web/WebVella.Erp.Web.csproj`
 
@@ -292,7 +295,7 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 | Microsoft.AspNetCore.Authentication.JwtBearer | 9.0.10 | `WebVella.Erp.Site/WebVella.Erp.Site.csproj:57` | JWT bearer scheme for the host (§1.1). Also referenced by `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:14`. |
 | Microsoft.AspNetCore.Components | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:10` | Blazor component runtime for the Microsoft CDM plugin UI. |
 | Microsoft.AspNetCore.Components.Web | 9.0.10 | `WebVella.Erp.Plugins.MicrosoftCDM/WebVella.Erp.Plugins.MicrosoftCDM.csproj:11` | Blazor web bindings for the Microsoft CDM plugin UI. |
-| MailKit | 4.14.1 | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` | SMTP/IMAP for the Mail plugin; handles external mail servers/credentials. |
+| MailKit | 4.14.1 | `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28` | SMTP/IMAP for the Mail plugin; handles external mail servers/credentials. **Subject to a verified advisory at this version (STARTTLS injection) and pulls a transitively-affected MimeKit — see the mail-library advisory note below.** |
 | Microsoft.AspNetCore.Components.WebAssembly | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:16` | Blazor WASM client runtime. |
 | Microsoft.AspNetCore.Components.WebAssembly.DevServer | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:17` | Dev-time WASM host (`PrivateAssets="all"` — development-only, not shipped to production). |
 | Microsoft.Extensions.Http | 9.0.10 | `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj:18` | `HttpClient` factory for the WASM client. |
@@ -305,6 +308,12 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 >
 > - **Commented-out references are excluded** (declared but not built, so not an attack surface): `Microsoft.AspNetCore.ResponseCompression` 2.2.0 (`WebVella.Erp.Site/WebVella.Erp.Site.csproj:56`), `SixLabors.ImageSharp` 3.1.6 / `SixLabors.ImageSharp.Drawing` 2.1.5 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:139-140`, also noted in §3.3), `Microsoft.AspNetCore.Mvc.ViewFeatures` 2.2.0 and `Microsoft.AspNetCore.StaticFiles` 2.2.0 (`WebVella.Erp.Web/WebVella.Erp.Web.csproj:136-137`), and `Microsoft.AspNetCore.Http.Abstractions` 2.2.0 (`WebVella.Erp/WebVella.Erp.csproj:51`).
 > - **Cross-project duplicates are audited once, at the primary owner above.** `Microsoft.AspNetCore.Mvc.NewtonsoftJson` 9.0.10 also appears — at the same version — at `WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj:22`, `WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj:52`, `WebVella.Erp.Site.Crm/WebVella.Erp.Site.Crm.csproj:12`, `WebVella.Erp.Site.Mail/WebVella.Erp.Site.Mail.csproj:12`, `WebVella.Erp.Site.MicrosoftCDM/WebVella.Erp.Site.MicrosoftCDM.csproj:9`, `WebVella.Erp.Site.Next/WebVella.Erp.Site.Next.csproj:12`, `WebVella.Erp.Site.Project/WebVella.Erp.Site.Project.csproj:13`, and `WebVella.Erp.Site.Sdk/WebVella.Erp.Site.Sdk.csproj:12`. `System.IdentityModel.Tokens.Jwt` 8.14.0 also appears in Web (§3.3). `Newtonsoft.Json` 13.0.4 and `MimeMapping` 3.1.0 recur across Core/Web/Host at the versions already audited in §3.2–§3.3. Each such package carries one advisory-tracking obligation regardless of how many projects reference it.
+
+> **Verified mail-library advisories (MailKit direct + MimeKit transitive).** The Mail plugin's `MailKit 4.14.1` reference (`WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`) is subject to two independently-verified advisories at the pinned version:
+>
+> - **MailKit — STARTTLS Response Injection** ([GHSA-9j88-vvj5-vhgr](https://github.com/advisories/GHSA-9j88-vvj5-vhgr) / CVE-2026-41319). An unflushed internal read buffer is not reset when the stream is upgraded to TLS during `STARTTLS`, letting a network man-in-the-middle inject pre-TLS responses that are then processed as trusted post-TLS data, enabling a **SASL authentication-mechanism downgrade** (e.g., forcing `PLAIN` instead of `SCRAM-SHA-256`). **Severity MEDIUM, CVSS 3.1 = 6.5** (`AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:N`). **Affected: versions before `4.16.0`; fixed in `4.16.0`.** The pinned `4.14.1` is within the affected range, and the plugin's SMTP/IMAP path — which "handles external mail servers/credentials" — is exactly the exposed surface.
+> - **MimeKit (transitive) — CRLF Injection in a quoted local-part** ([GHSA-g7hc-96xr-gvvx](https://github.com/advisories/GHSA-g7hc-96xr-gvvx) / [CVE-2026-30227](https://nvd.nist.gov/vuln/detail/CVE-2026-30227); CWE-93). A `\r\n` embedded in a quoted-string local-part of a `MailboxAddress` (`MAIL FROM` / `RCPT TO`) can inject additional SMTP commands or forge mail. **Severity MEDIUM, CVSS ≈ 6.9.** **Affected: all versions before `4.15.1`; fixed in `4.15.1`.** `MailKit 4.14.1` resolves `MimeKit` transitively on the matching `4.14.x` line (there is **no direct `MimeKit` `PackageReference`** anywhere in the solution), which is within the affected range — surfaced here per §3.1's `--include-transitive` recommendation.
+> - **Single remediation (advisory-only, deferred).** Per the MailKit release notes, `MailKit 4.15.1` bumped `MimeKit` to `4.15.1` (the CRLF fix) and `MailKit 4.16.0` added the STARTTLS fix (and bumped `MimeKit` to `4.16.0`). Therefore **updating `MailKit` to `≥ 4.16.0` resolves both advisories at once** — the direct STARTTLS issue and, transitively, the MimeKit CRLF issue. This is carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as advisory-only; consistent with the analysis-only mandate, **no manifest is changed by this task.**
 
 ### 3.5 Runtime risk — two projects on out-of-support `net7.0`
 
@@ -408,6 +417,7 @@ These are recorded as **process gaps**; addressing them is an explicit, advisory
 | Dead security folder | `WebVella.Erp.Web/Security/*.cs` (`AuthorizeAttribute.cs:1-147`) |
 | Dynamic code execution | `WebVella.Erp.Web/Services/CodeEvalService.cs:44-45` |
 | Dependency manifests | `WebVella.Erp/WebVella.Erp.csproj`, `WebVella.Erp.Web/WebVella.Erp.Web.csproj`, `WebVella.Erp.Site/WebVella.Erp.Site.csproj`, `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj`, `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj` |
+| Dependency advisories (independently verified) | MailKit STARTTLS [GHSA-9j88-vvj5-vhgr](https://github.com/advisories/GHSA-9j88-vvj5-vhgr) (CVE-2026-41319); MimeKit CRLF [GHSA-g7hc-96xr-gvvx](https://github.com/advisories/GHSA-g7hc-96xr-gvvx) ([CVE-2026-30227](https://nvd.nist.gov/vuln/detail/CVE-2026-30227)); .NET 9 servicing [dotnet/core 9.0 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md) and [CVE-2025-55315 MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5) |
 | Runtime / infra | `*.csproj` `<TargetFramework>`, `global.json:3`, `WebVella.Erp.Site/web.config:7,10`, `.github/FUNDING.yml` |
 
 ---

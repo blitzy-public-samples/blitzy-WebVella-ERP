@@ -174,6 +174,7 @@ The plan has **exactly three phases**, sequenced so that each one de-risks the n
 - **CI (U3).** Add a pipeline that, on every PR, restores, builds the solution, runs the test suite, and runs a vulnerability scan (`dotnet list package --vulnerable`).
 - **Containerization (U4).** Author a Dockerfile (and compose for local PostgreSQL 16) for at least one Site host; validate a Linux container start-up path that today is untested (root `README.md:18`).
 - **Dependency/security scanning (U5).** Wire SCA against the documented NuGet set (e.g., `WebVella.Erp.Web/WebVella.Erp.Web.csproj:128,132`) and surface results in CI; cross-reference [`security-quality.md`](./security-quality.md).
+- **Known-advisory remediation (U5a).** Clear the verified, currently-applicable advisories catalogued in [`security-quality.md`](./security-quality.md) §3.4: update **`MailKit` to `≥ 4.16.0`** in `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`, which fixes the STARTTLS response-injection advisory (GHSA-9j88-vvj5-vhgr / CVE-2026-41319) **and** transitively pulls a patched `MimeKit` (`≥ 4.15.1`) that resolves the CRLF/SMTP-injection advisory (CVE-2026-30227). Separately, track the latest **.NET 9 `9.0.x` servicing patch** (the framework packages are pinned at `9.0.10`, which already carries the `CVE-2025-55315` fix) per the servicing-currency note in [`security-quality.md`](./security-quality.md) §3.2. Both are **dependency-version bumps only — no behavioral change** — and slot into the same CI vulnerability gate established by U3/U5.
 - **Hygiene (U6, U7).** Move the `Development` environment value out of shipped host config (`WebVella.Erp.Site/web.config:10`); remove or intentionally reinstate the dead `AuthorizeAttribute` (`WebVella.Erp.Web/Security/AuthorizeAttribute.cs:1-147`).
 
 **Exit criteria**
@@ -181,6 +182,7 @@ The plan has **exactly three phases**, sequenced so that each one de-risks the n
 - **0** projects target an out-of-support TFM (all on `net9.0`).
 - `global.json` pins a current .NET 9 SDK; a clean machine reproduces the build deterministically.
 - CI is **green on every PR** (build + test + vulnerability scan run automatically).
+- The known, verified dependency advisories are cleared at the pinned versions (`MailKit` `≥ 4.16.0`, which also patches the transitive `MimeKit`; the framework packages on a current `9.0.x` servicing patch).
 - At least one Site host builds and runs as a container image.
 - No fully-commented "ghost" source files remain; shipped host config no longer defaults to `Development`.
 
