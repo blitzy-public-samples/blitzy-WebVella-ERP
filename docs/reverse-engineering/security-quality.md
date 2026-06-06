@@ -194,18 +194,18 @@ WebVella.Erp.Site/Config.json
 
 ### 3.4 `SEC-004` — Overly permissive default CORS policy 🟨 Medium
 
-**Location:** `WebVella.Erp.Site/Startup.cs:61–63` (within the `AddCors` block, lines 59–64)
+**Location:** `WebVella.Erp.Site/Startup.cs:61–63` (within the `AddCors` block, lines 58–64)
 
 The reference host registers a **default CORS policy that allows any origin, method, and header**:
 
 ```text
 WebVella.Erp.Site/Startup.cs
-59:   services.AddCors(options =>
-60:   {
-61:       options.AddDefaultPolicy(policy =>
-62:           policy.AllowAnyOrigin()
-63:               .AllowAnyMethod()
-64:               .AllowAnyHeader());
+58:   services.AddCors(options =>
+59:   {
+60:       options.AddDefaultPolicy(policy =>
+61:           policy.AllowAnyOrigin()
+62:               .AllowAnyMethod()
+63:               .AllowAnyHeader());
 ```
 
 Notably, a **more restrictive** named policy — `WithOrigins("http://localhost:3333", …).AllowAnyMethod().AllowCredentials()` — exists in the file but is **commented out** at lines 53–57, indicating the permissive default replaced an origin-scoped policy. `AllowAnyOrigin()` cannot be combined with credentials, which limits one attack class, but a wildcard CORS policy still weakens cross-origin defense-in-depth and should be scoped to known front-end origins in production.
