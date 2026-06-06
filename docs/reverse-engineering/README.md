@@ -14,7 +14,7 @@ WebVella ERP is a classic **layered architecture** (Sites → Web → Core) wrap
 
 The suite comprises **seven narrative documents**, **two CSV data exports**, and this master index. Begin with [`code-inventory.md`](code-inventory.md) — it is the foundational coverage map whose module names and file paths the other documents reuse verbatim.
 
-- **[`code-inventory.md`](code-inventory.md)** — Narrative inventory of the codebase: per-module file/LOC and dependency tables, functional grouping into the shared module taxonomy (Core / Web / WebAssembly / Console / 7 Plugins / 7 Sites), and a project-reference dependency tree built from the `.csproj` manifests. This is the **foundational coverage map** for the entire suite.
+- **[`code-inventory.md`](code-inventory.md)** — Narrative inventory of the codebase: per-module file/LOC and dependency tables, functional grouping into the shared module taxonomy (Core / Web / WebAssembly / ConsoleApp / 7 Plugins / 7 Sites), and a project-reference dependency tree built from the `.csproj` manifests. This is the **foundational coverage map** for the entire suite.
 - **[`code-inventory.csv`](code-inventory.csv)** — Per-file inventory with columns `Module, File Path, Language, Dependencies, LOC, Last Modified, Primary Purpose, Complexity Score`. It catalogs **≥95%** of the ~1,315 in-scope primary files (703 `.cs`, 400 `.cshtml`, 11 `.razor`, 181 `.js`, 20 `.csproj`), one row per file.
 - **[`architecture.md`](architecture.md)** — The as-built architecture: the layered + plugin-extensibility model and `AddErp`/`UseErp` composition root, the EQL → SQL data path (Irony parser → parameterized Npgsql → JSON record materialization), the JWT-or-Cookie hybrid authentication flow, and the page-builder render lifecycle. Includes **six Mermaid diagrams** (component, data-flow, two sequences, middleware pipeline, deployment topology).
 - **[`database-schema.md`](database-schema.md)** — The schema reconstructed from code, since no SQL or migration files exist: **17 fixed system tables** created via embedded DDL, plus the **dynamic entity meta-model** in which user- and plugin-defined entities and fields are stored as JSON records. Includes a Mermaid ERD and the chronological plugin patch/version history.
@@ -47,7 +47,7 @@ The following names are used identically across every document in this suite:
 | Core | `WebVella.Erp` |
 | Web | `WebVella.Erp.Web` |
 | WebAssembly | `WebVella.Erp.WebAssembly` |
-| Console | `WebVella.Erp.ConsoleApp` |
+| ConsoleApp | `WebVella.Erp.ConsoleApp` |
 | Plugins (7) | Approval, Crm, Mail, MicrosoftCDM, Next, Project, SDK (`WebVella.Erp.Plugins.*`) |
 | Sites (7) | `WebVella.Erp.Site`, `.Site.Sdk`, `.Site.Project`, `.Site.Next`, `.Site.Mail`, `.Site.Crm`, `.Site.MicrosoftCDM` |
 

@@ -4,7 +4,7 @@
 > **Generated (UTC):** 2026-06-05 23:35 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
-> **Suite index:** `README.md` _(forthcoming)_
+> **Suite index:** [`README.md`](./README.md)
 
 ---
 

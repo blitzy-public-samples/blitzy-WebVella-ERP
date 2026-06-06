@@ -4,7 +4,7 @@
 > **Generated (UTC):** 2026-06-05 18:31 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
-> **Suite index:** `README.md` _(forthcoming)_
+> **Suite index:** [`README.md`](./README.md)
 
 ---
 
@@ -396,7 +396,7 @@ This deliverable upholds the suite-wide consistency contracts defined in [`code-
 | 5 | [`business-rules.md`](./business-rules.md) | Catalogued business rules with citations |
 | 6 | [`security-quality.md`](./security-quality.md) | Vulnerabilities, code metrics, CVE audit |
 | 7 | [`modernization-roadmap.md`](./modernization-roadmap.md) | Current-state, target-state, 3-phase plan |
-| — | `README.md` _(forthcoming)_ | Master index & executive overview |
+| — | [`README.md`](./README.md) | Master index & executive overview |
 
 ---
 

@@ -4,7 +4,7 @@
 > **Generated (UTC):** 2026-06-05 23:51 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md)
-> **Suite index:** `README.md` _(forthcoming)_
+> **Suite index:** [`README.md`](./README.md)
 
 ---
 
@@ -80,7 +80,7 @@ The following are **present in the repository today**. Severity ratings, full ev
 
 - **Monolithic Web API controller (`QA-002`).** `WebVella.Erp.Web/Controllers/WebApiController.cs` is **exactly 4,313 lines** — a single `[Authorize]`-gated class that concentrates the entire HTTP API surface (records, relations, files, data sources, and the code-compile endpoint) rather than per-resource controllers. [`code-inventory.md`](./code-inventory.md) §3.3 catalogues it as the largest Web/API file, and [`security-quality.md`](./security-quality.md) §5.3 measures its branching density on the order of 600+ aggregate decision points — well above the cyclomatic-complexity "split" threshold. It is a **maintainability and testability bottleneck** and is the canonical input to the decomposition recommendation in §3.3.
 
-- **Two `net7.0` projects on an out-of-support runtime (`DEP-001`).** The Blazor WebAssembly projects `WebVella.Erp.WebAssembly/Server` (which references `Microsoft.AspNetCore.Components.WebAssembly.Server` **7.0.13**; see `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj`) and `WebVella.Erp.WebAssembly/Shared` (`WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj`) both target **`net7.0`**, which reached end of support in May 2024. The remaining 18 of 20 projects target `net9.0`. Per [`code-inventory.md`](./code-inventory.md) §2.3 and [`security-quality.md`](./security-quality.md) §4.2, these two projects are **orphaned** — not registered in `WebVella.ERP3.sln` — so they do not ship in the main solution build; nonetheless they remain in the repository on an unsupported target and receive no framework security patches. (The `Server` project also carries a dangling `ProjectReference` to a non-existent `Client.csproj` path.)
+- **Two `net7.0` projects on an out-of-support runtime (`DEP-001`).** The Blazor WebAssembly projects `WebVella.Erp.WebAssembly/Server` (which references `Microsoft.AspNetCore.Components.WebAssembly.Server` **7.0.13**; see `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj`) and `WebVella.Erp.WebAssembly/Shared` (`WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj`) both target **`net7.0`**, which reached end of support in May 2024. The remaining 18 of 20 projects target `net9.0`. Per [`code-inventory.md`](./code-inventory.md) §2.3 and [`security-quality.md`](./security-quality.md) §4.2, these two projects are **orphaned** — not registered in `WebVella.ERP3.sln` — so they do not ship in the main solution build; nonetheless they remain in the repository on an unsupported target and receive no framework security patches. (The `Server` project also carries a dangling `ProjectReference` at `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:14` to the non-existent `..\Client\WebVella.Erp.WebAssembly.Client.csproj` — the actual Client project file on disk is named `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj`.)
 
 - **Non-deterministic SDK selection — `global.json` version commented out.** `global.json` declares an SDK block whose version is **commented out** (`//"version": "7.0.103"`), so the build floats to the **latest installed SDK** rather than a pinned one. This makes builds **non-deterministic** across environments and is recorded in [`code-inventory.md`](./code-inventory.md) §4.3.
 
@@ -137,12 +137,12 @@ Every finding above maps forward to a concrete initiative. This table is the **t
 |---------|-----------------------|-------------------------------|
 | `SEC-001` | `WebVella.Erp.Web/Controllers/WebApiController.cs:494`; `WebVella.Erp.Web/Services/CodeEvalService.cs:45,57` | Gate behind a dedicated developer/admin authorization policy; sandbox; or remove from production builds — Phase 1 |
 | `SEC-002` | `WebVella.Erp/Jobs/JobDataService.cs:27,96,297,346`; `WebVella.Erp/Database/DbRelationRepository.cs:47,128,173` | Constrain deserialization with a `SerializationBinder` / type allow-list — Phase 1 |
-| `SEC-003` | `WebVella.Erp.Site/Config.json:3,4,24` (×7 sites) | Externalize secrets (user-secrets / Key Vault / environment variables); per-environment key separation — Phase 1 |
+| `SEC-003` | Connection string + encryption key in **all 7** sites' `Config.json:3,4`; `Jwt:Key` in **2 sites only** — `WebVella.Erp.Site/Config.json:24` and `WebVella.Erp.Site.Project/Config.json:20` | Externalize secrets (user-secrets / Key Vault / environment variables); per-environment key separation — Phase 1 |
 | `SEC-004` | `WebVella.Erp.Site/Startup.cs:61–63,164` | Replace `AllowAnyOrigin` with an explicit origin allow-list — Phase 1 |
 | `SEC-005` | `WebVella.Erp.Site/Startup.cs:40` | Resolve the underlying system-table timestamp handling, then remove the switch — Phase 3 |
 | `SEC-006` | `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`; `WebVella.Erp/Api/Models/QueryObject.cs:23` | Validate/allow-list the FTS-language literal (or bind it as a parameter); centralize and validate identifier quoting against the entity meta-model — Phase 3 |
 | `SEC-007` | `WebVella.Erp.Web/Security/**` (8 files) | Delete dead commented-out security code during decomposition — Phase 2 |
-| `DEP-001` | `WebVella.Erp.WebAssembly/Server/...csproj`; `.../Shared/...csproj` | Retarget to a .NET LTS line or retire the orphaned projects — Phase 1 |
+| `DEP-001` | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj`; `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj` | Retarget to a .NET LTS line or retire the orphaned projects — Phase 1 |
 | `DEP-002` | `*.csproj` comment lines | Remove commented-out legacy references during cleanup — Phase 3 |
 | `DEP-003` | `WebVella.Erp/WebVella.Erp.csproj:63` | Migrate imaging to a cross-platform library (e.g., the commented-out SixLabors path) — Phase 3 |
 | `QA-001` | solution-wide | Stand up a test project and CI gate; backfill tests around decomposition seams — Phase 2 (enabled in Phase 1) |
@@ -225,8 +225,8 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 **Representative initiatives.**
 
 - **Pin the SDK for deterministic builds.** Restore a concrete SDK version in **`global.json`** (currently commented out) so the toolchain is fixed across environments.
-- **Retire or retarget the `net7.0` projects (`DEP-001`).** Move `WebVella.Erp.WebAssembly/Server` and `WebVella.Erp.WebAssembly/Shared` to the chosen **.NET LTS** target, or remove the orphaned projects if the Blazor WebAssembly host is not required. (Also resolve the `Server` project's dangling `Client.csproj` reference as part of this.)
-- **Externalize secrets (`SEC-003`).** Move the connection string, encryption key, and JWT key out of every site's `Config.json` into user-secrets / a secret store / environment variables, with per-environment key separation.
+- **Retire or retarget the `net7.0` projects (`DEP-001`).** Move `WebVella.Erp.WebAssembly/Server` and `WebVella.Erp.WebAssembly/Shared` to the chosen **.NET LTS** target, or remove the orphaned projects if the Blazor WebAssembly host is not required. (Also resolve the `Server` project's dangling `ProjectReference` — `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:14` points to the non-existent `..\Client\WebVella.Erp.WebAssembly.Client.csproj`, whereas the actual Client project file is `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj` — as part of this.)
+- **Externalize secrets (`SEC-003`).** Move the connection string and encryption key out of **all seven** sites' `Config.json` (lines 3–4 in each), and the JWT key out of the **two** sites that actually define one — `WebVella.Erp.Site/Config.json:24` and `WebVella.Erp.Site.Project/Config.json:20` — into user-secrets / a secret store / environment variables, with per-environment key separation.
 - **Lock down the code-compile endpoint (`SEC-001`).** Place `api/v3.0/datasource/code-compile` behind a **dedicated developer/administrator authorization policy**, sandbox the compilation, or **disable it in production builds** — replacing reliance on the class-level authentication-only gate at `WebApiController.cs:36`.
 - **Constrain deserialization (`SEC-002`).** Introduce a `SerializationBinder` / type allow-list (or change serializer configuration) for the `TypeNameHandling` usages in `JobDataService.cs` and `DbRelationRepository.cs`.
 - **Tighten CORS (`SEC-004`).** Replace the `AllowAnyOrigin` default policy with an explicit origin allow-list, and confirm HTTPS/HSTS enforcement.
@@ -370,7 +370,8 @@ Current-state claims in this document resolve to the following real files (line 
 | Runtime C# evaluation | `WebVella.Erp.Web/Services/CodeEvalService.cs:1,45,57` | `SEC-001` |
 | Insecure deserialization (jobs) | `WebVella.Erp/Jobs/JobDataService.cs:27,96,297,346` | `SEC-002` |
 | Insecure deserialization (relations) | `WebVella.Erp/Database/DbRelationRepository.cs:47,128,173` | `SEC-002` |
-| Plaintext secrets | `WebVella.Erp.Site/Config.json:3,4,24` (×7 sites) | `SEC-003` (values not reproduced) |
+| Plaintext secrets — connection string + encryption key | `WebVella.Erp.Site/Config.json:3,4` (present in **all 7** sites) | `SEC-003` (values not reproduced) |
+| Plaintext secrets — JWT signing key | `WebVella.Erp.Site/Config.json:24`; `WebVella.Erp.Site.Project/Config.json:20` (**2 sites only**) | `SEC-003` (values not reproduced) |
 | Default CORS + legacy switch + hybrid auth | `WebVella.Erp.Site/Startup.cs:40,61–63,164` | `SEC-004`, `SEC-005`; auth model |
 | Parameterized data layer; FTS-language residual | `WebVella.Erp/Database/**`; `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`; `WebVella.Erp/Api/Models/QueryObject.cs:23` | `SEC-006` (parameterized-value strength + identifier/FTS-language residual) |
 | Commented-out security code | `WebVella.Erp.Web/Security/**` (8 files) | `SEC-007` |
