@@ -1,7 +1,7 @@
 # Security & Quality Assessment — WebVella ERP
 
 > **Deliverable 6 of 7** · Reverse-Engineering Documentation Suite
-> **Generated (UTC):** 2026-06-05 23:35 UTC
+> **Generated (UTC):** 2026-06-06 18:52 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
 > **Suite index:** [`README.md`](./README.md)
@@ -18,7 +18,7 @@ The headline observations are:
 - **Two High-severity classes.** (1) **Insecure-deserialization** configuration — Newtonsoft `TypeNameHandling.All` / `.Auto` is used in background-job and relation serialization (`WebVella.Erp/Jobs/JobDataService.cs`, `WebVella.Erp/Database/DbRelationRepository.cs`). (2) **Plaintext secrets** — every host site's `Config.json` stores a database connection string, an encryption key, and (in two sites) a weak hardcoded JWT signing key in cleartext.
 - **A genuine data-layer strength, with two residuals.** The custom Npgsql data layer **parameterizes ordinary values** with `NpgsqlParameter` throughout `WebVella.Erp/Database/**` (50 parameter constructions), which is the correct defense against SQL injection. Two residuals remain: **SQL identifiers** (table/column names sourced from entity metadata) are composed via string interpolation, and the **full-text-search language literal** — `query.FtsLanguage`, an externally-bindable query-model property — is concatenated **unparameterized** into the SQL at `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`.
 - **A pervasive code-hygiene signal.** The entire `WebVella.Erp.Web/Security/**` folder consists almost entirely of **commented-out** legacy authentication/authorization code (for example, `WebSecurityUtil.cs` is **~193 of 232** lines commented).
-- **Dependency hygiene is mostly current, with two real findings.** Active NuGet packages are pinned to current versions, but **two projects target the out-of-support `net7.0` runtime**, and the active imaging dependency (`System.Drawing.Common`) is **Windows-only since .NET 6**. Several legacy package references (the ASP.NET Core **2.2.0** packages and the **SixLabors.ImageSharp** packages) are **commented out**, i.e. *not* active dependencies — reported here as a code-hygiene observation rather than as live end-of-life dependencies.
+- **Dependency hygiene is mostly current, with three real findings.** Most active NuGet packages are pinned to current versions, but three exceptions stand out: the **`AutoMapper` 14.0.0** mapper carries a **known High-severity advisory** (DoS via uncontrolled recursion, `DEP-004`) for which there is **no fix on the free `14.x` line**; **two projects target the out-of-support `net7.0` runtime** (`DEP-001`); and the active imaging dependency (`System.Drawing.Common`) is **Windows-only since .NET 6** (`DEP-003`). Several legacy package references (the ASP.NET Core **2.2.0** packages and the **SixLabors.ImageSharp** packages) are **commented out**, i.e. *not* active dependencies — reported here as a code-hygiene observation rather than as live end-of-life dependencies.
 - **Concentrated complexity and no automated tests.** Complexity is concentrated in a handful of very large files, anchored by the **4,313-line** monolithic `WebApiController.cs`. The solution contains **no automated test project** of any kind, which is itself a quality risk.
 
 The findings below feed directly into the phased plan in `modernization-roadmap.md`.
@@ -75,7 +75,7 @@ Severities are **qualitative** risk ratings only; they carry no time or effort e
 
 ### 1.4 CVE-audit method & disclaimer
 
-The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact pinned versions** read from the `.csproj` manifests and discusses class-of-risk for security-relevant packages. **No live vulnerability-database lookup (NVD / GitHub Advisory) was performed** in this read-only environment. Consequently, this report **does not assert specific CVE identifiers**; it states the audit method and flags the packages whose *class* or *support status* warrants a live `dotnet list package --vulnerable` / advisory cross-check during modernization. This is an explicit, deliberate limitation rather than an omission.
+The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact pinned versions** read from the `.csproj` manifests and discusses class-of-risk for security-relevant packages. A **targeted advisory cross-check** of the active pinned packages against the **GitHub Advisory Database / NVD** surfaced **one confirmed High-severity advisory on an active dependency** — `AutoMapper 14.0.0` — documented below as `DEP-004` with its verified `CVE` / `GHSA` identifiers. **A specific CVE identifier is asserted only where it was verified against those public advisory sources; none is fabricated.** This was deliberately **not an exhaustive sweep**: a full `dotnet list package --vulnerable --include-transitive` run — covering transitive dependencies and any newly-published advisories — remains the **recommended live audit during modernization**, and the packages whose *class* or *support status* most warrant that check are flagged throughout [§4](#4-dependency--cve-audit).
 
 ---
 
@@ -93,6 +93,7 @@ The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact p
 | `DEP-001` | 🟧 High | Two projects target out-of-support `net7.0` | `WebVella.Erp.WebAssembly/Server`, `/Shared` |
 | `DEP-002` | 🟦 Low/Info | Commented-out legacy package references (2.2.0, SixLabors) | `*.csproj` (verified comment lines) |
 | `DEP-003` | 🟨 Medium | `System.Drawing.Common` is Windows-only since .NET 6 (portability) | `WebVella.Erp/WebVella.Erp.csproj:63` |
+| `DEP-004` | 🟧 High | `AutoMapper` 14.0.0 — known High-severity DoS advisory (uncontrolled recursion); no fix on the free 14.x line | `WebVella.Erp/WebVella.Erp.csproj:47` |
 | `QA-001` | 🟧 High | No automated tests anywhere in the solution | solution-wide |
 | `QA-002` | 🟨 Medium | Extreme-size files concentrate complexity | `WebApiController.cs` (4,313 LOC) + hotspots |
 
@@ -311,7 +312,7 @@ The table below lists the principal **active** (non-commented) third-party depen
 |---------|---------|--------------------------------------|
 | Npgsql | 9.0.4 | PostgreSQL ADO.NET driver underpinning the custom data layer. |
 | Newtonsoft.Json | 13.0.4 | JSON serialization; see `SEC-002` re: `TypeNameHandling`. |
-| AutoMapper | 14.0.0 | DTO ↔ entity mapping. |
+| **AutoMapper** | **14.0.0** | DTO ↔ entity mapping. **Known High-severity advisory (DoS via uncontrolled recursion) affects this exact version — see `DEP-004`.** |
 | Irony.NetCore | 1.1.11 | EQL grammar/parser. |
 | Ical.Net | 4.3.1 | Recurrence/calendar. |
 | CsvHelper | 33.1.0 | CSV read/write. |
@@ -384,9 +385,24 @@ The `<!--` opens on line 139 and the `-->` closes on line 140, so **both** `SixL
 
 `System.Drawing.Common` 9.0.10 is an **active** dependency (`WebVella.Erp/WebVella.Erp.csproj:63`). Since **.NET 6**, `System.Drawing.Common` is **supported only on Windows**; calling its APIs on Linux/macOS throws `PlatformNotSupportedException`. Combined with the IIS-in-process deployment model documented in [`architecture.md`](./architecture.md), this is consistent with a **Windows-bound** runtime. It is a **portability** constraint (and an obstacle to the containerization/Linux-hosting options the roadmap will explore) rather than a direct vulnerability; the commented-out SixLabors packages (`DEP-002`) are the cross-platform path that has not been adopted.
 
-### 4.5 CVE-audit method (explicit limitation)
+### 4.5 `DEP-004` — `AutoMapper` 14.0.0 carries a known High-severity DoS advisory 🟧 High
 
-As stated in [§1.4](#14-cve-audit-method--disclaimer), **no live advisory lookup was performed** in this environment, so **no specific CVE identifiers are asserted**. The recommended live audit during modernization is `dotnet list package --vulnerable --include-transitive`, cross-referenced against the GitHub Advisory Database / NVD. The highest-priority targets for that live audit, based on this static inspection, are: the **`net7.0` projects** (`DEP-001`, unsupported framework), **Newtonsoft.Json** usage with `TypeNameHandling` (`SEC-002`), and the **Roslyn / CS-Script** runtime-compilation stack (`SEC-001`). Active packages are otherwise pinned to current major versions, which is favorable.
+The DTO ↔ entity mapper **`AutoMapper`** is an **active runtime dependency**, pinned to an **exact** version:
+
+```text
+WebVella.Erp/WebVella.Erp.csproj
+47:   <PackageReference Include="AutoMapper" Version="[14.0.0]" />
+```
+
+It is wired into the runtime mapping pipeline through `WebVella.Erp/ERPService.cs:900` (`SetAutoMapperConfiguration`) and a set of `Profile` classes — for example `WebVella.Erp/Api/Models/AutoMapper/Profiles/JobProfile.cs` and the profiles under `WebVella.Erp.Web/Models/Automapper/Profiles/**` — so it sits on the live Web-API mapping path.
+
+A targeted cross-check against the **GitHub Advisory Database / NVD** confirms that this version is affected by **`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`** — *"Denial of Service (DoS) via Uncontrolled Recursion"*, rated **High (CVSS 7.5)**, network-exploitable with **low attack complexity** and **no privileges or user interaction**. When mapping a deeply nested object graph (for example a type that eventually references itself), the mapping engine recurses **without a default maximum-depth limit**; a sufficiently nested graph (on the order of 25,000+ levels) exhausts the thread's stack and raises a `StackOverflowException`, terminating the entire process.
+
+**Affected range and remediation.** The advisory affects **all versions before `15.1.1`** (and `16.0.0` before `16.1.1`), so `14.0.0` is affected. There is **no free remediation path**: the maintainer has stated that **no patch will be issued for the `14.x` (MIT-licensed) line** (AutoMapper issue #4618), and the fix ships only in the **paid** `15.1.1` / `16.1.1` releases. The live tooling recommended in §4.6 (`dotnet list package --vulnerable`) emits **`NU1903` (High)** for `AutoMapper 14.0.0`. No `MaxDepth` limit is configured anywhere in the solution, so the default-unbounded behavior applies. This is the **one active pinned dependency** for which this audit asserts a specific, verified advisory; the remediation options — an **interim global `MaxDepth`** on the AutoMapper profiles, a **paid upgrade** to `15.1.1`+, or **migration to a maintained alternative** (e.g. Mapperly or hand-mapping) — are carried into the hardening phase of [`modernization-roadmap.md`](./modernization-roadmap.md) as `DEP-004`.
+
+### 4.6 CVE-audit method (verified scope)
+
+As stated in [§1.4](#14-cve-audit-method--disclaimer), a **targeted advisory cross-check** of the active pinned packages surfaced **one confirmed High-severity advisory** — `AutoMapper 14.0.0` (`DEP-004`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`). **CVE identifiers are asserted only where verified against the GitHub Advisory Database / NVD; none is fabricated.** This was deliberately **not an exhaustive sweep**: the recommended full live audit during modernization is `dotnet list package --vulnerable --include-transitive`, cross-referenced against the GitHub Advisory Database / NVD, to cover transitive dependencies and any newly-published advisories. The highest-priority targets for that live audit, based on this inspection, are: the already-confirmed **`AutoMapper 14.0.0`** advisory (`DEP-004`), the **`net7.0` projects** (`DEP-001`, unsupported framework), **Newtonsoft.Json** usage with `TypeNameHandling` (`SEC-002`), and the **Roslyn / CS-Script** runtime-compilation stack (`SEC-001`). Apart from the confirmed `AutoMapper` advisory, the remaining active packages are pinned to current major versions and **this targeted check did not surface a further confirmed advisory**; that observation is **bounded by the non-exhaustive method above** and is **not** an all-clear — a definitive determination for those packages (and for transitive dependencies) is **deferred to the full sweep** recommended here.
 
 ---
 
@@ -481,6 +497,7 @@ This section summarizes the posture **qualitatively** against the dimensions com
 | Dangerous-capability control (runtime compile) | ⚠️ Review (authn-only gate on RCE surface) | `SEC-001` |
 | Restrictive CORS | ⚠️ Review (`AllowAnyOrigin` default) | `SEC-004` |
 | Supported runtime/dependencies | ⚠️ Review (`net7.0` projects) | `DEP-001` |
+| Components free of known vulnerabilities | ❌ Gap (`AutoMapper 14.0.0` High advisory; no fix on free 14.x line) | `DEP-004` |
 | Automated test coverage / regression safety | ❌ Gap (no tests) | `QA-001` |
 
 > These rows are a **factual gap inventory**, not a formal certification result. They are the direct inputs to the security-hardening track of `modernization-roadmap.md`.
@@ -503,7 +520,7 @@ This assessment honors the four system-reality corrections that govern the entir
 - **Shared taxonomy & paths.** Module names (Core `WebVella.Erp`, Web `WebVella.Erp.Web`, WebAssembly, ConsoleApp, the 7 plugins, the 7 sites) and every file path cited here are used **verbatim** from [`code-inventory.md`](./code-inventory.md).
 - **Architecture alignment.** The authentication model (`JWT_OR_COOKIE`), the monolithic `WebApiController`, and the custom data layer referenced in this report match the descriptions in [`architecture.md`](./architecture.md).
 - **Business-rule alignment.** The authorization observations here (the class-level `[Authorize]`, role-gated endpoints) reconcile with the `AUTHZ-` rules catalogued in [`business-rules.md`](./business-rules.md).
-- **Roadmap hand-off.** Every `SEC-`, `DEP-`, and `QA-` finding in this document is an explicit input to the phased plan in [`modernization-roadmap.md`](./modernization-roadmap.md): `SEC-001`/`SEC-002`/`SEC-003` and `QA-001` drive the early hardening + test-harness phase; `QA-002`/`WebApiController` decomposition and `DEP-001` drive the modularization phase; `DEP-003` and transport/secret externalization inform the platform-modernization phase.
+- **Roadmap hand-off.** Every `SEC-`, `DEP-`, and `QA-` finding in this document is an explicit input to the phased plan in [`modernization-roadmap.md`](./modernization-roadmap.md): `SEC-001`/`SEC-002`/`SEC-003`, `DEP-004`, and `QA-001` drive the early hardening + test-harness phase; `QA-002`/`WebApiController` decomposition and `DEP-001` drive the modularization phase; `DEP-003` and transport/secret externalization inform the platform-modernization phase.
 
 ---
 
@@ -535,9 +552,10 @@ Every finding above resolves to a real file. The table consolidates the citation
 | `DEP-002` 2.2.0 (commented) | `WebVella.Erp.Site/WebVella.Erp.Site.csproj` | 56 |
 | `DEP-002` SixLabors (commented) | `WebVella.Erp.Web/WebVella.Erp.Web.csproj` | 139–140 |
 | `DEP-003` portability | `WebVella.Erp/WebVella.Erp.csproj` | 63 (`System.Drawing.Common` 9.0.10) |
+| `DEP-004` AutoMapper advisory | `WebVella.Erp/WebVella.Erp.csproj` | 47 (`AutoMapper` `[14.0.0]`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) |
 | SDK pin (commented) | `global.json` | 3 (`//"version": "7.0.103"`) |
 | `QA-002` anchor | `WebVella.Erp.Web/Controllers/WebApiController.cs` | 4,313 lines total |
 
 ---
 
-*End of Deliverable 6 — Security & Quality Assessment. Generated 2026-06-05 23:35 UTC by read-only static analysis of `WebVella.ERP3.sln`. No production code, configuration, or schema artifact was modified in the production of this report.*
+*End of Deliverable 6 — Security & Quality Assessment. Generated 2026-06-06 18:52 UTC by read-only static analysis of `WebVella.ERP3.sln`. No production code, configuration, or schema artifact was modified in the production of this report.*

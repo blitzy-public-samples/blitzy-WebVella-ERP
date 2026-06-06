@@ -1,7 +1,7 @@
 # Modernization Roadmap — WebVella ERP
 
 > **Deliverable 7 of 7** · Reverse-Engineering Documentation Suite
-> **Generated (UTC):** 2026-06-05 23:51 UTC
+> **Generated (UTC):** 2026-06-06 18:52 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
 > **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md)
 > **Suite index:** [`README.md`](./README.md)
@@ -22,6 +22,7 @@ The system's debt is **concentrated, not pervasive**. A small number of high-lev
 - A single **monolithic Web API controller of exactly 4,313 lines** — `WebVella.Erp.Web/Controllers/WebApiController.cs` — concentrates the entire HTTP API surface in one class (`QA-002`).
 - A **runtime code-compilation endpoint** (`POST api/v3.0/datasource/code-compile`) compiles and loads arbitrary user-supplied C# (`SEC-001`).
 - **Two Blazor WebAssembly projects target the out-of-support `net7.0` runtime** while 18 of 20 projects target `net9.0` (`DEP-001`).
+- The active **`AutoMapper 14.0.0`** mapper carries a **known High-severity advisory** (DoS via uncontrolled recursion) for which there is **no fix on the free `14.x` line** (`DEP-004`).
 - **Secrets are stored in cleartext** in each host site's `Config.json` (`SEC-003`).
 - The **`global.json` SDK version is commented out**, so builds float to the latest installed SDK.
 - **No automated tests** and **no containerization** exist anywhere in the repository (`QA-001`; Docker absence).
@@ -70,7 +71,7 @@ The platform has real, load-bearing strengths that a modernization effort should
 - **Consistent custom data layer with parameterized SQL.** Rather than an off-the-shelf ORM, the platform uses a **hand-written Npgsql data layer** (`WebVella.Erp/Database/**`). Crucially, it **parameterizes values** via `NpgsqlParameter` throughout (the assessment counted 50 parameter constructions), which is the correct primary defense against SQL injection — recorded as a **strength** in `SEC-006`.
 - **Dynamic entity meta-model enabling runtime schema.** Beyond the fixed system tables created by embedded DDL, applications and plugins define **entities and fields as records** (JSON-serialized) at runtime, without database migrations. This metadata-driven model — detailed in [`database-schema.md`](./database-schema.md) — is a distinctive capability that gives the product its low-code character and must be **preserved through any data-layer change**.
 - **Broad, coherent feature coverage.** The seven plugins plus the core deliver CRM, project management, email (IMAP/SMTP), a developer SDK / app-builder, Microsoft Common Data Model mapping, an approval workflow, and a "Next" application framework. The functional breadth is catalogued in [`functional-overview.md`](./functional-overview.md).
-- **A current dependency baseline for active packages.** Active third-party NuGet packages are pinned to current major versions (for example `Npgsql 9.0.4`, `Newtonsoft.Json 13.0.4`, `AutoMapper 14.0.0`; see `WebVella.Erp/WebVella.Erp.csproj`), which is a favorable starting point for the framework-alignment work recommended below.
+- **A largely current dependency baseline for active packages.** Most active third-party NuGet packages are pinned to current major versions (for example `Npgsql 9.0.4` and `Newtonsoft.Json 13.0.4`; see `WebVella.Erp/WebVella.Erp.csproj`), which is a favorable starting point for the framework-alignment work recommended below. **One active package is a notable exception:** `AutoMapper 14.0.0` carries a **known High-severity advisory** (`DEP-004` — DoS via uncontrolled recursion) with **no fix on the free `14.x` line**, so it is **excluded from this favorable baseline** and is addressed in the hardening work in §3.2.
 
 These strengths frame the modernization stance: this is an **incremental hardening and decomposition** effort over a sound foundation — **not** a rationale for a ground-up rewrite.
 
@@ -106,6 +107,8 @@ The following are **present in the repository today**. Severity ratings, full ev
 
 - **Windows-bound imaging dependency (`DEP-003`, Medium).** The **active** imaging package `System.Drawing.Common` 9.0.10 (`WebVella.Erp/WebVella.Erp.csproj:63`) is **Windows-only since .NET 6**. Combined with the IIS in-process hosting model, this is consistent with a Windows-bound runtime and is a **portability** obstacle to the Linux-hosting / containerization options explored in §3.4. See [`security-quality.md`](./security-quality.md) §4.4.
 
+- **Known-vulnerable active dependency — `AutoMapper 14.0.0` (`DEP-004`, High).** The DTO ↔ entity mapper `AutoMapper` is pinned to `14.0.0` (`WebVella.Erp/WebVella.Erp.csproj:47`) and wired into the runtime mapping pipeline (`WebVella.Erp/ERPService.cs:900`, `SetAutoMapperConfiguration`). That version is affected by a **High-severity advisory** (`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`, CVSS 7.5) — a **denial-of-service via uncontrolled recursion**: a deeply nested object graph mapped without a `MaxDepth` limit can exhaust the thread stack and crash the process with a `StackOverflowException`. Critically, there is **no fix on the free `14.x` line** — the maintainer will not patch `14.x`, and the fix ships only in the **paid** `15.1.1` / `16.1.1` releases — so remediation is **not a trivial version bump**. See [`security-quality.md`](./security-quality.md) §4.5.
+
 
 ### 1.3 Qualitative Risk Matrix
 
@@ -121,6 +124,7 @@ The matrix below ranks each current-state finding **qualitatively** by **likelih
 | `SEC-004` | `AllowAnyOrigin` default CORS | Medium | Medium | **Medium** | Phase 1 |
 | `QA-002` | 4,313-line monolithic `WebApiController` | High | Medium | **Medium–High** | Phase 2 |
 | `DEP-003` | `System.Drawing.Common` Windows-only | Medium | Medium | **Medium** | Phase 3 |
+| `DEP-004` | `AutoMapper 14.0.0` known High advisory (DoS via uncontrolled recursion); no fix on free 14.x line | Medium | High | **High** | Phase 1 |
 | `global.json` | SDK version commented out (non-deterministic builds) | Medium | Medium | **Medium** | Phase 1 |
 | `SEC-006` | SQL identifiers interpolated from metadata; FTS-language literal (`query.FtsLanguage`) concatenated unparameterized (`DbRecordRepository.cs:1503,1511`) | Medium | High | **Medium–High** | Phase 3 |
 | `SEC-005` | Npgsql legacy-timestamp switch retained | Low | Low | **Low** | Phase 3 |
@@ -145,6 +149,7 @@ Every finding above maps forward to a concrete initiative. This table is the **t
 | `DEP-001` | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj`; `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj` | Retarget to a .NET LTS line or retire the orphaned projects — Phase 1 |
 | `DEP-002` | `*.csproj` comment lines | Remove commented-out legacy references during cleanup — Phase 3 |
 | `DEP-003` | `WebVella.Erp/WebVella.Erp.csproj:63` | Migrate imaging to a cross-platform library (e.g., the commented-out SixLabors path) — Phase 3 |
+| `DEP-004` | `WebVella.Erp/WebVella.Erp.csproj:47` (`AutoMapper [14.0.0]`; `CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) | Interim: configure a global `MaxDepth` on the AutoMapper profiles; durable: upgrade to the paid `15.1.1`+ **or** migrate to a maintained mapper (e.g., Mapperly) / hand-mapping — Phase 1 |
 | `QA-001` | solution-wide | Stand up a test project and CI gate; backfill tests around decomposition seams — Phase 2 (enabled in Phase 1) |
 | `QA-002` | `WebVella.Erp.Web/Controllers/WebApiController.cs` (4,313 LOC) | Apply the Strangler Fig pattern to carve into per-resource controllers/services — Phase 2 |
 | `global.json` | `global.json` | Pin the SDK version for deterministic builds — Phase 1 |
@@ -178,6 +183,7 @@ These recommendations map one-to-one onto the `SEC-*` findings in §1.2 and [`se
 - **Constrain deserialization (recommended).** Replace unconstrained `TypeNameHandling` (`SEC-002`) with a **`SerializationBinder` / explicit type allow-list**, or migrate the affected job and relation payloads to a serializer configuration that does not resolve arbitrary types.
 - **Tighten transport and origin controls (recommended).** Replace the `AllowAnyOrigin` default CORS policy (`SEC-004`) with an **explicit origin allow-list**, and enforce **HTTPS / HSTS** consistently across the host sites.
 - **Input validation and output encoding (recommended).** Adopt systematic input validation and contextual output encoding across the API and page-builder surfaces as a standing practice — including **validating or allow-listing the full-text-search language value** (`query.FtsLanguage`) that `SEC-006` shows is concatenated into SQL at `DbRecordRepository.cs:1503,1511` — complementing the existing parameterized-value strength.
+- **Remediate the known-vulnerable `AutoMapper 14.0.0` dependency (recommended).** Address the `DEP-004` advisory (`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`, DoS via uncontrolled recursion). Because **no fix exists on the free `14.x` line**, the recommended path is — as an **immediate, low-cost mitigation** — to configure a **global `MaxDepth`** on the AutoMapper profiles so recursive mapping is bounded, and — as the **durable** remediation — to either upgrade to the **paid** `15.1.1`+ release **or** migrate to a maintained alternative such as **Mapperly** (or explicit hand-mapping). This is **not** a trivial version bump and is sequenced into Phase 1 (§3.2).
 
 ### 2.4 Quality & Test Strategy
 
@@ -230,6 +236,7 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 - **Lock down the code-compile endpoint (`SEC-001`).** Place `api/v3.0/datasource/code-compile` behind a **dedicated developer/administrator authorization policy**, sandbox the compilation, or **disable it in production builds** — replacing reliance on the class-level authentication-only gate at `WebApiController.cs:36`.
 - **Constrain deserialization (`SEC-002`).** Introduce a `SerializationBinder` / type allow-list (or change serializer configuration) for the `TypeNameHandling` usages in `JobDataService.cs` and `DbRelationRepository.cs`.
 - **Tighten CORS (`SEC-004`).** Replace the `AllowAnyOrigin` default policy with an explicit origin allow-list, and confirm HTTPS/HSTS enforcement.
+- **Mitigate the `AutoMapper` DoS advisory (`DEP-004`).** As an immediate, low-cost step, configure a **global `MaxDepth`** on the AutoMapper profiles to bound recursive mapping; in parallel, plan the **durable** remediation — upgrade to the paid `AutoMapper 15.1.1`+ or migrate to a maintained mapper (e.g., Mapperly) — since the free `14.x` line will not be patched.
 - **Establish the test and CI scaffold (enabler for `QA-001`).** Create an (initially small) automated-test project and a continuous-integration build so that subsequent phases have a place to add coverage and a gate to enforce it. *(Authoring the bulk of tests is Phase 2; standing up the capability here is what makes Phase 2 safe.)*
 
 **Exit criteria.**
@@ -240,6 +247,7 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 - The code-compile endpoint is unreachable in production builds **or** restricted to a dedicated privileged policy and sandboxed.
 - `TypeNameHandling` deserialization is type-constrained.
 - The default CORS policy enumerates explicit origins.
+- The `AutoMapper` DoS advisory (`DEP-004`) is mitigated (a global `MaxDepth` is configured to bound recursive mapping) and a durable remediation — paid upgrade or migration to a maintained mapper — is decided and scheduled.
 - A test project builds and runs in CI, even if coverage is initially minimal.
 
 ### 3.3 Phase 2 — Decompose & Harden
@@ -298,6 +306,7 @@ flowchart LR
         P1e["Constrain deserialization [SEC-002]"]
         P1f["Tighten CORS [SEC-004]"]
         P1g["Stand up test and CI scaffold [enables QA-001]"]
+        P1h["Mitigate AutoMapper DoS — global MaxDepth [DEP-004]"]
     end
 
     subgraph P2["Phase 2 — Decompose and Harden"]
@@ -379,6 +388,7 @@ Current-state claims in this document resolve to the following real files (line 
 | `net7.0` WebAssembly Shared | `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj` | `DEP-001` |
 | Commented-out 2.2.0 reference | `WebVella.Erp/WebVella.Erp.csproj:51` | `DEP-002` |
 | Windows-only imaging dependency | `WebVella.Erp/WebVella.Erp.csproj:63` | `DEP-003` |
+| Known-vulnerable mapper (`AutoMapper [14.0.0]`) | `WebVella.Erp/WebVella.Erp.csproj:47`; runtime wiring `WebVella.Erp/ERPService.cs:900` | `DEP-004` (`CVE-2026-32933` / `GHSA-rvv3-g6hj-g44x`) |
 | Core library version & license | `WebVella.Erp/WebVella.Erp.csproj` (`Version 1.7.4`, Apache-2.0) | Executive summary, §1.1 |
 | SDK version commented out | `global.json` | Non-deterministic builds (§1.2, §3.2) |
 | IIS in-process hosting | `WebVella.Erp.Site/web.config` (`hostingModel="InProcess"`) | No-Docker baseline (§1.2, §3.4) |
