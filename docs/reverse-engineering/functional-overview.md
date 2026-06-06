@@ -120,12 +120,12 @@ Project is the **largest feature plugin** (45 `.cs`, 56 `.cshtml`, 65 `.js`) and
 
 | Service | Responsibility | Citation |
 |---------|----------------|----------|
-| `ProjectService` | Project lifecycle and queries | `Services/ProjectService.cs:11` |
-| `TaskService` | Task state, status, time-log start | `Services/TaskService.cs:20` |
-| `TimeLogService` | Time-log records | `Services/TimeLogService.cs:18` |
-| `CommentService` | Feed comments | `Services/CommentService.cs:14` |
-| `FeedItemService` | Activity-feed items | `Services/FeedItemService.cs:13` |
-| `RenderService` | View/markup rendering | `Services/RenderService.cs:12` |
+| `ProjectService` | Project lifecycle and queries | `WebVella.Erp.Plugins.Project/Services/ProjectService.cs:11` |
+| `TaskService` | Task state, status, time-log start | `WebVella.Erp.Plugins.Project/Services/TaskService.cs:20` |
+| `TimeLogService` | Time-log records | `WebVella.Erp.Plugins.Project/Services/TimeLogService.cs:18` |
+| `CommentService` | Feed comments | `WebVella.Erp.Plugins.Project/Services/CommentService.cs:14` |
+| `FeedItemService` | Activity-feed items | `WebVella.Erp.Plugins.Project/Services/FeedItemService.cs:13` |
+| `RenderService` | View/markup rendering | `WebVella.Erp.Plugins.Project/Services/RenderService.cs:12` |
 
 *(A `ReportService` also exists in `Services/` but does not extend `BaseService`.)*
 
@@ -348,9 +348,9 @@ Every feature plugin depends on **two foundations**: the **Core platform** (`Web
 | Module | Depends on Core (`WebVella.Erp`) | Depends on Web (`WebVella.Erp.Web`) | Additional dependencies |
 |--------|:-------------------------------:|:----------------------------------:|-------------------------|
 | CRM | ✔ | ✔ | — |
-| Project | ✔ (`…Project.csproj:57`) | ✔ (`…Project.csproj:56`) | — |
-| Mail | ✔ | ✔ | MailKit 4.14.1 (`…Mail.csproj:28`) |
-| Approval | ✔ (`…Approval.csproj:27`) | ✔ (`…Approval.csproj:26`) | **Mail** for notifications *(story-specified, STORY-006)* |
+| Project | ✔ (`WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj:57`) | ✔ (`WebVella.Erp.Plugins.Project/WebVella.Erp.Plugins.Project.csproj:56`) | — |
+| Mail | ✔ | ✔ | MailKit 4.14.1 (`WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`) |
+| Approval | ✔ (`WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj:27`) | ✔ (`WebVella.Erp.Plugins.Approval/WebVella.Erp.Plugins.Approval.csproj:26`) | **Mail** for notifications *(story-specified, STORY-006)* |
 | Next | ✔ | ✔ | — |
 | Microsoft CDM | ✔ | ✔ | — |
 | SDK | ✔ | ✔ | — |

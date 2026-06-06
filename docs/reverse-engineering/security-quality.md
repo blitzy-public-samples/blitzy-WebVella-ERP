@@ -16,6 +16,7 @@ The assessment surfaces several **factual findings** worth a stakeholder's atten
 - **Two projects target the out-of-support `net7.0` runtime** (`WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`, `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4`).
 - **Dynamic code execution** is available through Roslyn/CS-Script for dynamic data sources (`WebVella.Erp.Web/Services/CodeEvalService.cs:44-45`).
 - **No automated CI or security scanning** exists — `.github/` holds only `FUNDING.yml` (per correction **C5**).
+- **Two HIGH dependency advisories apply at the pinned versions** — `AutoMapper 14.0.0` (uncontrolled-recursion DoS, [`CVE-2026-32933`](https://nvd.nist.gov/vuln/detail/CVE-2026-32933)) and the `.NET 9` `9.0.10` framework baseline (Base64Url decoder DoS, [`CVE-2026-26127`](https://nvd.nist.gov/vuln/detail/CVE-2026-26127)); both are catalogued with citations in **§3** and carried into the roadmap, alongside the verified MailKit/MimeKit mail-library advisories.
 
 On code quality, complexity is concentrated in a handful of very large files — the `WebApiController` (`WebVella.Erp.Web/Controllers/WebApiController.cs`, 4,313 lines) and the core managers/repositories — while the largest files overall are the date-versioned plugin seed/migration partials. These are flagged as maintainability hotspots, consistent with [`code-inventory.md`](./code-inventory.md).
 
@@ -122,13 +123,13 @@ sequenceDiagram
     participant Manager as Core Manager (Record/Entity)
 
     Client->>Auth: HTTP request (cookie or Bearer token)
-    Auth->>Auth: ForwardDefaultSelector picks Cookie vs JWT scheme (Startup.cs:117-123)
-    Auth->>Auth: UseAuthentication populates context.User as ClaimsPrincipal (Startup.cs:179)
-    Note over Auth,JwtMw: Order: UseAuthentication / UseAuthorization, then UseErp, UseErpMiddleware, UseJwtMiddleware (Startup.cs:179-186)
+    Auth->>Auth: ForwardDefaultSelector picks Cookie vs JWT scheme (WebVella.Erp.Site/Startup.cs:117-123)
+    Auth->>Auth: UseAuthentication populates context.User as ClaimsPrincipal (WebVella.Erp.Site/Startup.cs:179)
+    Note over Auth,JwtMw: Order: UseAuthentication / UseAuthorization, then UseErp, UseErpMiddleware, UseJwtMiddleware (WebVella.Erp.Site/Startup.cs:179-186)
     Auth->>ErpMw: next(context)
-    ErpMw->>ErpMw: AuthService.GetUser(context.User) (ErpMiddleware.cs:32)
+    ErpMw->>ErpMw: AuthService.GetUser(context.User) (WebVella.Erp.Web/Middleware/ErpMiddleware.cs:32)
     alt user resolved from context.User
-        ErpMw->>SecCtx: SecurityContext.OpenScope(user) (ErpMiddleware.cs:35)
+        ErpMw->>SecCtx: SecurityContext.OpenScope(user) (WebVella.Erp.Web/Middleware/ErpMiddleware.cs:35)
     else authenticated cookie but no user
         ErpMw->>Auth: SignOutAsync(cookie)
     end
@@ -136,7 +137,7 @@ sequenceDiagram
     JwtMw->>JwtMw: Resolve cookie access_token / Bearer header, validate, attach Items[User] (supplemental)
     JwtMw->>Manager: next(context)
     Manager->>SecCtx: Read CurrentUser
-    SecCtx->>SecCtx: HasEntityPermission / IsUserInRole (SecurityContext.cs:63)
+    SecCtx->>SecCtx: HasEntityPermission / IsUserInRole (WebVella.Erp/Api/SecurityContext.cs:63)
     alt permitted
         SecCtx-->>Manager: allow operation
     else denied
@@ -255,7 +256,7 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 | Package | Version | Notes / known-CVE considerations |
 |---------|---------|----------------------------------|
 | Npgsql | 9.0.4 | PostgreSQL ADO.NET provider; the DAL foundation (no EF Core). Track Npgsql advisories against 9.0.4 in CI. |
-| AutoMapper | 14.0.0 (pinned `[14.0.0]`) | Object-to-object mapping in the data layer. Hard-pinned. |
+| AutoMapper | 14.0.0 (pinned `[14.0.0]`) | Object-to-object mapping in the data layer. Hard-pinned. **Subject to a verified HIGH advisory at this version (uncontrolled-recursion DoS, `CVE-2026-32933`) — see the AutoMapper advisory note below.** |
 | Irony.NetCore | 1.1.11 | Grammar/parser backbone for **EQL**. Niche package; low release cadence — monitor manually. |
 | CsvHelper | 33.1.0 | CSV import/export. Parses externally supplied CSV — validate inputs. |
 | Ical.Net | 4.3.1 (pinned `[4.3.1]`) | Calendar/recurrence support. Hard-pinned. |
@@ -265,7 +266,15 @@ The versions below were read **directly from the `.csproj` manifests** at commit
 | Microsoft.Extensions.* | 9.0.10 | Caching (`Abstractions`, `Memory`), `Configuration.Json`, `Hosting.Abstractions`, `Logging` (+ `Console`, `Debug`). Aligned to the .NET 9 BCL at the `9.0.10` servicing level — see the servicing-currency note below. |
 | MimeMapping | 3.1.0 | MIME-type lookup utility. |
 
-> **Servicing currency of the `9.0.10` packages (applies across §3.2–§3.4).** Every `Microsoft.AspNetCore.*` / `Microsoft.Extensions.*` package in this audit is pinned at **`9.0.10`**, the **October 2025 .NET 9 security release**. That release is **already patched** for the headline ASP.NET Core advisory **CVE-2025-55315** — an HTTP request/response-smuggling / security-feature-bypass flaw scored **CVSS 9.9 (Critical)**, fixed in `9.0.10` after affecting ASP.NET Core `9.0.0`–`9.0.9` — so this solution is **not** exposed to that specific issue ([MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5)). However, `9.0.10` is **not the current .NET 9 servicing level**: Microsoft ships cumulative monthly patches (`9.0.11`, `9.0.12`, …) whose later, separately-tracked advisories a `9.0.10` consumer does not yet carry. The authoritative, continuously-updated list is the [dotnet/core .NET 9 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md). The practical exposure of shared-framework (Kestrel) advisories is further **reduced — not eliminated —** by the IIS **InProcess** hosting posture (`WebVella.Erp.Site/web.config:7`), under which Kestrel is not the public-facing listener. This is a **servicing-currency** observation, **not** a confirmed unpatched vulnerability at `9.0.10`; tracking the latest `9.0.x` patch level is carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as advisory-only.
+> **Servicing currency of the `9.0.10` packages (applies across §3.2–§3.4).** Every `Microsoft.AspNetCore.*` / `Microsoft.Extensions.*` package in this audit is pinned at **`9.0.10`**, the **October 2025 .NET 9 security release**. That release is **already patched** for the headline ASP.NET Core advisory **CVE-2025-55315** — an HTTP request/response-smuggling / security-feature-bypass flaw scored **CVSS 9.9 (Critical)**, fixed in `9.0.10` after affecting ASP.NET Core `9.0.0`–`9.0.9` — so this solution is **not** exposed to that specific issue ([MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5)). However, `9.0.10` is **not the current .NET 9 servicing level**, and at least one **independently-verified HIGH advisory published after that release applies to the `9.0.10` baseline**:
+>
+> - **.NET (Base64Url decoder) — Denial of Service** ([GHSA-73j8-2gch-69rq](https://github.com/dotnet/runtime/security/advisories/GHSA-73j8-2gch-69rq) / [CVE-2026-26127](https://nvd.nist.gov/vuln/detail/CVE-2026-26127); CWE-125 out-of-bounds read). A malformed **Base64Url** input triggers an **out-of-bounds read** in the .NET runtime and `Microsoft.Bcl.Memory`, terminating the process. **Severity HIGH, CVSS 3.1 = 7.5** (`AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H`). **Affected: `.NET 9.0.0` up to — but excluding — `9.0.14`; fixed in `9.0.14`** (and `.NET 10.0.0`–`<10.0.4`, fixed in `10.0.4`), per Microsoft's [advisory announcement](https://github.com/dotnet/announcements/issues/384) and the [MSRC update guide](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-26127). The solution targets `net9.0` and pins its Microsoft framework packages at **`9.0.10`**, which falls **within** the affected range. Because Base64Url decoding is commonly on the **JWT / OAuth token-parsing** path — and this platform authenticates with JWT (`System.IdentityModel.Tokens.Jwt 8.14.0`, `Microsoft.AspNetCore.Authentication.JwtBearer 9.0.10`) — any endpoint that decodes attacker-supplied Base64Url data is a plausible exposed surface. Unlike Kestrel-listener advisories, the IIS **InProcess** posture (`WebVella.Erp.Site/web.config:7`) does **not** neutralize this runtime-level issue. **Remediation (advisory-only): move to the `9.0.14` (or later) .NET 9 servicing level** — for `net9.0`-targeting apps the runtime/SDK update is the required step — carried into [`modernization-roadmap.md`](./modernization-roadmap.md).
+>
+> Beyond this confirmed item, Microsoft ships cumulative monthly patches (`9.0.11`, `9.0.12`, …); the authoritative, continuously-updated list is the [dotnet/core .NET 9 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md). The practical exposure of **Kestrel** shared-framework advisories *specifically* is further **reduced — not eliminated —** by the IIS **InProcess** hosting posture, under which Kestrel is not the public-facing listener. Tracking the latest `9.0.x` patch level is carried into [`modernization-roadmap.md`](./modernization-roadmap.md) as advisory-only; consistent with the analysis-only mandate, **no manifest is changed by this task.**
+
+> **Verified AutoMapper advisory (core data layer).** The core platform's hard-pinned `AutoMapper 14.0.0` (`WebVella.Erp/WebVella.Erp.csproj:47`) is subject to an independently-verified **HIGH** advisory at the pinned version:
+>
+> - **AutoMapper — Denial of Service via Uncontrolled Recursion** ([GHSA-rvv3-g6hj-g44x](https://github.com/advisories/GHSA-rvv3-g6hj-g44x) / [CVE-2026-32933](https://nvd.nist.gov/vuln/detail/CVE-2026-32933); CWE-674 uncontrolled recursion). When mapping a **deeply nested or self-referential object graph**, AutoMapper recurses without a default depth limit; a sufficiently nested input exhausts the thread stack and raises an **uncatchable `StackOverflowException`**, terminating the entire process. **Severity HIGH, CVSS 3.1 = 7.5** (`AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H`). **Affected: all versions before `15.1.1`; fixed in `15.1.1` / `16.1.1`.** The pinned **`14.0.0` is within the affected range**, and AutoMapper sits on the platform's object-to-object mapping path, so any code that maps an attacker-influenced nested graph is the exposed surface. **Remediation note (advisory-only):** the fix was **not** backported to the `14.x` line, and the fixed releases (`15.1.1` / `16.1.1`) are on AutoMapper's newer **commercially-licensed** line (the `13.x`/`14.x` line was MIT-licensed). Remediation is therefore a deliberate choice between (a) adopting a licensed `≥ 15.1.1`, (b) migrating off AutoMapper (e.g., to a source-generated mapper), or (c) bounding mapping depth / validating input nesting as a compensating control. This is carried into [`modernization-roadmap.md`](./modernization-roadmap.md); consistent with the analysis-only mandate, **no manifest is changed by this task.**
 
 ### 3.3 Web application — `WebVella.Erp.Web/WebVella.Erp.Web.csproj`
 
@@ -414,10 +423,10 @@ These are recorded as **process gaps**; addressing them is an explicit, advisory
 | Domain authorization | `WebVella.Erp/Api/SecurityContext.cs`, `WebVella.Erp/Api/SecurityManager.cs:77` |
 | Password hashing | `WebVella.Erp/Utilities/PasswordUtil.cs` |
 | JWT key fallback | `WebVella.Erp/ErpSettings.cs:118-120` |
-| Dead security folder | `WebVella.Erp.Web/Security/*.cs` (`AuthorizeAttribute.cs:1-147`) |
+| Dead security folder | `WebVella.Erp.Web/Security/*.cs` (`WebVella.Erp.Web/Security/AuthorizeAttribute.cs:1-147`) |
 | Dynamic code execution | `WebVella.Erp.Web/Services/CodeEvalService.cs:44-45` |
 | Dependency manifests | `WebVella.Erp/WebVella.Erp.csproj`, `WebVella.Erp.Web/WebVella.Erp.Web.csproj`, `WebVella.Erp.Site/WebVella.Erp.Site.csproj`, `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj`, `WebVella.Erp.WebAssembly/Client/WebVella.Erp.WebAssembly.csproj` |
-| Dependency advisories (independently verified) | MailKit STARTTLS [GHSA-9j88-vvj5-vhgr](https://github.com/advisories/GHSA-9j88-vvj5-vhgr) (CVE-2026-41319); MimeKit CRLF [GHSA-g7hc-96xr-gvvx](https://github.com/advisories/GHSA-g7hc-96xr-gvvx) ([CVE-2026-30227](https://nvd.nist.gov/vuln/detail/CVE-2026-30227)); .NET 9 servicing [dotnet/core 9.0 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md) and [CVE-2025-55315 MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5) |
+| Dependency advisories (independently verified) | AutoMapper recursion DoS [GHSA-rvv3-g6hj-g44x](https://github.com/advisories/GHSA-rvv3-g6hj-g44x) ([CVE-2026-32933](https://nvd.nist.gov/vuln/detail/CVE-2026-32933)); .NET Base64Url DoS [GHSA-73j8-2gch-69rq](https://github.com/dotnet/runtime/security/advisories/GHSA-73j8-2gch-69rq) ([CVE-2026-26127](https://nvd.nist.gov/vuln/detail/CVE-2026-26127)); MailKit STARTTLS [GHSA-9j88-vvj5-vhgr](https://github.com/advisories/GHSA-9j88-vvj5-vhgr) (CVE-2026-41319); MimeKit CRLF [GHSA-g7hc-96xr-gvvx](https://github.com/advisories/GHSA-g7hc-96xr-gvvx) ([CVE-2026-30227](https://nvd.nist.gov/vuln/detail/CVE-2026-30227)); .NET 9 servicing [dotnet/core 9.0 CVE log](https://github.com/dotnet/core/blob/main/release-notes/9.0/cve.md) and [CVE-2025-55315 MSRC advisory](https://github.com/dotnet/aspnetcore/security/advisories/GHSA-5rrx-jjjq-q2r5) |
 | Runtime / infra | `*.csproj` `<TargetFramework>`, `global.json:3`, `WebVella.Erp.Site/web.config:7,10`, `.github/FUNDING.yml` |
 
 ---

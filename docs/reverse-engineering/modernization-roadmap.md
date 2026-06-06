@@ -169,12 +169,17 @@ The plan has **exactly three phases**, sequenced so that each one de-risks the n
 
 **Representative workstreams**
 
-- **Runtime alignment (U1).** Migrate `WebVella.Erp.WebAssembly/Server` (`...Server.csproj:4`) and `WebVella.Erp.WebAssembly/Shared` (`...Shared.csproj:4`) from `net7.0` to `net9.0`, and bump the WASM Server's `Microsoft.AspNetCore.Components.WebAssembly.Server` reference accordingly, so all **20** projects share one supported TFM.
+- **Runtime alignment (U1).** Migrate `WebVella.Erp.WebAssembly/Server` (`WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`) and `WebVella.Erp.WebAssembly/Shared` (`WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4`) from `net7.0` to `net9.0`, and bump the WASM Server's `Microsoft.AspNetCore.Components.WebAssembly.Server` reference accordingly, so all **20** projects share one supported TFM.
 - **SDK pinning (U2).** Replace the commented-out entry in `global.json:3` with a pinned **current .NET 9** SDK plus a `rollForward` policy. Do **not** restore `7.0.103`.
 - **CI (U3).** Add a pipeline that, on every PR, restores, builds the solution, runs the test suite, and runs a vulnerability scan (`dotnet list package --vulnerable`).
 - **Containerization (U4).** Author a Dockerfile (and compose for local PostgreSQL 16) for at least one Site host; validate a Linux container start-up path that today is untested (root `README.md:18`).
 - **Dependency/security scanning (U5).** Wire SCA against the documented NuGet set (e.g., `WebVella.Erp.Web/WebVella.Erp.Web.csproj:128,132`) and surface results in CI; cross-reference [`security-quality.md`](./security-quality.md).
-- **Known-advisory remediation (U5a).** Clear the verified, currently-applicable advisories catalogued in [`security-quality.md`](./security-quality.md) §3.4: update **`MailKit` to `≥ 4.16.0`** in `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`, which fixes the STARTTLS response-injection advisory (GHSA-9j88-vvj5-vhgr / CVE-2026-41319) **and** transitively pulls a patched `MimeKit` (`≥ 4.15.1`) that resolves the CRLF/SMTP-injection advisory (CVE-2026-30227). Separately, track the latest **.NET 9 `9.0.x` servicing patch** (the framework packages are pinned at `9.0.10`, which already carries the `CVE-2025-55315` fix) per the servicing-currency note in [`security-quality.md`](./security-quality.md) §3.2. Both are **dependency-version bumps only — no behavioral change** — and slot into the same CI vulnerability gate established by U3/U5.
+- **Known-advisory remediation (U5a).** Clear the verified, currently-applicable advisories catalogued in [`security-quality.md`](./security-quality.md) §3.2 and §3.4:
+   - **MailKit / MimeKit (mail plugin).** Update **`MailKit` to `≥ 4.16.0`** in `WebVella.Erp.Plugins.Mail/WebVella.Erp.Plugins.Mail.csproj:28`, which fixes the STARTTLS response-injection advisory (GHSA-9j88-vvj5-vhgr / CVE-2026-41319) **and** transitively pulls a patched `MimeKit` (`≥ 4.15.1`) that resolves the CRLF/SMTP-injection advisory (CVE-2026-30227) — a **dependency-version bump only, no behavioral change**.
+   - **.NET 9 framework (HIGH).** Move the framework packages and runtime from the pinned **`9.0.10`** to the **`9.0.14` (or later) servicing level**, clearing the Base64Url-decoder denial-of-service advisory **GHSA-73j8-2gch-69rq / CVE-2026-26127** (HIGH, CVSS 7.5; affects `9.0.0`–`<9.0.14`). `9.0.10` already carries the earlier `CVE-2025-55315` fix; for `net9.0`-targeting projects the runtime/SDK update is the required step, so this folds into the **U1** runtime-alignment and **U2** SDK-pinning work.
+   - **AutoMapper (HIGH) — decision required, not a drop-in bump.** The hard-pinned `AutoMapper 14.0.0` (`WebVella.Erp/WebVella.Erp.csproj:47`) is affected by the uncontrolled-recursion DoS advisory **GHSA-rvv3-g6hj-g44x / CVE-2026-32933** (HIGH, CVSS 7.5; affects `< 15.1.1`). Because the fix was **not** backported to the `14.x` line and the fixed releases (`15.1.1` / `16.1.1`) are on AutoMapper's newer **commercially-licensed** line, remediation requires an explicit choice: adopt a licensed `≥ 15.1.1`, migrate to a source-generated mapper, or apply a depth-bounding / input-nesting-validation compensating control.
+
+   All three slot into the same CI vulnerability gate established by U3/U5; see [`security-quality.md`](./security-quality.md) §3.2 and §3.4.
 - **Hygiene (U6, U7).** Move the `Development` environment value out of shipped host config (`WebVella.Erp.Site/web.config:10`); remove or intentionally reinstate the dead `AuthorizeAttribute` (`WebVella.Erp.Web/Security/AuthorizeAttribute.cs:1-147`).
 
 **Exit criteria**
@@ -182,7 +187,7 @@ The plan has **exactly three phases**, sequenced so that each one de-risks the n
 - **0** projects target an out-of-support TFM (all on `net9.0`).
 - `global.json` pins a current .NET 9 SDK; a clean machine reproduces the build deterministically.
 - CI is **green on every PR** (build + test + vulnerability scan run automatically).
-- The known, verified dependency advisories are cleared at the pinned versions (`MailKit` `≥ 4.16.0`, which also patches the transitive `MimeKit`; the framework packages on a current `9.0.x` servicing patch).
+- The known, verified dependency advisories are addressed: `MailKit` `≥ 4.16.0` (which also patches the transitive `MimeKit`, clearing CVE-2026-41319 / CVE-2026-30227); the .NET 9 framework on the **`9.0.14`+** servicing level (clearing the HIGH `CVE-2026-26127`); and an explicit, **recorded decision for `AutoMapper`** (HIGH `CVE-2026-32933`) — license `≥ 15.1.1`, migrate off, or apply a documented compensating control.
 - At least one Site host builds and runs as a container image.
 - No fully-commented "ghost" source files remain; shipped host config no longer defaults to `Development`.
 
@@ -241,16 +246,16 @@ The risks below are derived from the §1.3 hotspots and the suite's analysis. Ea
 
 | # | Risk | Likelihood | Impact | Mitigation | Owning phase |
 |---|------|-----------|--------|------------|--------------|
-| R1 | **Out-of-support runtime** on the 2 `net7.0` WASM projects (`...Server.csproj:4`, `...Shared.csproj:4`) leaves them unpatched | High | High | Migrate to `net9.0` (U1); verify WASM build/runtime parity | **Phase 1** |
+| R1 | **Out-of-support runtime** on the 2 `net7.0` WASM projects (`WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj:4`, `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj:4`) leaves them unpatched | High | High | Migrate to `net9.0` (U1); verify WASM build/runtime parity | **Phase 1** |
 | R2 | **Non-deterministic builds** from the unpinned SDK (`global.json:3`) cause "works on my machine" drift | High | Medium | Pin a current .NET 9 SDK + `rollForward` (U2); build on pinned CI image | **Phase 1** |
 | R3 | **No CI gate** (`.github/FUNDING.yml` only) lets regressions merge unnoticed | High | High | Stand up CI (build+test+scan) on every PR (U3) | **Phase 1** |
-| R4 | **Irreproducible/Windows-bound deployment** (IIS InProcess `web.config:7`; Windows-only testing `README.md:18`) | Medium | High | Containerize + validate a Linux path (U4) | **Phase 1** |
-| R5 | **Unpatched dependency CVEs** go unnoticed across the NuGet set (e.g., `Web.csproj:128,132`) | Medium | High | Automated SCA/vulnerability scanning in CI (U5); see [`security-quality.md`](./security-quality.md) | **Phase 1** |
-| R6 | **Dynamic-script execution** (Roslyn/CS-Script, `Web.csproj:128,132`) is an injection/abuse surface | Medium | High | Authorization + sandboxing + audit of the script path | **Phase 2** |
+| R4 | **Irreproducible/Windows-bound deployment** (IIS InProcess `WebVella.Erp.Site/web.config:7`; Windows-only testing `README.md:18`) | Medium | High | Containerize + validate a Linux path (U4) | **Phase 1** |
+| R5 | **Unpatched dependency CVEs** go unnoticed across the NuGet set (e.g., `WebVella.Erp.Web/WebVella.Erp.Web.csproj:128,132`) | Medium | High | Automated SCA/vulnerability scanning in CI (U5); see [`security-quality.md`](./security-quality.md) | **Phase 1** |
+| R6 | **Dynamic-script execution** (Roslyn/CS-Script, `WebVella.Erp.Web/WebVella.Erp.Web.csproj:128,132`) is an injection/abuse surface | Medium | High | Authorization + sandboxing + audit of the script path | **Phase 2** |
 | R7 | **Refactoring regressions** when splitting `WebApiController.cs` (`:37`, 4,313 LOC) / `RecordManager.cs` (`:15`, 2,109 LOC) | Medium | High | Behavior-preserving decomposition behind the Phase-1 test gate; keep routes/contracts stable (U8) | **Phase 2** |
 | R8 | **Schema drift** from the informal patch-class process (25 partials, no EF `Migrations/`) | Medium | Medium | Formalize ordering/idempotency checks for the existing patch model (C4) | **Phase 2** |
-| R9 | **Dead/disabled authorization code** (`AuthorizeAttribute.cs:1-147`) misleads maintainers about the security model | Low | Medium | Remove or intentionally reinstate (U7); document the real auth model from `Site/Startup.cs` | **Phase 1** |
-| R10 | **Production diagnostics leakage** from `ASPNETCORE_ENVIRONMENT=Development` in host config (`web.config:10`) | Medium | Medium | Environment-specific config; `Production` defaults for shipped hosts (U6) | **Phase 1** |
+| R9 | **Dead/disabled authorization code** (`WebVella.Erp.Web/Security/AuthorizeAttribute.cs:1-147`) misleads maintainers about the security model | Low | Medium | Remove or intentionally reinstate (U7); document the real auth model from `WebVella.Erp.Site/Startup.cs` | **Phase 1** |
+| R10 | **Production diagnostics leakage** from `ASPNETCORE_ENVIRONMENT=Development` in host config (`WebVella.Erp.Site/web.config:10`) | Medium | Medium | Environment-specific config; `Production` defaults for shipped hosts (U6) | **Phase 1** |
 | R11 | **Multi-instance correctness** issues (in-process state, job scheduling) when scaling out | Medium | High | Audit/externalize state before enabling horizontal scale | **Phase 3** |
 | R12 | **Over-reach** — adopting an optional SPA/ORM (C1/C3) without need destabilizes a working system | Medium | High | Keep them optional, behind abstractions, reversible, and gated on a clear business case | **Phase 3** |
 
@@ -267,7 +272,7 @@ Each metric is measurable, tied to a phase, and traceable to the current-state b
 | M3 | **CI green on every PR** (build + test + scan) | **None** (`.github/FUNDING.yml` only) | **100%** of PRs gated | Phase 1 |
 | M4 | **Container image** for a Site host | **None** | **≥1** host runs as a container on Linux | Phase 1 |
 | M5 | **Automated vulnerability scan** of dependencies | **None** | Scheduled SCA; **0** unaddressed High/Critical CVEs | Phase 1 |
-| M6 | **Fully-commented "ghost" source files** | **≥1** (`AuthorizeAttribute.cs:1-147`) | **0** | Phase 1 |
+| M6 | **Fully-commented "ghost" source files** | **≥1** (`WebVella.Erp.Web/Security/AuthorizeAttribute.cs:1-147`) | **0** | Phase 1 |
 | M7 | **Max single-file LOC** (flagged hotspots) | **4,313** (`WebApiController.cs`) | Materially reduced (e.g., no file > ~1,000 LOC) with contracts intact | Phase 2 |
 | M8 | **Documented, repeatable schema-migration process** | **Informal** (25 patch classes) | **Documented + CI-checked** ordering/idempotency | Phase 2 |
 | M9 | **Automated-test coverage** gate | **Not gated** | Agreed threshold enforced in CI | Phase 2 |
