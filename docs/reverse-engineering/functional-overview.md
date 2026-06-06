@@ -3,7 +3,7 @@
 > **Deliverable 4 of 7** · Reverse-Engineering Documentation Suite
 > **Generated (UTC):** 2026-06-05 18:31 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
-> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`business-rules.md`](./business-rules.md) · `security-quality.md` _(forthcoming)_ · `modernization-roadmap.md` _(forthcoming)_
+> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
 > **Suite index:** `README.md` _(forthcoming)_
 
 ---
@@ -29,7 +29,7 @@ Four "what-exists" characteristics are honored throughout this suite and are rel
 3. **Code-embedded DDL + date-versioned plugin patch methods**, not an EF Core `Migrations/` folder (there are no `.sql` files anywhere).
 4. **No Docker.** Deployment is plain ASP.NET Core host sites designed for IIS in-process hosting.
 
-> This is a factual description of the system **as built**. It contains **no** time or effort estimates; forward-looking guidance lives only in `modernization-roadmap.md` (a forthcoming deliverable).
+> This is a factual description of the system **as built**. It contains **no** time or effort estimates; forward-looking guidance lives only in [`modernization-roadmap.md`](./modernization-roadmap.md).
 
 ---
 
@@ -251,7 +251,7 @@ Two services cover files. `FileService` (a static helper) resolves **embedded** 
 
 ### 4.6 Runtime code evaluation (`CodeEvalService`)
 
-`WebVella.Erp.Web/Services/CodeEvalService.cs` (a static class) compiles and runs C# at runtime: `Evaluate(string sourceCode, BaseErpPageModel pageModel)` (`:51`). This powers code-defined data sources and dynamic page logic. Because it executes arbitrary C# on the server, it is also a **security-relevant** surface — its remote-code-execution implications are assessed in `security-quality.md` (a forthcoming deliverable; see also the `datasource/code-compile` endpoint in [`architecture.md`](./architecture.md) §3.5).
+`WebVella.Erp.Web/Services/CodeEvalService.cs` (a static class) compiles and runs C# at runtime: `Evaluate(string sourceCode, BaseErpPageModel pageModel)` (`:51`). This powers code-defined data sources and dynamic page logic. Because it executes arbitrary C# on the server, it is also a **security-relevant** surface — its remote-code-execution implications are assessed in [`security-quality.md`](./security-quality.md) (see also the `datasource/code-compile` endpoint in [`architecture.md`](./architecture.md) §3.5).
 
 ### 4.7 Search (`AppSearchService`)
 
@@ -394,8 +394,8 @@ This deliverable upholds the suite-wide consistency contracts defined in [`code-
 | 3 | [`database-schema.md`](./database-schema.md) + [`data-dictionary.csv`](./data-dictionary.csv) | Schema from embedded DDL + patches; ERD |
 | 4 | **`functional-overview.md`** *(this file)* | Module catalog, platform capabilities, workflows, user roles |
 | 5 | [`business-rules.md`](./business-rules.md) | Catalogued business rules with citations |
-| 6 | `security-quality.md` _(forthcoming)_ | Vulnerabilities, code metrics, CVE audit |
-| 7 | `modernization-roadmap.md` _(forthcoming)_ | Current-state, target-state, 3-phase plan |
+| 6 | [`security-quality.md`](./security-quality.md) | Vulnerabilities, code metrics, CVE audit |
+| 7 | [`modernization-roadmap.md`](./modernization-roadmap.md) | Current-state, target-state, 3-phase plan |
 | — | `README.md` _(forthcoming)_ | Master index & executive overview |
 
 ---

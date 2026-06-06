@@ -26,9 +26,9 @@ The system's debt is **concentrated, not pervasive**. A small number of high-lev
 - The **`global.json` SDK version is commented out**, so builds float to the latest installed SDK.
 - **No automated tests** and **no containerization** exist anywhere in the repository (`QA-001`; Docker absence).
 
-None of these is fatal, and several have mitigating factors recorded below. The plan that follows sequences remediation by **dependency and risk** — stabilize and de-risk, then decompose and harden, then modernize and operationalize — **without any calendar or effort estimates**. Each recommendation references the same finding identifiers used in [`security-quality.md`](./security-quality.md) so the two documents reconcile precisely.
+None of these is fatal, and several have mitigating factors recorded below. The plan that follows sequences remediation by **dependency and risk** — stabilize and de-risk, then decompose and harden, then modernize and operationalize — **ordered strictly by prerequisite and risk reduction**. Each recommendation references the same finding identifiers used in [`security-quality.md`](./security-quality.md) so the two documents reconcile precisely.
 
-> **Sequencing, not scheduling.** The three phases are ordered by **prerequisite and risk reduction**, not by calendar. This document contains **no durations or effort estimates of any kind**; phase boundaries denote dependency and risk gates only.
+> **Ordering by prerequisite and risk.** The three phases are ordered by **prerequisite and risk reduction**; phase boundaries denote dependency and risk gates only.
 
 ---
 
@@ -94,7 +94,7 @@ The following are **present in the repository today**. Severity ratings, full ev
 
 - **Global Npgsql legacy-timestamp switch (`SEC-005`, Low/Info).** Each site's `Startup.cs` sets `AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true)` at line 40, preceded by the in-code comment **`//legacy until we fix system tables`** (line 39). This is a **deliberately retained legacy behavior**, not an accidental setting; it appears in `WebVella.Erp.Site/Startup.cs` and six other sites. See [`security-quality.md`](./security-quality.md) §3.5.
 
-- **Residual SQL-identifier interpolation (`SEC-006`, residual).** While values are parameterized (the strength noted in §1.1), **SQL identifiers** (table/column names sourced from entity metadata) are composed by string interpolation in `WebVella.Erp/Database/**`. This is a review item, not a confirmed injection, per [`security-quality.md`](./security-quality.md) §3.6.
+- **Residual dynamic SQL — identifiers and the FTS-language literal (`SEC-006`, residual).** While ordinary values are parameterized (the strength noted in §1.1), two categories of SQL text are composed by string interpolation in `WebVella.Erp/Database/**`: (a) **SQL identifiers** (table/column names sourced from entity metadata), and (b) the **full-text-search language literal** — `query.FtsLanguage`, a public, externally-bindable query-model property (`WebVella.Erp/Api/Models/QueryObject.cs:23`) — concatenated **unparameterized** into the SQL at `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`. The identifier path derives from trusted metadata; the FTS-language path can carry external input and is the more material of the two. Both are detailed in [`security-quality.md`](./security-quality.md) §3.6.
 
 - **Substantial commented-out legacy security code (`SEC-007`, Low/Info).** The `WebVella.Erp.Web/Security/**` folder (8 files) is largely **commented-out** legacy authentication/authorization code — for example `WebSecurityUtil.cs` is 193 of 232 lines commented. This is a **code-hygiene** signal, detailed in [`security-quality.md`](./security-quality.md) §3.7.
 
@@ -109,7 +109,7 @@ The following are **present in the repository today**. Severity ratings, full ev
 
 ### 1.3 Qualitative Risk Matrix
 
-The matrix below ranks each current-state finding **qualitatively** by **likelihood** (how readily the condition could lead to an adverse outcome) and **impact** (the severity of that outcome). It contains **no time or effort estimates**; the "Roadmap phase" column shows where remediation is sequenced, by dependency and risk, in §3.
+The matrix below ranks each current-state finding **qualitatively** by **likelihood** (how readily the condition could lead to an adverse outcome) and **impact** (the severity of that outcome). The "Roadmap phase" column shows where remediation is ordered, by dependency and risk, in §3.
 
 | Finding | Condition (what exists) | Likelihood | Impact | Qualitative risk | Roadmap phase |
 |---------|-------------------------|------------|--------|------------------|---------------|
@@ -122,7 +122,7 @@ The matrix below ranks each current-state finding **qualitatively** by **likelih
 | `QA-002` | 4,313-line monolithic `WebApiController` | High | Medium | **Medium–High** | Phase 2 |
 | `DEP-003` | `System.Drawing.Common` Windows-only | Medium | Medium | **Medium** | Phase 3 |
 | `global.json` | SDK version commented out (non-deterministic builds) | Medium | Medium | **Medium** | Phase 1 |
-| `SEC-006` | SQL identifiers interpolated from metadata | Low | Medium | **Low–Medium** | Phase 3 |
+| `SEC-006` | SQL identifiers interpolated from metadata; FTS-language literal (`query.FtsLanguage`) concatenated unparameterized (`DbRecordRepository.cs:1503,1511`) | Medium | High | **Medium–High** | Phase 3 |
 | `SEC-005` | Npgsql legacy-timestamp switch retained | Low | Low | **Low** | Phase 3 |
 | `SEC-007` | Commented-out legacy security code | Low | Low | **Low** | Phase 2 |
 | `DEP-002` | Commented-out legacy package references | Low | Low | **Low** | Phase 3 |
@@ -140,7 +140,7 @@ Every finding above maps forward to a concrete initiative. This table is the **t
 | `SEC-003` | `WebVella.Erp.Site/Config.json:3,4,24` (×7 sites) | Externalize secrets (user-secrets / Key Vault / environment variables); per-environment key separation — Phase 1 |
 | `SEC-004` | `WebVella.Erp.Site/Startup.cs:61–63,164` | Replace `AllowAnyOrigin` with an explicit origin allow-list — Phase 1 |
 | `SEC-005` | `WebVella.Erp.Site/Startup.cs:40` | Resolve the underlying system-table timestamp handling, then remove the switch — Phase 3 |
-| `SEC-006` | `WebVella.Erp/Database/**` | Centralize and validate identifier quoting against the entity meta-model — Phase 3 |
+| `SEC-006` | `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`; `WebVella.Erp/Api/Models/QueryObject.cs:23` | Validate/allow-list the FTS-language literal (or bind it as a parameter); centralize and validate identifier quoting against the entity meta-model — Phase 3 |
 | `SEC-007` | `WebVella.Erp.Web/Security/**` (8 files) | Delete dead commented-out security code during decomposition — Phase 2 |
 | `DEP-001` | `WebVella.Erp.WebAssembly/Server/...csproj`; `.../Shared/...csproj` | Retarget to a .NET LTS line or retire the orphaned projects — Phase 1 |
 | `DEP-002` | `*.csproj` comment lines | Remove commented-out legacy references during cleanup — Phase 3 |
@@ -166,7 +166,7 @@ The target state keeps WebVella ERP's distinctive strengths — the plugin-exten
 
 ### 2.2 Runtime & Framework Cadence
 
-- **Align to a .NET Long-Term-Support (LTS) line (recommended).** A relevant cadence fact: **.NET 9 is a Standard-Term-Support (STS) release, not LTS.** The recommendation is to standardize the solution on a **.NET LTS** line — **.NET 8**, or **.NET 10 once available** — for support stability, with a deliberate policy for STS-to-LTS transitions thereafter. The most urgent application of this principle is **retiring the out-of-support `net7.0` projects** (`DEP-001`): retarget `WebVella.Erp.WebAssembly/Server` and `/Shared` to the chosen LTS target, or remove them if the orphaned Blazor WebAssembly host is no longer required.
+- **Align to a .NET Long-Term-Support (LTS) line (recommended).** A relevant cadence fact: **.NET 9 is a Standard-Term-Support (STS) release, not LTS.** The recommendation is to standardize the solution on a **.NET LTS** line. The current LTS release is **.NET 10** (an LTS release supported through November 2028); the prior LTS, **.NET 8**, reaches end of support in November 2026, so **.NET 10 is the recommended forward target**, with a deliberate policy for STS-to-LTS transitions thereafter. The most urgent application of this principle is **retiring the out-of-support `net7.0` projects** (`DEP-001`): retarget `WebVella.Erp.WebAssembly/Server` and `/Shared` to the chosen LTS target, or remove them if the orphaned Blazor WebAssembly host is no longer required.
 - **Deterministic builds (recommended).** Pin the SDK version in **`global.json`** (currently commented out) so every environment builds against a known toolchain. This is a foundational, low-risk change that makes all subsequent work reproducible.
 
 ### 2.3 Security Hardening
@@ -177,7 +177,7 @@ These recommendations map one-to-one onto the `SEC-*` findings in §1.2 and [`se
 - **Externalize secret management (recommended).** Move connection strings, encryption keys, and JWT signing keys out of source-controlled `Config.json` (`SEC-003`) into **user-secrets (development)**, **a secret store such as Azure Key Vault**, or **environment variables**, with **per-environment key separation** so no key is shared across sites.
 - **Constrain deserialization (recommended).** Replace unconstrained `TypeNameHandling` (`SEC-002`) with a **`SerializationBinder` / explicit type allow-list**, or migrate the affected job and relation payloads to a serializer configuration that does not resolve arbitrary types.
 - **Tighten transport and origin controls (recommended).** Replace the `AllowAnyOrigin` default CORS policy (`SEC-004`) with an **explicit origin allow-list**, and enforce **HTTPS / HSTS** consistently across the host sites.
-- **Input validation and output encoding (recommended).** Adopt systematic input validation and contextual output encoding across the API and page-builder surfaces as a standing practice, complementing the existing parameterized-value strength (`SEC-006`).
+- **Input validation and output encoding (recommended).** Adopt systematic input validation and contextual output encoding across the API and page-builder surfaces as a standing practice — including **validating or allow-listing the full-text-search language value** (`query.FtsLanguage`) that `SEC-006` shows is concatenated into SQL at `DbRecordRepository.cs:1503,1511` — complementing the existing parameterized-value strength.
 
 ### 2.4 Quality & Test Strategy
 
@@ -210,7 +210,7 @@ This roadmap defines **exactly three phases**. Each phase lists its **objectives
 
 ### 3.1 Sequencing Rationale
 
-The phases are ordered by **dependency and risk**, **not by calendar**. There are **no schedules or effort estimates** anywhere in this plan.
+The phases are ordered by **dependency and risk** — each phase is gated by the prerequisites the next one depends on. The ordering reflects prerequisite and risk reduction only.
 
 - **Phase 1 first** because it removes the **highest-severity, lowest-coupling** risks (authenticated RCE surface, insecure deserialization, plaintext secrets) and establishes the **build determinism and supported-runtime baseline** that every later change depends on.
 - **Phase 2 next** because safely **decomposing the monolithic controller** depends on the stabilized, test-enabled baseline from Phase 1 — characterization tests must pin behavior **before** the Strangler Fig carving begins.
@@ -271,14 +271,14 @@ A phase is considered complete only when its **exit criteria** are met; those cr
 - **Portability fixes (`DEP-003`).** Migrate imaging off the Windows-only `System.Drawing.Common` to a **cross-platform library** (for example the SixLabors path currently commented-out, `DEP-002`) so the application can run on a Linux container base.
 - **CI/CD and observability.** Extend the Phase 1 CI into a full **CI/CD pipeline** delivering container images, and add **structured logging, metrics, and distributed tracing**.
 - **Evaluate data-layer modernization — while preserving the meta-model.** Assess introducing a thin repository abstraction or a vetted ORM **for the fixed system tables only**, **explicitly retaining** the dynamic entity/record store and the EQL → SQL path that define the platform. This is an **evaluation**, not a mandated replacement.
-- **Clear remaining residuals.** Resolve the underlying system-table timestamp handling so the `Npgsql.EnableLegacyTimestampBehavior` switch (`SEC-005`, the *"legacy until we fix system tables"* comment) can be removed; centralize and validate SQL **identifier** quoting (`SEC-006`); and delete the commented-out legacy package references (`DEP-002`).
+- **Clear remaining residuals.** Resolve the underlying system-table timestamp handling so the `Npgsql.EnableLegacyTimestampBehavior` switch (`SEC-005`, the *"legacy until we fix system tables"* comment) can be removed; for `SEC-006`, **validate or allow-list the full-text-search language literal** (`query.FtsLanguage`, concatenated into SQL at `DbRecordRepository.cs:1503,1511`) or bind it as a parameter, and **centralize and validate SQL identifier quoting**; and delete the commented-out legacy package references (`DEP-002`).
 
 **Exit criteria.**
 
 - The host sites build and run as containers on a Linux base image (imaging dependency is cross-platform).
 - A CI/CD pipeline delivers container images, with observability instrumented.
 - A documented decision exists on data-layer modernization that **preserves** the dynamic entity meta-model.
-- The legacy-timestamp switch is removed (or a documented decision records why it is retained), identifier quoting is centralized, and commented-out package references are gone.
+- The legacy-timestamp switch is removed (or a documented decision records why it is retained), the FTS-language literal is validated/allow-listed (or parameterized) and identifier quoting is centralized, and commented-out package references are gone.
 
 
 ### 3.5 Phased-Roadmap Flow Diagram
@@ -326,7 +326,7 @@ flowchart LR
     P3 --> Target
 ```
 
-> The diagram is **directional and dependency-based**: each arrow denotes "is a prerequisite for," not elapsed time. No durations are implied.
+> The diagram is **directional and dependency-based**: each arrow denotes "is a prerequisite for." The ordering reflects prerequisites and risk reduction only.
 
 
 ---
@@ -372,7 +372,7 @@ Current-state claims in this document resolve to the following real files (line 
 | Insecure deserialization (relations) | `WebVella.Erp/Database/DbRelationRepository.cs:47,128,173` | `SEC-002` |
 | Plaintext secrets | `WebVella.Erp.Site/Config.json:3,4,24` (×7 sites) | `SEC-003` (values not reproduced) |
 | Default CORS + legacy switch + hybrid auth | `WebVella.Erp.Site/Startup.cs:40,61–63,164` | `SEC-004`, `SEC-005`; auth model |
-| Parameterized data layer | `WebVella.Erp/Database/**` | `SEC-006` (strength + residual) |
+| Parameterized data layer; FTS-language residual | `WebVella.Erp/Database/**`; `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`; `WebVella.Erp/Api/Models/QueryObject.cs:23` | `SEC-006` (parameterized-value strength + identifier/FTS-language residual) |
 | Commented-out security code | `WebVella.Erp.Web/Security/**` (8 files) | `SEC-007` |
 | `net7.0` WebAssembly Server | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj` | `DEP-001` |
 | `net7.0` WebAssembly Shared | `WebVella.Erp.WebAssembly/Shared/WebVella.Erp.WebAssembly.Shared.csproj` | `DEP-001` |
@@ -388,4 +388,3 @@ Current-state claims in this document resolve to the following real files (line 
 ---
 
 _End of Deliverable 7 — Modernization Roadmap. This document is part of the WebVella ERP Reverse-Engineering Documentation Suite and was produced by read-only analysis; no production code, configuration, or schema was modified in its creation._
-

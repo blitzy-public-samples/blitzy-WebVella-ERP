@@ -195,7 +195,7 @@ This is the **canonical taxonomy** for the entire suite. Every other document re
 
 ### 2.6 Sites (7) — `WebVella.Erp.Site*`
 
-**Purpose.** Runnable ASP.NET Core **host sites**. Each is a thin shell that wires up `Core` + `Web` + a selection of plugins and supplies runtime configuration. Each site contains `Program.cs`, `Startup.cs`, and a plaintext `Config.json` (connection string, encryption key, JWT secret — analyzed in `security-quality.md`).
+**Purpose.** Runnable ASP.NET Core **host sites**. Each is a thin shell that wires up `Core` + `Web` + a selection of plugins and supplies runtime configuration. Each site contains `Program.cs`, `Startup.cs`, and a plaintext `Config.json` (connection string and encryption key; a JWT signing key only in the `WebVella.Erp.Site` and `WebVella.Erp.Site.Project` hosts — analyzed in [`security-quality.md`](./security-quality.md)).
 
 | Site | Plugins referenced (beyond Web + Core) | `.cs` | `.cshtml` |
 |------|----------------------------------------|------:|----------:|

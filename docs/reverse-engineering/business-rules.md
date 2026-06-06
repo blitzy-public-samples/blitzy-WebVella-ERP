@@ -2,7 +2,7 @@
 
 *Generated 2026-06-05 18:51 UTC by read-only static analysis of `WebVella.ERP3.sln`. No production code, configuration, or schema artifact was modified in the production of this report.*
 
-> **Deliverable 5 of the WebVella ERP reverse-engineering suite.** This catalog documents the business rules **as they are actually implemented** in the codebase. Every rule resolves to a real file, class, and method (line numbers included wherever practical). It is a factual "what-exists" record, not a specification of desired behavior; recommendations belong only to `modernization-roadmap.md` (a forthcoming deliverable).
+> **Deliverable 5 of the WebVella ERP reverse-engineering suite.** This catalog documents the business rules **as they are actually implemented** in the codebase. Every rule resolves to a real file, class, and method (line numbers included wherever practical). It is a factual "what-exists" record, not a specification of desired behavior; recommendations belong only to [`modernization-roadmap.md`](./modernization-roadmap.md).
 
 ---
 
@@ -191,7 +191,7 @@ This catalog is one node in a cross-referential suite; the following contracts h
 - **Module taxonomy** — module and file references use the canonical taxonomy defined in [`code-inventory.md`](./code-inventory.md) (Core, Web, WebAssembly, ConsoleApp, the 7 Plugins, the 7 Sites).
 - **Schema names** — every table and constraint named in the Data Integrity table (e.g. `plugin_data`, `idx_u_plugin_data_name`, `entity_relations`, `rec_<entity_name>`) matches [`database-schema.md`](./database-schema.md) and [`data-dictionary.csv`](./data-dictionary.csv) exactly.
 - **Citations** — every `Source` path resolves to a real file catalogued in [`code-inventory.csv`](./code-inventory.csv).
-- **Findings flow** — the authorization and integrity findings here will feed the assessment in `security-quality.md` and the phased plan in `modernization-roadmap.md` (both forthcoming deliverables).
+- **Findings flow** — the authorization and integrity findings here will feed the assessment in [`security-quality.md`](./security-quality.md) and the phased plan in [`modernization-roadmap.md`](./modernization-roadmap.md).
 
 ---
 

@@ -3,7 +3,7 @@
 > **Deliverable 6 of 7** · Reverse-Engineering Documentation Suite
 > **Generated (UTC):** 2026-06-05 23:35 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.** Any static measurement performed was transient and left the source tree unchanged.
-> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · `modernization-roadmap.md` _(forthcoming)_
+> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`architecture.md`](./architecture.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
 > **Suite index:** `README.md` _(forthcoming)_
 
 ---
@@ -16,8 +16,8 @@ The headline observations are:
 
 - **One Critical surface.** A runtime code-compilation endpoint — `POST api/v3.0/datasource/code-compile` in `WebVella.Erp.Web/Controllers/WebApiController.cs` (line 494) — compiles and loads **arbitrary user-supplied C#** through **CS-Script** + **Roslyn** (`WebVella.Erp.Web/Services/CodeEvalService.cs`). It is gated by a class-level `[Authorize]` (line 36), so it is authenticated-only, but it remains a remote-code-execution (RCE) class surface that warrants the strictest authorization.
 - **Two High-severity classes.** (1) **Insecure-deserialization** configuration — Newtonsoft `TypeNameHandling.All` / `.Auto` is used in background-job and relation serialization (`WebVella.Erp/Jobs/JobDataService.cs`, `WebVella.Erp/Database/DbRelationRepository.cs`). (2) **Plaintext secrets** — every host site's `Config.json` stores a database connection string, an encryption key, and (in two sites) a weak hardcoded JWT signing key in cleartext.
-- **A genuine data-layer strength.** The custom Npgsql data layer **parameterizes values** with `NpgsqlParameter` throughout `WebVella.Erp/Database/**` (50 parameter constructions), which is the correct defense against SQL injection. The residual area to review is that **SQL identifiers** (table/column names sourced from entity metadata) are composed via string interpolation.
-- **A pervasive code-hygiene signal.** The entire `WebVella.Erp.Web/Security/**` folder consists almost entirely of **commented-out** legacy authentication/authorization code (for example, `WebSecurityUtil.cs` is 193 of 232 lines commented).
+- **A genuine data-layer strength, with two residuals.** The custom Npgsql data layer **parameterizes ordinary values** with `NpgsqlParameter` throughout `WebVella.Erp/Database/**` (50 parameter constructions), which is the correct defense against SQL injection. Two residuals remain: **SQL identifiers** (table/column names sourced from entity metadata) are composed via string interpolation, and the **full-text-search language literal** — `query.FtsLanguage`, an externally-bindable query-model property — is concatenated **unparameterized** into the SQL at `WebVella.Erp/Database/DbRecordRepository.cs:1503,1511`.
+- **A pervasive code-hygiene signal.** The entire `WebVella.Erp.Web/Security/**` folder consists almost entirely of **commented-out** legacy authentication/authorization code (for example, `WebSecurityUtil.cs` is **~193 of 232** lines commented).
 - **Dependency hygiene is mostly current, with two real findings.** Active NuGet packages are pinned to current versions, but **two projects target the out-of-support `net7.0` runtime**, and the active imaging dependency (`System.Drawing.Common`) is **Windows-only since .NET 6**. Several legacy package references (the ASP.NET Core **2.2.0** packages and the **SixLabors.ImageSharp** packages) are **commented out**, i.e. *not* active dependencies — reported here as a code-hygiene observation rather than as live end-of-life dependencies.
 - **Concentrated complexity and no automated tests.** Complexity is concentrated in a handful of very large files, anchored by the **4,313-line** monolithic `WebApiController.cs`. The solution contains **no automated test project** of any kind, which is itself a quality risk.
 
@@ -88,7 +88,7 @@ The dependency audit in [§4](#4-dependency--cve-audit) enumerates the **exact p
 | `SEC-003` | 🟧 High | Plaintext secrets in `Config.json` (conn string, encryption key, JWT key) | `WebVella.Erp.Site/Config.json:3,4,24` (pattern across all 7 sites) |
 | `SEC-004` | 🟨 Medium | Overly permissive default CORS policy (`AllowAnyOrigin`) | `WebVella.Erp.Site/Startup.cs:61–63` |
 | `SEC-005` | 🟦 Low/Info | Global Npgsql legacy-timestamp behavior switch enabled | `WebVella.Erp.Site/Startup.cs:40` (+ 6 other sites) |
-| `SEC-006` | 🟩 Strength (+ residual) | Parameterized SQL is the norm; identifiers are string-composed | `WebVella.Erp/Database/**` (50 `NpgsqlParameter`) |
+| `SEC-006` | 🟩 Strength (+ residual) | Parameterized SQL is the norm; identifiers and the FTS-language literal (`query.FtsLanguage`) are string-composed | `WebVella.Erp/Database/**` (50 `NpgsqlParameter`); `DbRecordRepository.cs:1503,1511` |
 | `SEC-007` | 🟦 Low/Info | Substantial commented-out legacy security code | `WebVella.Erp.Web/Security/**` (8 files) |
 | `DEP-001` | 🟧 High | Two projects target out-of-support `net7.0` | `WebVella.Erp.WebAssembly/Server`, `/Shared` |
 | `DEP-002` | 🟦 Low/Info | Commented-out legacy package references (2.2.0, SixLabors) | `*.csproj` (verified comment lines) |
@@ -174,12 +174,12 @@ Each runnable host site ships a `Config.json` containing secrets in **cleartext*
 
 ```text
 WebVella.Erp.Site/Config.json
-3:   "ConnectionString": "Server=192.168.0.190;Port=5436;User Id=test;Password=test;Database=erp3;..."
+3:   "ConnectionString": "Server=…;Port=…;User Id=…;Password=…;Database=erp3;…"   (host, port, and credentials redacted here)
 4:   "EncryptionKey": "BC93…7658"   (a hardcoded 64-character hex literal — value redacted here)
-24:  "Key": "ThisIsMySecretKey"×3   (a low-entropy JWT signing key — the literal repeated three times)
+24:  "Key": "…"   (a low-entropy JWT signing key — a short phrase repeated three times; value redacted here)
 ```
 
-- **Line 3 — database connection string** with an inline `User Id` / `Password` (demo credentials `test` / `test`) and a hardcoded LAN host/port.
+- **Line 3 — database connection string** with an inline `User Id` / `Password` (low-entropy demo credentials, **redacted here**) and a hardcoded LAN host/port (**redacted here**).
 - **Line 4 — `EncryptionKey`**, a hardcoded 64-character hexadecimal literal used by the platform's encryption helper. (The full value is intentionally **redacted** in this report; reproducing it would re-expose it. It is present verbatim in the file.)
 - **Line 24 — `Jwt:Key`**, a **weak, low-entropy** signing key consisting of a short phrase repeated three times.
 
@@ -237,7 +237,7 @@ This is **not a security vulnerability**; it is a **technical-debt / correctness
 
 ---
 
-### 3.6 `SEC-006` — SQL-injection posture: parameterized values (strength) with identifier interpolation (residual) 🟩 Strength / residual
+### 3.6 `SEC-006` — SQL-injection posture: parameterized values (strength) with identifier and FTS-language-literal interpolation (residual) 🟩 Strength / residual
 
 **Location:** `WebVella.Erp/Database/**`
 
@@ -254,7 +254,7 @@ The custom Npgsql data layer **parameterizes user values** with `NpgsqlParameter
 
 Value binding consistently uses `@`-prefixed placeholders (e.g., `WebVella.Erp/Database/DbRecordRepository.cs:215` — `con.CreateCommand("SELECT * FROM {table} WHERE id=@id;")` binds `@id` as a parameter). **This is a real strength and should be preserved.**
 
-**Residual area to review (factual).** While *values* are parameterized, **SQL identifiers (table and column names) are composed by string interpolation/concatenation** from entity metadata, for example:
+**Residual areas to review (factual).** While ordinary *values* are parameterized, two categories of SQL text are still composed by string interpolation/concatenation. **(a) SQL identifiers** (table and column names) are composed from entity metadata, for example:
 
 ```text
 WebVella.Erp/Database/DbRecordRepository.cs
@@ -264,7 +264,17 @@ WebVella.Erp/Database/DbRecordRepository.cs
 664–679:  sql.AppendLine("SELECT " + columnNames + " FROM " + tableName);
 ```
 
-These identifiers derive from the **dynamic entity meta-model** (entity/field definitions), **not** directly from end-user request bodies, so the practical injection exposure is low. It is nonetheless flagged as a **residual review item**: any path where an identifier could be influenced by external input should validate it against the known-entity catalog (allow-list) rather than rely on interpolation. No instance of an unparameterized *value* concatenation was identified during this inspection.
+These identifiers derive from the **dynamic entity meta-model** (entity/field definitions), **not** directly from end-user request bodies, so the practical injection exposure for identifiers is low. It is nonetheless flagged as a **residual review item**: any path where an identifier could be influenced by external input should validate it against the known-entity catalog (allow-list) rather than rely on interpolation.
+
+**(b) Full-text-search (FTS) language literal — a residual *value* concatenation.** Correcting an earlier, narrower framing: one **value-like SQL literal *is* concatenated unparameterized**. In the record query builder's full-text-search branch, `query.FtsLanguage` is interpolated directly into the SQL as a quoted text-search-configuration literal:
+
+```text
+WebVella.Erp/Database/DbRecordRepository.cs
+1503:  sql = sql + " to_tsvector( '" + query.FtsLanguage + "' , " + completeFieldName + ") @@ to_tsquery( '" + query.FtsLanguage + "' ," + paramName + ") ";
+1511:  sql = sql + " to_tsvector( '" + query.FtsLanguage + "' , " + completeFieldName + ") @@ plainto_tsquery( '" + query.FtsLanguage + "' ," + paramName + ") ";
+```
+
+Unlike the identifiers above, **`FtsLanguage` is a public, externally-bindable query-model property** — `QueryObject.FtsLanguage` at `WebVella.Erp/Api/Models/QueryObject.cs:23` (JSON-bound as `ftsLanguage`). The adjacent guards at `DbRecordRepository.cs:1500,1508` only test for null/whitespace (falling back to the safe `'simple'` configuration); they do **not** validate the supplied value, so a caller that can set `ftsLanguage` controls a string embedded verbatim in the executed SQL — a single quote in that value would break out of the literal. The `@`-prefixed *search term* on the same lines remains correctly parameterized, but the language literal is not; this is the one identified path where an unparameterized **value** reaches the SQL text. **Recommendation:** validate `FtsLanguage` against an **allow-list** of known PostgreSQL text-search configurations, or pass it as a bound parameter, rather than interpolating it.
 
 ---
 
@@ -276,14 +286,16 @@ The web security folder is **overwhelmingly commented out** — it contains a pr
 
 | File | Commented lines / total | Disabled construct |
 |------|------------------------:|--------------------|
-| `WebVella.Erp.Web/Security/WebSecurityUtil.cs` | 193 / 232 | Whole `WebSecurityUtil` class: `Login`, `LoginWithToken`, `CreateIdentity`, token encryption, cookie handling |
-| `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` | 120 / 146 | Whole custom `AuthorizeAttribute : ActionFilterAttribute` (`OnActionExecuting`, `IsAuthenticated`) |
-| `WebVella.Erp.Web/Security/AuthToken.cs` | 116 / 146 | Token create/encrypt/decrypt helpers |
-| `WebVella.Erp.Web/Security/AuthCache.cs` | 54 / 61 | Auth result caching |
-| `WebVella.Erp.Web/Security/ErpIdentity.cs` | 23 / 28 | Custom identity type |
-| `WebVella.Erp.Web/Security/HttpForbiddenResult.cs` | 16 / 19 | 403 result helper |
-| `WebVella.Erp.Web/Security/HttpUnauthorizedResult.cs` | 15 / 19 | 401 result helper |
-| `WebVella.Erp.Web/Security/ErpPrincipal.cs` | 10 / 12 | Custom principal type |
+| `WebVella.Erp.Web/Security/WebSecurityUtil.cs` | ~193 / 232 | Whole `WebSecurityUtil` class: `Login`, `LoginWithToken`, `CreateIdentity`, token encryption, cookie handling |
+| `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` | ~120 / 146 | Whole custom `AuthorizeAttribute : ActionFilterAttribute` (`OnActionExecuting`, `IsAuthenticated`) |
+| `WebVella.Erp.Web/Security/AuthToken.cs` | ~116 / 146 | Token create/encrypt/decrypt helpers |
+| `WebVella.Erp.Web/Security/AuthCache.cs` | ~54 / 61 | Auth result caching |
+| `WebVella.Erp.Web/Security/ErpIdentity.cs` | ~23 / 28 | Custom identity type |
+| `WebVella.Erp.Web/Security/HttpForbiddenResult.cs` | ~16 / 19 | 403 result helper |
+| `WebVella.Erp.Web/Security/HttpUnauthorizedResult.cs` | ~15 / 19 | 401 result helper |
+| `WebVella.Erp.Web/Security/ErpPrincipal.cs` | ~10 / 12 | Custom principal type |
+
+> **Counting basis (approximate).** Counts are lines whose trimmed text begins with `//` against total lines, and are marked approximate (`~`) because exact totals vary by ±1 depending on whether a file ends with a trailing newline — three of these files (`AuthorizeAttribute.cs`, `AuthToken.cs`, `AuthCache.cs`) have no final newline, so editor-style line counts read one higher than `wc -l`.
 
 This is reported as a **code-hygiene** finding, not an exploitable vulnerability: dead security code increases cognitive load, can mislead future maintainers about which controls are actually in force, and risks accidental reactivation. The roadmap should remove or revive these files deliberately.
 
@@ -452,7 +464,7 @@ This section summarizes the posture **qualitatively** against the dimensions com
 ### 6.4 Input handling & data access
 
 - **Exists (strength):** Database **values are parameterized** end-to-end via `NpgsqlParameter` (`SEC-006`), satisfying the core injection-defense expectation for the data layer.
-- **Gap / review:** SQL **identifiers** are interpolated from metadata (`SEC-006` residual); and the **deserialization** configuration (`TypeNameHandling.All/.Auto`, `SEC-002`) does not constrain types via a `SerializationBinder`. The **runtime code-compilation** endpoint (`SEC-001`) is the most significant input-handling concern.
+- **Gap / review:** SQL **identifiers** are interpolated from metadata, and the **full-text-search language literal** (`query.FtsLanguage`) is concatenated **unparameterized** into SQL at `DbRecordRepository.cs:1503,1511` (`SEC-006` residual); and the **deserialization** configuration (`TypeNameHandling.All/.Auto`, `SEC-002`) does not constrain types via a `SerializationBinder`. The **runtime code-compilation** endpoint (`SEC-001`) is the most significant input-handling concern.
 
 ### 6.5 Summary of gaps vs. an ASVS-style baseline
 
@@ -464,6 +476,7 @@ This section summarizes the posture **qualitatively** against the dimensions com
 | Enforced transport security (HTTPS/HSTS) | ❌ Gap (not in app pipeline) | §6.3 |
 | Injection defense — values | ✅ Strength (parameterized) | `SEC-006` |
 | Injection defense — identifiers | ⚠️ Review (interpolated from metadata) | `SEC-006` |
+| Injection defense — FTS language literal | ⚠️ Review (`query.FtsLanguage` interpolated, externally bindable) | `SEC-006` |
 | Safe deserialization | ❌ Gap (`TypeNameHandling` unconstrained) | `SEC-002` |
 | Dangerous-capability control (runtime compile) | ⚠️ Review (authn-only gate on RCE surface) | `SEC-001` |
 | Restrictive CORS | ⚠️ Review (`AllowAnyOrigin` default) | `SEC-004` |
@@ -490,7 +503,7 @@ This assessment honors the four system-reality corrections that govern the entir
 - **Shared taxonomy & paths.** Module names (Core `WebVella.Erp`, Web `WebVella.Erp.Web`, WebAssembly, ConsoleApp, the 7 plugins, the 7 sites) and every file path cited here are used **verbatim** from [`code-inventory.md`](./code-inventory.md).
 - **Architecture alignment.** The authentication model (`JWT_OR_COOKIE`), the monolithic `WebApiController`, and the custom data layer referenced in this report match the descriptions in [`architecture.md`](./architecture.md).
 - **Business-rule alignment.** The authorization observations here (the class-level `[Authorize]`, role-gated endpoints) reconcile with the `AUTHZ-` rules catalogued in [`business-rules.md`](./business-rules.md).
-- **Roadmap hand-off.** Every `SEC-`, `DEP-`, and `QA-` finding in this document is an explicit input to the phased plan in `modernization-roadmap.md` (forthcoming): `SEC-001`/`SEC-002`/`SEC-003` and `QA-001` drive the early hardening + test-harness phase; `QA-002`/`WebApiController` decomposition and `DEP-001` drive the modularization phase; `DEP-003` and transport/secret externalization inform the platform-modernization phase.
+- **Roadmap hand-off.** Every `SEC-`, `DEP-`, and `QA-` finding in this document is an explicit input to the phased plan in [`modernization-roadmap.md`](./modernization-roadmap.md): `SEC-001`/`SEC-002`/`SEC-003` and `QA-001` drive the early hardening + test-harness phase; `QA-002`/`WebApiController` decomposition and `DEP-001` drive the modularization phase; `DEP-003` and transport/secret externalization inform the platform-modernization phase.
 
 ---
 
@@ -511,7 +524,8 @@ Every finding above resolves to a real file. The table consolidates the citation
 | `SEC-004` CORS | `WebVella.Erp.Site/Startup.cs` | 61–63 (active), 53–57 (commented restrictive policy) |
 | `SEC-005` Npgsql switch | `WebVella.Erp.Site/Startup.cs` | 39 (comment), 40 (switch) |
 | `SEC-005` other sites | `…Site.Crm/Mail/Sdk/Startup.cs` :27 · `…MicrosoftCDM` :29 · `…Next` :30 · `…Project` :34 | — |
-| `SEC-006` parameterization | `WebVella.Erp/Database/DbRecordRepository.cs` | 215, 276, 289–292, 664–679 |
+| `SEC-006` parameterized values (strength) | `WebVella.Erp/Database/DbRecordRepository.cs` | 215, 276, 289–292, 664–679 |
+| `SEC-006` FTS-language literal (residual) | `WebVella.Erp/Database/DbRecordRepository.cs` · `WebVella.Erp/Api/Models/QueryObject.cs` | 1503, 1511 (`query.FtsLanguage` concatenation); 1500, 1508 (guards); `QueryObject.cs`:23 (`FtsLanguage` property) |
 | `SEC-007` commented security | `WebVella.Erp.Web/Security/WebSecurityUtil.cs` | 1–232 (193 commented) |
 | `SEC-007` commented security | `WebVella.Erp.Web/Security/AuthorizeAttribute.cs` | 1–146 (120 commented) |
 | `DEP-001` net7.0 | `WebVella.Erp.WebAssembly/Server/WebVella.Erp.WebAssembly.Server.csproj` | 4 (`net7.0`), 10 (`…WebAssembly.Server` 7.0.13) |
@@ -527,4 +541,3 @@ Every finding above resolves to a real file. The table consolidates the citation
 ---
 
 *End of Deliverable 6 — Security & Quality Assessment. Generated 2026-06-05 23:35 UTC by read-only static analysis of `WebVella.ERP3.sln`. No production code, configuration, or schema artifact was modified in the production of this report.*
-

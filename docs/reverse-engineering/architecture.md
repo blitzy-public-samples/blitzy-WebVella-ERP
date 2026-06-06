@@ -3,7 +3,7 @@
 > **Deliverable 2 of 7** · Reverse-Engineering Documentation Suite
 > **Generated (UTC):** 2026-06-05 18:10 UTC
 > **Analysis mode:** Read-only static inspection of the `WebVella.ERP3.sln` solution. **No production code, configuration, or schema artifact was modified.**
-> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · `security-quality.md` _(forthcoming)_ · `modernization-roadmap.md` _(forthcoming)_
+> **Companion deliverables:** [`code-inventory.md`](./code-inventory.md) · [`database-schema.md`](./database-schema.md) · [`functional-overview.md`](./functional-overview.md) · [`business-rules.md`](./business-rules.md) · [`security-quality.md`](./security-quality.md) · [`modernization-roadmap.md`](./modernization-roadmap.md)
 > **Suite index:** `README.md` _(forthcoming)_
 
 ---
@@ -226,7 +226,7 @@ Because every row arrives as a JSON document, `EqlCommand` parses each row with 
 
 ### 3.5 API entry point — `datasource/test`
 
-The EQL→SQL path is exposed for tooling through the monolithic Web API. In `WebVella.Erp.Web/Controllers/WebApiController.cs`, the route `[Route("api/v3.0/datasource/test")]` (`WebApiController.cs:511`) accepts a `DataSourceTestModel` and, via a `DataSourceManager`, either returns the generated SQL — `dataSourceManager.GenerateSql(model.Eql, model.Parameters, model.ReturnTotal)` (`WebApiController.cs:525`) — or executes it and serializes the records — `dataSourceManager.Execute(...)` (`:527`). A sibling route `[Route("api/v3.0/datasource/code-compile")]` (`:494`) compiles C# data-source code at runtime via `CodeEvalService.Compile(...)` (analyzed as a remote-code-execution surface in `security-quality.md`, a forthcoming deliverable).
+The EQL→SQL path is exposed for tooling through the monolithic Web API. In `WebVella.Erp.Web/Controllers/WebApiController.cs`, the route `[Route("api/v3.0/datasource/test")]` (`WebApiController.cs:511`) accepts a `DataSourceTestModel` and, via a `DataSourceManager`, either returns the generated SQL — `dataSourceManager.GenerateSql(model.Eql, model.Parameters, model.ReturnTotal)` (`WebApiController.cs:525`) — or executes it and serializes the records — `dataSourceManager.Execute(...)` (`:527`). A sibling route `[Route("api/v3.0/datasource/code-compile")]` (`:494`) compiles C# data-source code at runtime via `CodeEvalService.Compile(...)` (analyzed as a remote-code-execution surface in [`security-quality.md`](./security-quality.md)).
 
 ### 3.6 Diagram 2 — EQL query lifecycle (request data-flow)
 
@@ -392,7 +392,7 @@ Background processing lives in `WebVella.Erp/Jobs/**` — `ErpBackgroundServices
 
 ### 6.3 API surface — a single monolithic controller
 
-The HTTP API is delivered through **one** controller, `WebVella.Erp.Web/Controllers/WebApiController.cs`, which is **4,313 lines** long and inherits the 64-line base `ApiControllerBase.cs`. Rather than per-resource controllers, it concentrates record CRUD, data-source testing/compilation (§3.5), UI-state, file, and administrative endpoints in a single type. This is recorded here as an architectural fact; its maintainability implications will be quantified in `security-quality.md` and addressed in `modernization-roadmap.md` (both forthcoming deliverables).
+The HTTP API is delivered through **one** controller, `WebVella.Erp.Web/Controllers/WebApiController.cs`, which is **4,313 lines** long and inherits the 64-line base `ApiControllerBase.cs`. Rather than per-resource controllers, it concentrates record CRUD, data-source testing/compilation (§3.5), UI-state, file, and administrative endpoints in a single type. This is recorded here as an architectural fact; its maintainability implications will be quantified in [`security-quality.md`](./security-quality.md) and addressed in [`modernization-roadmap.md`](./modernization-roadmap.md).
 
 ### 6.4 Diagram 5 — Request middleware pipeline
 
@@ -436,7 +436,7 @@ flowchart TB
     HOST --> DB
 ```
 
-> **No containerization.** There is no `Dockerfile` or `docker-compose` anywhere in the repository; containerization appears only as a recommendation in `modernization-roadmap.md` (a forthcoming deliverable), never as existing state.
+> **No containerization.** There is no `Dockerfile` or `docker-compose` anywhere in the repository; containerization appears only as a recommendation in [`modernization-roadmap.md`](./modernization-roadmap.md), never as existing state.
 
 ---
 
@@ -461,7 +461,7 @@ This deliverable upholds the suite-wide consistency contracts defined in [`code-
 - **Module taxonomy.** Component/layer names used here — Core (`WebVella.Erp`), Web (`WebVella.Erp.Web`), WebAssembly (`WebVella.Erp.WebAssembly`), ConsoleApp (`WebVella.Erp.ConsoleApp`), the 7 Plugins (`SDK`, `CRM`, `Mail`, `Next`, `Project`, `MicrosoftCDM`, `Approval`), and the 7 Sites (`WebVella.Erp.Site*`) — are identical to [`code-inventory.md`](./code-inventory.md) §2 and will match the module catalog in [`functional-overview.md`](./functional-overview.md).
 - **File paths.** Every path cited here is catalogued in [`code-inventory.md`](./code-inventory.md).
 - **Schema names.** The tables referenced in §2.2 and §5.1 (`entities`, `app_page`, `app_page_body_node`, `jobs`, `schedule_plan`, `data_source`, …) match the per-table dictionary in [`database-schema.md`](./database-schema.md) §4 and the rows of [`data-dictionary.csv`](./data-dictionary.csv).
-- **Findings hand-off.** The structural observations here (monolithic `WebApiController`; the `datasource/code-compile` runtime-compilation surface; `net7.0` WebAssembly projects) will feed the assessments in `security-quality.md` and the phases of `modernization-roadmap.md` (both forthcoming deliverables).
+- **Findings hand-off.** The structural observations here (monolithic `WebApiController`; the `datasource/code-compile` runtime-compilation surface; `net7.0` WebAssembly projects) will feed the assessments in [`security-quality.md`](./security-quality.md) and the phases of [`modernization-roadmap.md`](./modernization-roadmap.md).
 
 ---
 
