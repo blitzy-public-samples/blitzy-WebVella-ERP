@@ -77,18 +77,11 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (EqlException eqlEx)
 			{
-				response.Success = false;
-				foreach (var eqlError in eqlEx.Errors)
-				{
-					response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
-				}
-				return Json(response);
+				return JsonFromEqlException(response, eqlEx);
 			}
 			catch (Exception ex)
 			{
-				response.Success = false;
-				response.Message = ex.Message;
-				return Json(response);
+				return JsonFromException(response, ex);
 			}
 
 			return Json(response);
@@ -105,35 +98,7 @@ namespace WebVella.Erp.Web.Controllers
 			if (submitObj == null)
 				return NotFound();
 
-			EqlDataSourceQuery model = new EqlDataSourceQuery();
-
-			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "name":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							model.Name = prop.Value.ToString();
-						else
-						{
-							throw new Exception("DataSource Name is required");
-						}
-						break;
-					case "parameters":
-						var jParams = (JArray)prop.Value;
-						model.Parameters = new List<EqlParameter>();
-						foreach (JObject jParam in jParams)
-						{
-							var name = jParam["name"].ToString();
-							var value = jParam["value"].ToString();
-							var eqlParam = new EqlParameter(name, value);
-							model.Parameters.Add(eqlParam);
-						}
-						break;
-				}
-			}
-			#endregion
+			EqlDataSourceQuery model = BuildEqlDataSourceQueryFromSubmit(submitObj);
 
 
 			try
@@ -170,18 +135,11 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (EqlException eqlEx)
 			{
-				response.Success = false;
-				foreach (var eqlError in eqlEx.Errors)
-				{
-					response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
-				}
-				return Json(response);
+				return JsonFromEqlException(response, eqlEx);
 			}
 			catch (Exception ex)
 			{
-				response.Success = false;
-				response.Message = ex.Message;
-				return Json(response);
+				return JsonFromException(response, ex);
 			}
 
 			return Json(response);
@@ -198,35 +156,7 @@ namespace WebVella.Erp.Web.Controllers
 			result["results"] = new List<EntityRecord>();
 			result["pagination"] = new EntityRecord();
 
-			EqlDataSourceQuery model = new EqlDataSourceQuery();
-
-			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "name":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							model.Name = prop.Value.ToString();
-						else
-						{
-							throw new Exception("DataSource Name is required");
-						}
-						break;
-					case "parameters":
-						var jParams = (JArray)prop.Value;
-						model.Parameters = new List<EqlParameter>();
-						foreach (JObject jParam in jParams)
-						{
-							var name = jParam["name"].ToString();
-							var value = jParam["value"].ToString();
-							var eqlParam = new EqlParameter(name, value);
-							model.Parameters.Add(eqlParam);
-						}
-						break;
-				}
-			}
-			#endregion
+			EqlDataSourceQuery model = BuildEqlDataSourceQueryFromSubmit(submitObj);
 			var page = 1;
 			if (model.Parameters.Count > 0)
 			{
@@ -291,36 +221,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 
 			//Post process records according to requiredments {id,text}
-			var processedRecords = new List<EntityRecord>();
-			foreach (var record in records)
-			{
-				var procRec = new EntityRecord();
-				if (record.Properties.ContainsKey("id"))
-				{
-					procRec["id"] = record["id"].ToString();
-				}
-				else
-				{
-					procRec["id"] = "no-id-" + Guid.NewGuid();
-				}
-				if (record.Properties.ContainsKey("text"))
-				{
-					procRec["text"] = record["text"].ToString();
-				}
-				else if (record.Properties.ContainsKey("label"))
-				{
-					procRec["text"] = record["label"].ToString();
-				}
-				else if (record.Properties.ContainsKey("name"))
-				{
-					procRec["text"] = record["name"].ToString();
-				}
-				else
-				{
-					procRec["text"] = procRec["id"].ToString();
-				}
-				processedRecords.Add(procRec);
-			}
+			var processedRecords = MapRecordsToSelect2Items(records);
 			var moreRecord = new EntityRecord();
 			moreRecord["more"] = false;
 			if (records.Count > 0)
@@ -401,58 +302,8 @@ namespace WebVella.Erp.Web.Controllers
 				}
 				else
 				{
-					if (componentData.Properties.ContainsKey("collapsed_node_ids") && componentData["collapsed_node_ids"] != null)
-					{
-						if (componentData["collapsed_node_ids"] is string)
-						{
-							try
-							{
-								collapsedNodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData["collapsed_node_ids"]);
-							}
-							catch
-							{
-								throw new Exception("WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. collapsed_node_ids should be List<Guid>");
-							}
-						}
-						else if (componentData["collapsed_node_ids"] is List<Guid>)
-						{
-							collapsedNodeIds = (List<Guid>)componentData["collapsed_node_ids"];
-						}
-						else if (componentData["collapsed_node_ids"] is JArray)
-						{
-							collapsedNodeIds = ((JArray)componentData["collapsed_node_ids"]).ToObject<List<Guid>>();
-						}
-						else
-						{
-							throw new Exception("Unknown format of collapsed_node_ids");
-						}
-					}
-					if (componentData.Properties.ContainsKey("uncollapsed_node_ids") && componentData["uncollapsed_node_ids"] != null)
-					{
-						if (componentData["uncollapsed_node_ids"] is string)
-						{
-							try
-							{
-								uncollapsedNodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData["uncollapsed_node_ids"]);
-							}
-							catch
-							{
-								throw new Exception("WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. uncollapsed_node_ids should be List<Guid>");
-							}
-						}
-						else if (componentData["uncollapsed_node_ids"] is List<Guid>)
-						{
-							uncollapsedNodeIds = (List<Guid>)componentData["uncollapsed_node_ids"];
-						}
-						else if (componentData["uncollapsed_node_ids"] is JArray)
-						{
-							uncollapsedNodeIds = ((JArray)componentData["uncollapsed_node_ids"]).ToObject<List<Guid>>();
-						}
-						else
-						{
-							throw new Exception("Unknown format of uncollapsed_node_ids");
-						}
-					}
+					collapsedNodeIds = ResolveNodeIdsFromComponentData(componentData, "collapsed_node_ids");
+					uncollapsedNodeIds = ResolveNodeIdsFromComponentData(componentData, "uncollapsed_node_ids");
 				}
 
 				if (isCollapsed)
@@ -636,14 +487,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "CreatePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "CreatePageBodyNode API Method Error");
 			}
 		}
 
@@ -681,14 +525,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "UpdatePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "UpdatePageBodyNode API Method Error");
 			}
 		}
 
@@ -739,14 +576,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "MovePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "MovePageBodyNode API Method Error");
 			}
 		}
 
@@ -773,14 +603,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "DeletePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "DeletePageBodyNode API Method Error");
 			}
 		}
 
@@ -808,14 +631,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "UpdatePageBodyNodeOptions API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "UpdatePageBodyNodeOptions API Method Error");
 			}
 		}
 
@@ -827,16 +643,11 @@ namespace WebVella.Erp.Web.Controllers
 		{
 			try
 			{
-				if (string.IsNullOrWhiteSpace(renderMode))
-					return NotFound();
+				var validationResult = ValidateRenderRequest(renderMode, pid);
+				if (validationResult != null)
+					return validationResult;
 
-				//if (nid == null)
-				//	return BadRequest("The node Id is required to be set as query parameter 'nid', when requesting this component");
-
-				if (pid == null)
-					return BadRequest("The page Id is required to be set as query parameter 'pid', when requesting this component");
-
-				var type = FileService.GetType(fullComponentName);
+				var type = ResolvePageComponentType(fullComponentName);
 				if (type == null)
 					return NotFound();
 
@@ -845,9 +656,7 @@ namespace WebVella.Erp.Web.Controllers
 				ErpPage page = null;
 				PageDataModel pageModel = null;
 
-				#region << Override erpRequestContext >>
-				erpRequestContext.SetSimulatedRouteData(entityId: entityId, pageId: pid, recordId: recordId);
-				#endregion
+				ApplySimulatedRouteData(entityId, pid, recordId);
 
 				if (pid != null)
 				{
@@ -862,134 +671,14 @@ namespace WebVella.Erp.Web.Controllers
 						pagebodyNode = PageUtils.GetAjaxPageBodyNode(fullComponentName, pid ?? Guid.Empty, JsonConvert.SerializeObject(options));
 					}
 
-					#region << Building simulation pageModel >>
-					App app = null;
-					SitemapArea area = null;
-					SitemapNode node = null;
-					Entity entity = null;
-					EntityRecord record = null;
-					//erpRequestContext
-					if (page != null)
-					{
-						//Override 
-						if (entityId != null)
-							page.EntityId = entityId;
-
-						if (page.AppId == null && page.EntityId != null)
-						{
-							#region << Try to get one of the attached apps >>
-							var allApps = new AppService().GetAllApplications();
-							foreach (var appInstance in allApps)
-							{
-								foreach (var areaInstance in appInstance.Sitemap.Areas)
-								{
-									foreach (var nodeInstance in areaInstance.Nodes)
-									{
-										if (nodeInstance.EntityId == page.EntityId)
-										{
-											page.AppId = appInstance.Id;
-											if (page.Type == PageType.RecordCreate || page.Type == PageType.RecordDetails ||
-											page.Type == PageType.RecordList || page.Type == PageType.RecordManage)
-											{
-												page.AreaId = areaInstance.Id;
-												page.NodeId = nodeInstance.Id;
-											}
-										}
-									}
-								}
-							}
-
-							#endregion
-						}
-
-						if (page.AppId != null)
-						{
-							app = new AppService().GetApplication(page.AppId ?? Guid.Empty);
-							erpRequestContext.App = app;
-							if (app != null)
-							{
-								if (page.AreaId != null)
-								{
-									area = app.Sitemap.Areas.FirstOrDefault(x => x.Id == page.AreaId);
-									erpRequestContext.SitemapArea = area;
-									if (area != null && page.NodeId != null)
-									{
-										node = area.Nodes.FirstOrDefault(x => x.Id == page.NodeId);
-										erpRequestContext.SitemapNode = node;
-									}
-								}
-
-								if (page.EntityId != null)
-								{
-									entity = new EntityManager().ReadEntity(page.EntityId ?? Guid.Empty).Object;
-									erpRequestContext.Entity = entity;
-
-									//Get the first record as simulation
-									if (entity != null)
-									{
-										QueryObject filter = null;
-										if (recordId != null)
-										{
-											filter = EntityQuery.QueryEQ("id", recordId.Value);
-										}
-										var sortsList = new List<QuerySortObject>();
-										sortsList.Add(new QuerySortObject("id", QuerySortType.Ascending));
-										var findRecordResponse = new RecordManager().Find(new EntityQuery(entity.Name, "*", filter, sortsList.ToArray(), 0, 1));
-										if (!findRecordResponse.Success)
-											throw new Exception(findRecordResponse.Message);
-										if (findRecordResponse.Object != null && findRecordResponse.Object.Data.Any())
-										{
-											record = findRecordResponse.Object.Data.First();
-											erpRequestContext.RecordId = (Guid)record["id"];
-										}
-									}
-								}
-							}
-						}
-					}
-
-					//currentUser
-					var currentUser = AuthService.GetUser(User);
-
-
-					var baseErpPageMode = BaseErpPageModel.CreatePageModelSimulation(
-						erpRequestContext: erpRequestContext,
-						currentUser: currentUser
-					);
-
-					pageModel = baseErpPageMode.DataModel;
-					#endregion
+					pageModel = BuildSimulationPageModel(page, entityId, recordId);
 				}
 
-				switch (renderMode)
-				{
-					case "display":
-						var pcContextDisplay = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
-						return ViewComponent(type, new { context = pcContextDisplay });
-					case "design":
-						var pcContextDesign = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
-						return ViewComponent(type, new { context = pcContextDesign });
-					case "options":
-						pageModel.SafeCodeDataVariable = true;
-						var pcContextOptions = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Options, options);
-						return ViewComponent(type, new { context = pcContextOptions });
-					case "help":
-						var pcContextReadme = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Help, options);
-						return ViewComponent(type, new { context = pcContextReadme });
-				}
-
-				return NotFound();
+				return DispatchComponentView(type, renderMode, pagebodyNode, pageModel, options);
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "PageComponentRenderViews API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "PageComponentRenderViews API Method Error");
 			}
 		}
 
@@ -1024,14 +713,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "PageComponentServiceJs API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "PageComponentServiceJs API Method Error");
 			}
 		}
 
@@ -4308,6 +3990,281 @@ namespace WebVella.Erp.Web.Controllers
 			return DoResponse(response);
 		}
 
+		#endregion
+
+		#region << Refactor: extracted private helpers >>
+
+		private EqlDataSourceQuery BuildEqlDataSourceQueryFromSubmit(JObject submitObj)
+		{
+			EqlDataSourceQuery model = new EqlDataSourceQuery();
+			foreach (var prop in submitObj.Properties())
+			{
+				switch (prop.Name.ToLower())
+				{
+					case "name":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							model.Name = prop.Value.ToString();
+						else
+						{
+							throw new Exception("DataSource Name is required");
+						}
+						break;
+					case "parameters":
+						var jParams = (JArray)prop.Value;
+						model.Parameters = new List<EqlParameter>();
+						foreach (JObject jParam in jParams)
+						{
+							var name = jParam["name"].ToString();
+							var value = jParam["value"].ToString();
+							var eqlParam = new EqlParameter(name, value);
+							model.Parameters.Add(eqlParam);
+						}
+						break;
+				}
+			}
+			return model;
+		}
+
+		private ActionResult JsonFromEqlException(ResponseModel response, EqlException eqlEx)
+		{
+			response.Success = false;
+			foreach (var eqlError in eqlEx.Errors)
+			{
+				response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
+			}
+			return Json(response);
+		}
+
+		private ActionResult JsonFromException(ResponseModel response, Exception ex)
+		{
+			response.Success = false;
+			response.Message = ex.Message;
+			return Json(response);
+		}
+
+		private ContentResult LogErrorAndReturn500(Exception exception, string label)
+		{
+			new Log().Create(LogType.Error, label, exception);
+			return new ContentResult
+			{
+				Content = $"Error: {exception.Message}",
+				ContentType = "text/plain",
+				// change to whatever status code you want to send out
+				StatusCode = 500
+			};
+		}
+
+		private ActionResult ValidateRenderRequest(string renderMode, Guid? pid)
+		{
+			if (string.IsNullOrWhiteSpace(renderMode))
+				return NotFound();
+
+			//if (nid == null)
+			//	return BadRequest("The node Id is required to be set as query parameter 'nid', when requesting this component");
+
+			if (pid == null)
+				return BadRequest("The page Id is required to be set as query parameter 'pid', when requesting this component");
+
+			return null;
+		}
+
+		private Type ResolvePageComponentType(string fullComponentName)
+		{
+			return FileService.GetType(fullComponentName);
+		}
+
+		private void ApplySimulatedRouteData(Guid? entityId, Guid? pid, Guid? recordId)
+		{
+			erpRequestContext.SetSimulatedRouteData(entityId: entityId, pageId: pid, recordId: recordId);
+		}
+
+		private PageDataModel BuildSimulationPageModel(ErpPage page, Guid? entityId, Guid? recordId)
+		{
+			App app = null;
+			SitemapArea area = null;
+			SitemapNode node = null;
+			Entity entity = null;
+			EntityRecord record = null;
+			//erpRequestContext
+			if (page != null)
+			{
+				//Override 
+				if (entityId != null)
+					page.EntityId = entityId;
+
+				if (page.AppId == null && page.EntityId != null)
+				{
+					#region << Try to get one of the attached apps >>
+					var allApps = new AppService().GetAllApplications();
+					foreach (var appInstance in allApps)
+					{
+						foreach (var areaInstance in appInstance.Sitemap.Areas)
+						{
+							foreach (var nodeInstance in areaInstance.Nodes)
+							{
+								if (nodeInstance.EntityId == page.EntityId)
+								{
+									page.AppId = appInstance.Id;
+									if (page.Type == PageType.RecordCreate || page.Type == PageType.RecordDetails ||
+									page.Type == PageType.RecordList || page.Type == PageType.RecordManage)
+									{
+										page.AreaId = areaInstance.Id;
+										page.NodeId = nodeInstance.Id;
+									}
+								}
+							}
+						}
+					}
+
+					#endregion
+				}
+
+				if (page.AppId != null)
+				{
+					app = new AppService().GetApplication(page.AppId ?? Guid.Empty);
+					erpRequestContext.App = app;
+					if (app != null)
+					{
+						if (page.AreaId != null)
+						{
+							area = app.Sitemap.Areas.FirstOrDefault(x => x.Id == page.AreaId);
+							erpRequestContext.SitemapArea = area;
+							if (area != null && page.NodeId != null)
+							{
+								node = area.Nodes.FirstOrDefault(x => x.Id == page.NodeId);
+								erpRequestContext.SitemapNode = node;
+							}
+						}
+
+						if (page.EntityId != null)
+						{
+							entity = new EntityManager().ReadEntity(page.EntityId ?? Guid.Empty).Object;
+							erpRequestContext.Entity = entity;
+
+							//Get the first record as simulation
+							if (entity != null)
+							{
+								QueryObject filter = null;
+								if (recordId != null)
+								{
+									filter = EntityQuery.QueryEQ("id", recordId.Value);
+								}
+								var sortsList = new List<QuerySortObject>();
+								sortsList.Add(new QuerySortObject("id", QuerySortType.Ascending));
+								var findRecordResponse = new RecordManager().Find(new EntityQuery(entity.Name, "*", filter, sortsList.ToArray(), 0, 1));
+								if (!findRecordResponse.Success)
+									throw new Exception(findRecordResponse.Message);
+								if (findRecordResponse.Object != null && findRecordResponse.Object.Data.Any())
+								{
+									record = findRecordResponse.Object.Data.First();
+									erpRequestContext.RecordId = (Guid)record["id"];
+								}
+							}
+						}
+					}
+				}
+			}
+
+			//currentUser
+			var currentUser = AuthService.GetUser(User);
+
+
+			var baseErpPageMode = BaseErpPageModel.CreatePageModelSimulation(
+				erpRequestContext: erpRequestContext,
+				currentUser: currentUser
+			);
+
+			return baseErpPageMode.DataModel;
+		}
+
+		private ActionResult DispatchComponentView(Type type, string renderMode, PageBodyNode pagebodyNode, PageDataModel pageModel, JObject options)
+		{
+			switch (renderMode)
+			{
+				case "display":
+					var pcContextDisplay = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
+					return ViewComponent(type, new { context = pcContextDisplay });
+				case "design":
+					var pcContextDesign = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
+					return ViewComponent(type, new { context = pcContextDesign });
+				case "options":
+					pageModel.SafeCodeDataVariable = true;
+					var pcContextOptions = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Options, options);
+					return ViewComponent(type, new { context = pcContextOptions });
+				case "help":
+					var pcContextReadme = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Help, options);
+					return ViewComponent(type, new { context = pcContextReadme });
+			}
+
+			return NotFound();
+		}
+
+		private List<Guid> ResolveNodeIdsFromComponentData(EntityRecord componentData, string key)
+		{
+			var nodeIds = new List<Guid>();
+			if (componentData.Properties.ContainsKey(key) && componentData[key] != null)
+			{
+				if (componentData[key] is string)
+				{
+					try
+					{
+						nodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData[key]);
+					}
+					catch
+					{
+						throw new Exception($"WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. {key} should be List<Guid>");
+					}
+				}
+				else if (componentData[key] is List<Guid>)
+				{
+					nodeIds = (List<Guid>)componentData[key];
+				}
+				else if (componentData[key] is JArray)
+				{
+					nodeIds = ((JArray)componentData[key]).ToObject<List<Guid>>();
+				}
+				else
+				{
+					throw new Exception($"Unknown format of {key}");
+				}
+			}
+			return nodeIds;
+		}
+
+		private List<EntityRecord> MapRecordsToSelect2Items(List<EntityRecord> records)
+		{
+			var processedRecords = new List<EntityRecord>();
+			foreach (var record in records)
+			{
+				var procRec = new EntityRecord();
+				if (record.Properties.ContainsKey("id"))
+				{
+					procRec["id"] = record["id"].ToString();
+				}
+				else
+				{
+					procRec["id"] = "no-id-" + Guid.NewGuid();
+				}
+				if (record.Properties.ContainsKey("text"))
+				{
+					procRec["text"] = record["text"].ToString();
+				}
+				else if (record.Properties.ContainsKey("label"))
+				{
+					procRec["text"] = record["label"].ToString();
+				}
+				else if (record.Properties.ContainsKey("name"))
+				{
+					procRec["text"] = record["name"].ToString();
+				}
+				else
+				{
+					procRec["text"] = procRec["id"].ToString();
+				}
+				processedRecords.Add(procRec);
+			}
+			return processedRecords;
+		}
 		#endregion
 	}
 }
