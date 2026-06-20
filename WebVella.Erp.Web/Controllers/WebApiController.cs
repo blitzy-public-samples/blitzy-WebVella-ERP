@@ -77,18 +77,11 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (EqlException eqlEx)
 			{
-				response.Success = false;
-				foreach (var eqlError in eqlEx.Errors)
-				{
-					response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
-				}
-				return Json(response);
+				return JsonFromEqlException(response, eqlEx);
 			}
 			catch (Exception ex)
 			{
-				response.Success = false;
-				response.Message = ex.Message;
-				return Json(response);
+				return JsonFromException(response, ex);
 			}
 
 			return Json(response);
@@ -105,35 +98,7 @@ namespace WebVella.Erp.Web.Controllers
 			if (submitObj == null)
 				return NotFound();
 
-			EqlDataSourceQuery model = new EqlDataSourceQuery();
-
-			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "name":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							model.Name = prop.Value.ToString();
-						else
-						{
-							throw new Exception("DataSource Name is required");
-						}
-						break;
-					case "parameters":
-						var jParams = (JArray)prop.Value;
-						model.Parameters = new List<EqlParameter>();
-						foreach (JObject jParam in jParams)
-						{
-							var name = jParam["name"].ToString();
-							var value = jParam["value"].ToString();
-							var eqlParam = new EqlParameter(name, value);
-							model.Parameters.Add(eqlParam);
-						}
-						break;
-				}
-			}
-			#endregion
+			EqlDataSourceQuery model = BuildEqlDataSourceQueryFromSubmit(submitObj);
 
 
 			try
@@ -170,18 +135,11 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (EqlException eqlEx)
 			{
-				response.Success = false;
-				foreach (var eqlError in eqlEx.Errors)
-				{
-					response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
-				}
-				return Json(response);
+				return JsonFromEqlException(response, eqlEx);
 			}
 			catch (Exception ex)
 			{
-				response.Success = false;
-				response.Message = ex.Message;
-				return Json(response);
+				return JsonFromException(response, ex);
 			}
 
 			return Json(response);
@@ -198,92 +156,15 @@ namespace WebVella.Erp.Web.Controllers
 			result["results"] = new List<EntityRecord>();
 			result["pagination"] = new EntityRecord();
 
-			EqlDataSourceQuery model = new EqlDataSourceQuery();
-
-			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "name":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							model.Name = prop.Value.ToString();
-						else
-						{
-							throw new Exception("DataSource Name is required");
-						}
-						break;
-					case "parameters":
-						var jParams = (JArray)prop.Value;
-						model.Parameters = new List<EqlParameter>();
-						foreach (JObject jParam in jParams)
-						{
-							var name = jParam["name"].ToString();
-							var value = jParam["value"].ToString();
-							var eqlParam = new EqlParameter(name, value);
-							model.Parameters.Add(eqlParam);
-						}
-						break;
-				}
-			}
-			#endregion
-			var page = 1;
-			if (model.Parameters.Count > 0)
-			{
-				var pageParam = model.Parameters.FirstOrDefault(x => x.ParameterName == "page");
-				if (pageParam != null)
-				{
-					if (int.TryParse(pageParam.Value?.ToString(), out int outInt))
-					{
-						page = outInt;
-					}
-				}
-			}
+			EqlDataSourceQuery model = BuildEqlDataSourceQueryFromSubmit(submitObj);
+			var page = ResolveSelect2Page(model);
 			var records = new List<EntityRecord>();
 			int? total = 0;
 			try
 			{
-				DataSourceManager dsMan = new DataSourceManager();
-				var dataSources = dsMan.GetAll();
-				var ds = dataSources.SingleOrDefault(x => x.Name == model.Name);
-				if (ds == null)
-				{
-					return BadRequest();
-				}
-
-				if (ds is DatabaseDataSource)
-				{
-					var list = (EntityRecordList)dsMan.Execute(ds.Id, model.Parameters);
-					records = (List<EntityRecord>)list;
-					total = list.TotalCount;
-				}
-				else if (ds is CodeDataSource)
-				{
-					Dictionary<string, object> arguments = new Dictionary<string, object>();
-					foreach (var par in model.Parameters)
-						arguments[par.ParameterName] = par.Value;
-
-					var dsResult = ((CodeDataSource)ds).Execute(arguments);
-					if (dsResult is EntityRecordList)
-					{
-
-						records = (List<EntityRecord>)((EntityRecordList)dsResult);
-						total = ((EntityRecordList)dsResult).TotalCount;
-					}
-					else if (dsResult is List<EntityRecord>)
-					{
-						records = (List<EntityRecord>)dsResult;
-						total = null;
-					}
-					else
-					{
-						return Json(dsResult);
-					}
-				}
-				else
-				{
-					return BadRequest();
-				}
+				var earlyResult = ExecuteSelect2DataSource(model, ref records, ref total);
+				if (earlyResult != null)
+					return earlyResult;
 			}
 			catch
 			{
@@ -291,36 +172,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 
 			//Post process records according to requiredments {id,text}
-			var processedRecords = new List<EntityRecord>();
-			foreach (var record in records)
-			{
-				var procRec = new EntityRecord();
-				if (record.Properties.ContainsKey("id"))
-				{
-					procRec["id"] = record["id"].ToString();
-				}
-				else
-				{
-					procRec["id"] = "no-id-" + Guid.NewGuid();
-				}
-				if (record.Properties.ContainsKey("text"))
-				{
-					procRec["text"] = record["text"].ToString();
-				}
-				else if (record.Properties.ContainsKey("label"))
-				{
-					procRec["text"] = record["label"].ToString();
-				}
-				else if (record.Properties.ContainsKey("name"))
-				{
-					procRec["text"] = record["name"].ToString();
-				}
-				else
-				{
-					procRec["text"] = procRec["id"].ToString();
-				}
-				processedRecords.Add(procRec);
-			}
+			var processedRecords = MapRecordsToSelect2Items(records);
 			var moreRecord = new EntityRecord();
 			moreRecord["more"] = false;
 			if (records.Count > 0)
@@ -401,78 +253,11 @@ namespace WebVella.Erp.Web.Controllers
 				}
 				else
 				{
-					if (componentData.Properties.ContainsKey("collapsed_node_ids") && componentData["collapsed_node_ids"] != null)
-					{
-						if (componentData["collapsed_node_ids"] is string)
-						{
-							try
-							{
-								collapsedNodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData["collapsed_node_ids"]);
-							}
-							catch
-							{
-								throw new Exception("WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. collapsed_node_ids should be List<Guid>");
-							}
-						}
-						else if (componentData["collapsed_node_ids"] is List<Guid>)
-						{
-							collapsedNodeIds = (List<Guid>)componentData["collapsed_node_ids"];
-						}
-						else if (componentData["collapsed_node_ids"] is JArray)
-						{
-							collapsedNodeIds = ((JArray)componentData["collapsed_node_ids"]).ToObject<List<Guid>>();
-						}
-						else
-						{
-							throw new Exception("Unknown format of collapsed_node_ids");
-						}
-					}
-					if (componentData.Properties.ContainsKey("uncollapsed_node_ids") && componentData["uncollapsed_node_ids"] != null)
-					{
-						if (componentData["uncollapsed_node_ids"] is string)
-						{
-							try
-							{
-								uncollapsedNodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData["uncollapsed_node_ids"]);
-							}
-							catch
-							{
-								throw new Exception("WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. uncollapsed_node_ids should be List<Guid>");
-							}
-						}
-						else if (componentData["uncollapsed_node_ids"] is List<Guid>)
-						{
-							uncollapsedNodeIds = (List<Guid>)componentData["uncollapsed_node_ids"];
-						}
-						else if (componentData["uncollapsed_node_ids"] is JArray)
-						{
-							uncollapsedNodeIds = ((JArray)componentData["uncollapsed_node_ids"]).ToObject<List<Guid>>();
-						}
-						else
-						{
-							throw new Exception("Unknown format of uncollapsed_node_ids");
-						}
-					}
+					collapsedNodeIds = ResolveNodeIdsFromComponentData(componentData, "collapsed_node_ids");
+					uncollapsedNodeIds = ResolveNodeIdsFromComponentData(componentData, "uncollapsed_node_ids");
 				}
 
-				if (isCollapsed)
-				{
-					//new state is collapsed
-					//1. remove if it is in uncollapsed
-					uncollapsedNodeIds = uncollapsedNodeIds.FindAll(x => x != nodeId.Value).ToList();
-					//2. add to collapsed
-					if (!collapsedNodeIds.Contains(nodeId.Value))
-						collapsedNodeIds.Add(nodeId.Value);
-				}
-				else
-				{
-					//new state is uncollapsed
-					//1. remove it is in collapsed
-					collapsedNodeIds = collapsedNodeIds.FindAll(x => x != nodeId.Value).ToList();
-					//2. add to uncollapsed
-					if (!uncollapsedNodeIds.Contains(nodeId.Value))
-						uncollapsedNodeIds.Add(nodeId.Value);
-				}
+				ApplyToggleSectionState(isCollapsed, nodeId, ref collapsedNodeIds, ref uncollapsedNodeIds);
 
 				componentData["collapsed_node_ids"] = collapsedNodeIds;
 				componentData["uncollapsed_node_ids"] = uncollapsedNodeIds;
@@ -636,14 +421,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "CreatePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "CreatePageBodyNode API Method Error");
 			}
 		}
 
@@ -681,14 +459,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "UpdatePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "UpdatePageBodyNode API Method Error");
 			}
 		}
 
@@ -739,14 +510,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "MovePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "MovePageBodyNode API Method Error");
 			}
 		}
 
@@ -773,14 +537,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "DeletePageBodyNode API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "DeletePageBodyNode API Method Error");
 			}
 		}
 
@@ -808,14 +565,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "UpdatePageBodyNodeOptions API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "UpdatePageBodyNodeOptions API Method Error");
 			}
 		}
 
@@ -827,16 +577,11 @@ namespace WebVella.Erp.Web.Controllers
 		{
 			try
 			{
-				if (string.IsNullOrWhiteSpace(renderMode))
-					return NotFound();
+				var validationResult = ValidateRenderRequest(renderMode, pid);
+				if (validationResult != null)
+					return validationResult;
 
-				//if (nid == null)
-				//	return BadRequest("The node Id is required to be set as query parameter 'nid', when requesting this component");
-
-				if (pid == null)
-					return BadRequest("The page Id is required to be set as query parameter 'pid', when requesting this component");
-
-				var type = FileService.GetType(fullComponentName);
+				var type = ResolvePageComponentType(fullComponentName);
 				if (type == null)
 					return NotFound();
 
@@ -845,9 +590,7 @@ namespace WebVella.Erp.Web.Controllers
 				ErpPage page = null;
 				PageDataModel pageModel = null;
 
-				#region << Override erpRequestContext >>
-				erpRequestContext.SetSimulatedRouteData(entityId: entityId, pageId: pid, recordId: recordId);
-				#endregion
+				ApplySimulatedRouteData(entityId, pid, recordId);
 
 				if (pid != null)
 				{
@@ -862,134 +605,14 @@ namespace WebVella.Erp.Web.Controllers
 						pagebodyNode = PageUtils.GetAjaxPageBodyNode(fullComponentName, pid ?? Guid.Empty, JsonConvert.SerializeObject(options));
 					}
 
-					#region << Building simulation pageModel >>
-					App app = null;
-					SitemapArea area = null;
-					SitemapNode node = null;
-					Entity entity = null;
-					EntityRecord record = null;
-					//erpRequestContext
-					if (page != null)
-					{
-						//Override 
-						if (entityId != null)
-							page.EntityId = entityId;
-
-						if (page.AppId == null && page.EntityId != null)
-						{
-							#region << Try to get one of the attached apps >>
-							var allApps = new AppService().GetAllApplications();
-							foreach (var appInstance in allApps)
-							{
-								foreach (var areaInstance in appInstance.Sitemap.Areas)
-								{
-									foreach (var nodeInstance in areaInstance.Nodes)
-									{
-										if (nodeInstance.EntityId == page.EntityId)
-										{
-											page.AppId = appInstance.Id;
-											if (page.Type == PageType.RecordCreate || page.Type == PageType.RecordDetails ||
-											page.Type == PageType.RecordList || page.Type == PageType.RecordManage)
-											{
-												page.AreaId = areaInstance.Id;
-												page.NodeId = nodeInstance.Id;
-											}
-										}
-									}
-								}
-							}
-
-							#endregion
-						}
-
-						if (page.AppId != null)
-						{
-							app = new AppService().GetApplication(page.AppId ?? Guid.Empty);
-							erpRequestContext.App = app;
-							if (app != null)
-							{
-								if (page.AreaId != null)
-								{
-									area = app.Sitemap.Areas.FirstOrDefault(x => x.Id == page.AreaId);
-									erpRequestContext.SitemapArea = area;
-									if (area != null && page.NodeId != null)
-									{
-										node = area.Nodes.FirstOrDefault(x => x.Id == page.NodeId);
-										erpRequestContext.SitemapNode = node;
-									}
-								}
-
-								if (page.EntityId != null)
-								{
-									entity = new EntityManager().ReadEntity(page.EntityId ?? Guid.Empty).Object;
-									erpRequestContext.Entity = entity;
-
-									//Get the first record as simulation
-									if (entity != null)
-									{
-										QueryObject filter = null;
-										if (recordId != null)
-										{
-											filter = EntityQuery.QueryEQ("id", recordId.Value);
-										}
-										var sortsList = new List<QuerySortObject>();
-										sortsList.Add(new QuerySortObject("id", QuerySortType.Ascending));
-										var findRecordResponse = new RecordManager().Find(new EntityQuery(entity.Name, "*", filter, sortsList.ToArray(), 0, 1));
-										if (!findRecordResponse.Success)
-											throw new Exception(findRecordResponse.Message);
-										if (findRecordResponse.Object != null && findRecordResponse.Object.Data.Any())
-										{
-											record = findRecordResponse.Object.Data.First();
-											erpRequestContext.RecordId = (Guid)record["id"];
-										}
-									}
-								}
-							}
-						}
-					}
-
-					//currentUser
-					var currentUser = AuthService.GetUser(User);
-
-
-					var baseErpPageMode = BaseErpPageModel.CreatePageModelSimulation(
-						erpRequestContext: erpRequestContext,
-						currentUser: currentUser
-					);
-
-					pageModel = baseErpPageMode.DataModel;
-					#endregion
+					pageModel = BuildSimulationPageModel(page, entityId, recordId);
 				}
 
-				switch (renderMode)
-				{
-					case "display":
-						var pcContextDisplay = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
-						return ViewComponent(type, new { context = pcContextDisplay });
-					case "design":
-						var pcContextDesign = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
-						return ViewComponent(type, new { context = pcContextDesign });
-					case "options":
-						pageModel.SafeCodeDataVariable = true;
-						var pcContextOptions = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Options, options);
-						return ViewComponent(type, new { context = pcContextOptions });
-					case "help":
-						var pcContextReadme = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Help, options);
-						return ViewComponent(type, new { context = pcContextReadme });
-				}
-
-				return NotFound();
+				return DispatchComponentView(type, renderMode, pagebodyNode, pageModel, options);
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "PageComponentRenderViews API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "PageComponentRenderViews API Method Error");
 			}
 		}
 
@@ -1024,14 +647,7 @@ namespace WebVella.Erp.Web.Controllers
 			}
 			catch (Exception exception)
 			{
-				new Log().Create(LogType.Error, "PageComponentServiceJs API Method Error", exception);
-				return new ContentResult
-				{
-					Content = $"Error: {exception.Message}",
-					ContentType = "text/plain",
-					// change to whatever status code you want to send out
-					StatusCode = 500
-				};
+				return LogErrorAndReturn500(exception, "PageComponentServiceJs API Method Error");
 			}
 		}
 
@@ -1158,19 +774,9 @@ namespace WebVella.Erp.Web.Controllers
 					return Json(errorResponse);
 				}
 
-				var pageSize = 5 + 1; //the extra record will tell us if there are more records
-				var skipPages = (page - 1) * pageSize;
-				var sortList = new List<QuerySortObject>();
-				sortList.Add(new QuerySortObject(fieldName, QuerySortType.Ascending));
-
-				var query = new EntityQuery(entityName, fieldName, null, sortList.ToArray(), skipPages, pageSize);
-				if (!String.IsNullOrWhiteSpace(search))
-				{
-					query = new EntityQuery(entityName, fieldName, EntityQuery.QueryContains(fieldName, search), sortList.ToArray(), skipPages, pageSize);
-				}
+				var query = BuildRelatedFieldQuery(entityName, fieldName, search, page);
 
 				var findResult = recMan.Find(query);
-				var resultRecords = new List<EntityRecord>();
 				if (!findResult.Success)
 				{
 					errorResponse.Message = findResult.Message;
@@ -1178,32 +784,7 @@ namespace WebVella.Erp.Web.Controllers
 					return Json(errorResponse);
 				}
 
-				if (findResult.Object.Data.Count > 0)
-				{
-					if (findResult.Object.Data.Count == 6)
-					{
-						response.Pagination.More = true;
-						resultRecords = findResult.Object.Data.Take(5).ToList();
-					}
-					else
-					{
-						resultRecords = findResult.Object.Data;
-					}
-
-					var entity = new EntityManager().ReadEntity(entityName).Object;
-					foreach (var record in resultRecords)
-					{
-						response.Results.Add(new TypeaheadResponseRow
-						{
-							Id = record[fieldName].ToString(),
-							Text = record[fieldName].ToString(),
-							FieldName = fieldName,
-							EntityName = entity.Label,
-							Color = entity.Color,
-							IconName = entity.IconName
-						});
-					}
-				}
+				PopulateRelatedFieldResults(response, findResult.Object.Data, entityName, fieldName);
 				return new JsonResult(response);
 			}
 			catch (Exception ex)
@@ -1227,101 +808,16 @@ namespace WebVella.Erp.Web.Controllers
 			var optionValue = "";
 			try
 			{
-				#region << Init SubmitObj >>
-				foreach (var prop in submitObj.Properties())
-				{
-					switch (prop.Name.ToLower())
-					{
-						case "entityname":
-							if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-								entityName = prop.Value.ToString();
-							else
-							{
-								throw new Exception("EntityName is required");
-							}
-							break;
-						case "fieldname":
-							if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-								fieldName = prop.Value.ToString();
-							else
-							{
-								throw new Exception("Field name is required");
-							}
-							break;
-						case "value":
-							if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-								optionValue = prop.Value.ToString();
-							else
-							{
-								throw new Exception("Option value is required");
-							}
-							break;
-					}
-				}
-				#endregion
-				var entityMeta = entMan.ReadEntity(entityName).Object;
-				if (entityMeta == null)
-				{
-					throw new Exception("Entity not found by the provided entityName: " + entityName);
-				}
-				var fieldMeta = entityMeta.Fields.FirstOrDefault(x => x.Name == fieldName);
-				if (fieldMeta == null)
-				{
-					throw new Exception("Field not found by the provided fieldName: " + fieldMeta + " in entity " + entityName);
-				}
-				var optionExists = false;
-				if (fieldMeta.GetFieldType() == FieldType.SelectField)
-				{
-					var fieldOptions = ((SelectField)fieldMeta).Options.FirstOrDefault(x => x.Value.ToLowerInvariant() == optionValue.ToLowerInvariant());
-					if (fieldOptions != null)
-					{
-						optionExists = true;
-					}
-				}
-				else if (fieldMeta.GetFieldType() == FieldType.MultiSelectField)
-				{
-					var fieldOptions = ((MultiSelectField)fieldMeta).Options.FirstOrDefault(x => x.Value.ToLowerInvariant() == optionValue.ToLowerInvariant());
-					if (fieldOptions != null)
-					{
-						optionExists = true;
-					}
-				}
+				ParseSelectFieldAddOptionSubmit(submitObj, ref entityName, ref fieldName, ref optionValue);
+				var fieldMeta = ResolveSelectFieldMeta(entMan, entityName, fieldName, out var entityMeta);
+				var optionExists = SelectFieldOptionExists(fieldMeta, optionValue);
 
 				if (optionExists)
 				{
 					throw new Exception("Record not found!");
 				}
 
-				if (fieldMeta.GetFieldType() == FieldType.SelectField)
-				{
-					var newOption = new SelectOption
-					{
-						Value = optionValue,
-						Label = optionValue
-					};
-					var newFieldMeta = (SelectField)fieldMeta;
-					newFieldMeta.Options.Add(newOption);
-					var updateResponse = entMan.UpdateField(entityMeta, newFieldMeta.MapTo<InputField>());
-					if (!updateResponse.Success)
-					{
-						throw new Exception(updateResponse.Message);
-					}
-				}
-				else if (fieldMeta.GetFieldType() == FieldType.MultiSelectField)
-				{
-					var newOption = new SelectOption
-					{
-						Value = optionValue,
-						Label = optionValue
-					};
-					var newFieldMeta = (MultiSelectField)fieldMeta;
-					newFieldMeta.Options.Add(newOption);
-					var updateResponse = entMan.UpdateField(entityMeta, newFieldMeta.MapTo<InputField>());
-					if (!updateResponse.Success)
-					{
-						throw new Exception(updateResponse.Message);
-					}
-				}
+				AddSelectFieldOption(entMan, entityMeta, fieldMeta, optionValue);
 
 				response.Success = true;
 				response.Message = "Record created successfully";
@@ -1346,44 +842,7 @@ namespace WebVella.Erp.Web.Controllers
 			string csvData = "";
 			string delimiterName = "";
 			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "hasheader":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-						{
-							var hasHeaderString = prop.Value.ToString();
-							if (hasHeaderString.ToLowerInvariant() == "false")
-							{
-								hasHeader = false;
-							}
-						}
-						break;
-					case "hasheadercolumn":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-						{
-							var hasHeaderColumnString = prop.Value.ToString();
-							if (hasHeaderColumnString.ToLowerInvariant() == "true")
-							{
-								hasHeaderColumn = true;
-							}
-						}
-						break;
-					case "csv":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-						{
-							csvData = prop.Value.ToString();
-						}
-						break;
-					case "delimiter":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-						{
-							delimiterName = prop.Value.ToString(); //Does not work if first checked for empty string
-						}
-						break;
-				}
-			}
+			ParseFieldTableDataPreviewSubmit(submitObj, ref hasHeader, ref hasHeaderColumn, ref csvData, ref delimiterName);
 
 			var records = new List<dynamic>();
 			try
@@ -1519,37 +978,14 @@ namespace WebVella.Erp.Web.Controllers
 
 				Type inputEntityType = entity.GetType();
 
-				foreach (var prop in submitObj.Properties())
-				{
-					int count = inputEntityType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
-					if (count < 1)
-						response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
-				}
+				ValidatePatchEntityProperties(submitObj, inputEntityType, response);
 
 				if (response.Errors.Count > 0)
 					return DoBadRequestResponse(response);
 
 				InputEntity inputEntity = submitObj.ToObject<InputEntity>();
 
-				foreach (var prop in submitObj.Properties())
-				{
-					if (prop.Name.ToLower() == "label")
-						entity.Label = inputEntity.Label;
-					if (prop.Name.ToLower() == "labelplural")
-						entity.LabelPlural = inputEntity.LabelPlural;
-					if (prop.Name.ToLower() == "system")
-						entity.System = inputEntity.System;
-					if (prop.Name.ToLower() == "iconname")
-						entity.IconName = inputEntity.IconName;
-					if (prop.Name.ToLower() == "color")
-						entity.Color = inputEntity.Color;
-					//if (prop.Name.ToLower() == "weight")
-					//	entity.Weight = inputEntity.Weight;
-					if (prop.Name.ToLower() == "recordpermissions")
-						entity.RecordPermissions = inputEntity.RecordPermissions;
-					if (prop.Name.ToLower() == "recordscreenidfield")
-						entity.RecordScreenIdField = inputEntity.RecordScreenIdField;
-				}
+				ApplyPatchEntityProperties(entity, inputEntity, submitObj);
 			}
 			catch (Exception e)
 			{
@@ -1683,291 +1119,22 @@ namespace WebVella.Erp.Web.Controllers
 
 			try
 			{
-				if (!Guid.TryParse(Id, out Guid entityId))
-				{
-					response.Errors.Add(new ErrorModel("Id", Id, "id parameter is not valid Guid value"));
-					return DoBadRequestResponse(response, "Field was not updated!");
-				}
+				var entityResult = ResolvePatchFieldEntity(Id, FieldId, response, ref entity);
+				if (entityResult != null)
+					return entityResult;
 
-				if (!Guid.TryParse(FieldId, out Guid fieldId))
-				{
-					response.Errors.Add(new ErrorModel("FieldId", FieldId, "FieldId parameter is not valid Guid value"));
-					return DoBadRequestResponse(response, "Field was not updated!");
-				}
+				var fieldTypeResult = ResolvePatchFieldType(submitObj, response, out var fieldType);
+				if (fieldTypeResult != null)
+					return fieldTypeResult;
 
-				DbEntity storageEntity = DbContext.Current.EntityRepository.Read(entityId);
-				if (storageEntity == null)
-				{
-					response.Errors.Add(new ErrorModel("Id", Id, "Entity with such Id does not exist!"));
-					return DoBadRequestResponse(response, "Field was not updated!");
-				}
-				entity = storageEntity.MapTo<Entity>();
-
-				Field updatedField = entity.Fields.FirstOrDefault(f => f.Id == fieldId);
-				if (updatedField == null)
-				{
-					response.Errors.Add(new ErrorModel("FieldId", FieldId, "Field with such Id does not exist!"));
-					return DoBadRequestResponse(response, "Field was not updated!");
-				}
-
-				FieldType fieldType = FieldType.GuidField;
-
-				var fieldTypeProp = submitObj.Properties().SingleOrDefault(k => k.Name.ToLower() == "fieldtype");
-				if (fieldTypeProp != null)
-				{
-					fieldType = (FieldType)Enum.ToObject(typeof(FieldType), fieldTypeProp.Value.ToObject<int>());
-				}
-				else
-				{
-					response.Errors.Add(new ErrorModel("fieldType", null, "fieldType is required!"));
-					return DoBadRequestResponse(response, "Field was not updated!");
-				}
-
-				Type inputFieldType = InputField.GetFieldType(fieldType);
-				foreach (var prop in submitObj.Properties())
-				{
-					if (prop.Name.ToLower() == "entityname")
-						continue;
-
-					int count = inputFieldType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
-					if (count < 1)
-						response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
-				}
+				ValidatePatchFieldProperties(submitObj, fieldType, response);
 
 				if (response.Errors.Count > 0)
 					return DoBadRequestResponse(response);
 
 				InputField inputField = InputField.ConvertField(submitObj);
 
-				foreach (var prop in submitObj.Properties())
-				{
-					switch (fieldType)
-					{
-						case FieldType.AutoNumberField:
-							{
-								field = new InputAutoNumberField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputAutoNumberField)field).DefaultValue = ((InputAutoNumberField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "U")
-									((InputAutoNumberField)field).DisplayFormat = ((InputAutoNumberField)inputField).DisplayFormat;
-								if (prop.Name.ToLower() == "startingnumber")
-									((InputAutoNumberField)field).StartingNumber = ((InputAutoNumberField)inputField).StartingNumber;
-							}
-							break;
-						case FieldType.CheckboxField:
-							{
-								field = new InputCheckboxField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputCheckboxField)field).DefaultValue = ((InputCheckboxField)inputField).DefaultValue;
-							}
-							break;
-						case FieldType.CurrencyField:
-							{
-								field = new InputCurrencyField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputCurrencyField)field).DefaultValue = ((InputCurrencyField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "minvalue")
-									((InputCurrencyField)field).MinValue = ((InputCurrencyField)inputField).MinValue;
-								if (prop.Name.ToLower() == "maxvalue")
-									((InputCurrencyField)field).MaxValue = ((InputCurrencyField)inputField).MaxValue;
-								if (prop.Name.ToLower() == "currency")
-									((InputCurrencyField)field).Currency = ((InputCurrencyField)inputField).Currency;
-							}
-							break;
-						case FieldType.DateField:
-							{
-								field = new InputDateField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputDateField)field).DefaultValue = ((InputDateField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "format")
-									((InputDateField)field).Format = ((InputDateField)inputField).Format;
-								if (prop.Name.ToLower() == "usecurrenttimeasdefaultvalue")
-									((InputDateField)field).UseCurrentTimeAsDefaultValue = ((InputDateField)inputField).UseCurrentTimeAsDefaultValue;
-							}
-							break;
-						case FieldType.DateTimeField:
-							{
-								field = new InputDateTimeField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputDateTimeField)field).DefaultValue = ((InputDateTimeField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "format")
-									((InputDateTimeField)field).Format = ((InputDateTimeField)inputField).Format;
-								if (prop.Name.ToLower() == "usecurrenttimeasdefaultvalue")
-									((InputDateTimeField)field).UseCurrentTimeAsDefaultValue = ((InputDateTimeField)inputField).UseCurrentTimeAsDefaultValue;
-							}
-							break;
-						case FieldType.EmailField:
-							{
-								field = new InputEmailField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputEmailField)field).DefaultValue = ((InputEmailField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputEmailField)field).MaxLength = ((InputEmailField)inputField).MaxLength;
-							}
-							break;
-						case FieldType.FileField:
-							{
-								field = new InputFileField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputFileField)field).DefaultValue = ((InputFileField)inputField).DefaultValue;
-							}
-							break;
-						case FieldType.HtmlField:
-							{
-								field = new InputHtmlField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputHtmlField)field).DefaultValue = ((InputHtmlField)inputField).DefaultValue;
-							}
-							break;
-						case FieldType.ImageField:
-							{
-								field = new InputImageField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputImageField)field).DefaultValue = ((InputImageField)inputField).DefaultValue;
-							}
-							break;
-						case FieldType.MultiLineTextField:
-							{
-								field = new InputMultiLineTextField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputMultiLineTextField)field).DefaultValue = ((InputMultiLineTextField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputMultiLineTextField)field).MaxLength = ((InputMultiLineTextField)inputField).MaxLength;
-								if (prop.Name.ToLower() == "visiblelinenumber")
-									((InputMultiLineTextField)field).VisibleLineNumber = ((InputMultiLineTextField)inputField).VisibleLineNumber;
-							}
-							break;
-						case FieldType.GeographyField:
-							{
-								field = new InputGeographyField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputGeographyField)field).DefaultValue = ((InputGeographyField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputGeographyField)field).MaxLength = ((InputGeographyField)inputField).MaxLength;
-								if (prop.Name.ToLower() == "visiblelinenumber")
-									((InputGeographyField)field).VisibleLineNumber = ((InputGeographyField)inputField).VisibleLineNumber;
-								if (prop.Name.ToLower() == "format")
-									((InputGeographyField)field).Format = ((InputGeographyField)inputField).Format;
-								if (prop.Name.ToLower() == "srid")
-									((InputGeographyField)field).SRID = ((InputGeographyField)inputField).SRID;
-							}
-							break;
-						case FieldType.MultiSelectField:
-							{
-								field = new InputMultiSelectField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputMultiSelectField)field).DefaultValue = ((InputMultiSelectField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "options")
-									((InputMultiSelectField)field).Options = ((InputMultiSelectField)inputField).Options;
-							}
-							break;
-						case FieldType.NumberField:
-							{
-								field = new InputNumberField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputNumberField)field).DefaultValue = ((InputNumberField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "minvalue")
-									((InputNumberField)field).MinValue = ((InputNumberField)inputField).MinValue;
-								if (prop.Name.ToLower() == "maxvalue")
-									((InputNumberField)field).MaxValue = ((InputNumberField)inputField).MaxValue;
-								if (prop.Name.ToLower() == "decimalplaces")
-									((InputNumberField)field).DecimalPlaces = ((InputNumberField)inputField).DecimalPlaces;
-							}
-							break;
-						case FieldType.PasswordField:
-							{
-								field = new InputPasswordField();
-								if (prop.Name.ToLower() == "maxlength")
-									((InputPasswordField)field).MaxLength = ((InputPasswordField)inputField).MaxLength;
-								if (prop.Name.ToLower() == "minlength")
-									((InputPasswordField)field).MinLength = ((InputPasswordField)inputField).MinLength;
-								if (prop.Name.ToLower() == "encrypted")
-									((InputPasswordField)field).Encrypted = ((InputPasswordField)inputField).Encrypted;
-							}
-							break;
-						case FieldType.PercentField:
-							{
-								field = new InputPercentField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputPercentField)field).DefaultValue = ((InputPercentField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "minvalue")
-									((InputPercentField)field).MinValue = ((InputPercentField)inputField).MinValue;
-								if (prop.Name.ToLower() == "maxvalue")
-									((InputPercentField)field).MaxValue = ((InputPercentField)inputField).MaxValue;
-								if (prop.Name.ToLower() == "decimalplaces")
-									((InputPercentField)field).DecimalPlaces = ((InputPercentField)inputField).DecimalPlaces;
-							}
-							break;
-						case FieldType.PhoneField:
-							{
-								field = new InputPhoneField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputPhoneField)field).DefaultValue = ((InputPhoneField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "format")
-									((InputPhoneField)field).Format = ((InputPhoneField)inputField).Format;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputPhoneField)field).MaxLength = ((InputPhoneField)inputField).MaxLength;
-							}
-							break;
-						case FieldType.GuidField:
-							{
-								field = new InputGuidField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputGuidField)field).DefaultValue = ((InputGuidField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "generatenewid")
-									((InputGuidField)field).GenerateNewId = ((InputGuidField)inputField).GenerateNewId;
-							}
-							break;
-						case FieldType.SelectField:
-							{
-								field = new InputSelectField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputSelectField)field).DefaultValue = ((InputSelectField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "options")
-									((InputSelectField)field).Options = ((InputSelectField)inputField).Options;
-							}
-							break;
-						case FieldType.TextField:
-							{
-								field = new InputTextField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputTextField)field).DefaultValue = ((InputTextField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputTextField)field).MaxLength = ((InputTextField)inputField).MaxLength;
-							}
-							break;
-						case FieldType.UrlField:
-							{
-								field = new InputUrlField();
-								if (prop.Name.ToLower() == "defaultvalue")
-									((InputUrlField)field).DefaultValue = ((InputUrlField)inputField).DefaultValue;
-								if (prop.Name.ToLower() == "maxlength")
-									((InputUrlField)field).MaxLength = ((InputUrlField)inputField).MaxLength;
-								if (prop.Name.ToLower() == "opentargetinnewwindow")
-									((InputUrlField)field).OpenTargetInNewWindow = ((InputUrlField)inputField).OpenTargetInNewWindow;
-							}
-							break;
-					}
-
-					if (prop.Name.ToLower() == "label")
-						field.Label = inputField.Label;
-					else if (prop.Name.ToLower() == "placeholdertext")
-						field.PlaceholderText = inputField.PlaceholderText;
-					else if (prop.Name.ToLower() == "description")
-						field.Description = inputField.Description;
-					else if (prop.Name.ToLower() == "helptext")
-						field.HelpText = inputField.HelpText;
-					else if (prop.Name.ToLower() == "required")
-						field.Required = inputField.Required;
-					else if (prop.Name.ToLower() == "unique")
-						field.Unique = inputField.Unique;
-					else if (prop.Name.ToLower() == "searchable")
-						field.Searchable = inputField.Searchable;
-					else if (prop.Name.ToLower() == "auditable")
-						field.Auditable = inputField.Auditable;
-					else if (prop.Name.ToLower() == "system")
-						field.System = inputField.System;
-				}
+				field = ApplyPatchFieldProperties(submitObj, fieldType, inputField);
 			}
 			catch (Exception e)
 			{
@@ -2112,30 +1279,10 @@ namespace WebVella.Erp.Web.Controllers
 			var entMan = new EntityManager();
 			BaseResponseModel response = new BaseResponseModel { Timestamp = DateTime.UtcNow, Success = true, Errors = new List<ErrorModel>() };
 
-			if (model == null)
-			{
-				response.Errors.Add(new ErrorModel { Message = "Invalid model." });
-				response.Success = false;
-				return DoResponse(response);
-			}
-
 			EntityRelation relation = null;
-			if (string.IsNullOrWhiteSpace(model.RelationName))
-			{
-				response.Errors.Add(new ErrorModel { Message = "Invalid relation name.", Key = "relationName" });
-				response.Success = false;
-				return DoResponse(response);
-			}
-			else
-			{
-				relation = new EntityRelationManager().Read(model.RelationName).Object;
-				if (relation == null)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Invalid relation name. No relation with that name.", Key = "relationName" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-			}
+			var relationValidation = ValidateUpdateRelationModel(model, response, ref relation);
+			if (relationValidation != null)
+				return relationValidation;
 
 			var originEntity = entMan.ReadEntity(relation.OriginEntityId).Object;
 			var targetEntity = entMan.ReadEntity(relation.TargetEntityId).Object;
@@ -2164,137 +1311,17 @@ namespace WebVella.Erp.Web.Controllers
 			var attachTargetRecords = new List<EntityRecord>();
 			var detachTargetRecords = new List<EntityRecord>();
 
-			foreach (var targetId in model.AttachTargetFieldRecordIds)
-			{
-				query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", targetId), null, null, null);
-				result = recMan.Find(query);
-				if (result.Object.Data.Count == 0)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Attach target record was not found. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				else if (attachTargetRecords.Any(x => (Guid)x["id"] == targetId))
-				{
-					response.Errors.Add(new ErrorModel { Message = "Attach target id was duplicated. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				attachTargetRecords.Add(result.Object.Data[0]);
-			}
+			var attachValidation = CollectAttachTargetRecords(model, response, recMan, targetEntity, targetField, attachTargetRecords);
+			if (attachValidation != null)
+				return attachValidation;
 
-			foreach (var targetId in model.DetachTargetFieldRecordIds)
-			{
-				query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", targetId), null, null, null);
-				result = recMan.Find(query);
-				if (result.Object.Data.Count == 0)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Detach target record was not found. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				else if (detachTargetRecords.Any(x => (Guid)x["id"] == targetId))
-				{
-					response.Errors.Add(new ErrorModel { Message = "Detach target id was duplicated. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				detachTargetRecords.Add(result.Object.Data[0]);
-			}
+			var detachValidation = CollectDetachTargetRecords(model, response, recMan, targetEntity, targetField, detachTargetRecords);
+			if (detachValidation != null)
+				return detachValidation;
 
-			using (var connection = DbContext.Current.CreateConnection())
-			{
-				connection.BeginTransaction();
-
-				try
-				{
-					switch (relation.RelationType)
-					{
-						case EntityRelationType.OneToOne:
-						case EntityRelationType.OneToMany:
-							{
-								foreach (var record in detachTargetRecords)
-								{
-									record[targetField.Name] = null;
-
-									var updResult = recMan.UpdateRecord(targetEntity, record);
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Target record id=[" + record["id"] + "] detach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-
-								foreach (var record in attachTargetRecords)
-								{
-									var patchObject = new EntityRecord();
-									patchObject["id"] = (Guid)record["id"];
-									patchObject[targetField.Name] = originValue;
-
-									var updResult = recMan.UpdateRecord(targetEntity, patchObject);
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Target record id=[" + record["id"] + "] attach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-							}
-							break;
-						case EntityRelationType.ManyToMany:
-							{
-								foreach (var record in detachTargetRecords)
-								{
-									QueryResponse updResult = recMan.RemoveRelationManyToManyRecord(relation.Id, (Guid)originValue, (Guid)record[targetField.Name]);
-
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Target record id=[" + record["id"] + "] detach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-
-								foreach (var record in attachTargetRecords)
-								{
-									QueryResponse updResult = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)originValue, (Guid)record[targetField.Name]);
-
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Target record id=[" + record["id"] + "] attach  operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-							}
-							break;
-						default:
-							{
-								connection.RollbackTransaction();
-								throw new Exception("Not supported relation type");
-							}
-					}
-
-					connection.CommitTransaction();
-				}
-				catch (Exception ex)
-				{
-					connection.RollbackTransaction();
-					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:UpdateEntityRelationRecord", ex);
-					response.Success = false;
-					response.Message = ex.Message;
-					return DoResponse(response);
-				}
-			}
+			var applyResult = ApplyUpdateRelationChanges(response, recMan, relation, targetEntity, targetField, originValue, attachTargetRecords, detachTargetRecords);
+			if (applyResult != null)
+				return applyResult;
 
 			return DoResponse(response);
 		}
@@ -2311,30 +1338,10 @@ namespace WebVella.Erp.Web.Controllers
 			var entMan = new EntityManager();
 			BaseResponseModel response = new BaseResponseModel { Timestamp = DateTime.UtcNow, Success = true, Errors = new List<ErrorModel>() };
 
-			if (model == null)
-			{
-				response.Errors.Add(new ErrorModel { Message = "Invalid model." });
-				response.Success = false;
-				return DoResponse(response);
-			}
-
 			EntityRelation relation = null;
-			if (string.IsNullOrWhiteSpace(model.RelationName))
-			{
-				response.Errors.Add(new ErrorModel { Message = "Invalid relation name.", Key = "relationName" });
-				response.Success = false;
-				return DoResponse(response);
-			}
-			else
-			{
-				relation = new EntityRelationManager().Read(model.RelationName).Object;
-				if (relation == null)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Invalid relation name. No relation with that name.", Key = "relationName" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-			}
+			var relationValidation = ValidateUpdateRelationReverseModel(model, response, ref relation);
+			if (relationValidation != null)
+				return relationValidation;
 
 			var originEntity = entMan.ReadEntity(relation.OriginEntityId).Object;
 			var targetEntity = entMan.ReadEntity(relation.TargetEntityId).Object;
@@ -2363,137 +1370,17 @@ namespace WebVella.Erp.Web.Controllers
 			var attachOriginRecords = new List<EntityRecord>();
 			var detachOriginRecords = new List<EntityRecord>();
 
-			foreach (var originId in model.AttachOriginFieldRecordIds)
-			{
-				query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", originId), null, null, null);
-				result = recMan.Find(query);
-				if (result.Object.Data.Count == 0)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Attach origin record was not found. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				else if (attachOriginRecords.Any(x => (Guid)x["id"] == originId))
-				{
-					response.Errors.Add(new ErrorModel { Message = "Attach origin id was duplicated. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				attachOriginRecords.Add(result.Object.Data[0]);
-			}
+			var attachValidation = CollectAttachOriginRecords(model, response, recMan, originEntity, originField, attachOriginRecords);
+			if (attachValidation != null)
+				return attachValidation;
 
-			foreach (var originId in model.DetachOriginFieldRecordIds)
-			{
-				query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", originId), null, null, null);
-				result = recMan.Find(query);
-				if (result.Object.Data.Count == 0)
-				{
-					response.Errors.Add(new ErrorModel { Message = "Detach origin record was not found. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				else if (detachOriginRecords.Any(x => (Guid)x["id"] == originId))
-				{
-					response.Errors.Add(new ErrorModel { Message = "Detach origin id was duplicated. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
-					response.Success = false;
-					return DoResponse(response);
-				}
-				detachOriginRecords.Add(result.Object.Data[0]);
-			}
+			var detachValidation = CollectDetachOriginRecords(model, response, recMan, originEntity, originField, detachOriginRecords);
+			if (detachValidation != null)
+				return detachValidation;
 
-			using (var connection = DbContext.Current.CreateConnection())
-			{
-				connection.BeginTransaction();
-
-				try
-				{
-					switch (relation.RelationType)
-					{
-						case EntityRelationType.OneToOne:
-						case EntityRelationType.OneToMany:
-							{
-								foreach (var record in detachOriginRecords)
-								{
-									record[originField.Name] = null;
-
-									var updResult = recMan.UpdateRecord(originEntity, record);
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Origin record id=[" + record["id"] + "] detach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-
-								foreach (var record in attachOriginRecords)
-								{
-									var patchObject = new EntityRecord();
-									patchObject["id"] = (Guid)record["id"];
-									patchObject[originField.Name] = targetValue;
-
-									var updResult = recMan.UpdateRecord(originEntity, patchObject);
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Origin record id=[" + record["id"] + "] attach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-							}
-							break;
-						case EntityRelationType.ManyToMany:
-							{
-								foreach (var record in detachOriginRecords)
-								{
-									QueryResponse updResult = recMan.RemoveRelationManyToManyRecord(relation.Id, (Guid)record[originField.Name], (Guid)targetValue);
-
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Origin record id=[" + record["id"] + "] detach operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-
-								foreach (var record in attachOriginRecords)
-								{
-									QueryResponse updResult = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)record[originField.Name], (Guid)targetValue);
-
-									if (!updResult.Success)
-									{
-										connection.RollbackTransaction();
-										response.Errors = updResult.Errors;
-										response.Message = "Origin record id=[" + record["id"] + "] attach  operation failed.";
-										response.Success = false;
-										return DoResponse(response);
-									}
-								}
-							}
-							break;
-						default:
-							{
-								connection.RollbackTransaction();
-								throw new Exception("Not supported relation type");
-							}
-					}
-
-					connection.CommitTransaction();
-				}
-				catch (Exception ex)
-				{
-					connection.RollbackTransaction();
-					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:UpdateEntityRelationRecordReverse", ex);
-					response.Success = false;
-					response.Message = ex.Message;
-					return DoResponse(response);
-				}
-			}
+			var applyResult = ApplyUpdateRelationReverseChanges(response, recMan, relation, originEntity, originField, targetValue, attachOriginRecords, detachOriginRecords);
+			if (applyResult != null)
+				return applyResult;
 
 			return DoResponse(response);
 		}
@@ -2617,78 +1504,9 @@ namespace WebVella.Erp.Web.Controllers
 		{
 			var validationErrors = new List<ErrorModel>();
 
-			//1.Validate relationName
-			//1.1. Relation exists
-			var relation = relMan.Read().Object.SingleOrDefault(x => x.Name == relationName);
-			string targetEntityName = String.Empty;
-			string targetFieldName = String.Empty;
+			EntityRelation relation = null;
 			var relatedRecord = new EntityRecord();
-			var relatedRecordResponse = new QueryResponse();
-			if (relation == null)
-			{
-				var error = new ErrorModel
-				{
-					Key = "relationName",
-					Value = relationName,
-					Message = "A relation with this name, does not exist"
-				};
-				validationErrors.Add(error);
-			}
-			else
-			{
-				//1.2. Relation is correct - entityName is part of this relation
-				if (relation.OriginEntityName != entityName && relation.TargetEntityName != entityName)
-				{
-					var error = new ErrorModel
-					{
-						Key = "relationName",
-						Value = relationName,
-						Message = "This is not the correct relation, as it does not include the requested entity: " + entityName
-					};
-					validationErrors.Add(error);
-				}
-				else
-				{
-					if (relation.OriginEntityName == entityName)
-					{
-						relatedRecordResponse = recMan.Find(new EntityQuery(relation.TargetEntityName, "*", EntityQuery.QueryEQ("id", relatedRecordId)));
-						targetFieldName = relation.TargetFieldName;
-					}
-					else
-					{
-						relatedRecordResponse = recMan.Find(new EntityQuery(relation.OriginEntityName, "*", EntityQuery.QueryEQ("id", relatedRecordId)));
-						targetFieldName = relation.OriginFieldName;
-					}
-					//2. Validate parentRecordId
-					//2.1. parentRecordId exists
-
-					if (!relatedRecordResponse.Object.Data.Any())
-					{
-						var error = new ErrorModel
-						{
-							Key = "parentRecordId",
-							Value = relatedRecordId.ToString(),
-							Message = "There is no parent record with this Id in the entity: " + entityName
-						};
-						validationErrors.Add(error);
-					}
-					else
-					{
-						relatedRecord = relatedRecordResponse.Object.Data.First();
-						//2.2. Record has value in the related field		
-						if (!relatedRecord.Properties.ContainsKey(targetFieldName) || relatedRecord[targetFieldName] == null)
-						{
-							var error = new ErrorModel
-							{
-								Key = "parentRecordId",
-								Value = relatedRecordId.ToString(),
-								Message = "The parent record does not have field " + targetFieldName + " or its value is null"
-							};
-							validationErrors.Add(error);
-						}
-					}
-				}
-			}
+			ValidateCreateRelationInput(entityName, relationName, relatedRecordId, validationErrors, ref relation, ref relatedRecord);
 
 
 			if (postObj == null)
@@ -2713,73 +1531,7 @@ namespace WebVella.Erp.Web.Controllers
 				postObj["id"] = Guid.NewGuid();
 
 
-			//Create transaction
-			var result = new QueryResponse();
-			using (var connection = DbContext.Current.CreateConnection())
-			{
-				try
-				{
-					connection.BeginTransaction();
-
-					//Add the relation field value if the relation is 1:1 or 1:N
-					if (relation.RelationType == EntityRelationType.OneToOne || relation.RelationType == EntityRelationType.OneToMany)
-					{
-						//if currentEntity is origin -> update the parent record
-						if (relation.OriginEntityName == entityName)
-						{
-							throw new Exception("We need a case to finish this");
-						}
-						else
-						{
-							//if currentEntity is target -> get the target field and assing the correct id value of the origin 
-							postObj[relation.TargetFieldName] = relatedRecord[relation.OriginFieldName];
-						}
-					}
-
-					result = recMan.CreateRecord(entityName, postObj);
-
-					//Create a relation record if it is N:N
-					if (relation.RelationType == EntityRelationType.ManyToMany)
-					{
-						var response = new QueryResponse();
-						if (relation.OriginEntityName == entityName && relation.TargetEntityName == entityName)
-						{
-							throw new Exception("current entity is both target and origin, cannot find relation direction. Probably needs to be extended");
-						}
-						else if (relation.TargetEntityName == entityName)
-						{
-							//if current is target -> create relation
-							response = recMan.CreateRelationManyToManyRecord(relation.Id, relatedRecordId, (Guid)postObj["id"]);
-						}
-						else
-						{
-							//if current is origin -> create relation	
-							response = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)postObj["id"], relatedRecordId);
-						}
-						if (!response.Success)
-						{
-							throw new Exception(response.Message);
-						}
-					}
-
-					connection.CommitTransaction();
-				}
-				catch (Exception ex)
-				{
-					connection.RollbackTransaction();
-					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:CreateEntityRecordWithRelation", ex);
-					var response = new ResponseModel
-					{
-						Success = false,
-						Timestamp = DateTime.UtcNow,
-						Message = "Error while saving the record: " + ex.Message,
-						Object = null
-					};
-					return Json(response);
-				}
-			}
-
-			return DoResponse(result);
+			return ApplyCreateRelationTransaction(relation, entityName, relatedRecordId, postObj, relatedRecord);
 		}
 
 
@@ -2883,76 +1635,11 @@ namespace WebVella.Erp.Web.Controllers
 			var recordIdList = new List<Guid>();
 			var fieldList = new List<string>();
 
-			if (!String.IsNullOrWhiteSpace(ids) && ids != "null")
-			{
-				var idStringList = ids.Split(',');
-				var outGuid = Guid.Empty;
-				foreach (var idString in idStringList)
-				{
-					if (Guid.TryParse(idString, out outGuid))
-					{
-						recordIdList.Add(outGuid);
-					}
-					else
-					{
-						response.Message = "One of the record ids is not a Guid";
-						response.Timestamp = DateTime.UtcNow;
-						response.Success = false;
-						response.Object.Data = null;
-					}
-				}
-			}
+			ParseRecordIds(ids, response, recordIdList);
 
-			if (!String.IsNullOrWhiteSpace(fields) && fields != "null")
-			{
-				var fieldsArray = fields.Split(',');
-				var hasId = false;
-				foreach (var fieldName in fieldsArray)
-				{
-					if (fieldName == "id")
-					{
-						hasId = true;
-					}
-					fieldList.Add(fieldName);
-				}
-				if (!hasId)
-				{
-					fieldList.Add("id");
-				}
-			}
+			ParseRequestedFields(fields, fieldList);
 
-			var QueryList = new List<QueryObject>();
-			foreach (var recordId in recordIdList)
-			{
-				QueryList.Add(EntityQuery.QueryEQ("id", recordId));
-			}
-
-			QueryObject recordsFilterObj = null;
-			if (QueryList.Count > 0)
-			{
-				recordsFilterObj = EntityQuery.QueryOR(QueryList.ToArray());
-			}
-
-			var columns = "*";
-			if (fieldList.Count > 0)
-			{
-				if (!fieldList.Contains("id"))
-				{
-					fieldList.Add("id");
-				}
-				columns = String.Join(",", fieldList.Select(x => x.ToString()).ToArray());
-			}
-
-			//var sortRulesList = new List<QuerySortObject>();
-			//var sortRule = new QuerySortObject("id",QuerySortType.Descending);
-			//sortRulesList.Add(sortRule);
-			//EntityQuery query = new EntityQuery(entityName, columns, recordsFilterObj, sortRulesList.ToArray(), null, null);
-
-			EntityQuery query = new EntityQuery(entityName, columns, recordsFilterObj, null, null, null);
-			if (limit != null && limit > 0)
-			{
-				query = new EntityQuery(entityName, columns, recordsFilterObj, null, null, limit);
-			}
+			var query = BuildRecordsQuery(entityName, recordIdList, fieldList, limit);
 
 			var queryResponse = recMan.Find(query);
 			if (!queryResponse.Success)
@@ -3038,195 +1725,14 @@ namespace WebVella.Erp.Web.Controllers
 					lookupFieldsList.Add(field);
 				}
 
-				QueryObject matchesFilter = null;
-				#region <<Generate filters >>
-				switch (matchMethod.ToLowerInvariant())
-				{
-					case "contains":
-						if (lookupFieldsList.Count > 1)
-						{
-							var filterList = new List<QueryObject>();
-							foreach (var field in lookupFieldsList)
-							{
-								filterList.Add(EntityQuery.QueryContains(field, query));
-							}
-							if (matchAllFields)
-							{
-								matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
-							}
-							else
-							{
-								matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
-							}
+				var matchesFilter = BuildQuickSearchMatchFilter(matchMethod, lookupFieldsList, query, matchAllFields);
 
-						}
-						else
-						{
-							matchesFilter = EntityQuery.QueryContains(lookupFieldsList[0], query);
-						}
-						break;
-					case "startswith":
-						if (lookupFieldsList.Count > 1)
-						{
-							var filterList = new List<QueryObject>();
-							foreach (var field in lookupFieldsList)
-							{
-								filterList.Add(EntityQuery.QueryStartsWith(field, query));
-							}
-							if (matchAllFields)
-							{
-								matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
-							}
-							else
-							{
-								matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
-							}
-
-						}
-						else
-						{
-							matchesFilter = EntityQuery.QueryStartsWith(lookupFieldsList[0], query);
-						}
-						break;
-					case "fts":
-						if (lookupFieldsList.Count > 1)
-						{
-							var filterList = new List<QueryObject>();
-							foreach (var field in lookupFieldsList)
-							{
-								filterList.Add(EntityQuery.QueryFTS(field, query));
-							}
-							if (matchAllFields)
-							{
-								matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
-							}
-							else
-							{
-								matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
-							}
-
-						}
-						else
-						{
-							matchesFilter = EntityQuery.QueryFTS(lookupFieldsList[0], query);
-						}
-						break;
-					default: // EQ
-						if (lookupFieldsList.Count > 1)
-						{
-							var filterList = new List<QueryObject>();
-							foreach (var field in lookupFieldsList)
-							{
-								filterList.Add(EntityQuery.QueryEQ(field, query));
-							}
-							if (matchAllFields)
-							{
-								matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
-							}
-							else
-							{
-								matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
-							}
-
-						}
-						else
-						{
-							matchesFilter = EntityQuery.QueryEQ(lookupFieldsList[0], query);
-						}
-						break;
-
-				}
-				#endregion
-
-				#region << Generate force filters >>
-				var forceFilters = new List<QueryObject>();
-				if (!String.IsNullOrWhiteSpace(forceFiltersCsv))
-				{
-					foreach (var forceFilter in forceFiltersCsv.Split(','))
-					{
-						var filterArray = forceFilter.Split(':');
-						if (filterArray.Length == 3)
-						{
-							switch (filterArray[1].ToLowerInvariant())
-							{
-								case "guid":
-									var filterValueGuid = new Guid(filterArray[2]);
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueGuid));
-									break;
-								case "bool":
-									if (filterArray[2] == "true")
-									{
-										forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], true));
-									}
-									else
-									{
-										forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], false));
-									}
-									break;
-								case "datetime":
-									var filterValueDate = Convert.ToDateTime(filterArray[2]);
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueDate));
-									break;
-								case "int":
-									var filterValueInt = Convert.ToInt64(filterArray[2]);
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueInt));
-									break;
-								case "string":
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterArray[2]));
-									break;
-								default:
-									break;
-
-							}
-						}
-					}
-
-				}
-
-				if (forceFilters.Count > 0)
-				{
-					var forceFilterQuery = EntityQuery.QueryAND(forceFilters.ToArray());
-					matchesFilter = EntityQuery.QueryAND(forceFilterQuery, matchesFilter);
-				}
-
-				#endregion
+				BuildQuickSearchForceFilters(forceFiltersCsv, ref matchesFilter);
 
 
-				var sortsList = new List<QuerySortObject>();
-				#region << Generate Sorts >>
-				if (!String.IsNullOrWhiteSpace(sortField))
-				{
-					if (sortType.ToLowerInvariant() == "desc")
-					{
-						sortsList.Add(new QuerySortObject(sortField, QuerySortType.Descending));
-					}
-					else
-					{
-						sortsList.Add(new QuerySortObject(sortField, QuerySortType.Ascending));
-					}
-				}
+				var sortsList = BuildQuickSearchSorts(sortField, sortType);
 
-				#endregion
-
-				if (findType.ToLowerInvariant() == "records" || findType.ToLowerInvariant() == "records-and-count" || findType.ToLowerInvariant() == "records&count")
-				{
-					var matchQueryResponse = recMan.Find(new EntityQuery(entityName, returnFieldsCsv, matchesFilter, sortsList.ToArray(), skipRecords, limitRecords));
-					if (!matchQueryResponse.Success)
-					{
-						throw new Exception(matchQueryResponse.Message);
-					}
-					responseObject["records"] = matchQueryResponse.Object.Data;
-				}
-
-				if (findType.ToLowerInvariant() == "count" || findType.ToLowerInvariant() == "records-and-count" || findType.ToLowerInvariant() == "records&count")
-				{
-					var matchQueryResponse = recMan.Count(new EntityQuery(entityName, returnFieldsCsv, matchesFilter));
-					if (!matchQueryResponse.Success)
-					{
-						throw new Exception(matchQueryResponse.Message);
-					}
-					responseObject["count"] = matchQueryResponse.Object;
-				}
+				ExecuteQuickSearchFind(findType, entityName, returnFieldsCsv, matchesFilter, sortsList, skipRecords, limitRecords, responseObject);
 
 
 
@@ -3263,15 +1769,7 @@ namespace WebVella.Erp.Web.Controllers
 			if (string.IsNullOrWhiteSpace(fileName))
 				return DoPageNotFoundResponse();
 
-			var filePathArray = new List<string>();
-			if (root != null) filePathArray.Add(root);
-			if (root2 != null) filePathArray.Add(root2);
-			if (root3 != null) filePathArray.Add(root3);
-			if (root4 != null) filePathArray.Add(root4);
-
-			var filePath = "/" + String.Join("/", filePathArray) + "/" + fileName;
-
-			filePath = filePath.ToLowerInvariant();
+			var filePath = BuildDownloadFilePath(root, root2, root3, root4, fileName);
 
 			DbFileRepository fsRepository = new DbFileRepository();
 			var file = fsRepository.Find(filePath);
@@ -3280,19 +1778,9 @@ namespace WebVella.Erp.Web.Controllers
 			{
 				return DoPageNotFoundResponse();
 			}
-			//check for modification
-			string headerModifiedSince = Request.Headers["If-Modified-Since"];
-			if (headerModifiedSince != null)
-			{
-				if (DateTime.TryParse(headerModifiedSince, out DateTime isModifiedSince))
-				{
-					if (isModifiedSince <= file.LastModificationDate)
-					{
-						Response.StatusCode = 304;
-						return new EmptyResult();
-					}
-				}
-			}
+			var notModified = CheckDownloadNotModified(file);
+			if (notModified != null)
+				return notModified;
 			var cultureInfo = new CultureInfo("en-US");
 			HttpContext.Response.Headers.Add("last-modified", file.LastModificationDate.ToString(cultureInfo));
 			const int durationInSeconds = 60 * 60 * 24 * 30; //30 days caching of these resources
@@ -3302,23 +1790,7 @@ namespace WebVella.Erp.Web.Controllers
 			new FileExtensionContentTypeProvider().Mappings.TryGetValue(extension, out string mimeType);
 
 
-			IDictionary<string, StringValues> queryCollection = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(HttpContext.Request.QueryString.ToString());
-			string action = queryCollection.Keys.Any(x => x == "action") ? ((string)queryCollection["action"]).ToLowerInvariant() : "";
-			string requestedMode = queryCollection.Keys.Any(x => x == "mode") ? ((string)queryCollection["mode"]).ToLowerInvariant() : "";
-			string width = queryCollection.Keys.Any(x => x == "width") ? ((string)queryCollection["width"]).ToLowerInvariant() : "";
-			string height = queryCollection.Keys.Any(x => x == "height") ? ((string)queryCollection["height"]).ToLowerInvariant() : "";
-			bool isImage = extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif";
-
-			int widthInt = 0;
-			if (!String.IsNullOrWhiteSpace(width) && int.TryParse(width, out int outWidthInt))
-			{
-				widthInt = outWidthInt;
-			}
-			int heightInt = 0;
-			if (!String.IsNullOrWhiteSpace(height) && int.TryParse(height, out int outHeightInt))
-			{
-				heightInt = outHeightInt;
-			}
+			ParseDownloadRequestOptions(extension);
 
 			return File(file.GetBytes(), mimeType);
 		}
@@ -3470,179 +1942,9 @@ namespace WebVella.Erp.Web.Controllers
 					return DoResponse(response);
 				}
 
-				#region << Validate >>
-
-				foreach (var prop in postObject.Properties())
-				{
-					switch (prop.Name)
-					{
-						case "name":
-							{
-								if (!string.IsNullOrWhiteSpace((string)postObject["name"]))
-								{
-									schedulePlan.Name = (string)postObject["name"];
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("name", (string)postObject["name"], "Name is required field and cannot be empty."));
-								}
-							}
-							break;
-						case "type":
-							{
-								if (!string.IsNullOrWhiteSpace(postObject["type"].ToString()))
-								{
-									if (int.TryParse(postObject["type"].ToString(), out int type))
-									{
-										if (type >= 1 && type <= 4)
-											schedulePlan.Type = (SchedulePlanType)type;
-										else
-											response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "The value of the type is out of range of valid values."));
-									}
-									else
-										response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "Type is invalid integer value."));
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "Type is required field and cannot be empty."));
-								}
-							}
-							break;
-						case "job_type_id":
-							{
-								if (Guid.TryParse(postObject["job_type_id"].ToString(), out Guid jobTypeId))
-								{
-									if (JobManager.JobTypes.Any(t => t.Id == jobTypeId))
-									{
-										schedulePlan.JobTypeId = jobTypeId;
-									}
-									else
-									{
-										response.Errors.Add(new ErrorModel("job_type_id", postObject["job_type_id"].ToString(), "There is no job type with such id."));
-									}
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("job_type_id", postObject["job_type_id"].ToString(), "Job type id is not valid."));
-								}
-							}
-							break;
-						case "start_date":
-							{
-								schedulePlan.StartDate = DateTime.UtcNow;
-
-								if (!string.IsNullOrWhiteSpace(postObject["start_date"].ToString()))
-								{
-									if (DateTime.TryParse(postObject["start_date"].ToString(), out DateTime startDate))
-									{
-										startDate = (DateTime)postObject["start_date"];
-										schedulePlan.StartDate = startDate.ToUniversalTime();
-									}
-									else
-									{
-										response.Errors.Add(new ErrorModel("start_date", postObject["start_date"].ToString(), "The value of start date field is not valid."));
-									}
-								}
-							}
-							break;
-						case "end_date":
-							{
-								if (!string.IsNullOrWhiteSpace(postObject["end_date"].ToString()))
-								{
-									if (DateTime.TryParse(postObject["end_date"].ToString(), out DateTime endDate))
-									{
-										endDate = (DateTime)postObject["end_date"];
-										schedulePlan.StartDate = endDate.ToUniversalTime();
-									}
-									else
-									{
-										response.Errors.Add(new ErrorModel("end_date", postObject["end_date"].ToString(), "The value of end date field is not valid."));
-									}
-								}
-							}
-							break;
-						case "schedule_days":
-							{
-								string days = postObject["schedule_days"].ToString();
-								if (!string.IsNullOrWhiteSpace(days))
-								{
-									schedulePlan.ScheduledDays = JsonConvert.DeserializeObject<SchedulePlanDaysOfWeek>(postObject["schedule_days"].ToString());
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("schedule_days", postObject["schedule_days"].ToString(), "Schedule days is required field and cannot be empty."));
-								}
-							}
-							break;
-						case "interval_in_minutes":
-							{
-								if (int.TryParse(postObject["interval_in_minutes"].ToString(), out int interval))
-								{
-									schedulePlan.IntervalInMinutes = interval;
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("interval_in_minutes", postObject["interval_in_minutes"].ToString(), "The value of Interval in minutes field is not valid."));
-								}
-							}
-							break;
-						case "start_timespan":
-							{
-								if (DateTime.TryParse(postObject["start_timespan"].ToString(), out DateTime startTimespan))
-								{
-									startTimespan = ((DateTime)postObject["start_timespan"]);
-									schedulePlan.StartTimespan = startTimespan.Hour * 60 + startTimespan.Minute;
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("start_timespan", postObject["start_timespan"].ToString(), "The value of start timespan is not valid."));
-								}
-							}
-							break;
-						case "end_timespan":
-							{
-								if (DateTime.TryParse(postObject["end_timespan"].ToString(), out DateTime endTimespan))
-								{
-									endTimespan = ((DateTime)postObject["end_timespan"]);
-									schedulePlan.EndTimespan = endTimespan.Hour * 60 + endTimespan.Minute;
-									if (schedulePlan.EndTimespan == 0) //that's mean 12PM
-										schedulePlan.EndTimespan = 1440;
-								}
-								else
-								{
-									response.Errors.Add(new ErrorModel("end_timespan", postObject["end_timespan"].ToString(), "The value of end timespan is not valid."));
-								}
-							}
-							break;
-						case "enabled":
-							{
-								schedulePlan.Enabled = (bool)postObject["enabled"];
-							}
-							break;
-					}
-				}
-
-				if (schedulePlan.StartDate >= schedulePlan.EndDate)
-				{
-					if (postObject.Properties().Any(p => p.Name == "start_date"))
-						response.Errors.Add(new ErrorModel("start_date", postObject["start_date"].ToString(), "Start date must be before end date."));
-					else
-						response.Errors.Add(new ErrorModel("end_date", postObject["end_date"].ToString(), "End date must be greater than start date."));
-				}
-
-				if ((schedulePlan.Type == SchedulePlanType.Daily || schedulePlan.Type == SchedulePlanType.Interval) && !schedulePlan.ScheduledDays.HasOneSelectedDay())
-					response.Errors.Add(new ErrorModel("schedule_days", postObject["schedule_days"].ToString(), "At least one day have to be selected for schedule days field."));
-
-				if (schedulePlan.Type == SchedulePlanType.Interval && schedulePlan.IntervalInMinutes <= 0 || schedulePlan.IntervalInMinutes >= 1440)
-					response.Errors.Add(new ErrorModel("interval_in_minutes", postObject["interval_in_minutes"].ToString(), "The value of Interval in minutes field must be greater than 0 and less or  equal than 1440."));
-
-				if (response.Errors.Count > 0)
-				{
-					response.Success = false;
-					return DoResponse(response);
-				}
-
-				#endregion
+				var validationResult = ValidateAndApplySchedulePlan(postObject, schedulePlan, response);
+				if (validationResult != null)
+					return validationResult;
 
 				schedulePlan.NextTriggerTime = ScheduleManager.Current.FindSchedulePlanNextTriggerDate(schedulePlan);
 				ScheduleManager.Current.UpdateSchedulePlan(schedulePlan);
@@ -3825,31 +2127,7 @@ namespace WebVella.Erp.Web.Controllers
 			try
 			{
 				//Filters
-				var filterList = new List<QueryObject>();
-				if (fromDate != null)
-				{
-					filterList.Add(EntityQuery.QueryGT("created_on", fromDate));
-				}
-				if (untilDate != null)
-				{
-					filterList.Add(EntityQuery.QueryLT("created_on", untilDate));
-				}
-				if (!String.IsNullOrWhiteSpace(type))
-				{
-					filterList.Add(EntityQuery.QueryEQ("type", type));
-				}
-				if (!String.IsNullOrWhiteSpace(source))
-				{
-					filterList.Add(EntityQuery.QueryContains("source", source));
-				}
-				if (!String.IsNullOrWhiteSpace(message))
-				{
-					filterList.Add(EntityQuery.QueryContains("message", message));
-				}
-				if (!String.IsNullOrWhiteSpace(notificationStatus))
-				{
-					filterList.Add(EntityQuery.QueryEQ("notificationStatus", notificationStatus));
-				}
+				var filterList = BuildSystemLogFilters(fromDate, untilDate, type, source, message, notificationStatus);
 
 				var selectFilters = EntityQuery.QueryAND(filterList.ToArray());
 
@@ -4057,64 +2335,7 @@ namespace WebVella.Erp.Web.Controllers
 
 					foreach (var file in files)
 					{
-						var fileBuffer = ReadFully(file.OpenReadStream());
-						var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.ToString().Trim().ToLowerInvariant();
-						if (fileName.StartsWith("\"", StringComparison.InvariantCulture))
-							fileName = fileName.Substring(1);
-
-						if (fileName.EndsWith("\"", StringComparison.InvariantCulture))
-							fileName = fileName.Substring(0, fileName.Length - 1);
-
-						var recMan = new RecordManager();
-						DbFileRepository fsRepository = new DbFileRepository();
-						string section = Guid.NewGuid().ToString().Replace("-", "").ToLowerInvariant();
-						var filePath = "/user_file/" + currentUser.Id + "/" + section + "/" + fileName;
-						var createdFile = fsRepository.Create(filePath, fileBuffer, DateTime.Now, currentUser.Id);
-						var userFileId = Guid.NewGuid();
-
-						var userFileRecord = new EntityRecord();
-						#region << record fill >>
-						userFileRecord["id"] = userFileId;
-						userFileRecord["created_on"] = DateTime.Now;
-						userFileRecord["name"] = fileName;
-						userFileRecord["size"] = Math.Round((decimal)(file.Length / 1024), 0);
-						userFileRecord["path"] = filePath;
-
-						var mimeType = MimeMapping.MimeUtility.GetMimeMapping(filePath);
-						var fileExtension = Path.GetExtension(filePath);
-						if (mimeType.StartsWith("image"))
-						{
-							var dimensionsRecord = Helpers.GetImageDimension(fileBuffer);
-							userFileRecord["width"] = (decimal)dimensionsRecord["width"];
-							userFileRecord["height"] = (decimal)dimensionsRecord["height"];
-							userFileRecord["type"] = "image";
-						}
-						else if (mimeType.StartsWith("video"))
-						{
-							userFileRecord["type"] = "video";
-						}
-						else if (mimeType.StartsWith("audio"))
-						{
-							userFileRecord["type"] = "audio";
-						}
-						else if (fileExtension == ".doc" || fileExtension == ".docx" || fileExtension == ".odt" || fileExtension == ".rtf"
-						 || fileExtension == ".txt" || fileExtension == ".pdf" || fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".ppt"
-						  || fileExtension == ".pptx" || fileExtension == ".xls" || fileExtension == ".xlsx" || fileExtension == ".ods" || fileExtension == ".odp")
-						{
-							userFileRecord["type"] = "document";
-						}
-						else
-						{
-							userFileRecord["type"] = "other";
-						}
-						#endregion
-
-						var recordCreateResult = recMan.CreateRecord("user_file", userFileRecord);
-						if (!recordCreateResult.Success)
-						{
-							throw new Exception(recordCreateResult.Message);
-						}
-						resultRecords.Add(userFileRecord);
+						ProcessUserFileUpload(file, currentUser, resultRecords);
 					}
 					connection.CommitTransaction();
 					response.Success = true;
@@ -4147,55 +2368,7 @@ namespace WebVella.Erp.Web.Controllers
 				{
 					foreach (var file in files)
 					{
-						var fileBuffer = ReadFully(file.OpenReadStream());
-						var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.ToString().Trim().ToLowerInvariant();
-						if (fileName.StartsWith("\"", StringComparison.InvariantCulture))
-							fileName = fileName.Substring(1);
-
-						if (fileName.EndsWith("\"", StringComparison.InvariantCulture))
-							fileName = fileName.Substring(0, fileName.Length - 1);
-
-						var recMan = new RecordManager();
-						DbFileRepository fsRepository = new DbFileRepository();
-						DbFile dbFile = fsRepository.CreateTempFile(fileName, fileBuffer);
-
-						var resultRec = new EntityRecord();
-
-						resultRec["id"] = dbFile.Id;
-						resultRec["created_on"] = DateTime.Now;
-						resultRec["name"] = fileName;
-						resultRec["size"] = Math.Round((decimal)(file.Length / 1024), 0);
-						resultRec["path"] = dbFile.FilePath;
-
-						var mimeType = MimeMapping.MimeUtility.GetMimeMapping(dbFile.FilePath);
-						var fileExtension = Path.GetExtension(dbFile.FilePath);
-						if (mimeType.StartsWith("image"))
-						{
-							var dimensionsRecord = Helpers.GetImageDimension(fileBuffer);
-							resultRec["width"] = (decimal)dimensionsRecord["width"];
-							resultRec["height"] = (decimal)dimensionsRecord["height"];
-							resultRec["type"] = "image";
-						}
-						else if (mimeType.StartsWith("video"))
-						{
-							resultRec["type"] = "video";
-						}
-						else if (mimeType.StartsWith("audio"))
-						{
-							resultRec["type"] = "audio";
-						}
-						else if (fileExtension == ".doc" || fileExtension == ".docx" || fileExtension == ".odt" || fileExtension == ".rtf"
-						 || fileExtension == ".txt" || fileExtension == ".pdf" || fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".ppt"
-						  || fileExtension == ".pptx" || fileExtension == ".xls" || fileExtension == ".xlsx" || fileExtension == ".ods" || fileExtension == ".odp")
-						{
-							resultRec["type"] = "document";
-						}
-						else
-						{
-							resultRec["type"] = "other";
-						}
-
-						resultRecords.Add(resultRec);
+						ProcessFileUpload(file, resultRecords);
 					}
 
 					connection.CommitTransaction();
@@ -4308,6 +2481,2161 @@ namespace WebVella.Erp.Web.Controllers
 			return DoResponse(response);
 		}
 
+		#endregion
+
+		#region << Refactor: extracted private helpers >>
+
+		private EqlDataSourceQuery BuildEqlDataSourceQueryFromSubmit(JObject submitObj)
+		{
+			EqlDataSourceQuery model = new EqlDataSourceQuery();
+			foreach (var prop in submitObj.Properties())
+			{
+				switch (prop.Name.ToLower())
+				{
+					case "name":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							model.Name = prop.Value.ToString();
+						else
+						{
+							throw new Exception("DataSource Name is required");
+						}
+						break;
+					case "parameters":
+						var jParams = (JArray)prop.Value;
+						model.Parameters = new List<EqlParameter>();
+						foreach (JObject jParam in jParams)
+						{
+							var name = jParam["name"].ToString();
+							var value = jParam["value"].ToString();
+							var eqlParam = new EqlParameter(name, value);
+							model.Parameters.Add(eqlParam);
+						}
+						break;
+				}
+			}
+			return model;
+		}
+
+		private ActionResult JsonFromEqlException(ResponseModel response, EqlException eqlEx)
+		{
+			response.Success = false;
+			foreach (var eqlError in eqlEx.Errors)
+			{
+				response.Errors.Add(new ErrorModel("eql", "", eqlError.Message));
+			}
+			return Json(response);
+		}
+
+		private ActionResult JsonFromException(ResponseModel response, Exception ex)
+		{
+			response.Success = false;
+			response.Message = ex.Message;
+			return Json(response);
+		}
+
+		private ContentResult LogErrorAndReturn500(Exception exception, string label)
+		{
+			new Log().Create(LogType.Error, label, exception);
+			return new ContentResult
+			{
+				Content = $"Error: {exception.Message}",
+				ContentType = "text/plain",
+				// change to whatever status code you want to send out
+				StatusCode = 500
+			};
+		}
+
+		private ActionResult ValidateRenderRequest(string renderMode, Guid? pid)
+		{
+			if (string.IsNullOrWhiteSpace(renderMode))
+				return NotFound();
+
+			//if (nid == null)
+			//	return BadRequest("The node Id is required to be set as query parameter 'nid', when requesting this component");
+
+			if (pid == null)
+				return BadRequest("The page Id is required to be set as query parameter 'pid', when requesting this component");
+
+			return null;
+		}
+
+		private Type ResolvePageComponentType(string fullComponentName)
+		{
+			return FileService.GetType(fullComponentName);
+		}
+
+		private void ApplySimulatedRouteData(Guid? entityId, Guid? pid, Guid? recordId)
+		{
+			erpRequestContext.SetSimulatedRouteData(entityId: entityId, pageId: pid, recordId: recordId);
+		}
+
+		private PageDataModel BuildSimulationPageModel(ErpPage page, Guid? entityId, Guid? recordId)
+		{
+			//erpRequestContext
+			if (page != null)
+			{
+				//Override 
+				if (entityId != null)
+					page.EntityId = entityId;
+
+				if (page.AppId == null && page.EntityId != null)
+				{
+					ResolveSimulatedAppFromAttachedApps(page);
+				}
+
+				if (page.AppId != null)
+				{
+					ApplySimulatedAppAreaNodeEntity(page, recordId);
+				}
+			}
+
+			//currentUser
+			var currentUser = AuthService.GetUser(User);
+
+
+			var baseErpPageMode = BaseErpPageModel.CreatePageModelSimulation(
+				erpRequestContext: erpRequestContext,
+				currentUser: currentUser
+			);
+
+			return baseErpPageMode.DataModel;
+		}
+
+		private ActionResult DispatchComponentView(Type type, string renderMode, PageBodyNode pagebodyNode, PageDataModel pageModel, JObject options)
+		{
+			switch (renderMode)
+			{
+				case "display":
+					var pcContextDisplay = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
+					return ViewComponent(type, new { context = pcContextDisplay });
+				case "design":
+					var pcContextDesign = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Design, options);
+					return ViewComponent(type, new { context = pcContextDesign });
+				case "options":
+					pageModel.SafeCodeDataVariable = true;
+					var pcContextOptions = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Options, options);
+					return ViewComponent(type, new { context = pcContextOptions });
+				case "help":
+					var pcContextReadme = new PageComponentContext(pagebodyNode, pageModel, ComponentMode.Help, options);
+					return ViewComponent(type, new { context = pcContextReadme });
+			}
+
+			return NotFound();
+		}
+
+		private List<Guid> ResolveNodeIdsFromComponentData(EntityRecord componentData, string key)
+		{
+			var nodeIds = new List<Guid>();
+			if (componentData.Properties.ContainsKey(key) && componentData[key] != null)
+			{
+				if (componentData[key] is string)
+				{
+					try
+					{
+						nodeIds = JsonConvert.DeserializeObject<List<Guid>>((string)componentData[key]);
+					}
+					catch
+					{
+						throw new Exception($"WebVella.Erp.Web.Components.PcSection component data object in user preferences not in the correct format. {key} should be List<Guid>");
+					}
+				}
+				else if (componentData[key] is List<Guid>)
+				{
+					nodeIds = (List<Guid>)componentData[key];
+				}
+				else if (componentData[key] is JArray)
+				{
+					nodeIds = ((JArray)componentData[key]).ToObject<List<Guid>>();
+				}
+				else
+				{
+					throw new Exception($"Unknown format of {key}");
+				}
+			}
+			return nodeIds;
+		}
+
+		private List<EntityRecord> MapRecordsToSelect2Items(List<EntityRecord> records)
+		{
+			var processedRecords = new List<EntityRecord>();
+			foreach (var record in records)
+			{
+				var procRec = new EntityRecord();
+				if (record.Properties.ContainsKey("id"))
+				{
+					procRec["id"] = record["id"].ToString();
+				}
+				else
+				{
+					procRec["id"] = "no-id-" + Guid.NewGuid();
+				}
+				if (record.Properties.ContainsKey("text"))
+				{
+					procRec["text"] = record["text"].ToString();
+				}
+				else if (record.Properties.ContainsKey("label"))
+				{
+					procRec["text"] = record["label"].ToString();
+				}
+				else if (record.Properties.ContainsKey("name"))
+				{
+					procRec["text"] = record["name"].ToString();
+				}
+				else
+				{
+					procRec["text"] = procRec["id"].ToString();
+				}
+				processedRecords.Add(procRec);
+			}
+			return processedRecords;
+		}
+		private int ResolveSelect2Page(EqlDataSourceQuery model)
+		{
+			var page = 1;
+			if (model.Parameters.Count > 0)
+			{
+				var pageParam = model.Parameters.FirstOrDefault(x => x.ParameterName == "page");
+				if (pageParam != null)
+				{
+					if (int.TryParse(pageParam.Value?.ToString(), out int outInt))
+					{
+						page = outInt;
+					}
+				}
+			}
+			return page;
+		}
+		private ActionResult ExecuteSelect2DataSource(EqlDataSourceQuery model, ref List<EntityRecord> records, ref int? total)
+		{
+			DataSourceManager dsMan = new DataSourceManager();
+			var dataSources = dsMan.GetAll();
+			var ds = dataSources.SingleOrDefault(x => x.Name == model.Name);
+			if (ds == null)
+			{
+				return BadRequest();
+			}
+
+			if (ds is DatabaseDataSource)
+			{
+				var list = (EntityRecordList)dsMan.Execute(ds.Id, model.Parameters);
+				records = (List<EntityRecord>)list;
+				total = list.TotalCount;
+			}
+			else if (ds is CodeDataSource)
+			{
+				Dictionary<string, object> arguments = new Dictionary<string, object>();
+				foreach (var par in model.Parameters)
+					arguments[par.ParameterName] = par.Value;
+
+				var dsResult = ((CodeDataSource)ds).Execute(arguments);
+				if (dsResult is EntityRecordList)
+				{
+
+					records = (List<EntityRecord>)((EntityRecordList)dsResult);
+					total = ((EntityRecordList)dsResult).TotalCount;
+				}
+				else if (dsResult is List<EntityRecord>)
+				{
+					records = (List<EntityRecord>)dsResult;
+					total = null;
+				}
+				else
+				{
+					return Json(dsResult);
+				}
+			}
+			else
+			{
+				return BadRequest();
+			}
+			return null;
+		}
+		private void ApplyToggleSectionState(bool isCollapsed, Guid? nodeId, ref List<Guid> collapsedNodeIds, ref List<Guid> uncollapsedNodeIds)
+		{
+			if (isCollapsed)
+			{
+				//new state is collapsed
+				//1. remove if it is in uncollapsed
+				uncollapsedNodeIds = uncollapsedNodeIds.FindAll(x => x != nodeId.Value).ToList();
+				//2. add to collapsed
+				if (!collapsedNodeIds.Contains(nodeId.Value))
+					collapsedNodeIds.Add(nodeId.Value);
+			}
+			else
+			{
+				//new state is uncollapsed
+				//1. remove it is in collapsed
+				collapsedNodeIds = collapsedNodeIds.FindAll(x => x != nodeId.Value).ToList();
+				//2. add to uncollapsed
+				if (!uncollapsedNodeIds.Contains(nodeId.Value))
+					uncollapsedNodeIds.Add(nodeId.Value);
+			}
+		}
+		private void ResolveSimulatedAppFromAttachedApps(ErpPage page)
+		{
+			#region << Try to get one of the attached apps >>
+			var allApps = new AppService().GetAllApplications();
+			foreach (var appInstance in allApps)
+			{
+				foreach (var areaInstance in appInstance.Sitemap.Areas)
+				{
+					foreach (var nodeInstance in areaInstance.Nodes)
+					{
+						if (nodeInstance.EntityId == page.EntityId)
+						{
+							page.AppId = appInstance.Id;
+							if (page.Type == PageType.RecordCreate || page.Type == PageType.RecordDetails ||
+							page.Type == PageType.RecordList || page.Type == PageType.RecordManage)
+							{
+								page.AreaId = areaInstance.Id;
+								page.NodeId = nodeInstance.Id;
+							}
+						}
+					}
+				}
+			}
+
+			#endregion
+		}
+		private void ApplySimulatedAppAreaNodeEntity(ErpPage page, Guid? recordId)
+		{
+			App app = null;
+			SitemapArea area = null;
+			SitemapNode node = null;
+			Entity entity = null;
+			app = new AppService().GetApplication(page.AppId ?? Guid.Empty);
+			erpRequestContext.App = app;
+			if (app != null)
+			{
+				if (page.AreaId != null)
+				{
+					area = app.Sitemap.Areas.FirstOrDefault(x => x.Id == page.AreaId);
+					erpRequestContext.SitemapArea = area;
+					if (area != null && page.NodeId != null)
+					{
+						node = area.Nodes.FirstOrDefault(x => x.Id == page.NodeId);
+						erpRequestContext.SitemapNode = node;
+					}
+				}
+
+				if (page.EntityId != null)
+				{
+					entity = new EntityManager().ReadEntity(page.EntityId ?? Guid.Empty).Object;
+					erpRequestContext.Entity = entity;
+
+					FindSimulationRecord(entity, recordId);
+				}
+			}
+		}
+		private void FindSimulationRecord(Entity entity, Guid? recordId)
+		{
+			//Get the first record as simulation
+			if (entity != null)
+			{
+				QueryObject filter = null;
+				if (recordId != null)
+				{
+					filter = EntityQuery.QueryEQ("id", recordId.Value);
+				}
+				var sortsList = new List<QuerySortObject>();
+				sortsList.Add(new QuerySortObject("id", QuerySortType.Ascending));
+				var findRecordResponse = new RecordManager().Find(new EntityQuery(entity.Name, "*", filter, sortsList.ToArray(), 0, 1));
+				if (!findRecordResponse.Success)
+					throw new Exception(findRecordResponse.Message);
+				if (findRecordResponse.Object != null && findRecordResponse.Object.Data.Any())
+				{
+					var record = findRecordResponse.Object.Data.First();
+					erpRequestContext.RecordId = (Guid)record["id"];
+				}
+			}
+		}
+		private EntityQuery BuildRelatedFieldQuery(string entityName, string fieldName, string search, int page)
+		{
+			var pageSize = 5 + 1; //the extra record will tell us if there are more records
+			var skipPages = (page - 1) * pageSize;
+			var sortList = new List<QuerySortObject>();
+			sortList.Add(new QuerySortObject(fieldName, QuerySortType.Ascending));
+
+			var query = new EntityQuery(entityName, fieldName, null, sortList.ToArray(), skipPages, pageSize);
+			if (!String.IsNullOrWhiteSpace(search))
+			{
+				query = new EntityQuery(entityName, fieldName, EntityQuery.QueryContains(fieldName, search), sortList.ToArray(), skipPages, pageSize);
+			}
+			return query;
+		}
+		private void PopulateRelatedFieldResults(TypeaheadResponse response, List<EntityRecord> data, string entityName, string fieldName)
+		{
+			var resultRecords = new List<EntityRecord>();
+			if (data.Count > 0)
+			{
+				if (data.Count == 6)
+				{
+					response.Pagination.More = true;
+					resultRecords = data.Take(5).ToList();
+				}
+				else
+				{
+					resultRecords = data;
+				}
+
+				var entity = new EntityManager().ReadEntity(entityName).Object;
+				foreach (var record in resultRecords)
+				{
+					response.Results.Add(new TypeaheadResponseRow
+					{
+						Id = record[fieldName].ToString(),
+						Text = record[fieldName].ToString(),
+						FieldName = fieldName,
+						EntityName = entity.Label,
+						Color = entity.Color,
+						IconName = entity.IconName
+					});
+				}
+			}
+		}
+		private void ParseSelectFieldAddOptionSubmit(JObject submitObj, ref string entityName, ref string fieldName, ref string optionValue)
+		{
+			#region << Init SubmitObj >>
+			foreach (var prop in submitObj.Properties())
+			{
+				switch (prop.Name.ToLower())
+				{
+					case "entityname":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							entityName = prop.Value.ToString();
+						else
+						{
+							throw new Exception("EntityName is required");
+						}
+						break;
+					case "fieldname":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							fieldName = prop.Value.ToString();
+						else
+						{
+							throw new Exception("Field name is required");
+						}
+						break;
+					case "value":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							optionValue = prop.Value.ToString();
+						else
+						{
+							throw new Exception("Option value is required");
+						}
+						break;
+				}
+			}
+			#endregion
+		}
+		private Field ResolveSelectFieldMeta(EntityManager entMan, string entityName, string fieldName, out Entity entityMeta)
+		{
+			entityMeta = entMan.ReadEntity(entityName).Object;
+			if (entityMeta == null)
+			{
+				throw new Exception("Entity not found by the provided entityName: " + entityName);
+			}
+			var fieldMeta = entityMeta.Fields.FirstOrDefault(x => x.Name == fieldName);
+			if (fieldMeta == null)
+			{
+				throw new Exception("Field not found by the provided fieldName: " + fieldMeta + " in entity " + entityName);
+			}
+			return fieldMeta;
+		}
+		private bool SelectFieldOptionExists(Field fieldMeta, string optionValue)
+		{
+			var optionExists = false;
+			if (fieldMeta.GetFieldType() == FieldType.SelectField)
+			{
+				var fieldOptions = ((SelectField)fieldMeta).Options.FirstOrDefault(x => x.Value.ToLowerInvariant() == optionValue.ToLowerInvariant());
+				if (fieldOptions != null)
+				{
+					optionExists = true;
+				}
+			}
+			else if (fieldMeta.GetFieldType() == FieldType.MultiSelectField)
+			{
+				var fieldOptions = ((MultiSelectField)fieldMeta).Options.FirstOrDefault(x => x.Value.ToLowerInvariant() == optionValue.ToLowerInvariant());
+				if (fieldOptions != null)
+				{
+					optionExists = true;
+				}
+			}
+			return optionExists;
+		}
+		private void AddSelectFieldOption(EntityManager entMan, Entity entityMeta, Field fieldMeta, string optionValue)
+		{
+			if (fieldMeta.GetFieldType() == FieldType.SelectField)
+			{
+				var newOption = new SelectOption
+				{
+					Value = optionValue,
+					Label = optionValue
+				};
+				var newFieldMeta = (SelectField)fieldMeta;
+				newFieldMeta.Options.Add(newOption);
+				var updateResponse = entMan.UpdateField(entityMeta, newFieldMeta.MapTo<InputField>());
+				if (!updateResponse.Success)
+				{
+					throw new Exception(updateResponse.Message);
+				}
+			}
+			else if (fieldMeta.GetFieldType() == FieldType.MultiSelectField)
+			{
+				var newOption = new SelectOption
+				{
+					Value = optionValue,
+					Label = optionValue
+				};
+				var newFieldMeta = (MultiSelectField)fieldMeta;
+				newFieldMeta.Options.Add(newOption);
+				var updateResponse = entMan.UpdateField(entityMeta, newFieldMeta.MapTo<InputField>());
+				if (!updateResponse.Success)
+				{
+					throw new Exception(updateResponse.Message);
+				}
+			}
+		}
+		private void ParseFieldTableDataPreviewSubmit(JObject submitObj, ref bool hasHeader, ref bool hasHeaderColumn, ref string csvData, ref string delimiterName)
+		{
+			foreach (var prop in submitObj.Properties())
+			{
+				switch (prop.Name.ToLower())
+				{
+					case "hasheader":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+						{
+							var hasHeaderString = prop.Value.ToString();
+							if (hasHeaderString.ToLowerInvariant() == "false")
+							{
+								hasHeader = false;
+							}
+						}
+						break;
+					case "hasheadercolumn":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+						{
+							var hasHeaderColumnString = prop.Value.ToString();
+							if (hasHeaderColumnString.ToLowerInvariant() == "true")
+							{
+								hasHeaderColumn = true;
+							}
+						}
+						break;
+					case "csv":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+						{
+							csvData = prop.Value.ToString();
+						}
+						break;
+					case "delimiter":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+						{
+							delimiterName = prop.Value.ToString(); //Does not work if first checked for empty string
+						}
+						break;
+				}
+			}
+		}
+		private void ValidatePatchEntityProperties(JObject submitObj, Type inputEntityType, FieldResponse response)
+		{
+			foreach (var prop in submitObj.Properties())
+			{
+				int count = inputEntityType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
+				if (count < 1)
+					response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
+			}
+		}
+		private void ApplyPatchEntityProperties(InputEntity entity, InputEntity inputEntity, JObject submitObj)
+		{
+			foreach (var prop in submitObj.Properties())
+			{
+				if (prop.Name.ToLower() == "label")
+					entity.Label = inputEntity.Label;
+				if (prop.Name.ToLower() == "labelplural")
+					entity.LabelPlural = inputEntity.LabelPlural;
+				if (prop.Name.ToLower() == "system")
+					entity.System = inputEntity.System;
+				if (prop.Name.ToLower() == "iconname")
+					entity.IconName = inputEntity.IconName;
+				if (prop.Name.ToLower() == "color")
+					entity.Color = inputEntity.Color;
+				//if (prop.Name.ToLower() == "weight")
+				//	entity.Weight = inputEntity.Weight;
+				if (prop.Name.ToLower() == "recordpermissions")
+					entity.RecordPermissions = inputEntity.RecordPermissions;
+				if (prop.Name.ToLower() == "recordscreenidfield")
+					entity.RecordScreenIdField = inputEntity.RecordScreenIdField;
+			}
+		}
+		private IActionResult ResolvePatchFieldEntity(string Id, string FieldId, FieldResponse response, ref Entity entity)
+		{
+			if (!Guid.TryParse(Id, out Guid entityId))
+			{
+				response.Errors.Add(new ErrorModel("Id", Id, "id parameter is not valid Guid value"));
+				return DoBadRequestResponse(response, "Field was not updated!");
+			}
+
+			if (!Guid.TryParse(FieldId, out Guid fieldId))
+			{
+				response.Errors.Add(new ErrorModel("FieldId", FieldId, "FieldId parameter is not valid Guid value"));
+				return DoBadRequestResponse(response, "Field was not updated!");
+			}
+
+			DbEntity storageEntity = DbContext.Current.EntityRepository.Read(entityId);
+			if (storageEntity == null)
+			{
+				response.Errors.Add(new ErrorModel("Id", Id, "Entity with such Id does not exist!"));
+				return DoBadRequestResponse(response, "Field was not updated!");
+			}
+			entity = storageEntity.MapTo<Entity>();
+
+			Field updatedField = entity.Fields.FirstOrDefault(f => f.Id == fieldId);
+			if (updatedField == null)
+			{
+				response.Errors.Add(new ErrorModel("FieldId", FieldId, "Field with such Id does not exist!"));
+				return DoBadRequestResponse(response, "Field was not updated!");
+			}
+			return null;
+		}
+		private IActionResult ResolvePatchFieldType(JObject submitObj, FieldResponse response, out FieldType fieldType)
+		{
+			fieldType = FieldType.GuidField;
+
+			var fieldTypeProp = submitObj.Properties().SingleOrDefault(k => k.Name.ToLower() == "fieldtype");
+			if (fieldTypeProp != null)
+			{
+				fieldType = (FieldType)Enum.ToObject(typeof(FieldType), fieldTypeProp.Value.ToObject<int>());
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("fieldType", null, "fieldType is required!"));
+				return DoBadRequestResponse(response, "Field was not updated!");
+			}
+			return null;
+		}
+		private void ValidatePatchFieldProperties(JObject submitObj, FieldType fieldType, FieldResponse response)
+		{
+			Type inputFieldType = InputField.GetFieldType(fieldType);
+			foreach (var prop in submitObj.Properties())
+			{
+				if (prop.Name.ToLower() == "entityname")
+					continue;
+
+				int count = inputFieldType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
+				if (count < 1)
+					response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
+			}
+		}
+		private InputField ApplyPatchFieldProperties(JObject submitObj, FieldType fieldType, InputField inputField)
+		{
+			InputField field = new InputGuidField();
+			foreach (var prop in submitObj.Properties())
+			{
+				field = ResolveTypedFieldProperty(fieldType, prop, field, inputField);
+				ApplyCommonFieldProperty(prop, field, inputField);
+			}
+			return field;
+		}
+		private InputField ResolveTypedFieldProperty(FieldType fieldType, JProperty prop, InputField field, InputField inputField)
+		{
+			switch (fieldType)
+			{
+				case FieldType.AutoNumberField: field = ApplyAutoNumberFieldProperty(prop, inputField); break;
+				case FieldType.CheckboxField: field = ApplyCheckboxFieldProperty(prop, inputField); break;
+				case FieldType.CurrencyField: field = ApplyCurrencyFieldProperty(prop, inputField); break;
+				case FieldType.DateField: field = ApplyDateFieldProperty(prop, inputField); break;
+				case FieldType.DateTimeField: field = ApplyDateTimeFieldProperty(prop, inputField); break;
+				case FieldType.EmailField: field = ApplyEmailFieldProperty(prop, inputField); break;
+				case FieldType.FileField: field = ApplyFileFieldProperty(prop, inputField); break;
+				case FieldType.HtmlField: field = ApplyHtmlFieldProperty(prop, inputField); break;
+				case FieldType.ImageField: field = ApplyImageFieldProperty(prop, inputField); break;
+				case FieldType.MultiLineTextField: field = ApplyMultiLineTextFieldProperty(prop, inputField); break;
+				case FieldType.GeographyField: field = ApplyGeographyFieldProperty(prop, inputField); break;
+				case FieldType.MultiSelectField: field = ApplyMultiSelectFieldProperty(prop, inputField); break;
+				case FieldType.NumberField: field = ApplyNumberFieldProperty(prop, inputField); break;
+				case FieldType.PasswordField: field = ApplyPasswordFieldProperty(prop, inputField); break;
+				case FieldType.PercentField: field = ApplyPercentFieldProperty(prop, inputField); break;
+				case FieldType.PhoneField: field = ApplyPhoneFieldProperty(prop, inputField); break;
+				case FieldType.GuidField: field = ApplyGuidFieldProperty(prop, inputField); break;
+				case FieldType.SelectField: field = ApplySelectFieldProperty(prop, inputField); break;
+				case FieldType.TextField: field = ApplyTextFieldProperty(prop, inputField); break;
+				case FieldType.UrlField: field = ApplyUrlFieldProperty(prop, inputField); break;
+			}
+			return field;
+		}
+		private InputField ApplyAutoNumberFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputAutoNumberField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputAutoNumberField)field).DefaultValue = ((InputAutoNumberField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "U")
+				((InputAutoNumberField)field).DisplayFormat = ((InputAutoNumberField)inputField).DisplayFormat;
+			if (prop.Name.ToLower() == "startingnumber")
+				((InputAutoNumberField)field).StartingNumber = ((InputAutoNumberField)inputField).StartingNumber;
+			return field;
+		}
+		private InputField ApplyCheckboxFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputCheckboxField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputCheckboxField)field).DefaultValue = ((InputCheckboxField)inputField).DefaultValue;
+			return field;
+		}
+		private InputField ApplyCurrencyFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputCurrencyField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputCurrencyField)field).DefaultValue = ((InputCurrencyField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "minvalue")
+				((InputCurrencyField)field).MinValue = ((InputCurrencyField)inputField).MinValue;
+			if (prop.Name.ToLower() == "maxvalue")
+				((InputCurrencyField)field).MaxValue = ((InputCurrencyField)inputField).MaxValue;
+			if (prop.Name.ToLower() == "currency")
+				((InputCurrencyField)field).Currency = ((InputCurrencyField)inputField).Currency;
+			return field;
+		}
+		private InputField ApplyDateFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputDateField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputDateField)field).DefaultValue = ((InputDateField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "format")
+				((InputDateField)field).Format = ((InputDateField)inputField).Format;
+			if (prop.Name.ToLower() == "usecurrenttimeasdefaultvalue")
+				((InputDateField)field).UseCurrentTimeAsDefaultValue = ((InputDateField)inputField).UseCurrentTimeAsDefaultValue;
+			return field;
+		}
+		private InputField ApplyDateTimeFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputDateTimeField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputDateTimeField)field).DefaultValue = ((InputDateTimeField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "format")
+				((InputDateTimeField)field).Format = ((InputDateTimeField)inputField).Format;
+			if (prop.Name.ToLower() == "usecurrenttimeasdefaultvalue")
+				((InputDateTimeField)field).UseCurrentTimeAsDefaultValue = ((InputDateTimeField)inputField).UseCurrentTimeAsDefaultValue;
+			return field;
+		}
+		private InputField ApplyEmailFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputEmailField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputEmailField)field).DefaultValue = ((InputEmailField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputEmailField)field).MaxLength = ((InputEmailField)inputField).MaxLength;
+			return field;
+		}
+		private InputField ApplyFileFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputFileField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputFileField)field).DefaultValue = ((InputFileField)inputField).DefaultValue;
+			return field;
+		}
+		private InputField ApplyHtmlFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputHtmlField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputHtmlField)field).DefaultValue = ((InputHtmlField)inputField).DefaultValue;
+			return field;
+		}
+		private InputField ApplyImageFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputImageField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputImageField)field).DefaultValue = ((InputImageField)inputField).DefaultValue;
+			return field;
+		}
+		private InputField ApplyMultiLineTextFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputMultiLineTextField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputMultiLineTextField)field).DefaultValue = ((InputMultiLineTextField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputMultiLineTextField)field).MaxLength = ((InputMultiLineTextField)inputField).MaxLength;
+			if (prop.Name.ToLower() == "visiblelinenumber")
+				((InputMultiLineTextField)field).VisibleLineNumber = ((InputMultiLineTextField)inputField).VisibleLineNumber;
+			return field;
+		}
+		private InputField ApplyGeographyFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputGeographyField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputGeographyField)field).DefaultValue = ((InputGeographyField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputGeographyField)field).MaxLength = ((InputGeographyField)inputField).MaxLength;
+			if (prop.Name.ToLower() == "visiblelinenumber")
+				((InputGeographyField)field).VisibleLineNumber = ((InputGeographyField)inputField).VisibleLineNumber;
+			if (prop.Name.ToLower() == "format")
+				((InputGeographyField)field).Format = ((InputGeographyField)inputField).Format;
+			if (prop.Name.ToLower() == "srid")
+				((InputGeographyField)field).SRID = ((InputGeographyField)inputField).SRID;
+			return field;
+		}
+		private InputField ApplyMultiSelectFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputMultiSelectField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputMultiSelectField)field).DefaultValue = ((InputMultiSelectField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "options")
+				((InputMultiSelectField)field).Options = ((InputMultiSelectField)inputField).Options;
+			return field;
+		}
+		private InputField ApplyNumberFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputNumberField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputNumberField)field).DefaultValue = ((InputNumberField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "minvalue")
+				((InputNumberField)field).MinValue = ((InputNumberField)inputField).MinValue;
+			if (prop.Name.ToLower() == "maxvalue")
+				((InputNumberField)field).MaxValue = ((InputNumberField)inputField).MaxValue;
+			if (prop.Name.ToLower() == "decimalplaces")
+				((InputNumberField)field).DecimalPlaces = ((InputNumberField)inputField).DecimalPlaces;
+			return field;
+		}
+		private InputField ApplyPasswordFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputPasswordField();
+			if (prop.Name.ToLower() == "maxlength")
+				((InputPasswordField)field).MaxLength = ((InputPasswordField)inputField).MaxLength;
+			if (prop.Name.ToLower() == "minlength")
+				((InputPasswordField)field).MinLength = ((InputPasswordField)inputField).MinLength;
+			if (prop.Name.ToLower() == "encrypted")
+				((InputPasswordField)field).Encrypted = ((InputPasswordField)inputField).Encrypted;
+			return field;
+		}
+		private InputField ApplyPercentFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputPercentField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputPercentField)field).DefaultValue = ((InputPercentField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "minvalue")
+				((InputPercentField)field).MinValue = ((InputPercentField)inputField).MinValue;
+			if (prop.Name.ToLower() == "maxvalue")
+				((InputPercentField)field).MaxValue = ((InputPercentField)inputField).MaxValue;
+			if (prop.Name.ToLower() == "decimalplaces")
+				((InputPercentField)field).DecimalPlaces = ((InputPercentField)inputField).DecimalPlaces;
+			return field;
+		}
+		private InputField ApplyPhoneFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputPhoneField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputPhoneField)field).DefaultValue = ((InputPhoneField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "format")
+				((InputPhoneField)field).Format = ((InputPhoneField)inputField).Format;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputPhoneField)field).MaxLength = ((InputPhoneField)inputField).MaxLength;
+			return field;
+		}
+		private InputField ApplyGuidFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputGuidField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputGuidField)field).DefaultValue = ((InputGuidField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "generatenewid")
+				((InputGuidField)field).GenerateNewId = ((InputGuidField)inputField).GenerateNewId;
+			return field;
+		}
+		private InputField ApplySelectFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputSelectField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputSelectField)field).DefaultValue = ((InputSelectField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "options")
+				((InputSelectField)field).Options = ((InputSelectField)inputField).Options;
+			return field;
+		}
+		private InputField ApplyTextFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputTextField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputTextField)field).DefaultValue = ((InputTextField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputTextField)field).MaxLength = ((InputTextField)inputField).MaxLength;
+			return field;
+		}
+		private InputField ApplyUrlFieldProperty(JProperty prop, InputField inputField)
+		{
+			InputField field = new InputUrlField();
+			if (prop.Name.ToLower() == "defaultvalue")
+				((InputUrlField)field).DefaultValue = ((InputUrlField)inputField).DefaultValue;
+			if (prop.Name.ToLower() == "maxlength")
+				((InputUrlField)field).MaxLength = ((InputUrlField)inputField).MaxLength;
+			if (prop.Name.ToLower() == "opentargetinnewwindow")
+				((InputUrlField)field).OpenTargetInNewWindow = ((InputUrlField)inputField).OpenTargetInNewWindow;
+			return field;
+		}
+		private void ApplyCommonFieldProperty(JProperty prop, InputField field, InputField inputField)
+		{
+			if (prop.Name.ToLower() == "label")
+				field.Label = inputField.Label;
+			else if (prop.Name.ToLower() == "placeholdertext")
+				field.PlaceholderText = inputField.PlaceholderText;
+			else if (prop.Name.ToLower() == "description")
+				field.Description = inputField.Description;
+			else if (prop.Name.ToLower() == "helptext")
+				field.HelpText = inputField.HelpText;
+			else if (prop.Name.ToLower() == "required")
+				field.Required = inputField.Required;
+			else if (prop.Name.ToLower() == "unique")
+				field.Unique = inputField.Unique;
+			else if (prop.Name.ToLower() == "searchable")
+				field.Searchable = inputField.Searchable;
+			else if (prop.Name.ToLower() == "auditable")
+				field.Auditable = inputField.Auditable;
+			else if (prop.Name.ToLower() == "system")
+				field.System = inputField.System;
+		}
+		private IActionResult ValidateUpdateRelationModel(InputEntityRelationRecordUpdateModel model, BaseResponseModel response, ref EntityRelation relation)
+		{
+			if (model == null)
+			{
+				response.Errors.Add(new ErrorModel { Message = "Invalid model." });
+				response.Success = false;
+				return DoResponse(response);
+			}
+
+			if (string.IsNullOrWhiteSpace(model.RelationName))
+			{
+				response.Errors.Add(new ErrorModel { Message = "Invalid relation name.", Key = "relationName" });
+				response.Success = false;
+				return DoResponse(response);
+			}
+			else
+			{
+				relation = new EntityRelationManager().Read(model.RelationName).Object;
+				if (relation == null)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Invalid relation name. No relation with that name.", Key = "relationName" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult CollectAttachTargetRecords(InputEntityRelationRecordUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity targetEntity, Field targetField, List<EntityRecord> attachTargetRecords)
+		{
+			EntityQuery query;
+			QueryResponse result;
+			foreach (var targetId in model.AttachTargetFieldRecordIds)
+			{
+				query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", targetId), null, null, null);
+				result = recMan.Find(query);
+				if (result.Object.Data.Count == 0)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Attach target record was not found. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				else if (attachTargetRecords.Any(x => (Guid)x["id"] == targetId))
+				{
+					response.Errors.Add(new ErrorModel { Message = "Attach target id was duplicated. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				attachTargetRecords.Add(result.Object.Data[0]);
+			}
+			return null;
+		}
+		private IActionResult CollectDetachTargetRecords(InputEntityRelationRecordUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity targetEntity, Field targetField, List<EntityRecord> detachTargetRecords)
+		{
+			EntityQuery query;
+			QueryResponse result;
+			foreach (var targetId in model.DetachTargetFieldRecordIds)
+			{
+				query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", targetId), null, null, null);
+				result = recMan.Find(query);
+				if (result.Object.Data.Count == 0)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Detach target record was not found. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				else if (detachTargetRecords.Any(x => (Guid)x["id"] == targetId))
+				{
+					response.Errors.Add(new ErrorModel { Message = "Detach target id was duplicated. Id=[" + targetEntity.Id + "]", Key = "targetRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				detachTargetRecords.Add(result.Object.Data[0]);
+			}
+			return null;
+		}
+		private IActionResult ApplyUpdateRelationChanges(BaseResponseModel response, RecordManager recMan, EntityRelation relation, Entity targetEntity, Field targetField, object originValue, List<EntityRecord> attachTargetRecords, List<EntityRecord> detachTargetRecords)
+		{
+			using (var connection = DbContext.Current.CreateConnection())
+			{
+				connection.BeginTransaction();
+
+				try
+				{
+					switch (relation.RelationType)
+					{
+						case EntityRelationType.OneToOne:
+						case EntityRelationType.OneToMany:
+							{
+								var oneToManyResult = ApplyOneToManyRelationChanges(recMan, connection, response, targetEntity, targetField, originValue, attachTargetRecords, detachTargetRecords);
+								if (oneToManyResult != null)
+									return oneToManyResult;
+							}
+							break;
+						case EntityRelationType.ManyToMany:
+							{
+								var manyToManyResult = ApplyManyToManyRelationChanges(recMan, connection, response, relation, targetField, originValue, attachTargetRecords, detachTargetRecords);
+								if (manyToManyResult != null)
+									return manyToManyResult;
+							}
+							break;
+						default:
+							{
+								connection.RollbackTransaction();
+								throw new Exception("Not supported relation type");
+							}
+					}
+
+					connection.CommitTransaction();
+				}
+				catch (Exception ex)
+				{
+					connection.RollbackTransaction();
+					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:UpdateEntityRelationRecord", ex);
+					response.Success = false;
+					response.Message = ex.Message;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult ApplyOneToManyRelationChanges(RecordManager recMan, DbConnection connection, BaseResponseModel response, Entity targetEntity, Field targetField, object originValue, List<EntityRecord> attachTargetRecords, List<EntityRecord> detachTargetRecords)
+		{
+			foreach (var record in detachTargetRecords)
+			{
+				record[targetField.Name] = null;
+
+				var updResult = recMan.UpdateRecord(targetEntity, record);
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Target record id=[" + record["id"] + "] detach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+
+			foreach (var record in attachTargetRecords)
+			{
+				var patchObject = new EntityRecord();
+				patchObject["id"] = (Guid)record["id"];
+				patchObject[targetField.Name] = originValue;
+
+				var updResult = recMan.UpdateRecord(targetEntity, patchObject);
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Target record id=[" + record["id"] + "] attach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult ApplyManyToManyRelationChanges(RecordManager recMan, DbConnection connection, BaseResponseModel response, EntityRelation relation, Field targetField, object originValue, List<EntityRecord> attachTargetRecords, List<EntityRecord> detachTargetRecords)
+		{
+			foreach (var record in detachTargetRecords)
+			{
+				QueryResponse updResult = recMan.RemoveRelationManyToManyRecord(relation.Id, (Guid)originValue, (Guid)record[targetField.Name]);
+
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Target record id=[" + record["id"] + "] detach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+
+			foreach (var record in attachTargetRecords)
+			{
+				QueryResponse updResult = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)originValue, (Guid)record[targetField.Name]);
+
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Target record id=[" + record["id"] + "] attach  operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult ValidateUpdateRelationReverseModel(InputEntityRelationRecordReverseUpdateModel model, BaseResponseModel response, ref EntityRelation relation)
+		{
+			if (model == null)
+			{
+				response.Errors.Add(new ErrorModel { Message = "Invalid model." });
+				response.Success = false;
+				return DoResponse(response);
+			}
+
+			if (string.IsNullOrWhiteSpace(model.RelationName))
+			{
+				response.Errors.Add(new ErrorModel { Message = "Invalid relation name.", Key = "relationName" });
+				response.Success = false;
+				return DoResponse(response);
+			}
+			else
+			{
+				relation = new EntityRelationManager().Read(model.RelationName).Object;
+				if (relation == null)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Invalid relation name. No relation with that name.", Key = "relationName" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult CollectAttachOriginRecords(InputEntityRelationRecordReverseUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity originEntity, Field originField, List<EntityRecord> attachOriginRecords)
+		{
+			EntityQuery query;
+			QueryResponse result;
+			foreach (var originId in model.AttachOriginFieldRecordIds)
+			{
+				query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", originId), null, null, null);
+				result = recMan.Find(query);
+				if (result.Object.Data.Count == 0)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Attach origin record was not found. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				else if (attachOriginRecords.Any(x => (Guid)x["id"] == originId))
+				{
+					response.Errors.Add(new ErrorModel { Message = "Attach origin id was duplicated. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				attachOriginRecords.Add(result.Object.Data[0]);
+			}
+			return null;
+		}
+		private IActionResult CollectDetachOriginRecords(InputEntityRelationRecordReverseUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity originEntity, Field originField, List<EntityRecord> detachOriginRecords)
+		{
+			EntityQuery query;
+			QueryResponse result;
+			foreach (var originId in model.DetachOriginFieldRecordIds)
+			{
+				query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", originId), null, null, null);
+				result = recMan.Find(query);
+				if (result.Object.Data.Count == 0)
+				{
+					response.Errors.Add(new ErrorModel { Message = "Detach origin record was not found. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				else if (detachOriginRecords.Any(x => (Guid)x["id"] == originId))
+				{
+					response.Errors.Add(new ErrorModel { Message = "Detach origin id was duplicated. Id=[" + originEntity.Id + "]", Key = "originRecordId" });
+					response.Success = false;
+					return DoResponse(response);
+				}
+				detachOriginRecords.Add(result.Object.Data[0]);
+			}
+			return null;
+		}
+		private IActionResult ApplyUpdateRelationReverseChanges(BaseResponseModel response, RecordManager recMan, EntityRelation relation, Entity originEntity, Field originField, object targetValue, List<EntityRecord> attachOriginRecords, List<EntityRecord> detachOriginRecords)
+		{
+			using (var connection = DbContext.Current.CreateConnection())
+			{
+				connection.BeginTransaction();
+
+				try
+				{
+					switch (relation.RelationType)
+					{
+						case EntityRelationType.OneToOne:
+						case EntityRelationType.OneToMany:
+							{
+								var oneToManyResult = ApplyOneToManyRelationReverseChanges(recMan, connection, response, originEntity, originField, targetValue, attachOriginRecords, detachOriginRecords);
+								if (oneToManyResult != null)
+									return oneToManyResult;
+							}
+							break;
+						case EntityRelationType.ManyToMany:
+							{
+								var manyToManyResult = ApplyManyToManyRelationReverseChanges(recMan, connection, response, relation, originField, targetValue, attachOriginRecords, detachOriginRecords);
+								if (manyToManyResult != null)
+									return manyToManyResult;
+							}
+							break;
+						default:
+							{
+								connection.RollbackTransaction();
+								throw new Exception("Not supported relation type");
+							}
+					}
+
+					connection.CommitTransaction();
+				}
+				catch (Exception ex)
+				{
+					connection.RollbackTransaction();
+					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:UpdateEntityRelationRecordReverse", ex);
+					response.Success = false;
+					response.Message = ex.Message;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult ApplyOneToManyRelationReverseChanges(RecordManager recMan, DbConnection connection, BaseResponseModel response, Entity originEntity, Field originField, object targetValue, List<EntityRecord> attachOriginRecords, List<EntityRecord> detachOriginRecords)
+		{
+			foreach (var record in detachOriginRecords)
+			{
+				record[originField.Name] = null;
+
+				var updResult = recMan.UpdateRecord(originEntity, record);
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Origin record id=[" + record["id"] + "] detach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+
+			foreach (var record in attachOriginRecords)
+			{
+				var patchObject = new EntityRecord();
+				patchObject["id"] = (Guid)record["id"];
+				patchObject[originField.Name] = targetValue;
+
+				var updResult = recMan.UpdateRecord(originEntity, patchObject);
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Origin record id=[" + record["id"] + "] attach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private IActionResult ApplyManyToManyRelationReverseChanges(RecordManager recMan, DbConnection connection, BaseResponseModel response, EntityRelation relation, Field originField, object targetValue, List<EntityRecord> attachOriginRecords, List<EntityRecord> detachOriginRecords)
+		{
+			foreach (var record in detachOriginRecords)
+			{
+				QueryResponse updResult = recMan.RemoveRelationManyToManyRecord(relation.Id, (Guid)record[originField.Name], (Guid)targetValue);
+
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Origin record id=[" + record["id"] + "] detach operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+
+			foreach (var record in attachOriginRecords)
+			{
+				QueryResponse updResult = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)record[originField.Name], (Guid)targetValue);
+
+				if (!updResult.Success)
+				{
+					connection.RollbackTransaction();
+					response.Errors = updResult.Errors;
+					response.Message = "Origin record id=[" + record["id"] + "] attach  operation failed.";
+					response.Success = false;
+					return DoResponse(response);
+				}
+			}
+			return null;
+		}
+		private void ValidateCreateRelationInput(string entityName, string relationName, Guid relatedRecordId, List<ErrorModel> validationErrors, ref EntityRelation relation, ref EntityRecord relatedRecord)
+		{
+			//1.Validate relationName
+			//1.1. Relation exists
+			relation = relMan.Read().Object.SingleOrDefault(x => x.Name == relationName);
+			string targetEntityName = String.Empty;
+			string targetFieldName = String.Empty;
+			relatedRecord = new EntityRecord();
+			var relatedRecordResponse = new QueryResponse();
+			if (relation == null)
+			{
+				var error = new ErrorModel
+				{
+					Key = "relationName",
+					Value = relationName,
+					Message = "A relation with this name, does not exist"
+				};
+				validationErrors.Add(error);
+			}
+			else
+			{
+				//1.2. Relation is correct - entityName is part of this relation
+				if (relation.OriginEntityName != entityName && relation.TargetEntityName != entityName)
+				{
+					var error = new ErrorModel
+					{
+						Key = "relationName",
+						Value = relationName,
+						Message = "This is not the correct relation, as it does not include the requested entity: " + entityName
+					};
+					validationErrors.Add(error);
+				}
+				else
+				{
+					if (relation.OriginEntityName == entityName)
+					{
+						relatedRecordResponse = recMan.Find(new EntityQuery(relation.TargetEntityName, "*", EntityQuery.QueryEQ("id", relatedRecordId)));
+						targetFieldName = relation.TargetFieldName;
+					}
+					else
+					{
+						relatedRecordResponse = recMan.Find(new EntityQuery(relation.OriginEntityName, "*", EntityQuery.QueryEQ("id", relatedRecordId)));
+						targetFieldName = relation.OriginFieldName;
+					}
+					//2. Validate parentRecordId
+					//2.1. parentRecordId exists
+
+					ValidateParentRecordField(relatedRecordResponse, ref relatedRecord, targetFieldName, validationErrors, entityName, relatedRecordId);
+				}
+			}
+		}
+		private void ValidateParentRecordField(QueryResponse relatedRecordResponse, ref EntityRecord relatedRecord, string targetFieldName, List<ErrorModel> validationErrors, string entityName, Guid relatedRecordId)
+		{
+			if (!relatedRecordResponse.Object.Data.Any())
+			{
+				var error = new ErrorModel
+				{
+					Key = "parentRecordId",
+					Value = relatedRecordId.ToString(),
+					Message = "There is no parent record with this Id in the entity: " + entityName
+				};
+				validationErrors.Add(error);
+			}
+			else
+			{
+				relatedRecord = relatedRecordResponse.Object.Data.First();
+				//2.2. Record has value in the related field		
+				if (!relatedRecord.Properties.ContainsKey(targetFieldName) || relatedRecord[targetFieldName] == null)
+				{
+					var error = new ErrorModel
+					{
+						Key = "parentRecordId",
+						Value = relatedRecordId.ToString(),
+						Message = "The parent record does not have field " + targetFieldName + " or its value is null"
+					};
+					validationErrors.Add(error);
+				}
+			}
+		}
+		private IActionResult ApplyCreateRelationTransaction(EntityRelation relation, string entityName, Guid relatedRecordId, EntityRecord postObj, EntityRecord relatedRecord)
+		{
+			//Create transaction
+			var result = new QueryResponse();
+			using (var connection = DbContext.Current.CreateConnection())
+			{
+				try
+				{
+					connection.BeginTransaction();
+
+					//Add the relation field value if the relation is 1:1 or 1:N
+					if (relation.RelationType == EntityRelationType.OneToOne || relation.RelationType == EntityRelationType.OneToMany)
+					{
+						//if currentEntity is origin -> update the parent record
+						if (relation.OriginEntityName == entityName)
+						{
+							throw new Exception("We need a case to finish this");
+						}
+						else
+						{
+							//if currentEntity is target -> get the target field and assing the correct id value of the origin 
+							postObj[relation.TargetFieldName] = relatedRecord[relation.OriginFieldName];
+						}
+					}
+
+					result = recMan.CreateRecord(entityName, postObj);
+
+					//Create a relation record if it is N:N
+					if (relation.RelationType == EntityRelationType.ManyToMany)
+					{
+						ApplyManyToManyRelationLink(relation, entityName, relatedRecordId, postObj);
+					}
+
+					connection.CommitTransaction();
+				}
+				catch (Exception ex)
+				{
+					connection.RollbackTransaction();
+					new LogService().Create(Diagnostics.LogType.Error, "TErpApi:CreateEntityRecordWithRelation", ex);
+					var response = new ResponseModel
+					{
+						Success = false,
+						Timestamp = DateTime.UtcNow,
+						Message = "Error while saving the record: " + ex.Message,
+						Object = null
+					};
+					return Json(response);
+				}
+			}
+
+			return DoResponse(result);
+		}
+		private void ApplyManyToManyRelationLink(EntityRelation relation, string entityName, Guid relatedRecordId, EntityRecord postObj)
+		{
+			var response = new QueryResponse();
+			if (relation.OriginEntityName == entityName && relation.TargetEntityName == entityName)
+			{
+				throw new Exception("current entity is both target and origin, cannot find relation direction. Probably needs to be extended");
+			}
+			else if (relation.TargetEntityName == entityName)
+			{
+				//if current is target -> create relation
+				response = recMan.CreateRelationManyToManyRecord(relation.Id, relatedRecordId, (Guid)postObj["id"]);
+			}
+			else
+			{
+				//if current is origin -> create relation	
+				response = recMan.CreateRelationManyToManyRecord(relation.Id, (Guid)postObj["id"], relatedRecordId);
+			}
+			if (!response.Success)
+			{
+				throw new Exception(response.Message);
+			}
+		}
+		private void ParseRecordIds(string ids, QueryResponse response, List<Guid> recordIdList)
+		{
+			if (!String.IsNullOrWhiteSpace(ids) && ids != "null")
+			{
+				var idStringList = ids.Split(',');
+				var outGuid = Guid.Empty;
+				foreach (var idString in idStringList)
+				{
+					if (Guid.TryParse(idString, out outGuid))
+					{
+						recordIdList.Add(outGuid);
+					}
+					else
+					{
+						response.Message = "One of the record ids is not a Guid";
+						response.Timestamp = DateTime.UtcNow;
+						response.Success = false;
+						response.Object.Data = null;
+					}
+				}
+			}
+		}
+		private void ParseRequestedFields(string fields, List<string> fieldList)
+		{
+			if (!String.IsNullOrWhiteSpace(fields) && fields != "null")
+			{
+				var fieldsArray = fields.Split(',');
+				var hasId = false;
+				foreach (var fieldName in fieldsArray)
+				{
+					if (fieldName == "id")
+					{
+						hasId = true;
+					}
+					fieldList.Add(fieldName);
+				}
+				if (!hasId)
+				{
+					fieldList.Add("id");
+				}
+			}
+		}
+		private EntityQuery BuildRecordsQuery(string entityName, List<Guid> recordIdList, List<string> fieldList, int? limit)
+		{
+			var QueryList = new List<QueryObject>();
+			foreach (var recordId in recordIdList)
+			{
+				QueryList.Add(EntityQuery.QueryEQ("id", recordId));
+			}
+
+			QueryObject recordsFilterObj = null;
+			if (QueryList.Count > 0)
+			{
+				recordsFilterObj = EntityQuery.QueryOR(QueryList.ToArray());
+			}
+
+			var columns = "*";
+			if (fieldList.Count > 0)
+			{
+				if (!fieldList.Contains("id"))
+				{
+					fieldList.Add("id");
+				}
+				columns = String.Join(",", fieldList.Select(x => x.ToString()).ToArray());
+			}
+
+			//var sortRulesList = new List<QuerySortObject>();
+			//var sortRule = new QuerySortObject("id",QuerySortType.Descending);
+			//sortRulesList.Add(sortRule);
+			//EntityQuery query = new EntityQuery(entityName, columns, recordsFilterObj, sortRulesList.ToArray(), null, null);
+
+			EntityQuery query = new EntityQuery(entityName, columns, recordsFilterObj, null, null, null);
+			if (limit != null && limit > 0)
+			{
+				query = new EntityQuery(entityName, columns, recordsFilterObj, null, null, limit);
+			}
+			return query;
+		}
+		private QueryObject BuildQuickSearchContainsFilter(List<string> lookupFieldsList, string query, bool matchAllFields)
+		{
+			QueryObject matchesFilter = null;
+			if (lookupFieldsList.Count > 1)
+			{
+				var filterList = new List<QueryObject>();
+				foreach (var field in lookupFieldsList)
+				{
+					filterList.Add(EntityQuery.QueryContains(field, query));
+				}
+				if (matchAllFields)
+				{
+					matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
+				}
+				else
+				{
+					matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
+				}
+
+			}
+			else
+			{
+				matchesFilter = EntityQuery.QueryContains(lookupFieldsList[0], query);
+			}
+			return matchesFilter;
+		}
+		private QueryObject BuildQuickSearchStartsWithFilter(List<string> lookupFieldsList, string query, bool matchAllFields)
+		{
+			QueryObject matchesFilter = null;
+			if (lookupFieldsList.Count > 1)
+			{
+				var filterList = new List<QueryObject>();
+				foreach (var field in lookupFieldsList)
+				{
+					filterList.Add(EntityQuery.QueryStartsWith(field, query));
+				}
+				if (matchAllFields)
+				{
+					matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
+				}
+				else
+				{
+					matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
+				}
+
+			}
+			else
+			{
+				matchesFilter = EntityQuery.QueryStartsWith(lookupFieldsList[0], query);
+			}
+			return matchesFilter;
+		}
+		private QueryObject BuildQuickSearchFtsFilter(List<string> lookupFieldsList, string query, bool matchAllFields)
+		{
+			QueryObject matchesFilter = null;
+			if (lookupFieldsList.Count > 1)
+			{
+				var filterList = new List<QueryObject>();
+				foreach (var field in lookupFieldsList)
+				{
+					filterList.Add(EntityQuery.QueryFTS(field, query));
+				}
+				if (matchAllFields)
+				{
+					matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
+				}
+				else
+				{
+					matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
+				}
+
+			}
+			else
+			{
+				matchesFilter = EntityQuery.QueryFTS(lookupFieldsList[0], query);
+			}
+			return matchesFilter;
+		}
+		private QueryObject BuildQuickSearchEqFilter(List<string> lookupFieldsList, string query, bool matchAllFields)
+		{
+			QueryObject matchesFilter = null;
+			if (lookupFieldsList.Count > 1)
+			{
+				var filterList = new List<QueryObject>();
+				foreach (var field in lookupFieldsList)
+				{
+					filterList.Add(EntityQuery.QueryEQ(field, query));
+				}
+				if (matchAllFields)
+				{
+					matchesFilter = EntityQuery.QueryAND(filterList.ToArray());
+				}
+				else
+				{
+					matchesFilter = EntityQuery.QueryOR(filterList.ToArray());
+				}
+
+			}
+			else
+			{
+				matchesFilter = EntityQuery.QueryEQ(lookupFieldsList[0], query);
+			}
+			return matchesFilter;
+		}
+		private QueryObject BuildQuickSearchMatchFilter(string matchMethod, List<string> lookupFieldsList, string query, bool matchAllFields)
+		{
+			QueryObject matchesFilter = null;
+			#region <<Generate filters >>
+			switch (matchMethod.ToLowerInvariant())
+			{
+				case "contains":
+					matchesFilter = BuildQuickSearchContainsFilter(lookupFieldsList, query, matchAllFields);
+					break;
+				case "startswith":
+					matchesFilter = BuildQuickSearchStartsWithFilter(lookupFieldsList, query, matchAllFields);
+					break;
+				case "fts":
+					matchesFilter = BuildQuickSearchFtsFilter(lookupFieldsList, query, matchAllFields);
+					break;
+				default: // EQ
+					matchesFilter = BuildQuickSearchEqFilter(lookupFieldsList, query, matchAllFields);
+					break;
+
+			}
+			#endregion
+			return matchesFilter;
+		}
+		private void BuildQuickSearchForceFilters(string forceFiltersCsv, ref QueryObject matchesFilter)
+		{
+			#region << Generate force filters >>
+			var forceFilters = new List<QueryObject>();
+			if (!String.IsNullOrWhiteSpace(forceFiltersCsv))
+			{
+				foreach (var forceFilter in forceFiltersCsv.Split(','))
+				{
+					var filterArray = forceFilter.Split(':');
+					if (filterArray.Length == 3)
+					{
+						switch (filterArray[1].ToLowerInvariant())
+						{
+							case "guid":
+								var filterValueGuid = new Guid(filterArray[2]);
+								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueGuid));
+								break;
+							case "bool":
+								if (filterArray[2] == "true")
+								{
+									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], true));
+								}
+								else
+								{
+									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], false));
+								}
+								break;
+							case "datetime":
+								var filterValueDate = Convert.ToDateTime(filterArray[2]);
+								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueDate));
+								break;
+							case "int":
+								var filterValueInt = Convert.ToInt64(filterArray[2]);
+								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueInt));
+								break;
+							case "string":
+								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterArray[2]));
+								break;
+							default:
+								break;
+
+						}
+					}
+				}
+
+			}
+
+			if (forceFilters.Count > 0)
+			{
+				var forceFilterQuery = EntityQuery.QueryAND(forceFilters.ToArray());
+				matchesFilter = EntityQuery.QueryAND(forceFilterQuery, matchesFilter);
+			}
+
+			#endregion
+		}
+		private List<QuerySortObject> BuildQuickSearchSorts(string sortField, string sortType)
+		{
+			var sortsList = new List<QuerySortObject>();
+			#region << Generate Sorts >>
+			if (!String.IsNullOrWhiteSpace(sortField))
+			{
+				if (sortType.ToLowerInvariant() == "desc")
+				{
+					sortsList.Add(new QuerySortObject(sortField, QuerySortType.Descending));
+				}
+				else
+				{
+					sortsList.Add(new QuerySortObject(sortField, QuerySortType.Ascending));
+				}
+			}
+
+			#endregion
+			return sortsList;
+		}
+		private void ExecuteQuickSearchFind(string findType, string entityName, string returnFieldsCsv, QueryObject matchesFilter, List<QuerySortObject> sortsList, int skipRecords, int limitRecords, EntityRecord responseObject)
+		{
+			if (findType.ToLowerInvariant() == "records" || findType.ToLowerInvariant() == "records-and-count" || findType.ToLowerInvariant() == "records&count")
+			{
+				var matchQueryResponse = recMan.Find(new EntityQuery(entityName, returnFieldsCsv, matchesFilter, sortsList.ToArray(), skipRecords, limitRecords));
+				if (!matchQueryResponse.Success)
+				{
+					throw new Exception(matchQueryResponse.Message);
+				}
+				responseObject["records"] = matchQueryResponse.Object.Data;
+			}
+
+			if (findType.ToLowerInvariant() == "count" || findType.ToLowerInvariant() == "records-and-count" || findType.ToLowerInvariant() == "records&count")
+			{
+				var matchQueryResponse = recMan.Count(new EntityQuery(entityName, returnFieldsCsv, matchesFilter));
+				if (!matchQueryResponse.Success)
+				{
+					throw new Exception(matchQueryResponse.Message);
+				}
+				responseObject["count"] = matchQueryResponse.Object;
+			}
+		}
+		private string BuildDownloadFilePath(string root, string root2, string root3, string root4, string fileName)
+		{
+			var filePathArray = new List<string>();
+			if (root != null) filePathArray.Add(root);
+			if (root2 != null) filePathArray.Add(root2);
+			if (root3 != null) filePathArray.Add(root3);
+			if (root4 != null) filePathArray.Add(root4);
+
+			var filePath = "/" + String.Join("/", filePathArray) + "/" + fileName;
+
+			filePath = filePath.ToLowerInvariant();
+			return filePath;
+		}
+		private IActionResult CheckDownloadNotModified(DbFile file)
+		{
+			//check for modification
+			string headerModifiedSince = Request.Headers["If-Modified-Since"];
+			if (headerModifiedSince != null)
+			{
+				if (DateTime.TryParse(headerModifiedSince, out DateTime isModifiedSince))
+				{
+					if (isModifiedSince <= file.LastModificationDate)
+					{
+						Response.StatusCode = 304;
+						return new EmptyResult();
+					}
+				}
+			}
+			return null;
+		}
+		private void ParseDownloadRequestOptions(string extension)
+		{
+			IDictionary<string, StringValues> queryCollection = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(HttpContext.Request.QueryString.ToString());
+			string action = queryCollection.Keys.Any(x => x == "action") ? ((string)queryCollection["action"]).ToLowerInvariant() : "";
+			string requestedMode = queryCollection.Keys.Any(x => x == "mode") ? ((string)queryCollection["mode"]).ToLowerInvariant() : "";
+			string width = queryCollection.Keys.Any(x => x == "width") ? ((string)queryCollection["width"]).ToLowerInvariant() : "";
+			string height = queryCollection.Keys.Any(x => x == "height") ? ((string)queryCollection["height"]).ToLowerInvariant() : "";
+			bool isImage = extension == ".jpg" || extension == ".jpeg" || extension == ".png" || extension == ".gif";
+
+			int widthInt = 0;
+			if (!String.IsNullOrWhiteSpace(width) && int.TryParse(width, out int outWidthInt))
+			{
+				widthInt = outWidthInt;
+			}
+			int heightInt = 0;
+			if (!String.IsNullOrWhiteSpace(height) && int.TryParse(height, out int outHeightInt))
+			{
+				heightInt = outHeightInt;
+			}
+		}
+		private IActionResult ValidateAndApplySchedulePlan(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			#region << Validate >>
+
+			foreach (var prop in postObject.Properties())
+			{
+				ApplySchedulePlanProperty(prop, postObject, schedulePlan, response);
+			}
+
+			if (schedulePlan.StartDate >= schedulePlan.EndDate)
+			{
+				if (postObject.Properties().Any(p => p.Name == "start_date"))
+					response.Errors.Add(new ErrorModel("start_date", postObject["start_date"].ToString(), "Start date must be before end date."));
+				else
+					response.Errors.Add(new ErrorModel("end_date", postObject["end_date"].ToString(), "End date must be greater than start date."));
+			}
+
+			if ((schedulePlan.Type == SchedulePlanType.Daily || schedulePlan.Type == SchedulePlanType.Interval) && !schedulePlan.ScheduledDays.HasOneSelectedDay())
+				response.Errors.Add(new ErrorModel("schedule_days", postObject["schedule_days"].ToString(), "At least one day have to be selected for schedule days field."));
+
+			if (schedulePlan.Type == SchedulePlanType.Interval && schedulePlan.IntervalInMinutes <= 0 || schedulePlan.IntervalInMinutes >= 1440)
+				response.Errors.Add(new ErrorModel("interval_in_minutes", postObject["interval_in_minutes"].ToString(), "The value of Interval in minutes field must be greater than 0 and less or  equal than 1440."));
+
+			if (response.Errors.Count > 0)
+			{
+				response.Success = false;
+				return DoResponse(response);
+			}
+
+			#endregion
+			return null;
+		}
+		private void ApplySchedulePlanProperty(JProperty prop, JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			switch (prop.Name)
+			{
+				case "name":
+					{
+						ApplySchedulePlanName(postObject, schedulePlan, response);
+					}
+					break;
+				case "type":
+					{
+						ApplySchedulePlanType(postObject, schedulePlan, response);
+					}
+					break;
+				case "job_type_id":
+					{
+						ApplySchedulePlanJobTypeId(postObject, schedulePlan, response);
+					}
+					break;
+				case "start_date":
+					{
+						ApplySchedulePlanStartDate(postObject, schedulePlan, response);
+					}
+					break;
+				case "end_date":
+					{
+						ApplySchedulePlanEndDate(postObject, schedulePlan, response);
+					}
+					break;
+				case "schedule_days":
+					{
+						ApplySchedulePlanScheduleDays(postObject, schedulePlan, response);
+					}
+					break;
+				case "interval_in_minutes":
+					{
+						ApplySchedulePlanIntervalInMinutes(postObject, schedulePlan, response);
+					}
+					break;
+				case "start_timespan":
+					{
+						ApplySchedulePlanStartTimespan(postObject, schedulePlan, response);
+					}
+					break;
+				case "end_timespan":
+					{
+						ApplySchedulePlanEndTimespan(postObject, schedulePlan, response);
+					}
+					break;
+				case "enabled":
+					{
+						ApplySchedulePlanEnabled(postObject, schedulePlan, response);
+					}
+					break;
+			}
+		}
+		private void ApplySchedulePlanName(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (!string.IsNullOrWhiteSpace((string)postObject["name"]))
+			{
+				schedulePlan.Name = (string)postObject["name"];
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("name", (string)postObject["name"], "Name is required field and cannot be empty."));
+			}
+		}
+		private void ApplySchedulePlanType(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (!string.IsNullOrWhiteSpace(postObject["type"].ToString()))
+			{
+				if (int.TryParse(postObject["type"].ToString(), out int type))
+				{
+					if (type >= 1 && type <= 4)
+						schedulePlan.Type = (SchedulePlanType)type;
+					else
+						response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "The value of the type is out of range of valid values."));
+				}
+				else
+					response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "Type is invalid integer value."));
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("type", postObject["type"].ToString(), "Type is required field and cannot be empty."));
+			}
+		}
+		private void ApplySchedulePlanJobTypeId(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (Guid.TryParse(postObject["job_type_id"].ToString(), out Guid jobTypeId))
+			{
+				if (JobManager.JobTypes.Any(t => t.Id == jobTypeId))
+				{
+					schedulePlan.JobTypeId = jobTypeId;
+				}
+				else
+				{
+					response.Errors.Add(new ErrorModel("job_type_id", postObject["job_type_id"].ToString(), "There is no job type with such id."));
+				}
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("job_type_id", postObject["job_type_id"].ToString(), "Job type id is not valid."));
+			}
+		}
+		private void ApplySchedulePlanStartDate(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			schedulePlan.StartDate = DateTime.UtcNow;
+
+			if (!string.IsNullOrWhiteSpace(postObject["start_date"].ToString()))
+			{
+				if (DateTime.TryParse(postObject["start_date"].ToString(), out DateTime startDate))
+				{
+					startDate = (DateTime)postObject["start_date"];
+					schedulePlan.StartDate = startDate.ToUniversalTime();
+				}
+				else
+				{
+					response.Errors.Add(new ErrorModel("start_date", postObject["start_date"].ToString(), "The value of start date field is not valid."));
+				}
+			}
+		}
+		private void ApplySchedulePlanEndDate(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (!string.IsNullOrWhiteSpace(postObject["end_date"].ToString()))
+			{
+				if (DateTime.TryParse(postObject["end_date"].ToString(), out DateTime endDate))
+				{
+					endDate = (DateTime)postObject["end_date"];
+					schedulePlan.StartDate = endDate.ToUniversalTime();
+				}
+				else
+				{
+					response.Errors.Add(new ErrorModel("end_date", postObject["end_date"].ToString(), "The value of end date field is not valid."));
+				}
+			}
+		}
+		private void ApplySchedulePlanScheduleDays(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			string days = postObject["schedule_days"].ToString();
+			if (!string.IsNullOrWhiteSpace(days))
+			{
+				schedulePlan.ScheduledDays = JsonConvert.DeserializeObject<SchedulePlanDaysOfWeek>(postObject["schedule_days"].ToString());
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("schedule_days", postObject["schedule_days"].ToString(), "Schedule days is required field and cannot be empty."));
+			}
+		}
+		private void ApplySchedulePlanIntervalInMinutes(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (int.TryParse(postObject["interval_in_minutes"].ToString(), out int interval))
+			{
+				schedulePlan.IntervalInMinutes = interval;
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("interval_in_minutes", postObject["interval_in_minutes"].ToString(), "The value of Interval in minutes field is not valid."));
+			}
+		}
+		private void ApplySchedulePlanStartTimespan(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (DateTime.TryParse(postObject["start_timespan"].ToString(), out DateTime startTimespan))
+			{
+				startTimespan = ((DateTime)postObject["start_timespan"]);
+				schedulePlan.StartTimespan = startTimespan.Hour * 60 + startTimespan.Minute;
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("start_timespan", postObject["start_timespan"].ToString(), "The value of start timespan is not valid."));
+			}
+		}
+		private void ApplySchedulePlanEndTimespan(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			if (DateTime.TryParse(postObject["end_timespan"].ToString(), out DateTime endTimespan))
+			{
+				endTimespan = ((DateTime)postObject["end_timespan"]);
+				schedulePlan.EndTimespan = endTimespan.Hour * 60 + endTimespan.Minute;
+				if (schedulePlan.EndTimespan == 0) //that's mean 12PM
+					schedulePlan.EndTimespan = 1440;
+			}
+			else
+			{
+				response.Errors.Add(new ErrorModel("end_timespan", postObject["end_timespan"].ToString(), "The value of end timespan is not valid."));
+			}
+		}
+		private void ApplySchedulePlanEnabled(JObject postObject, SchedulePlan schedulePlan, ResponseModel response)
+		{
+			schedulePlan.Enabled = (bool)postObject["enabled"];
+		}
+		private List<QueryObject> BuildSystemLogFilters(DateTime? fromDate, DateTime? untilDate, string type, string source, string message, string notificationStatus)
+		{
+			var filterList = new List<QueryObject>();
+			if (fromDate != null)
+			{
+				filterList.Add(EntityQuery.QueryGT("created_on", fromDate));
+			}
+			if (untilDate != null)
+			{
+				filterList.Add(EntityQuery.QueryLT("created_on", untilDate));
+			}
+			if (!String.IsNullOrWhiteSpace(type))
+			{
+				filterList.Add(EntityQuery.QueryEQ("type", type));
+			}
+			if (!String.IsNullOrWhiteSpace(source))
+			{
+				filterList.Add(EntityQuery.QueryContains("source", source));
+			}
+			if (!String.IsNullOrWhiteSpace(message))
+			{
+				filterList.Add(EntityQuery.QueryContains("message", message));
+			}
+			if (!String.IsNullOrWhiteSpace(notificationStatus))
+			{
+				filterList.Add(EntityQuery.QueryEQ("notificationStatus", notificationStatus));
+			}
+			return filterList;
+		}
+		private void ProcessUserFileUpload(IFormFile file, ErpUser currentUser, List<EntityRecord> resultRecords)
+		{
+			var fileBuffer = ReadFully(file.OpenReadStream());
+			var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.ToString().Trim().ToLowerInvariant();
+			if (fileName.StartsWith("\"", StringComparison.InvariantCulture))
+				fileName = fileName.Substring(1);
+
+			if (fileName.EndsWith("\"", StringComparison.InvariantCulture))
+				fileName = fileName.Substring(0, fileName.Length - 1);
+
+			var recMan = new RecordManager();
+			DbFileRepository fsRepository = new DbFileRepository();
+			string section = Guid.NewGuid().ToString().Replace("-", "").ToLowerInvariant();
+			var filePath = "/user_file/" + currentUser.Id + "/" + section + "/" + fileName;
+			var createdFile = fsRepository.Create(filePath, fileBuffer, DateTime.Now, currentUser.Id);
+			var userFileId = Guid.NewGuid();
+
+			var userFileRecord = new EntityRecord();
+			#region << record fill >>
+			userFileRecord["id"] = userFileId;
+			userFileRecord["created_on"] = DateTime.Now;
+			userFileRecord["name"] = fileName;
+			userFileRecord["size"] = Math.Round((decimal)(file.Length / 1024), 0);
+			userFileRecord["path"] = filePath;
+
+			FillUserFileRecordType(userFileRecord, filePath, fileBuffer);
+			#endregion
+
+			var recordCreateResult = recMan.CreateRecord("user_file", userFileRecord);
+			if (!recordCreateResult.Success)
+			{
+				throw new Exception(recordCreateResult.Message);
+			}
+			resultRecords.Add(userFileRecord);
+		}
+		private void FillUserFileRecordType(EntityRecord userFileRecord, string filePath, byte[] fileBuffer)
+		{
+			var mimeType = MimeMapping.MimeUtility.GetMimeMapping(filePath);
+			var fileExtension = Path.GetExtension(filePath);
+			if (mimeType.StartsWith("image"))
+			{
+				var dimensionsRecord = Helpers.GetImageDimension(fileBuffer);
+				userFileRecord["width"] = (decimal)dimensionsRecord["width"];
+				userFileRecord["height"] = (decimal)dimensionsRecord["height"];
+				userFileRecord["type"] = "image";
+			}
+			else if (mimeType.StartsWith("video"))
+			{
+				userFileRecord["type"] = "video";
+			}
+			else if (mimeType.StartsWith("audio"))
+			{
+				userFileRecord["type"] = "audio";
+			}
+			else if (fileExtension == ".doc" || fileExtension == ".docx" || fileExtension == ".odt" || fileExtension == ".rtf"
+			 || fileExtension == ".txt" || fileExtension == ".pdf" || fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".ppt"
+			  || fileExtension == ".pptx" || fileExtension == ".xls" || fileExtension == ".xlsx" || fileExtension == ".ods" || fileExtension == ".odp")
+			{
+				userFileRecord["type"] = "document";
+			}
+			else
+			{
+				userFileRecord["type"] = "other";
+			}
+		}
+		private void ProcessFileUpload(IFormFile file, List<EntityRecord> resultRecords)
+		{
+			var fileBuffer = ReadFully(file.OpenReadStream());
+			var fileName = ContentDispositionHeaderValue.Parse(file.ContentDisposition).FileName.ToString().Trim().ToLowerInvariant();
+			if (fileName.StartsWith("\"", StringComparison.InvariantCulture))
+				fileName = fileName.Substring(1);
+
+			if (fileName.EndsWith("\"", StringComparison.InvariantCulture))
+				fileName = fileName.Substring(0, fileName.Length - 1);
+
+			var recMan = new RecordManager();
+			DbFileRepository fsRepository = new DbFileRepository();
+			DbFile dbFile = fsRepository.CreateTempFile(fileName, fileBuffer);
+
+			var resultRec = new EntityRecord();
+
+			resultRec["id"] = dbFile.Id;
+			resultRec["created_on"] = DateTime.Now;
+			resultRec["name"] = fileName;
+			resultRec["size"] = Math.Round((decimal)(file.Length / 1024), 0);
+			resultRec["path"] = dbFile.FilePath;
+
+			FillFileRecordType(resultRec, dbFile, fileBuffer);
+
+			resultRecords.Add(resultRec);
+		}
+		private void FillFileRecordType(EntityRecord resultRec, DbFile dbFile, byte[] fileBuffer)
+		{
+			var mimeType = MimeMapping.MimeUtility.GetMimeMapping(dbFile.FilePath);
+			var fileExtension = Path.GetExtension(dbFile.FilePath);
+			if (mimeType.StartsWith("image"))
+			{
+				var dimensionsRecord = Helpers.GetImageDimension(fileBuffer);
+				resultRec["width"] = (decimal)dimensionsRecord["width"];
+				resultRec["height"] = (decimal)dimensionsRecord["height"];
+				resultRec["type"] = "image";
+			}
+			else if (mimeType.StartsWith("video"))
+			{
+				resultRec["type"] = "video";
+			}
+			else if (mimeType.StartsWith("audio"))
+			{
+				resultRec["type"] = "audio";
+			}
+			else if (fileExtension == ".doc" || fileExtension == ".docx" || fileExtension == ".odt" || fileExtension == ".rtf"
+			 || fileExtension == ".txt" || fileExtension == ".pdf" || fileExtension == ".html" || fileExtension == ".htm" || fileExtension == ".ppt"
+			  || fileExtension == ".pptx" || fileExtension == ".xls" || fileExtension == ".xlsx" || fileExtension == ".ods" || fileExtension == ".odp")
+			{
+				resultRec["type"] = "document";
+			}
+			else
+			{
+				resultRec["type"] = "other";
+			}
+		}
 		#endregion
 	}
 }
