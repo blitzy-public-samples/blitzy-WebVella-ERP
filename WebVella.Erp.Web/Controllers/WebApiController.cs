@@ -113,25 +113,9 @@ namespace WebVella.Erp.Web.Controllers
 					return Json(response);
 				}
 
-				if (ds is DatabaseDataSource)
-				{
-					var list = (EntityRecordList)dsMan.Execute(ds.Id, model.Parameters);
-					response.Object = new { list, total_count = list.TotalCount };
-				}
-				else if (ds is CodeDataSource)
-				{
-					Dictionary<string, object> arguments = new Dictionary<string, object>();
-					foreach (var par in model.Parameters)
-						arguments[par.ParameterName] = par.Value;
-
-					response.Object = ((CodeDataSource)ds).Execute(arguments);
-				}
-				else
-				{
-					response.Success = false;
-					response.Message = $"DataSource type is not supported.";
-					return Json(response);
-				}
+				var dispatchResult = ExecuteDataSourceForQuery(dsMan, ds, model, response);
+				if (dispatchResult != null)
+					return dispatchResult;
 			}
 			catch (EqlException eqlEx)
 			{
@@ -338,31 +322,9 @@ namespace WebVella.Erp.Web.Controllers
 			try
 			{
 				DataSourceManager dataSourceManager = new DataSourceManager();
-				var dataSource = dataSourceManager.Get(dataSourceId);
-				if (dataSource == null)
-				{
-					errors.Add(new EqlError { Message = "DataSource Not found" });
-				}
+				var dataSourceEql = ResolveDataSourceEql(dataSourceManager, dataSourceId, out var dataSource, errors);
 
-				var dataSourceEql = "";
-				if (dataSource is DatabaseDataSource)
-				{
-					dataSourceEql = ((DatabaseDataSource)dataSource).EqlText;
-				}
-
-				var compoundParams = new List<DataSourceParameter>();
-				foreach (var dsParam in dataSource.Parameters)
-				{
-					var pageParameter = model.ParamList.FirstOrDefault(x => x.Name == dsParam.Name);
-					if (pageParameter != null)
-					{
-						compoundParams.Add(pageParameter);
-					}
-					else
-					{
-						compoundParams.Add(dsParam);
-					}
-				}
+				var compoundParams = MergeDataSourceParameters(dataSource, model);
 
 				var paramText = dataSourceManager.ConvertParamsToText(compoundParams);
 
@@ -1059,38 +1021,13 @@ namespace WebVella.Erp.Web.Controllers
 		{
 			FieldResponse response = new FieldResponse();
 
-			if (!Guid.TryParse(Id, out Guid entityId))
-			{
-				response.Errors.Add(new ErrorModel("id", Id, "id parameter is not valid Guid value"));
-				return DoResponse(response);
-			}
-
-			if (!Guid.TryParse(FieldId, out Guid fieldId))
-			{
-				response.Errors.Add(new ErrorModel("id", FieldId, "FieldId parameter is not valid Guid value"));
-				return DoResponse(response);
-			}
+			var idValidation = ValidateUpdateFieldIds(Id, FieldId, response, out Guid entityId, out Guid fieldId);
+			if (idValidation != null)
+				return idValidation;
 
 			InputField field = new InputGuidField();
-			FieldType fieldType = FieldType.GuidField;
 
-			var fieldTypeProp = submitObj.Properties().SingleOrDefault(k => k.Name.ToLower() == "fieldtype");
-			if (fieldTypeProp != null)
-			{
-				fieldType = (FieldType)Enum.ToObject(typeof(FieldType), fieldTypeProp.Value.ToObject<int>());
-			}
-
-			Type inputFieldType = InputField.GetFieldType(fieldType);
-
-			foreach (var prop in submitObj.Properties())
-			{
-				if (prop.Name.ToLower() == "entityname")
-					continue;
-
-				int count = inputFieldType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
-				if (count < 1)
-					response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
-			}
+			ValidateFieldInputModel(submitObj, response);
 
 			if (response.Errors.Count > 0)
 				return DoBadRequestResponse(response);
@@ -1284,10 +1221,7 @@ namespace WebVella.Erp.Web.Controllers
 			if (relationValidation != null)
 				return relationValidation;
 
-			var originEntity = entMan.ReadEntity(relation.OriginEntityId).Object;
-			var targetEntity = entMan.ReadEntity(relation.TargetEntityId).Object;
-			var originField = originEntity.Fields.Single(x => x.Id == relation.OriginFieldId);
-			var targetField = targetEntity.Fields.Single(x => x.Id == relation.TargetFieldId);
+			ResolveRelationEntitiesAndFields(entMan, relation, out var originEntity, out var targetEntity, out var originField, out var targetField);
 
 			if (model.DetachTargetFieldRecordIds != null && model.DetachTargetFieldRecordIds.Any() && targetField.Required && relation.RelationType != EntityRelationType.ManyToMany)
 			{
@@ -1296,17 +1230,9 @@ namespace WebVella.Erp.Web.Controllers
 				return DoResponse(response);
 			}
 
-			EntityQuery query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", model.OriginFieldRecordId), null, null, null);
-			QueryResponse result = recMan.Find(query);
-			if (result.Object.Data.Count == 0)
-			{
-				response.Errors.Add(new ErrorModel { Message = "Origin record was not found. Id=[" + model.OriginFieldRecordId + "]", Key = "originFieldRecordId" });
-				response.Success = false;
-				return DoResponse(response);
-			}
-
-			var originRecord = result.Object.Data[0];
-			object originValue = originRecord[originField.Name];
+			var loadResult = LoadOriginRelationRecord(model, response, recMan, originEntity, originField, out object originValue);
+			if (loadResult != null)
+				return loadResult;
 
 			var attachTargetRecords = new List<EntityRecord>();
 			var detachTargetRecords = new List<EntityRecord>();
@@ -1343,10 +1269,7 @@ namespace WebVella.Erp.Web.Controllers
 			if (relationValidation != null)
 				return relationValidation;
 
-			var originEntity = entMan.ReadEntity(relation.OriginEntityId).Object;
-			var targetEntity = entMan.ReadEntity(relation.TargetEntityId).Object;
-			var originField = originEntity.Fields.Single(x => x.Id == relation.OriginFieldId);
-			var targetField = targetEntity.Fields.Single(x => x.Id == relation.TargetFieldId);
+			ResolveRelationEntitiesAndFields(entMan, relation, out var originEntity, out var targetEntity, out var originField, out var targetField);
 
 			if (model.DetachOriginFieldRecordIds != null && model.DetachOriginFieldRecordIds.Any() && originField.Required && relation.RelationType != EntityRelationType.ManyToMany)
 			{
@@ -1355,17 +1278,9 @@ namespace WebVella.Erp.Web.Controllers
 				return DoResponse(response);
 			}
 
-			EntityQuery query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", model.TargetFieldRecordId), null, null, null);
-			QueryResponse result = recMan.Find(query);
-			if (result.Object.Data.Count == 0)
-			{
-				response.Errors.Add(new ErrorModel { Message = "Target record was not found. Id=[" + model.TargetFieldRecordId + "]", Key = "targetFieldRecordId" });
-				response.Success = false;
-				return DoResponse(response);
-			}
-
-			var targetRecord = result.Object.Data[0];
-			object targetValue = targetRecord[targetField.Name];
+			var loadResult = LoadTargetRelationRecord(model, response, recMan, targetEntity, targetField, out object targetValue);
+			if (loadResult != null)
+				return loadResult;
 
 			var attachOriginRecords = new List<EntityRecord>();
 			var detachOriginRecords = new List<EntityRecord>();
@@ -2186,42 +2101,7 @@ namespace WebVella.Erp.Web.Controllers
 		public IActionResult UploadUserFile([FromBody] JObject submitObj)
 		{
 			ResponseModel response = new ResponseModel { Timestamp = DateTime.UtcNow, Success = true, Errors = new List<ErrorModel>() };
-			var filePath = "";
-			var fileAlt = "";
-			var fileCaption = "";
-			#region << Init SubmitObj >>
-			foreach (var prop in submitObj.Properties())
-			{
-				switch (prop.Name.ToLower())
-				{
-					case "path":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							filePath = prop.Value.ToString();
-						else
-						{
-							throw new Exception("File path is required");
-						}
-						break;
-					case "alt":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							fileAlt = prop.Value.ToString();
-						else
-						{
-							fileAlt = null;
-						}
-						break;
-					case "caption":
-						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
-							fileCaption = prop.Value.ToString();
-						else
-						{
-							fileCaption = null;
-						}
-						break;
-				}
-			}
-
-			#endregion
+			ParseUserFileSubmit(submitObj, out var filePath, out var fileAlt, out var fileCaption);
 			try
 			{
 				response.Object = new UserFileService().CreateUserFile(filePath, fileAlt, fileCaption);
@@ -2514,6 +2394,228 @@ namespace WebVella.Erp.Web.Controllers
 				}
 			}
 			return model;
+		}
+
+		// Extracted from DataSourceQueryAction — behavior-preserving
+		private ActionResult ExecuteDataSourceForQuery(DataSourceManager dsMan, DataSourceBase ds, EqlDataSourceQuery model, ResponseModel response)
+		{
+			if (ds is DatabaseDataSource)
+			{
+				var list = (EntityRecordList)dsMan.Execute(ds.Id, model.Parameters);
+				response.Object = new { list, total_count = list.TotalCount };
+			}
+			else if (ds is CodeDataSource)
+			{
+				Dictionary<string, object> arguments = new Dictionary<string, object>();
+				foreach (var par in model.Parameters)
+					arguments[par.ParameterName] = par.Value;
+
+				response.Object = ((CodeDataSource)ds).Execute(arguments);
+			}
+			else
+			{
+				response.Success = false;
+				response.Message = $"DataSource type is not supported.";
+				return Json(response);
+			}
+			return null;
+		}
+
+		// Extracted from DataSourceAction — behavior-preserving
+		private string ResolveDataSourceEql(DataSourceManager dataSourceManager, Guid dataSourceId, out DataSourceBase dataSource, List<EqlError> errors)
+		{
+			dataSource = dataSourceManager.Get(dataSourceId);
+			if (dataSource == null)
+			{
+				errors.Add(new EqlError { Message = "DataSource Not found" });
+			}
+
+			var dataSourceEql = "";
+			if (dataSource is DatabaseDataSource)
+			{
+				dataSourceEql = ((DatabaseDataSource)dataSource).EqlText;
+			}
+			return dataSourceEql;
+		}
+
+		// Extracted from DataSourceAction — behavior-preserving
+		private List<DataSourceParameter> MergeDataSourceParameters(DataSourceBase dataSource, DataSourceTestModel model)
+		{
+			var compoundParams = new List<DataSourceParameter>();
+			foreach (var dsParam in dataSource.Parameters)
+			{
+				var pageParameter = model.ParamList.FirstOrDefault(x => x.Name == dsParam.Name);
+				if (pageParameter != null)
+				{
+					compoundParams.Add(pageParameter);
+				}
+				else
+				{
+					compoundParams.Add(dsParam);
+				}
+			}
+			return compoundParams;
+		}
+
+		// Extracted from UpdateField — behavior-preserving
+		private IActionResult ValidateUpdateFieldIds(string Id, string FieldId, FieldResponse response, out Guid entityId, out Guid fieldId)
+		{
+			fieldId = Guid.Empty;
+			if (!Guid.TryParse(Id, out entityId))
+			{
+				response.Errors.Add(new ErrorModel("id", Id, "id parameter is not valid Guid value"));
+				return DoResponse(response);
+			}
+
+			if (!Guid.TryParse(FieldId, out fieldId))
+			{
+				response.Errors.Add(new ErrorModel("id", FieldId, "FieldId parameter is not valid Guid value"));
+				return DoResponse(response);
+			}
+			return null;
+		}
+
+		// Extracted from UpdateField — behavior-preserving
+		private void ValidateFieldInputModel(JObject submitObj, FieldResponse response)
+		{
+			FieldType fieldType = FieldType.GuidField;
+
+			var fieldTypeProp = submitObj.Properties().SingleOrDefault(k => k.Name.ToLower() == "fieldtype");
+			if (fieldTypeProp != null)
+			{
+				fieldType = (FieldType)Enum.ToObject(typeof(FieldType), fieldTypeProp.Value.ToObject<int>());
+			}
+
+			Type inputFieldType = InputField.GetFieldType(fieldType);
+
+			foreach (var prop in submitObj.Properties())
+			{
+				if (prop.Name.ToLower() == "entityname")
+					continue;
+
+				int count = inputFieldType.GetProperties().Where(n => n.Name.ToLower() == prop.Name.ToLower()).Count();
+				if (count < 1)
+					response.Errors.Add(new ErrorModel(prop.Name, prop.Value.ToString(), "Input object contains property that is not part of the object model."));
+			}
+		}
+
+		// Extracted from UploadUserFile — behavior-preserving
+		private void ParseUserFileSubmit(JObject submitObj, out string filePath, out string fileAlt, out string fileCaption)
+		{
+			filePath = "";
+			fileAlt = "";
+			fileCaption = "";
+			foreach (var prop in submitObj.Properties())
+			{
+				switch (prop.Name.ToLower())
+				{
+					case "path":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							filePath = prop.Value.ToString();
+						else
+						{
+							throw new Exception("File path is required");
+						}
+						break;
+					case "alt":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							fileAlt = prop.Value.ToString();
+						else
+						{
+							fileAlt = null;
+						}
+						break;
+					case "caption":
+						if (!string.IsNullOrWhiteSpace(prop.Value.ToString()))
+							fileCaption = prop.Value.ToString();
+						else
+						{
+							fileCaption = null;
+						}
+						break;
+				}
+			}
+		}
+
+		// Extracted from UpdateEntityRelationRecord — behavior-preserving
+		private void ResolveRelationEntitiesAndFields(EntityManager entMan, EntityRelation relation, out Entity originEntity, out Entity targetEntity, out Field originField, out Field targetField)
+		{
+			originEntity = entMan.ReadEntity(relation.OriginEntityId).Object;
+			targetEntity = entMan.ReadEntity(relation.TargetEntityId).Object;
+			originField = originEntity.Fields.Single(x => x.Id == relation.OriginFieldId);
+			targetField = targetEntity.Fields.Single(x => x.Id == relation.TargetFieldId);
+		}
+
+		// Extracted from UpdateEntityRelationRecord — behavior-preserving
+		private IActionResult LoadOriginRelationRecord(InputEntityRelationRecordUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity originEntity, Field originField, out object originValue)
+		{
+			originValue = null;
+			EntityQuery query = new EntityQuery(originEntity.Name, "id," + originField.Name, EntityQuery.QueryEQ("id", model.OriginFieldRecordId), null, null, null);
+			QueryResponse result = recMan.Find(query);
+			if (result.Object.Data.Count == 0)
+			{
+				response.Errors.Add(new ErrorModel { Message = "Origin record was not found. Id=[" + model.OriginFieldRecordId + "]", Key = "originFieldRecordId" });
+				response.Success = false;
+				return DoResponse(response);
+			}
+
+			var originRecord = result.Object.Data[0];
+			originValue = originRecord[originField.Name];
+			return null;
+		}
+
+		// Extracted from UpdateEntityRelationRecordReverse — behavior-preserving
+		private IActionResult LoadTargetRelationRecord(InputEntityRelationRecordReverseUpdateModel model, BaseResponseModel response, RecordManager recMan, Entity targetEntity, Field targetField, out object targetValue)
+		{
+			targetValue = null;
+			EntityQuery query = new EntityQuery(targetEntity.Name, "id," + targetField.Name, EntityQuery.QueryEQ("id", model.TargetFieldRecordId), null, null, null);
+			QueryResponse result = recMan.Find(query);
+			if (result.Object.Data.Count == 0)
+			{
+				response.Errors.Add(new ErrorModel { Message = "Target record was not found. Id=[" + model.TargetFieldRecordId + "]", Key = "targetFieldRecordId" });
+				response.Success = false;
+				return DoResponse(response);
+			}
+
+			var targetRecord = result.Object.Data[0];
+			targetValue = targetRecord[targetField.Name];
+			return null;
+		}
+
+		// Extracted from BuildQuickSearchForceFilters — behavior-preserving
+		private void AddForceFilter(string[] filterArray, List<QueryObject> forceFilters)
+		{
+			switch (filterArray[1].ToLowerInvariant())
+			{
+				case "guid":
+					var filterValueGuid = new Guid(filterArray[2]);
+					forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueGuid));
+					break;
+				case "bool":
+					if (filterArray[2] == "true")
+					{
+						forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], true));
+					}
+					else
+					{
+						forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], false));
+					}
+					break;
+				case "datetime":
+					var filterValueDate = Convert.ToDateTime(filterArray[2]);
+					forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueDate));
+					break;
+				case "int":
+					var filterValueInt = Convert.ToInt64(filterArray[2]);
+					forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueInt));
+					break;
+				case "string":
+					forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterArray[2]));
+					break;
+				default:
+					break;
+
+			}
 		}
 
 		private ActionResult JsonFromEqlException(ResponseModel response, EqlException eqlEx)
@@ -4130,37 +4232,7 @@ namespace WebVella.Erp.Web.Controllers
 					var filterArray = forceFilter.Split(':');
 					if (filterArray.Length == 3)
 					{
-						switch (filterArray[1].ToLowerInvariant())
-						{
-							case "guid":
-								var filterValueGuid = new Guid(filterArray[2]);
-								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueGuid));
-								break;
-							case "bool":
-								if (filterArray[2] == "true")
-								{
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], true));
-								}
-								else
-								{
-									forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], false));
-								}
-								break;
-							case "datetime":
-								var filterValueDate = Convert.ToDateTime(filterArray[2]);
-								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueDate));
-								break;
-							case "int":
-								var filterValueInt = Convert.ToInt64(filterArray[2]);
-								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterValueInt));
-								break;
-							case "string":
-								forceFilters.Add(EntityQuery.QueryEQ(filterArray[0], filterArray[2]));
-								break;
-							default:
-								break;
-
-						}
+						AddForceFilter(filterArray, forceFilters);
 					}
 				}
 
