@@ -6,6 +6,9 @@ using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
 using WebVella.Erp.Plugins.Approval.Api;
 using WebVella.Erp.Diagnostics; // BUGFIX (Bug 4): Log/LogType for structured error logging (log-then-rethrow)
+using System.Globalization; // REVIEW FIX (Finding 4): culture-invariant, defensive timeout_hours conversion
+using Newtonsoft.Json; // REVIEW FIX (Finding 2): structural JSON parsing of threshold_config (JsonException)
+using Newtonsoft.Json.Linq; // REVIEW FIX (Finding 2): JObject/JToken structural access + exact GUID comparison
 
 namespace WebVella.Erp.Plugins.Approval.Services
 {
@@ -17,6 +20,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
     public class DashboardMetricsService
     {
         private readonly RecordManager _recordManager;
+
+        // BUGFIX (Bug 7): named fallback applied ONLY when a step's configured timeout_hours is
+        // unavailable (missing/null) or cannot be parsed. Promoted to a class-level constant (was a
+        // method-local const) so the overdue calculation and the LoadStepTimeouts/ConvertTimeoutHours
+        // helpers introduced for REVIEW Findings 3 and 4 all share the same single source of truth.
+        private const int DEFAULT_TIMEOUT_HOURS = 24;
 
         /// <summary>
         /// Initializes a new instance of the DashboardMetricsService.
@@ -128,9 +137,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 // and the count was organization-wide).
                 var authorizedStepIds = ResolveAuthorizedStepIds(userId);
 
-                // BUGFIX (Bug 7): named fallback used ONLY when a step's configured timeout is unavailable.
-                const int DEFAULT_TIMEOUT_HOURS = 24;
-
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter("status", "pending")
@@ -143,33 +149,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 // BUGFIX (Bug 7): load each step's configured timeout_hours ONCE, keyed by step id
                 // (bounded, no per-row DB round-trips, and no $relation traversal since current_step_id has
-                // no formal EntityRelation). Uses valid EQL (no IN/LIMIT). A failure of this lookup query
-                // propagates to this method's single log-then-rethrow catch below (Bug 4) — it is NOT given
-                // its own catch, so it is never silently masked.
-                var stepTimeoutEql = @"
-                    SELECT id, timeout_hours 
-                    FROM approval_step";
-
-                var stepTimeouts = new Dictionary<Guid, int>();
-                var stepResult = new EqlCommand(stepTimeoutEql, new List<EqlParameter>()).Execute();
-                if (stepResult != null)
-                {
-                    foreach (var step in stepResult)
-                    {
-                        if (!step.Properties.ContainsKey("id") || step["id"] == null)
-                            continue;
-
-                        var sId = (Guid)step["id"];
-
-                        // timeout_hours is a NumberField (may surface as a boxed decimal); convert
-                        // defensively and guard nulls, falling back to the default when it is unset.
-                        var hrs = DEFAULT_TIMEOUT_HOURS;
-                        if (step.Properties.ContainsKey("timeout_hours") && step["timeout_hours"] != null)
-                            hrs = Convert.ToInt32(step["timeout_hours"]);
-
-                        stepTimeouts[sId] = hrs;
-                    }
-                }
+                // no formal EntityRelation). REVIEW FIX (Finding 3): the timeout lookup query is now executed
+                // inside the dedicated LoadStepTimeouts() helper, which owns its OWN log-then-rethrow that
+                // logs the ACTUAL offending timeout EQL text — previously a failure of this lookup was
+                // (mis)logged by the outer catch below with the pending-request query text instead.
+                var stepTimeouts = LoadStepTimeouts();
 
                 var overdueCount = 0;
                 var now = DateTime.UtcNow;
@@ -212,6 +196,115 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 // text + exception, then rethrow so the controller/component boundary surfaces a real error.
                 new Log().Create(LogType.Error, "DashboardMetricsService.GetOverdueRequestsCount", eqlCommand, ex);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Loads each approval_step's configured <c>timeout_hours</c> once, keyed by step id, for use by
+        /// the overdue calculation (Bug 7). Extracted into its own method for REVIEW Finding 3 so the
+        /// timeout lookup query owns a DEDICATED log-then-rethrow that logs the ACTUAL offending EQL text —
+        /// previously a failure of this lookup was mislogged by GetOverdueRequestsCount using the
+        /// pending-request query text, defeating the Bug 4 observability goal.
+        /// </summary>
+        /// <returns>A map of approval_step id -&gt; configured timeout in hours (bounded, loaded once).</returns>
+        private Dictionary<Guid, int> LoadStepTimeouts()
+        {
+            // REVIEW FIX (Finding 3): stepTimeoutEql is declared BEFORE the try so it remains in scope for
+            // this helper's OWN log-then-rethrow, guaranteeing the offending timeout query text is logged.
+            // Uses valid EQL only (no IN/LIMIT), consistent with the Bug 1/2/3 grammar fixes. No $relation
+            // traversal is used since current_step_id has no formal EntityRelation.
+            var stepTimeoutEql = @"
+                    SELECT id, timeout_hours 
+                    FROM approval_step";
+
+            var stepTimeouts = new Dictionary<Guid, int>();
+
+            try
+            {
+                var stepResult = new EqlCommand(stepTimeoutEql, new List<EqlParameter>()).Execute();
+
+                if (stepResult == null)
+                    return stepTimeouts;
+
+                foreach (var step in stepResult)
+                {
+                    if (!step.Properties.ContainsKey("id") || step["id"] == null)
+                        continue;
+
+                    var stepId = (Guid)step["id"];
+
+                    // REVIEW FIX (Finding 4): timeout_hours is a NumberField that may surface as a boxed
+                    // decimal/double/int/string. Missing/null falls back to DEFAULT_TIMEOUT_HOURS; any
+                    // non-numeric / invalid / overflow value is handled defensively inside
+                    // ConvertTimeoutHours rather than throwing an unhandled Convert.ToInt32 out of the
+                    // metrics path (the previous inline Convert.ToInt32 had no such guard).
+                    var hours = DEFAULT_TIMEOUT_HOURS;
+                    if (step.Properties.ContainsKey("timeout_hours") && step["timeout_hours"] != null)
+                        hours = ConvertTimeoutHours(step["timeout_hours"], stepId);
+
+                    stepTimeouts[stepId] = hours;
+                }
+
+                return stepTimeouts;
+            }
+            catch (Exception ex)
+            {
+                // REVIEW FIX (Finding 3) / BUGFIX (Bug 4): log the ACTUAL offending timeout EQL text and
+                // exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.LoadStepTimeouts", stepTimeoutEql, ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Defensively converts a raw <c>timeout_hours</c> value (which may surface as a boxed
+        /// decimal/double/int or a string) into a non-negative Int32 count of hours. Added for REVIEW
+        /// Finding 4: a single malformed / non-numeric / out-of-range configuration value must NOT throw
+        /// out of the metrics path. On any conversion problem a targeted diagnostic is logged and the
+        /// DEFAULT_TIMEOUT_HOURS fallback is applied; a value of 0 is preserved (schema: 0 = no timeout).
+        /// </summary>
+        /// <param name="rawValue">The boxed timeout_hours value read from the approval_step record.</param>
+        /// <param name="stepId">The owning approval_step id, included in the diagnostic for traceability.</param>
+        /// <returns>The parsed non-negative timeout in hours, or DEFAULT_TIMEOUT_HOURS on any failure.</returns>
+        private int ConvertTimeoutHours(object rawValue, Guid stepId)
+        {
+            try
+            {
+                // Convert through decimal first (culture-invariant) so decimal/double/string storage is
+                // tolerated, then narrow to Int32. Convert.ToInt32 throws OverflowException for values
+                // outside the Int32 range, which is caught below and mapped to the fallback.
+                var asDecimal = Convert.ToDecimal(rawValue, CultureInfo.InvariantCulture);
+
+                // Negative hours are not a valid configuration (schema: 0 = no timeout, >0 = hours). Treat
+                // any negative value as invalid and apply the fallback with a targeted diagnostic instead
+                // of producing a deadline that would flag every request as overdue.
+                if (asDecimal < 0m)
+                {
+                    new Log().Create(
+                        LogType.Error,
+                        "DashboardMetricsService.ConvertTimeoutHours",
+                        "Negative timeout_hours (" + asDecimal.ToString(CultureInfo.InvariantCulture) +
+                            ") for approval_step " + stepId + "; applying DEFAULT_TIMEOUT_HOURS (" +
+                            DEFAULT_TIMEOUT_HOURS + ") fallback.",
+                        (string)null);
+                    return DEFAULT_TIMEOUT_HOURS;
+                }
+
+                // 0 is preserved (= no timeout); Convert.ToInt32 narrows and throws OverflowException for
+                // values outside the Int32 range (handled by the catch below -> fallback).
+                return Convert.ToInt32(asDecimal);
+            }
+            catch (Exception ex) when (ex is FormatException || ex is InvalidCastException || ex is OverflowException)
+            {
+                // REVIEW FIX (Finding 4): non-numeric / invalid / overflow value -> log targeted context
+                // and apply the DEFAULT_TIMEOUT_HOURS fallback instead of throwing out of the metrics path.
+                new Log().Create(
+                    LogType.Error,
+                    "DashboardMetricsService.ConvertTimeoutHours",
+                    "Invalid or out-of-range timeout_hours for approval_step " + stepId +
+                        "; applying DEFAULT_TIMEOUT_HOURS (" + DEFAULT_TIMEOUT_HOURS + ") fallback.",
+                    ex);
+                return DEFAULT_TIMEOUT_HOURS;
             }
         }
 
@@ -413,26 +506,63 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// returning organization-wide counts. Consumes <paramref name="userId"/> without introducing
         /// any non-existent approver column on approval_request.
         /// </summary>
+        /// <remarks>
+        /// REVIEW FIX (Finding 1): all three approver_type values defined by STORY-002 are now handled —
+        /// "user", "role", and "department_head" — instead of only "user". The requesting user's roles are
+        /// resolved through the existing SecurityManager/ErpUser security API (no invented schema fields),
+        /// and role-based steps are matched by role id AND role name.
+        /// REVIEW FIX (Finding 2): authorization no longer performs a raw substring scan of the whole
+        /// threshold_config JSON. The config is parsed STRUCTURALLY and compared against the explicit
+        /// approver key(s) using exact Guid.TryParse equality; malformed JSON fails CLOSED (never
+        /// authorizes). This removes the over-authorization risk where a GUID appearing anywhere in the
+        /// JSON (e.g. a threshold amount or an unrelated field) could otherwise grant access.
+        /// </remarks>
         /// <param name="userId">The approver user ID whose authorized steps are being resolved.</param>
         /// <returns>The set of approval_step IDs the user may approve (empty when none can be proven).</returns>
         private HashSet<Guid> ResolveAuthorizedStepIds(Guid userId)
         {
+            var authorizedStepIds = new HashSet<Guid>();
+
+            // REVIEW FIX (Finding 1): resolve the requesting user's roles via the EXISTING security API so
+            // "role"-type steps can be authorized by the user's ACTUAL roles (id or name). GetUser opens its
+            // own system scope internally and returns null when the user cannot be found. A hard failure is
+            // logged with a clear source + message and rethrown so it is never silently swallowed (the Bug 4
+            // observability principle) — and, crucially, it is NOT (mis)logged against the approval_step EQL.
+            ErpUser user;
+            try
+            {
+                user = new SecurityManager().GetUser(userId);
+            }
+            catch (Exception ex)
+            {
+                new Log().Create(
+                    LogType.Error,
+                    "DashboardMetricsService.ResolveAuthorizedStepIds",
+                    "Failed to resolve requesting user (userId=" + userId + ") for step authorization.",
+                    ex);
+                throw;
+            }
+
+            // Build the user's role-identity sets once for role-based step matching. Role names are compared
+            // case-insensitively; role ids are compared exactly.
+            var userRoleIds = new HashSet<Guid>();
+            var userRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (user != null && user.Roles != null)
+            {
+                foreach (var role in user.Roles)
+                {
+                    userRoleIds.Add(role.Id);
+                    if (!string.IsNullOrWhiteSpace(role.Name))
+                        userRoleNames.Add(role.Name.Trim());
+                }
+            }
+
             // BUGFIX (Bug 6): approval_request has NO approver column, so authorization is derived from
             // current_step_id -> approval_step. eqlCommand is declared BEFORE the try so it remains in
             // scope inside the catch for the Bug 4 log-then-rethrow below.
-            //
-            // CLARIFICATION (Bug 6 schema gap): STORY-002 (approval_step) does not define the exact JSON
-            // shape of threshold_config for approver identifiers, nor a documented mechanism to resolve a
-            // user's roles / department-head status. This resolution is therefore intentionally
-            // CONSERVATIVE: a step is authorized only when it is a "user"-type step whose threshold_config
-            // explicitly references this user's id. "role" / "department_head" steps are left unresolved
-            // (they require membership infrastructure not specified in the schema) and are flagged for
-            // clarification rather than resolved by inventing a column/contract.
             var eqlCommand = @"
                     SELECT id, approver_type, threshold_config 
                     FROM approval_step";
-
-            var authorizedStepIds = new HashSet<Guid>();
 
             try
             {
@@ -440,8 +570,6 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 if (result == null || !result.Any())
                     return authorizedStepIds;
-
-                var userIdText = userId.ToString();
 
                 foreach (var record in result)
                 {
@@ -458,15 +586,11 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         ? record["threshold_config"] as string
                         : null;
 
-                    // BUGFIX (Bug 6): consume userId conservatively. Authorize a "user"-type step when its
-                    // threshold_config explicitly references this user's id (a 36-char GUID match is safe
-                    // against accidental collisions). Other approver types remain unresolved (schema gap).
-                    if (string.Equals(approverType, "user", StringComparison.OrdinalIgnoreCase)
-                        && !string.IsNullOrWhiteSpace(thresholdConfig)
-                        && thresholdConfig.IndexOf(userIdText, StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
+                    // REVIEW FIX (Findings 1 & 2): decide authorization by STRUCTURALLY parsing the config
+                    // and matching the explicit approver key(s) for the step's approver_type. Only steps the
+                    // user can actually be proven to approve are added (fail closed otherwise).
+                    if (IsUserAuthorizedForStep(approverType, thresholdConfig, userId, userRoleIds, userRoleNames))
                         authorizedStepIds.Add(stepId);
-                    }
                 }
 
                 return authorizedStepIds;
@@ -477,6 +601,175 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 // offending EQL text + exception, then rethrow so the calling boundary surfaces a real error.
                 new Log().Create(LogType.Error, "DashboardMetricsService.ResolveAuthorizedStepIds", eqlCommand, ex);
                 throw;
+            }
+        }
+
+        // REVIEW FIX (Finding 2): well-known threshold_config keys that may carry explicit approver
+        // identifiers. threshold_config is documented only as "JSON configuration for amount thresholds and
+        // approver IDs" (STORY-002), so a small, defensive set of conventional aliases is accepted. Each key
+        // may hold a single scalar OR an array; values are matched EXACTLY (never by substring).
+        private static readonly string[] ApproverUserIdKeys =
+        {
+            "approver_user_id", "approver_user_ids", "user_id", "user_ids", "approver_id", "approver_ids"
+        };
+
+        private static readonly string[] ApproverRoleIdKeys =
+        {
+            "approver_role_id", "approver_role_ids", "role_id", "role_ids"
+        };
+
+        private static readonly string[] ApproverRoleNameKeys =
+        {
+            "approver_role", "approver_role_name", "approver_role_names", "role", "role_name", "role_names"
+        };
+
+        /// <summary>
+        /// Determines whether the given user (identity + resolved roles) is an authorized approver for a
+        /// single approval_step, based on the step's <paramref name="approverType"/> and its
+        /// <paramref name="thresholdConfig"/> JSON. Added for REVIEW Findings 1 &amp; 2.
+        /// </summary>
+        /// <remarks>
+        /// Fails CLOSED: returns false for a missing/blank config, malformed JSON, an unknown approver type,
+        /// or when no explicit approver identifier matches. This guarantees a parsing/lookup problem can
+        /// never OVER-authorize (the security concern raised by Finding 2).
+        /// </remarks>
+        private bool IsUserAuthorizedForStep(
+            string approverType,
+            string thresholdConfig,
+            Guid userId,
+            HashSet<Guid> userRoleIds,
+            HashSet<string> userRoleNames)
+        {
+            // Fail closed: with no config we cannot PROVE the user approves this step.
+            if (string.IsNullOrWhiteSpace(thresholdConfig))
+                return false;
+
+            JObject config;
+            try
+            {
+                config = JObject.Parse(thresholdConfig);
+            }
+            catch (JsonException ex)
+            {
+                // REVIEW FIX (Finding 2): fail CLOSED on malformed JSON (never authorize), and log the
+                // problem for observability instead of silently swallowing it.
+                new Log().Create(
+                    LogType.Error,
+                    "DashboardMetricsService.IsUserAuthorizedForStep",
+                    "Malformed approval_step threshold_config JSON (approver_type=" +
+                        (approverType ?? "<null>") + "); failing closed (not authorized).",
+                    ex);
+                return false;
+            }
+
+            var type = (approverType ?? string.Empty).Trim().ToLowerInvariant();
+
+            switch (type)
+            {
+                case "user":
+                    // Authorized when the config explicitly names this user's id.
+                    return MatchesConfiguredUser(config, userId);
+
+                case "role":
+                    // Authorized when the config explicitly names a role the user actually holds.
+                    return MatchesConfiguredRole(config, userRoleIds, userRoleNames);
+
+                case "department_head":
+                    // REVIEW FIX (Finding 1) — supported-contract handling for the documented schema gap:
+                    // no department / org-hierarchy is modeled anywhere in STORY-002 or ErpUser, so
+                    // "is this user the head of the step's department" cannot be resolved WITHOUT inventing a
+                    // schema field (explicitly forbidden by scope). The supported contract is therefore to
+                    // honor EXPLICIT approver identifiers already present in threshold_config: authorize when
+                    // the config explicitly names this user OR a role the user holds. Absent any explicit
+                    // identifier the step fails closed (never org-wide). True department-hierarchy resolution
+                    // requires org/department data that is out of single-file scope and is flagged for
+                    // design follow-up.
+                    return MatchesConfiguredUser(config, userId)
+                        || MatchesConfiguredRole(config, userRoleIds, userRoleNames);
+
+                default:
+                    // Unknown/absent approver type -> fail closed.
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="config"/> explicitly names <paramref name="userId"/> under any
+        /// recognized approver-user key. Values are compared with exact Guid.TryParse equality (REVIEW
+        /// Finding 2) — never by substring — so an unrelated GUID elsewhere in the JSON cannot grant access.
+        /// </summary>
+        private static bool MatchesConfiguredUser(JObject config, Guid userId)
+        {
+            foreach (var key in ApproverUserIdKeys)
+            {
+                foreach (var raw in EnumerateStringValues(config[key]))
+                {
+                    if (Guid.TryParse(raw, out var candidate) && candidate == userId)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="config"/> explicitly names a role the user holds — either by
+        /// exact role-id (Guid.TryParse) or by case-insensitive role-name (REVIEW Finding 1). Never uses
+        /// substring matching.
+        /// </summary>
+        private static bool MatchesConfiguredRole(JObject config, HashSet<Guid> userRoleIds, HashSet<string> userRoleNames)
+        {
+            // Match by explicit role id.
+            foreach (var key in ApproverRoleIdKeys)
+            {
+                foreach (var raw in EnumerateStringValues(config[key]))
+                {
+                    if (Guid.TryParse(raw, out var candidate) && userRoleIds.Contains(candidate))
+                        return true;
+                }
+            }
+
+            // Match by explicit role name (case-insensitive, exact value — not substring).
+            foreach (var key in ApproverRoleNameKeys)
+            {
+                foreach (var raw in EnumerateStringValues(config[key]))
+                {
+                    if (!string.IsNullOrWhiteSpace(raw) && userRoleNames.Contains(raw.Trim()))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Yields the scalar string value(s) held by a threshold_config token: a single primitive is yielded
+        /// as-is, an array yields each of its primitive elements, and null / object / nested-array tokens are
+        /// skipped. Centralizes the "single value OR array" tolerance used by the approver-matching helpers.
+        /// </summary>
+        private static IEnumerable<string> EnumerateStringValues(JToken token)
+        {
+            if (token == null)
+                yield break;
+
+            if (token.Type == JTokenType.Array)
+            {
+                foreach (var element in (JArray)token)
+                {
+                    if (element == null)
+                        continue;
+                    if (element.Type == JTokenType.Null || element.Type == JTokenType.Object || element.Type == JTokenType.Array)
+                        continue;
+
+                    var value = element.ToString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                        yield return value;
+                }
+            }
+            else if (token.Type != JTokenType.Null && token.Type != JTokenType.Object)
+            {
+                var value = token.ToString();
+                if (!string.IsNullOrWhiteSpace(value))
+                    yield return value;
             }
         }
     }
