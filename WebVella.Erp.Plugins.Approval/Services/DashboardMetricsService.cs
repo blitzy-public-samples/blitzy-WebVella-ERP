@@ -5,6 +5,7 @@ using WebVella.Erp.Api;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
 using WebVella.Erp.Plugins.Approval.Api;
+using WebVella.Erp.Diagnostics; // BUGFIX (Bug 4): Log/LogType for structured error logging (log-then-rethrow)
 
 namespace WebVella.Erp.Plugins.Approval.Services
 {
@@ -57,14 +58,20 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Count of pending approval requests.</returns>
         public int GetPendingApprovalsCount(Guid userId)
         {
-            try
-            {
-                // Query approval_request entity for pending requests
-                // In a full implementation, this would also check if userId is an authorized approver
-                var eqlCommand = @"
-                    SELECT id 
+            // BUGFIX (Bug 6): also select current_step_id so the count can be scoped to the requests
+            // whose current step this manager is authorized to approve (previously userId was ignored
+            // and the returned count was organization-wide). eqlCommand is declared BEFORE the try so it
+            // remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            var eqlCommand = @"
+                    SELECT id, current_step_id 
                     FROM approval_request 
                     WHERE status = @status";
+
+            try
+            {
+                // BUGFIX (Bug 6): resolve the manager's authorized steps and count ONLY requests whose
+                // current_step_id is in that set. This consumes userId without inventing an approver column.
+                var authorizedStepIds = ResolveAuthorizedStepIds(userId);
 
                 var eqlParams = new List<EqlParameter>
                 {
@@ -72,12 +79,30 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 };
 
                 var result = new EqlCommand(eqlCommand, eqlParams).Execute();
-                return result?.Count ?? 0;
+
+                if (result == null || !result.Any())
+                    return 0;
+
+                var count = 0;
+                foreach (var record in result)
+                {
+                    // BUGFIX (Bug 6): null-safe skip of records without a current_step_id (cannot be scoped).
+                    if (!record.Properties.ContainsKey("current_step_id") || record["current_step_id"] == null)
+                        continue;
+
+                    var stepId = (Guid)record["current_step_id"];
+                    if (authorizedStepIds.Contains(stepId))
+                        count++;
+                }
+
+                return count;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If entity doesn't exist yet, return 0
-                return 0;
+                // BUGFIX (Bug 4): never mask a query failure as a legitimate zero. Log the offending EQL
+                // text + exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.GetPendingApprovalsCount", eqlCommand, ex);
+                throw;
             }
         }
 
@@ -89,14 +114,22 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Count of overdue approval requests.</returns>
         public int GetOverdueRequestsCount(Guid userId)
         {
-            try
-            {
-                // Query for pending requests where created_on + timeout_hours < NOW
-                // This is a simplified implementation - actual would join with approval_step
-                var eqlCommand = @"
-                    SELECT id, created_on 
+            // BUGFIX (Bug 6 + Bug 7): also select current_step_id so the count can be scoped to the
+            // manager (Bug 6) and each request's per-step timeout can be resolved (Bug 7). eqlCommand is
+            // declared BEFORE the try so it remains in scope inside the catch for the Bug 4 log-then-rethrow.
+            var eqlCommand = @"
+                    SELECT id, created_on, current_step_id 
                     FROM approval_request 
                     WHERE status = @status";
+
+            try
+            {
+                // BUGFIX (Bug 6): resolve the steps this manager may approve (previously userId was ignored
+                // and the count was organization-wide).
+                var authorizedStepIds = ResolveAuthorizedStepIds(userId);
+
+                // BUGFIX (Bug 7): named fallback used ONLY when a step's configured timeout is unavailable.
+                const int DEFAULT_TIMEOUT_HOURS = 24;
 
                 var eqlParams = new List<EqlParameter>
                 {
@@ -104,22 +137,66 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 };
 
                 var result = new EqlCommand(eqlCommand, eqlParams).Execute();
-                
+
                 if (result == null || !result.Any())
                     return 0;
 
-                // Default timeout of 24 hours if not specified
-                int defaultTimeoutHours = 24;
+                // BUGFIX (Bug 7): load each step's configured timeout_hours ONCE, keyed by step id
+                // (bounded, no per-row DB round-trips, and no $relation traversal since current_step_id has
+                // no formal EntityRelation). Uses valid EQL (no IN/LIMIT). A failure of this lookup query
+                // propagates to this method's single log-then-rethrow catch below (Bug 4) — it is NOT given
+                // its own catch, so it is never silently masked.
+                var stepTimeoutEql = @"
+                    SELECT id, timeout_hours 
+                    FROM approval_step";
+
+                var stepTimeouts = new Dictionary<Guid, int>();
+                var stepResult = new EqlCommand(stepTimeoutEql, new List<EqlParameter>()).Execute();
+                if (stepResult != null)
+                {
+                    foreach (var step in stepResult)
+                    {
+                        if (!step.Properties.ContainsKey("id") || step["id"] == null)
+                            continue;
+
+                        var sId = (Guid)step["id"];
+
+                        // timeout_hours is a NumberField (may surface as a boxed decimal); convert
+                        // defensively and guard nulls, falling back to the default when it is unset.
+                        var hrs = DEFAULT_TIMEOUT_HOURS;
+                        if (step.Properties.ContainsKey("timeout_hours") && step["timeout_hours"] != null)
+                            hrs = Convert.ToInt32(step["timeout_hours"]);
+
+                        stepTimeouts[sId] = hrs;
+                    }
+                }
+
                 var overdueCount = 0;
                 var now = DateTime.UtcNow;
 
                 foreach (var record in result)
                 {
+                    // BUGFIX (Bug 6): skip requests whose current step this manager may not approve, and
+                    // requests without a current_step_id (cannot be scoped/authorized).
+                    if (!record.Properties.ContainsKey("current_step_id") || record["current_step_id"] == null)
+                        continue;
+
+                    var stepId = (Guid)record["current_step_id"];
+                    if (!authorizedStepIds.Contains(stepId))
+                        continue;
+
+                    // BUGFIX (Bug 7): use the step's configured timeout; fall back only when it is unknown.
+                    var hours = stepTimeouts.ContainsKey(stepId) ? stepTimeouts[stepId] : DEFAULT_TIMEOUT_HOURS;
+
+                    // BUGFIX (Bug 7): timeout_hours == 0 means "no timeout" -> the request is never overdue.
+                    if (hours == 0)
+                        continue;
+
                     if (record.Properties.ContainsKey("created_on") && record["created_on"] != null)
                     {
                         var createdOn = (DateTime)record["created_on"];
-                        var deadline = createdOn.AddHours(defaultTimeoutHours);
-                        
+                        var deadline = createdOn.AddHours(hours);
+
                         if (now > deadline)
                         {
                             overdueCount++;
@@ -129,10 +206,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 return overdueCount;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If entity doesn't exist yet, return 0
-                return 0;
+                // BUGFIX (Bug 4): never mask a query failure as a legitimate zero. Log the offending EQL
+                // text + exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.GetOverdueRequestsCount", eqlCommand, ex);
+                throw;
             }
         }
 
@@ -145,16 +224,20 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Average processing time in hours.</returns>
         public decimal GetAverageApprovalTime(DateTime fromDate, DateTime toDate)
         {
-            try
-            {
-                // Query completed approval requests within date range
-                var eqlCommand = @"
+            // Query completed approval requests within date range.
+            // BUGFIX (Bug 2): EQL has no IN operator; use a parenthesized OR group. The parentheses are
+            // REQUIRED because AND binds tighter than OR (EqlGrammar precedence AND=5 > OR=4), so the
+            // AND-bound completed_on date range applies to BOTH statuses. eqlCommand is declared BEFORE the
+            // try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            var eqlCommand = @"
                     SELECT id, created_on, completed_on 
                     FROM approval_request 
-                    WHERE status IN (@approvedStatus, @rejectedStatus)
+                    WHERE (status = @approvedStatus OR status = @rejectedStatus)
                     AND completed_on >= @fromDate
                     AND completed_on <= @toDate";
 
+            try
+            {
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter("approvedStatus", "approved"),
@@ -188,10 +271,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 return count > 0 ? Math.Round(totalHours / count, 2) : 0;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If entity doesn't exist yet, return 0
-                return 0;
+                // BUGFIX (Bug 4): never mask a query failure as a legitimate zero. Log the offending EQL
+                // text + exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.GetAverageApprovalTime", eqlCommand, ex);
+                throw;
             }
         }
 
@@ -204,16 +289,20 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Approval rate as a percentage (0-100).</returns>
         public decimal GetApprovalRate(DateTime fromDate, DateTime toDate)
         {
-            try
-            {
-                // Query all completed requests within date range
-                var eqlCommand = @"
+            // Query all completed requests within date range.
+            // BUGFIX (Bug 1): EQL has no IN operator; use a parenthesized OR group. The parentheses are
+            // REQUIRED because AND binds tighter than OR (EqlGrammar precedence AND=5 > OR=4), so the
+            // AND-bound completed_on date range applies to BOTH statuses. eqlCommand is declared BEFORE the
+            // try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            var eqlCommand = @"
                     SELECT id, status 
                     FROM approval_request 
-                    WHERE status IN (@approvedStatus, @rejectedStatus)
+                    WHERE (status = @approvedStatus OR status = @rejectedStatus)
                     AND completed_on >= @fromDate
                     AND completed_on <= @toDate";
 
+            try
+            {
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter("approvedStatus", "approved"),
@@ -236,10 +325,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
                     ? Math.Round((decimal)approvedCount / totalCount * 100, 1) 
                     : 0;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If entity doesn't exist yet, return 0
-                return 0;
+                // BUGFIX (Bug 4): never mask a query failure as a legitimate zero. Log the offending EQL
+                // text + exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.GetApprovalRate", eqlCommand, ex);
+                throw;
             }
         }
 
@@ -251,15 +342,18 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>List of recent activity items ordered by most recent first.</returns>
         public List<RecentActivityItem> GetRecentActivity(int limit)
         {
-            try
-            {
-                // Query approval_history for recent actions
-                var eqlCommand = @"
+            // Query approval_history for recent actions.
+            // BUGFIX (Bug 3): EQL paginates with PAGE/PAGESIZE, not LIMIT. ORDER BY performed_on DESC is
+            // retained so PAGE 1 PAGESIZE @limit yields the newest-first top-N slice. eqlCommand is declared
+            // BEFORE the try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            var eqlCommand = @"
                     SELECT id, action, performed_by, performed_on, request_id 
                     FROM approval_history 
                     ORDER BY performed_on DESC
-                    LIMIT @limit";
+                    PAGE 1 PAGESIZE @limit";
 
+            try
+            {
                 var eqlParams = new List<EqlParameter>
                 {
                     new EqlParameter("limit", limit)
@@ -288,6 +382,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         RequestId = record.Properties.ContainsKey("request_id") && record["request_id"] != null
                             ? (Guid)record["request_id"] 
                             : Guid.Empty,
+                        // Bug 5 (schema gap - INTENTIONAL NO-OP): no request_title column exists on
+                        // approval_history or approval_request, and the recent-activity API contract omits
+                        // any title field, so this guard always resolves to the "Approval Request" fallback.
+                        // Selecting request_title would throw an unresolved-column EqlException; populating a
+                        // real title requires provisioning a title field (or resolving the dynamic source
+                        // record via source_entity + source_record_id) and is out of single-file scope.
                         RequestTitle = record.Properties.ContainsKey("request_title") 
                             ? (string)record["request_title"] ?? "Approval Request" 
                             : "Approval Request"
@@ -298,10 +398,85 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 return activityList;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If entity doesn't exist yet, return empty list
-                return new List<RecentActivityItem>();
+                // BUGFIX (Bug 4): never mask a query failure as a legitimate empty list. Log the offending
+                // EQL text + exception, then rethrow so the controller/component boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.GetRecentActivity", eqlCommand, ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the set of approval_step IDs that the specified user is authorized to approve.
+        /// Used to scope the pending/overdue counts to the manager's own queue (Bug 6) instead of
+        /// returning organization-wide counts. Consumes <paramref name="userId"/> without introducing
+        /// any non-existent approver column on approval_request.
+        /// </summary>
+        /// <param name="userId">The approver user ID whose authorized steps are being resolved.</param>
+        /// <returns>The set of approval_step IDs the user may approve (empty when none can be proven).</returns>
+        private HashSet<Guid> ResolveAuthorizedStepIds(Guid userId)
+        {
+            // BUGFIX (Bug 6): approval_request has NO approver column, so authorization is derived from
+            // current_step_id -> approval_step. eqlCommand is declared BEFORE the try so it remains in
+            // scope inside the catch for the Bug 4 log-then-rethrow below.
+            //
+            // CLARIFICATION (Bug 6 schema gap): STORY-002 (approval_step) does not define the exact JSON
+            // shape of threshold_config for approver identifiers, nor a documented mechanism to resolve a
+            // user's roles / department-head status. This resolution is therefore intentionally
+            // CONSERVATIVE: a step is authorized only when it is a "user"-type step whose threshold_config
+            // explicitly references this user's id. "role" / "department_head" steps are left unresolved
+            // (they require membership infrastructure not specified in the schema) and are flagged for
+            // clarification rather than resolved by inventing a column/contract.
+            var eqlCommand = @"
+                    SELECT id, approver_type, threshold_config 
+                    FROM approval_step";
+
+            var authorizedStepIds = new HashSet<Guid>();
+
+            try
+            {
+                var result = new EqlCommand(eqlCommand, new List<EqlParameter>()).Execute();
+
+                if (result == null || !result.Any())
+                    return authorizedStepIds;
+
+                var userIdText = userId.ToString();
+
+                foreach (var record in result)
+                {
+                    if (!record.Properties.ContainsKey("id") || record["id"] == null)
+                        continue;
+
+                    var stepId = (Guid)record["id"];
+
+                    var approverType = record.Properties.ContainsKey("approver_type")
+                        ? record["approver_type"] as string
+                        : null;
+
+                    var thresholdConfig = record.Properties.ContainsKey("threshold_config")
+                        ? record["threshold_config"] as string
+                        : null;
+
+                    // BUGFIX (Bug 6): consume userId conservatively. Authorize a "user"-type step when its
+                    // threshold_config explicitly references this user's id (a 36-char GUID match is safe
+                    // against accidental collisions). Other approver types remain unresolved (schema gap).
+                    if (string.Equals(approverType, "user", StringComparison.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(thresholdConfig)
+                        && thresholdConfig.IndexOf(userIdText, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        authorizedStepIds.Add(stepId);
+                    }
+                }
+
+                return authorizedStepIds;
+            }
+            catch (Exception ex)
+            {
+                // BUGFIX (Bug 4): never mask a helper query failure as a legitimate empty result. Log the
+                // offending EQL text + exception, then rethrow so the calling boundary surfaces a real error.
+                new Log().Create(LogType.Error, "DashboardMetricsService.ResolveAuthorizedStepIds", eqlCommand, ex);
+                throw;
             }
         }
     }
