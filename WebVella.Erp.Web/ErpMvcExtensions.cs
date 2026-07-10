@@ -75,16 +75,14 @@ namespace WebVella.Erp.Web
 					//this should be called after plugin init
 					ErpAutoMapper.Initialize(cfg);
 
-					//we used en-US based culture settings for initialization and patch execution
-					{
-						CultureInfo.DefaultThreadCurrentCulture = customCulture;
-						CultureInfo.DefaultThreadCurrentUICulture = customCulture;
-
-						service.InitializeSystemEntities();
-
-						CultureInfo.DefaultThreadCurrentCulture = defaultThreadCulture;
-						CultureInfo.DefaultThreadCurrentUICulture = defaultThreadUICulture;
-					}
+					// Refine PR (Live Crash fix): removed the web-startup trigger for the fresh-DB
+					// bootstrap crash. The call `service.InitializeSystemEntities()` executed here
+					// during live host boot and crashed against a fresh/unseeded database in the
+					// out-of-scope core library (ERPService.cs:106), which precedes MVC routing and
+					// blocked the (now out-of-scope) live route-smoke. The triggering process is
+					// removed so live host boot no longer initiates the crashing system-entity
+					// bootstrap. System-entity initialization remains available via IErpService
+					// (e.g. the console-app path) to run explicitly against a migrated database.
 
 					CheckCreateHomePage();
 
