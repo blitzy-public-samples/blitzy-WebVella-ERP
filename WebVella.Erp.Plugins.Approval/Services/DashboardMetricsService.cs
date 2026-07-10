@@ -466,8 +466,17 @@ namespace WebVella.Erp.Plugins.Approval.Services
                         Action = record.Properties.ContainsKey("action") 
                             ? (string)record["action"] ?? "unknown" 
                             : "unknown",
+                        // BUGFIX (recent-activity mapping / QA Report 7 Issue 1): performed_by is a
+                        // GuidField (STORY-002 approval_history), so record["performed_by"] is a boxed
+                        // System.Guid. The previous hard (string) cast threw InvalidCastException at
+                        // runtime -- a CRITICAL crash that was unmasked once the Bug 3 LIMIT -> PAGE/PAGESIZE
+                        // fix allowed this query to execute and reach the mapping -- aborting GetRecentActivity
+                        // and, via the GetDashboardMetrics object initializer, the entire /metrics endpoint.
+                        // Use null-safe ?.ToString() so a Guid renders as its canonical string form and a
+                        // null value still falls back to "Unknown User". PerformedBy is a string on the DTO,
+                        // so this involves no public-signature, DTO, or schema change.
                         PerformedBy = record.Properties.ContainsKey("performed_by") 
-                            ? (string)record["performed_by"] ?? "Unknown User" 
+                            ? record["performed_by"]?.ToString() ?? "Unknown User" 
                             : "Unknown User",
                         PerformedOn = record.Properties.ContainsKey("performed_on") && record["performed_on"] != null
                             ? (DateTime)record["performed_on"] 
