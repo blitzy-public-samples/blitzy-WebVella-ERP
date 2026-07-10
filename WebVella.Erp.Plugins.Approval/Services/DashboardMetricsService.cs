@@ -317,26 +317,64 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Average processing time in hours.</returns>
         public decimal GetAverageApprovalTime(DateTime fromDate, DateTime toDate)
         {
-            // Query completed approval requests within date range.
-            // BUGFIX (Bug 2): EQL has no IN operator; use a parenthesized OR group. The parentheses are
-            // REQUIRED because AND binds tighter than OR (EqlGrammar precedence AND=5 > OR=4), so the
-            // AND-bound completed_on date range applies to BOTH statuses. eqlCommand is declared BEFORE the
-            // try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            // FINDING A FIX (phantom column `completed_on`): approval_request has NO `completed_on` column
+            // in the authoritative schema (STORY-002 AC4: id, source_record_id, source_entity, workflow_id,
+            // current_step_id, status, created_on, created_by). Selecting/filtering it threw an unresolved-
+            // column EqlException that -- once unmasked by the Bug 4 log-then-rethrow -- surfaced as an
+            // HTTP 500 on the entire /metrics endpoint. Per STORY-009 ("Average Approval Time: mean time
+            // from request creation to final approval decision, calculated from approval_history timestamp
+            // differences"), the decision timestamp is approval_history.performed_on for a terminal
+            // action_type (approved|rejected); the creation timestamp is approval_request.created_on.
+            //
+            // Query 1 (decisions): terminal approve/reject events within the range, from approval_history.
+            // No IN operator (parenthesized OR; AND binds tighter than OR, so the performed_on range
+            // applies to BOTH action types). Declared BEFORE the try so it stays in scope for the Bug 4
+            // catch below.
             var eqlCommand = @"
-                    SELECT id, created_on, completed_on 
-                    FROM approval_request 
-                    WHERE (status = @approvedStatus OR status = @rejectedStatus)
-                    AND completed_on >= @fromDate
-                    AND completed_on <= @toDate";
+                    SELECT request_id, performed_on
+                    FROM approval_history
+                    WHERE performed_on >= @fromDate
+                    AND performed_on <= @toDate
+                    AND (action_type = @approvedAction OR action_type = @rejectedAction)";
+
+            // Query 2 (creation lookup): request id -> created_on, a bounded one-time load keyed by request
+            // id (mirrors the LoadStepTimeouts dictionary pattern used for the Bug 7 fix). Restricted to
+            // created_on <= @toDate: any decision performed on/before toDate implies its request was created
+            // on/before toDate, so this trims the set without excluding a needed row.
+            var createdOnEqlCommand = @"
+                    SELECT id, created_on
+                    FROM approval_request
+                    WHERE created_on <= @toDate";
 
             try
             {
+                // Build the request-id -> created_on lookup first so each decision row can be paired with
+                // its originating request's creation time.
+                var createdOnParams = new List<EqlParameter>
+                {
+                    new EqlParameter("toDate", toDate)
+                };
+                var createdOnResult = new EqlCommand(createdOnEqlCommand, createdOnParams).Execute();
+
+                var requestCreatedOn = new Dictionary<Guid, DateTime>();
+                if (createdOnResult != null)
+                {
+                    foreach (var reqRecord in createdOnResult)
+                    {
+                        if (reqRecord.Properties.ContainsKey("id") && reqRecord["id"] != null &&
+                            reqRecord.Properties.ContainsKey("created_on") && reqRecord["created_on"] != null)
+                        {
+                            requestCreatedOn[(Guid)reqRecord["id"]] = (DateTime)reqRecord["created_on"];
+                        }
+                    }
+                }
+
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("approvedStatus", "approved"),
-                    new EqlParameter("rejectedStatus", "rejected"),
                     new EqlParameter("fromDate", fromDate),
-                    new EqlParameter("toDate", toDate)
+                    new EqlParameter("toDate", toDate),
+                    new EqlParameter("approvedAction", "approved"),
+                    new EqlParameter("rejectedAction", "rejected")
                 };
 
                 var result = new EqlCommand(eqlCommand, eqlParams).Execute();
@@ -349,16 +387,19 @@ namespace WebVella.Erp.Plugins.Approval.Services
 
                 foreach (var record in result)
                 {
-                    if (record.Properties.ContainsKey("created_on") && 
-                        record.Properties.ContainsKey("completed_on") &&
-                        record["created_on"] != null && 
-                        record["completed_on"] != null)
+                    if (record.Properties.ContainsKey("request_id") && record["request_id"] != null &&
+                        record.Properties.ContainsKey("performed_on") && record["performed_on"] != null)
                     {
-                        var createdOn = (DateTime)record["created_on"];
-                        var completedOn = (DateTime)record["completed_on"];
-                        var hours = (decimal)(completedOn - createdOn).TotalHours;
-                        totalHours += hours;
-                        count++;
+                        var requestId = (Guid)record["request_id"];
+                        var performedOn = (DateTime)record["performed_on"];
+
+                        // Measurable only when the originating request's creation time is known and the
+                        // decision is not chronologically before it (guards against data/clock anomalies).
+                        if (requestCreatedOn.TryGetValue(requestId, out var createdOn) && performedOn >= createdOn)
+                        {
+                            totalHours += (decimal)(performedOn - createdOn).TotalHours;
+                            count++;
+                        }
                     }
                 }
 
@@ -382,26 +423,29 @@ namespace WebVella.Erp.Plugins.Approval.Services
         /// <returns>Approval rate as a percentage (0-100).</returns>
         public decimal GetApprovalRate(DateTime fromDate, DateTime toDate)
         {
-            // Query all completed requests within date range.
-            // BUGFIX (Bug 1): EQL has no IN operator; use a parenthesized OR group. The parentheses are
-            // REQUIRED because AND binds tighter than OR (EqlGrammar precedence AND=5 > OR=4), so the
-            // AND-bound completed_on date range applies to BOTH statuses. eqlCommand is declared BEFORE the
-            // try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
+            // FINDING A FIX (phantom column `completed_on`): approval_request has NO `completed_on` column
+            // (STORY-002 AC4), so the previous `SELECT id, status ... WHERE completed_on ...` threw an
+            // unresolved-column EqlException that surfaced as an HTTP 500 on /metrics once the Bug 4
+            // log-then-rethrow unmasked it. Per STORY-009 ("Approval Rate: percentage of requests approved
+            // versus total processed (approved + rejected)"), the processed set and its approve/reject
+            // classification live in approval_history.action_type over the performed_on window. No IN
+            // operator (parenthesized OR; AND binds tighter than OR so the range applies to BOTH actions).
+            // eqlCommand is declared BEFORE the try so it stays in scope for the Bug 4 catch below.
             var eqlCommand = @"
-                    SELECT id, status 
-                    FROM approval_request 
-                    WHERE (status = @approvedStatus OR status = @rejectedStatus)
-                    AND completed_on >= @fromDate
-                    AND completed_on <= @toDate";
+                    SELECT id, action_type
+                    FROM approval_history
+                    WHERE performed_on >= @fromDate
+                    AND performed_on <= @toDate
+                    AND (action_type = @approvedAction OR action_type = @rejectedAction)";
 
             try
             {
                 var eqlParams = new List<EqlParameter>
                 {
-                    new EqlParameter("approvedStatus", "approved"),
-                    new EqlParameter("rejectedStatus", "rejected"),
                     new EqlParameter("fromDate", fromDate),
-                    new EqlParameter("toDate", toDate)
+                    new EqlParameter("toDate", toDate),
+                    new EqlParameter("approvedAction", "approved"),
+                    new EqlParameter("rejectedAction", "rejected")
                 };
 
                 var result = new EqlCommand(eqlCommand, eqlParams).Execute();
@@ -409,10 +453,12 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 if (result == null || !result.Any())
                     return 0;
 
+                // Each returned row is a terminal decision event (approved|rejected) within the window;
+                // the approval rate is the share of those decisions that were approvals.
                 var totalCount = result.Count;
                 var approvedCount = result.Count(r => 
-                    r.Properties.ContainsKey("status") && 
-                    (string)r["status"] == "approved");
+                    r.Properties.ContainsKey("action_type") && 
+                    (string)r["action_type"] == "approved");
 
                 return totalCount > 0 
                     ? Math.Round((decimal)approvedCount / totalCount * 100, 1) 
@@ -436,12 +482,19 @@ namespace WebVella.Erp.Plugins.Approval.Services
         public List<RecentActivityItem> GetRecentActivity(int limit)
         {
             // Query approval_history for recent actions.
+            // FINDING B FIX (phantom column `action`): the authoritative approval_history schema
+            // (STORY-002 AC5) names this SelectField `action_type`, not `action`. Selecting `action`
+            // threw an unresolved-column EqlException that -- once the Bug 3 LIMIT->PAGE/PAGESIZE fix let
+            // this query build -- aborted GetRecentActivity and, via the GetDashboardMetrics initializer,
+            // the whole /metrics endpoint (HTTP 500). The DTO stays RecentActivityItem.Action with
+            // [JsonProperty("action")], so the emitted JSON contract is unchanged; only the queried
+            // column name is corrected.
             // BUGFIX (Bug 3): EQL paginates with PAGE/PAGESIZE, not LIMIT. ORDER BY performed_on DESC is
             // retained so PAGE 1 PAGESIZE @limit yields the newest-first top-N slice. eqlCommand is declared
             // BEFORE the try so it remains in scope inside the catch for the Bug 4 log-then-rethrow below.
             var eqlCommand = @"
-                    SELECT id, action, performed_by, performed_on, request_id 
-                    FROM approval_history 
+                    SELECT id, action_type, performed_by, performed_on, request_id
+                    FROM approval_history
                     ORDER BY performed_on DESC
                     PAGE 1 PAGESIZE @limit";
 
@@ -463,8 +516,10 @@ namespace WebVella.Erp.Plugins.Approval.Services
                 {
                     var item = new RecentActivityItem
                     {
-                        Action = record.Properties.ContainsKey("action") 
-                            ? (string)record["action"] ?? "unknown" 
+                        // FINDING B FIX: read the corrected `action_type` column (STORY-002 AC5) into the
+                        // Action DTO property (whose JSON name remains "action").
+                        Action = record.Properties.ContainsKey("action_type") 
+                            ? (string)record["action_type"] ?? "unknown" 
                             : "unknown",
                         // BUGFIX (recent-activity mapping / QA Report 7 Issue 1): performed_by is a
                         // GuidField (STORY-002 approval_history), so record["performed_by"] is a boxed
