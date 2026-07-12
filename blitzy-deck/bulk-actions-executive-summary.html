@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bulk Archive and Bulk Delete for PcGrid | Blitzy Executive Summary</title>
+
+    <!-- reveal.js 5.1.0 core (pinned CDN, browser-only) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <!-- Brand fonts: Inter + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+
+    <!--
+        Blitzy reveal theme, embedded inline.
+        The canonical theme file blitzy-deck/references/blitzy-reveal-theme.css does not exist in the repository,
+        so the Blitzy brand palette and fonts live here in the style block instead of a linked file.
+    -->
+    <style>
+        :root {
+            --blitzy-bg-0: #0B1020;
+            --blitzy-bg-1: #0E1330;
+            --blitzy-bg-2: #151B3D;
+            --blitzy-surface: rgba(124, 92, 252, 0.08);
+            --blitzy-surface-line: rgba(124, 92, 252, 0.28);
+            --blitzy-primary: #7C5CFC;
+            --blitzy-primary-2: #6D5EF6;
+            --blitzy-accent: #22D3EE;
+            --blitzy-text: #E6E9F5;
+            --blitzy-muted: #9AA3C0;
+            --blitzy-danger: #EF4444;
+            --blitzy-warning: #F59E0B;
+            --blitzy-success: #22C55E;
+            --blitzy-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        html, body { height: 100%; }
+
+        .reveal {
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 32px;
+            color: var(--blitzy-text);
+            font-weight: 400;
+            letter-spacing: 0.1px;
+        }
+
+        .reveal-viewport {
+            background:
+                radial-gradient(1200px 700px at 82% -8%, rgba(124, 92, 252, 0.22), transparent 60%),
+                radial-gradient(900px 600px at 8% 108%, rgba(34, 211, 238, 0.16), transparent 55%),
+                linear-gradient(160deg, var(--blitzy-bg-0) 0%, var(--blitzy-bg-1) 60%, var(--blitzy-bg-2) 100%);
+        }
+
+        .reveal .slides { text-align: left; }
+        .reveal .slides section { height: 100%; }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: "Inter", sans-serif;
+            color: #FFFFFF;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            text-transform: none;
+            line-height: 1.1;
+            margin-bottom: 0.5em;
+        }
+        .reveal h1 { font-size: 1.85em; }
+        .reveal h2 { font-size: 1.32em; }
+        .reveal h3 { font-size: 1.05em; color: var(--blitzy-text); }
+
+        .reveal h2.section-title {
+            border-left: 5px solid var(--blitzy-primary);
+            padding-left: 0.5em;
+        }
+
+        .reveal p, .reveal li { line-height: 1.4; }
+        .reveal strong { color: #FFFFFF; font-weight: 700; }
+        .reveal em { color: var(--blitzy-accent); font-style: normal; font-weight: 600; }
+
+        .reveal a { color: var(--blitzy-accent); text-decoration: none; }
+
+        .reveal ul { display: block; margin-left: 1em; }
+        .reveal ul li { margin: 0.35em 0; padding-left: 0.2em; }
+        .reveal ul li::marker { color: var(--blitzy-primary); }
+
+        .reveal code { font-family: var(--blitzy-mono); color: var(--blitzy-accent); font-size: 0.86em; }
+        .reveal pre {
+            width: 100%;
+            box-shadow: none;
+            font-size: 0.5em;
+        }
+        .reveal pre code {
+            background: rgba(4, 8, 22, 0.75);
+            color: #D7DCF5;
+            border: 1px solid var(--blitzy-surface-line);
+            border-radius: 12px;
+            padding: 16px 18px;
+            max-height: none;
+        }
+
+        /* Brand mark */
+        .brand-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .brand-logo {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--blitzy-primary), var(--blitzy-accent));
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 30px rgba(124, 92, 252, 0.45);
+        }
+        .brand-logo svg { width: 26px; height: 26px; color: #0B1020; stroke-width: 2.6; }
+        .brand-name { font-weight: 800; font-size: 0.9em; letter-spacing: 3px; text-transform: uppercase; color: #FFFFFF; }
+        .brand-sub { color: var(--blitzy-muted); font-size: 0.5em; letter-spacing: 2px; text-transform: uppercase; }
+
+        .kicker {
+            color: var(--blitzy-accent);
+            font-weight: 600;
+            font-size: 0.5em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: var(--blitzy-muted); font-size: 0.62em; margin-top: 0.4em; }
+
+        /* Chips */
+        .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+        .chip {
+            font-size: 0.44em; font-weight: 600; letter-spacing: 0.6px;
+            padding: 8px 14px; border-radius: 999px;
+            background: var(--blitzy-surface);
+            border: 1px solid var(--blitzy-surface-line);
+            color: var(--blitzy-text);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .chip svg { width: 15px; height: 15px; color: var(--blitzy-accent); }
+
+        /* Cards */
+        .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 10px; }
+        .cards.two { grid-template-columns: repeat(2, 1fr); }
+        .card {
+            background: var(--blitzy-surface);
+            border: 1px solid var(--blitzy-surface-line);
+            border-radius: 16px;
+            padding: 20px 20px 18px;
+        }
+        .card .card-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: rgba(34, 211, 238, 0.12);
+            display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;
+        }
+        .card .card-icon svg { width: 22px; height: 22px; color: var(--blitzy-accent); }
+        .card h3 { font-size: 0.72em; margin: 0 0 8px; color: #FFFFFF; }
+        .card p { font-size: 0.5em; color: var(--blitzy-muted); margin: 0; line-height: 1.45; }
+        .card.danger .card-icon { background: rgba(239, 68, 68, 0.14); }
+        .card.danger .card-icon svg { color: var(--blitzy-danger); }
+
+        /* Stat grid */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
+        .stat {
+            background: var(--blitzy-surface); border: 1px solid var(--blitzy-surface-line);
+            border-radius: 14px; padding: 18px 16px; text-align: center;
+        }
+        .stat .num { font-size: 1.15em; font-weight: 800; color: #FFFFFF; }
+        .stat .num.accent { color: var(--blitzy-accent); }
+        .stat .lbl { font-size: 0.4em; color: var(--blitzy-muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px; }
+
+        /* Two column layout */
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+        .cols h3 { display: flex; align-items: center; gap: 10px; font-size: 0.78em; }
+        .cols h3 svg { width: 20px; height: 20px; }
+        .col-in h3 svg { color: var(--blitzy-success); }
+        .col-out h3 svg { color: var(--blitzy-danger); }
+        .cols ul { font-size: 0.56em; }
+
+        /* Tables */
+        .reveal table { width: 100%; border-collapse: collapse; font-size: 0.46em; margin-top: 8px; }
+        .reveal table th {
+            text-align: left; color: #FFFFFF; font-weight: 700;
+            border-bottom: 2px solid var(--blitzy-primary);
+            padding: 10px 12px; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.92em;
+        }
+        .reveal table td {
+            padding: 9px 12px; color: var(--blitzy-text);
+            border-bottom: 1px solid rgba(154, 163, 192, 0.16); vertical-align: top;
+        }
+        .reveal table tr:nth-child(even) td { background: rgba(124, 92, 252, 0.05); }
+
+        .risk-pill { font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: 0.9em; white-space: nowrap; }
+        .risk-high { background: rgba(239, 68, 68, 0.16); color: #FF8A8A; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .risk-med { background: rgba(245, 158, 11, 0.16); color: #FFCB73; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .risk-low { background: rgba(34, 197, 94, 0.16); color: #86EFAC; border: 1px solid rgba(34, 197, 94, 0.4); }
+
+        /* Mermaid host */
+        .mermaid-wrap {
+            background: rgba(4, 8, 22, 0.55);
+            border: 1px solid var(--blitzy-surface-line);
+            border-radius: 16px; padding: 14px; margin-top: 6px;
+        }
+        .reveal .mermaid { text-align: center; }
+        .reveal .mermaid svg { max-width: 100%; height: auto; }
+
+        /* Footer + progress accents */
+        .reveal .progress { color: var(--blitzy-primary); height: 4px; }
+        .reveal .controls { color: var(--blitzy-primary); }
+        .reveal .slide-number { background: transparent; color: var(--blitzy-muted); font-size: 14px; }
+
+        .footer-tag {
+            position: absolute; bottom: 14px; left: 18px;
+            font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--blitzy-muted);
+        }
+
+        .lead { font-size: 0.7em; color: var(--blitzy-muted); max-width: 22em; }
+        .note { font-size: 0.44em; color: var(--blitzy-muted); margin-top: 16px; }
+        .center { text-align: center; }
+        .mono { font-family: var(--blitzy-mono); color: var(--blitzy-accent); font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<div class="reveal">
+    <div class="slides">
+
+        <!-- Slide 1: Title -->
+        <section data-background-gradient="linear-gradient(160deg, #0B1020 0%, #141A3E 100%)">
+            <div class="brand-row">
+                <span class="brand-logo"><i data-lucide="zap"></i></span>
+                <span>
+                    <div class="brand-name">Blitzy</div>
+                    <div class="brand-sub">Autonomous Software Delivery</div>
+                </span>
+            </div>
+            <div class="kicker">WebVella ERP · Feature Delivery</div>
+            <h1>Bulk Archive and Bulk Delete<br>for the PcGrid List</h1>
+            <p class="subtitle">Multi-record selection, a reversible Archive, and a guarded permanent Delete, all built inside the existing PcGrid component.</p>
+            <div class="chips">
+                <span class="chip"><i data-lucide="files"></i> 6 application files</span>
+                <span class="chip"><i data-lucide="server"></i> 2 REST endpoints</span>
+                <span class="chip"><i data-lucide="package"></i> 0 new dependencies</span>
+                <span class="chip"><i data-lucide="database"></i> 0 migrations</span>
+            </div>
+            <div class="footer-tag">Executive Summary</div>
+        </section>
+
+        <!-- Slide 2: Executive summary -->
+        <section>
+            <h2 class="section-title">Executive summary</h2>
+            <ul>
+                <li>The PcGrid list view now lets a user pick many records and act on the whole selection in one request.</li>
+                <li>Two actions ship together: a reversible <em>Archive</em> and a permanent <em>Delete</em>.</li>
+                <li>Every new option defaults to off, so existing grids render exactly as they do today.</li>
+                <li>Both actions route through the existing data layer, so per-record permission checks and lifecycle hooks still run.</li>
+            </ul>
+            <div class="stats">
+                <div class="stat"><div class="num accent">1</div><div class="lbl">Request per bulk action</div></div>
+                <div class="stat"><div class="num">2</div><div class="lbl">New POST actions</div></div>
+                <div class="stat"><div class="num">6</div><div class="lbl">Files touched</div></div>
+                <div class="stat"><div class="num">0</div><div class="lbl">Schema changes</div></div>
+            </div>
+            <div class="footer-tag">Executive Summary</div>
+        </section>
+
+        <!-- Slide 3: The problem -->
+        <section>
+            <h2 class="section-title">The problem</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="repeat"></i></span>
+                    <h3>One record at a time</h3>
+                    <p>Today the grid handles a single record per action, so managing a long list means repeating the same click many times.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="clock"></i></span>
+                    <h3>Slow for large lists</h3>
+                    <p>Teams that clean up or triage records lose time to repetitive single-record work.</p>
+                </div>
+                <div class="card danger">
+                    <span class="card-icon"><i data-lucide="alert-triangle"></i></span>
+                    <h3>Accidental loss</h3>
+                    <p>A permanent delete with no guard rail puts users one wrong click away from losing data.</p>
+                </div>
+            </div>
+            <p class="note">The feature answers all three problems while keeping the existing single-record flow untouched.</p>
+            <div class="footer-tag">Context</div>
+        </section>
+
+        <!-- Slide 4: What shipped -->
+        <section>
+            <h2 class="section-title">What shipped</h2>
+            <div class="cards two">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="check-square"></i></span>
+                    <h3>Multi-record selection</h3>
+                    <p>Per-row checkboxes and a select-all control add selection to the records on the current page.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="panel-top"></i></span>
+                    <h3>Contextual toolbar</h3>
+                    <p>A toolbar appears once a user selects at least one record, and shows the live count next to the two actions.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="archive"></i></span>
+                    <h3>Reversible Archive</h3>
+                    <p>Archive flips a boolean flag and reverses easily, so a lighter confirmation fits the action.</p>
+                </div>
+                <div class="card danger">
+                    <span class="card-icon"><i data-lucide="trash-2"></i></span>
+                    <h3>Permanent Delete</h3>
+                    <p>Delete removes records for good, so a count-aware confirmation names the permanence before the call.</p>
+                </div>
+            </div>
+            <div class="footer-tag">Overview</div>
+        </section>
+
+        <!-- Slide 5: The selection experience -->
+        <section>
+            <h2 class="section-title">The selection experience</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="mouse-pointer-click"></i></span>
+                    <h3>Select</h3>
+                    <p>Each row shows a leading checkbox. Select-all toggles every checkbox on the current page, and selection never crosses pages.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="layout-list"></i></span>
+                    <h3>Act</h3>
+                    <p>A Bootstrap toolbar shows a badge with the live count, a red Delete button, and a neutral Archive button.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="shield-check"></i></span>
+                    <h3>Confirm</h3>
+                    <p>Delete asks a count-aware, permanence-explicit question. Archive asks a lighter question. The grid refreshes on success.</p>
+                </div>
+            </div>
+            <p class="note">Archive shows only when the administrator enables it and the grid records carry the archive field.</p>
+            <div class="footer-tag">User Experience</div>
+        </section>
+
+        <!-- Slide 6: Request flow (Mermaid component diagram) -->
+        <section>
+            <h2 class="section-title">Request flow, end to end</h2>
+            <div class="mermaid-wrap">
+                <pre class="mermaid">
+flowchart LR
+    A["PcGrid Display view<br/>checkboxes + toolbar"] --> B["Inline selection script<br/>collects page record ids"]
+    B --> C{"Action chosen"}
+    C -->|Delete| D["Count-aware<br/>permanent confirm"]
+    C -->|Archive| E["Lighter<br/>reversible confirm"]
+    D --> F["POST /record/bulk/delete"]
+    E --> G["POST /record/bulk/archive"]
+    F --> H["WebApiController<br/>BulkDeleteRecords"]
+    G --> I["WebApiController<br/>BulkArchiveRecords"]
+    H --> J["Per-record<br/>DbContext transaction"]
+    I --> J
+    J --> K["RecordManager<br/>DeleteRecord / UpdateRecord<br/>permission + hooks"]
+    K --> L["Commit or roll back<br/>each record"]
+    L --> M["Aggregate per-record results<br/>ResponseModel"]
+    M --> N["Grid refresh"]
+
+    classDef client fill:#151B3D,stroke:#22D3EE,color:#E6E9F5;
+    classDef server fill:#1B1740,stroke:#7C5CFC,color:#E6E9F5;
+    classDef data fill:#0E1330,stroke:#6D5EF6,color:#E6E9F5;
+    class A,B,C,D,E,F,G,N client;
+    class H,I,J,M server;
+    class K,L data;
+                </pre>
+            </div>
+            <div class="footer-tag">Architecture</div>
+        </section>
+
+        <!-- Slide 7: Server design -->
+        <section>
+            <h2 class="section-title">Server design</h2>
+            <ul>
+                <li>Two POST actions attach to the existing <code>WebApiController</code> and reuse its <code>RecordManager</code> field.</li>
+                <li>Each selected record runs inside its own <code>DbContext</code> transaction.</li>
+                <li>The delete path calls <code>RecordManager.DeleteRecord</code>. The archive path sets the archive field to true and calls <code>RecordManager.UpdateRecord</code>.</li>
+            </ul>
+            <pre><code data-trim data-noescape>foreach (var id in model.RecordIds)
+  using (var c = DbContext.Current.CreateConnection())
+  {
+    c.BeginTransaction();
+    var r = recMan.DeleteRecord(model.EntityName, id);
+    if (r.Success) c.CommitTransaction(); else c.RollbackTransaction();
+    results.Add(ToResultItem(id, r));   // one record fails, the batch keeps going
+  }</code></pre>
+            <div class="footer-tag">Architecture</div>
+        </section>
+
+        <!-- Slide 8: Best-effort partial failure -->
+        <section>
+            <h2 class="section-title">Best-effort partial failure</h2>
+            <div class="cols">
+                <div>
+                    <ul>
+                        <li>The server processes every selected record.</li>
+                        <li>Each record gets its own transaction, so one failure never aborts the batch.</li>
+                        <li>The response carries a per-record list with an id, a success flag, and a message.</li>
+                        <li>The endpoint returns HTTP 200 even on partial failure, so the client reports which records succeeded and which did not.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card">
+                        <span class="card-icon"><i data-lucide="list-checks"></i></span>
+                        <h3>Per-record result</h3>
+                        <p class="mono" style="font-size:0.66em; line-height:1.5;">{ RecordId, Success, Message }</p>
+                        <p style="margin-top:10px;">The grid reloads when every record succeeds, and a short summary surfaces when any record fails.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-tag">Resilience</div>
+        </section>
+
+        <!-- Slide 9: Authorization -->
+        <section>
+            <h2 class="section-title">Authorization stays strict</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="lock"></i></span>
+                    <h3>Default RecordManager</h3>
+                    <p>The bulk path uses the default manager, so <code>ignoreSecurity</code> stays false and hooks stay enabled.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="trash"></i></span>
+                    <h3>Delete permission</h3>
+                    <p>Delete checks <code>EntityPermission.Delete</code> once for every record.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="pencil"></i></span>
+                    <h3>Update permission</h3>
+                    <p>Archive checks <code>EntityPermission.Update</code> once for every record.</p>
+                </div>
+            </div>
+            <p class="note">The feature adds no new authorization code and weakens no existing check. Each record clears the same gate a single-record action clears.</p>
+            <div class="footer-tag">Security</div>
+        </section>
+
+        <!-- Slide 10: Archive without new schema -->
+        <section>
+            <h2 class="section-title">Archive without new schema</h2>
+            <ul>
+                <li>Archive sets the existing <code>is_archived</code> boolean to true through a partial update, so no other field changes.</li>
+                <li>PcGrid detects the archive field among the rendered records before it offers the action.</li>
+                <li>When a grid's records lack the field, Archive disables itself for that grid.</li>
+                <li>The feature adds no schema and no migration.</li>
+            </ul>
+            <div class="chips">
+                <span class="chip"><i data-lucide="toggle-left"></i> Field detected at render time</span>
+                <span class="chip"><i data-lucide="database"></i> Pre-existing field only</span>
+                <span class="chip"><i data-lucide="undo-2"></i> Reversible by design</span>
+            </div>
+            <div class="footer-tag">Data Model</div>
+        </section>
+
+        <!-- Slide 11: Backward compatibility -->
+        <section>
+            <h2 class="section-title">Backward compatibility</h2>
+            <div class="cols">
+                <div>
+                    <ul>
+                        <li>The new options default to off.</li>
+                        <li>With bulk actions off, PcGrid renders byte-for-byte as it does today: no toolbar, no checkbox, no script.</li>
+                        <li>Every new element is gated on the master option.</li>
+                        <li>Disabled grids carry zero runtime cost from the feature.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card">
+                        <span class="card-icon"><i data-lucide="settings-2"></i></span>
+                        <h3>Opt in per grid</h3>
+                        <p>An administrator turns on bulk actions, bulk delete, and bulk archive in the Page Builder, and names the entity for the request.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-tag">Compatibility</div>
+        </section>
+
+        <!-- Slide 12: Risk assessment (REQUIRED) -->
+        <section>
+            <h2 class="section-title">Risk assessment</h2>
+            <table>
+                <thead>
+                    <tr><th>Decision</th><th>Risk</th><th>Mitigation</th><th>Reviewer</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Permanent bulk delete removes records for good</td>
+                        <td><span class="risk-pill risk-high">High</span></td>
+                        <td>Count-aware confirmation names the permanence; per-record transaction; authorization per record.</td>
+                        <td>Security lead</td>
+                    </tr>
+                    <tr>
+                        <td>Per-record authorization on the bulk path</td>
+                        <td><span class="risk-pill risk-high">High</span></td>
+                        <td>Default RecordManager keeps EntityPermission checks and hooks; no bypass and no new auth code.</td>
+                        <td>Security lead</td>
+                    </tr>
+                    <tr>
+                        <td>Best-effort partial failure across a batch</td>
+                        <td><span class="risk-pill risk-med">Medium</span></td>
+                        <td>Per-record transaction isolation; per-record result list; HTTP 200 with detail for the client.</td>
+                        <td>Backend lead</td>
+                    </tr>
+                    <tr>
+                        <td>Client script placement in the Display view</td>
+                        <td><span class="risk-pill risk-med">Medium</span></td>
+                        <td>Inline script follows the repository Display-mode convention; service.js reaches only the editor.</td>
+                        <td>Frontend lead</td>
+                    </tr>
+                    <tr>
+                        <td>Entity-name and is_archived assumptions</td>
+                        <td><span class="risk-pill risk-low">Low</span></td>
+                        <td>Administrator supplies the entity name; archive availability comes from render-time detection; the field stays pre-existing.</td>
+                        <td>Product owner</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="footer-tag">Risk</div>
+        </section>
+
+        <!-- Slide 13: Scope boundaries -->
+        <section>
+            <h2 class="section-title">Scope boundaries</h2>
+            <div class="cols">
+                <div class="col-in">
+                    <h3><i data-lucide="circle-check-big"></i> In scope</h3>
+                    <ul>
+                        <li><code>BulkRecordActionModel.cs</code> request and result models</li>
+                        <li><code>WebApiController.cs</code> two bulk POST actions</li>
+                        <li><code>PcGrid.cs</code> options and view model</li>
+                        <li><code>Display.cshtml</code> selection UI, toolbar, inline script</li>
+                        <li><code>Options.cshtml</code> and <code>service.js</code> admin wiring</li>
+                    </ul>
+                </div>
+                <div class="col-out">
+                    <h3><i data-lucide="circle-x"></i> Out of scope</h3>
+                    <ul>
+                        <li>WebVella.TagHelpers and the <code>&lt;wv-grid&gt;</code> chrome</li>
+                        <li>Any Pc* component other than PcGrid</li>
+                        <li>Cross-page "select all matching"</li>
+                        <li>A trash or restore subsystem</li>
+                        <li>Entity schema and database migrations</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-tag">Boundaries</div>
+        </section>
+
+        <!-- Slide 14: Files delivered -->
+        <section>
+            <h2 class="section-title">Files delivered</h2>
+            <table>
+                <thead>
+                    <tr><th>File</th><th>Change</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="mono">Models/BulkRecordActionModel.cs</td><td>New</td><td>Request payload and per-record result</td></tr>
+                    <tr><td class="mono">Controllers/WebApiController.cs</td><td>Modified</td><td>Two bulk POST actions</td></tr>
+                    <tr><td class="mono">PcGrid/PcGrid.cs</td><td>Modified</td><td>Opt-in options and ViewBag flags</td></tr>
+                    <tr><td class="mono">PcGrid/Display.cshtml</td><td>Modified</td><td>Checkboxes, toolbar, inline script</td></tr>
+                    <tr><td class="mono">PcGrid/Options.cshtml</td><td>Modified</td><td>Administrator configuration fields</td></tr>
+                    <tr><td class="mono">PcGrid/service.js</td><td>Modified</td><td>Page Builder toggle wiring</td></tr>
+                </tbody>
+            </table>
+            <p class="note">Three deliverable artifacts ship alongside the code: the screenshots, the critical-decision review, and this executive summary.</p>
+            <div class="footer-tag">Delivery</div>
+        </section>
+
+        <!-- Slide 15: Acceptance criteria / close -->
+        <section data-background-gradient="linear-gradient(160deg, #0B1020 0%, #1A1642 100%)">
+            <h2 class="section-title">Acceptance criteria</h2>
+            <div class="cards two">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="check"></i></span>
+                    <h3>Compiles cleanly</h3>
+                    <p>The solution builds with no new dependency and no schema change.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="equal"></i></span>
+                    <h3>No regression</h3>
+                    <p>Grids with the options off render byte-for-byte as they do today.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="layers"></i></span>
+                    <h3>One request per action</h3>
+                    <p>Bulk delete and bulk archive each act over a multi-record selection in a single request.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="git-branch"></i></span>
+                    <h3>Contained diff</h3>
+                    <p>The application code diff stays within the six named files.</p>
+                </div>
+            </div>
+            <div class="brand-row" style="margin-top:26px;">
+                <span class="brand-logo"><i data-lucide="zap"></i></span>
+                <span class="brand-name">Blitzy</span>
+            </div>
+            <div class="footer-tag">Thank you</div>
+        </section>
+
+    </div>
+</div>
+
+<!-- reveal.js 5.1.0 core (pinned CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<!-- Mermaid 11.4.0 (pinned CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
+<!-- Lucide 0.460.0 (pinned CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+<script>
+    Reveal.initialize({
+        hash: true,
+        slideNumber: 'c/t',
+        controls: true,
+        progress: true,
+        center: false,
+        transition: 'slide',
+        width: 1280,
+        height: 720,
+        margin: 0.06,
+        minScale: 0.2,
+        maxScale: 1.6
+    }).then(function () {
+        // Mermaid: render after Reveal lays out, using a Blitzy dark palette.
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'loose',
+            theme: 'base',
+            themeVariables: {
+                fontFamily: 'Inter, sans-serif',
+                primaryColor: '#151B3D',
+                primaryTextColor: '#E6E9F5',
+                primaryBorderColor: '#7C5CFC',
+                lineColor: '#22D3EE',
+                secondaryColor: '#1B1740',
+                tertiaryColor: '#0E1330'
+            }
+        });
+        mermaid.run({ querySelector: '.mermaid' });
+
+        // Lucide: swap every data-lucide placeholder for an SVG icon.
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+    });
+</script>
+</body>
+</html>
