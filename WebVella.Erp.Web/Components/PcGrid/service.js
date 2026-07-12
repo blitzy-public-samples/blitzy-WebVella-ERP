@@ -21,8 +21,8 @@
 	function BulkActionsToggle(e) {
 		if (!e || !e.target) { return; }
 		var enabled = e.target.checked;
-		var deleteInput = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_delete"]');
-		var archiveInput = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_archive"]');
+		var deleteInput = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"]');
+		var archiveInput = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
 		[deleteInput, archiveInput].forEach(function (input) {
 			if (!input) { return; }
 			var row = (input.closest ? input.closest(".form-group") : null) || input.parentElement;
@@ -61,7 +61,7 @@
 						visibleColumnsCount.setAttribute("data-old-value", visibleColumnsCount.value);
 						visibleColumnsCount.addEventListener("blur", ColumnCountChange);
 					}
-					var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_actions"]');
+					var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_actions"]');
 					if (bulkActionsMaster) {
 						bulkActionsMaster.addEventListener("change", BulkActionsToggle);
 						BulkActionsToggle({ target: bulkActionsMaster });
@@ -80,7 +80,7 @@
 				if (visibleColumnsCount) {
 					visibleColumnsCount.removeEventListener("blur", ColumnCountChange);
 				}
-				var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_actions"]');
+				var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_actions"]');
 				if (bulkActionsMaster) {
 					bulkActionsMaster.removeEventListener("change", BulkActionsToggle);
 				}

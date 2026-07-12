@@ -29,8 +29,18 @@
 	var bulkKey = node.Id.ToString();
 }
 
-@if (enableBulkActions)
+@if (enableBulkActions && records.Count > 0)
 {
+	<style>
+		/* Enlarge the bulk selection tap targets to at least 24px on small screens (WCAG 2.5.8 Target
+		   Size Minimum) without changing the desktop Bootstrap default. The rule targets only the bulk
+		   selection controls, both the per-row checkbox and the always-visible select-all checkbox, so
+		   no other checkbox on the page changes size. */
+		@@media (max-width: 575.98px) {
+			input.pcgrid-bulk-select,
+			input.pcgrid-bulk-select-all { width: 24px; height: 24px; }
+		}
+	</style>
 	<div id="pcgrid-bulk-root-@bulkKey" class="pcgrid-bulk-root" data-entity-name="@entityName" data-archive-field="@archiveFieldName">
 		<div class="pcgrid-bulk-toolbar d-flex flex-wrap align-items-center mb-2 p-2 border rounded bg-light" role="group" aria-label="Bulk actions">
 			<label class="mb-0 mr-3 d-inline-flex align-items-center">
@@ -44,7 +54,7 @@
 			<span class="pcgrid-bulk-actions d-none align-items-center">
 				@if (enableBulkDelete)
 				{
-					<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-o" aria-hidden="true"></i> Delete</button>
+					<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-alt" aria-hidden="true"></i> Delete</button>
 				}
 				@if (archiveAvailable && enableBulkArchive)
 				{
@@ -64,7 +74,24 @@
 	@foreach (var record in records)
 	{
 		<wv-grid-row>
-			@{ var recordId = enableBulkActions ? record["id"] : null; }
+			@{
+				// Resolve a per-record selection id plus a human-friendly title for the checkbox accessible
+				// name. The title reads the first present common label field and falls back to the record id,
+				// so every selection checkbox exposes a meaningful name to assistive technology.
+				string recordId = enableBulkActions && record["id"] != null ? record["id"].ToString() : null;
+				string recordTitle = recordId;
+				if (enableBulkActions)
+				{
+					foreach (var titleFieldName in new[] { "title", "name", "label", "subject", "username", "email" })
+					{
+						if (record.Properties.ContainsKey(titleFieldName) && record[titleFieldName] != null)
+						{
+							var candidateTitle = record[titleFieldName].ToString();
+							if (!String.IsNullOrWhiteSpace(candidateTitle)) { recordTitle = candidateTitle; break; }
+						}
+					}
+				}
+			}
 			@for (var i=1; i <= options.VisibleColumns; i++)
 			{
 				var containerId = (options.GetType().GetProperty($"Container{i}Id").GetValue(options, null) ?? "").ToString();
@@ -77,7 +104,7 @@
 				<wv-grid-column width="@columnWidth" text-nowrap="@columnNoWrap" class="@columnClass" horizontal-align="@horizontalAlign" vertical-align="@verticalAlign">
 					@if (enableBulkActions && i == 1)
 					{
-						<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select ml-0 mr-2" data-grid-key="@bulkKey" data-record-id="@recordId" aria-label="@($"Select record {recordId}")" />
+						<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select ml-0 mr-2" data-grid-key="@bulkKey" data-record-id="@recordId" aria-label="Select @recordTitle" />
 					}
 					@foreach (var childNode in columnChildNodes)
 					{
@@ -107,7 +134,7 @@
 	</tbody>
 	}
 </wv-grid>
-@if (enableBulkActions)
+@if (enableBulkActions && records.Count > 0)
 {
 	<script>
 		(function () {
@@ -241,7 +268,7 @@
 				deleteBtn.addEventListener("click", function () {
 					var ids = selectedIds();
 					if (ids.length === 0) { return; }
-					postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? The records cannot be recovered.");
+					postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? You cannot recover them.");
 				});
 			}
 			if (archiveBtn) {
