@@ -17,8 +17,36 @@
 	var pageSize = (int)ViewBag.PageSize;
 	var records = (List<EntityRecord>)ViewBag.Records;
 	var columns = (List<WvGridColumnMeta>)ViewBag.Columns;
+
+	// Bulk-action opt-in flags come from PcGrid.cs for Display mode. Every default stays false or empty, so a grid that does not opt in renders unchanged.
+	var enableBulkActions = ViewBag.EnableBulkActions != null && (bool)ViewBag.EnableBulkActions;
+	var enableBulkDelete = ViewBag.EnableBulkDelete != null && (bool)ViewBag.EnableBulkDelete;
+	var enableBulkArchive = ViewBag.EnableBulkArchive != null && (bool)ViewBag.EnableBulkArchive;
+	var archiveAvailable = ViewBag.ArchiveAvailable != null && (bool)ViewBag.ArchiveAvailable;
+	var entityName = (string)(ViewBag.EntityName ?? "");
+	var archiveFieldName = (string)(ViewBag.ArchiveFieldName ?? "is_archived");
+	// A per-grid key from the component node Guid keeps element ids and selectors unique when several grids share one page.
+	var bulkKey = node.Id.ToString();
 }
 
+@if (enableBulkActions)
+{
+	<div id="pcgrid-bulk-toolbar-@bulkKey" class="pcgrid-bulk-toolbar d-none align-items-center mb-2 p-2 border rounded bg-light"
+		 data-grid-key="@bulkKey" data-entity-name="@entityName" data-archive-field="@archiveFieldName">
+		<label class="mb-0 mr-3">
+			<input type="checkbox" class="pcgrid-bulk-select-all" /> Select all on this page
+		</label>
+		<span class="badge badge-secondary pcgrid-bulk-count mr-3">0</span>
+		@if (enableBulkDelete)
+		{
+			<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-o"></i> Delete</button>
+		}
+		@if (archiveAvailable && enableBulkArchive)
+		{
+			<button type="button" class="btn btn-sm btn-secondary pcgrid-bulk-archive"><i class="fa fa-archive"></i> Archive</button>
+		}
+	</div>
+}
 <wv-grid striped="@options.Striped" small="@options.Small" bordered="@options.Bordered" borderless="@options.Borderless"
 		 hover="@options.Hover" responsive-breakpoint="@options.ResponsiveBreakpoint" id="@options.Id" prefix="@options.Prefix"
 		 name="@options.Name" culture="@options.Culture" class="@options.Class" query-string-sortby="@options.QueryStringSortBy"
@@ -28,6 +56,13 @@
 	@foreach (var record in records)
 	{
 		<wv-grid-row>
+			@if (enableBulkActions)
+			{
+				var recordId = record["id"];
+				<wv-grid-column>
+					<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select" data-grid-key="@bulkKey" data-record-id="@recordId" />
+				</wv-grid-column>
+			}
 			@for (var i=1; i <= options.VisibleColumns; i++)
 			{
 				var containerId = (options.GetType().GetProperty($"Container{i}Id").GetValue(options, null) ?? "").ToString();
@@ -66,3 +101,87 @@
 	</tbody>
 	}
 </wv-grid>
+@if (enableBulkActions)
+{
+	<script>
+		(function () {
+			// Scope every selector and element id to this grid instance so multiple grids on one page never collide.
+			var bulkKey = "@bulkKey";
+			var toolbar = document.getElementById("pcgrid-bulk-toolbar-" + bulkKey);
+			if (!toolbar) { return; }
+			var $toolbar = $(toolbar);
+			var entityName = toolbar.getAttribute("data-entity-name") || "";
+			var archiveFieldName = toolbar.getAttribute("data-archive-field") || "is_archived";
+			var deleteUrl = "/api/v3/en_US/record/bulk/delete";
+			var archiveUrl = "/api/v3/en_US/record/bulk/archive";
+
+			// Return the current grid page checkboxes. Selection stays scoped to the rendered page, so no cross-page selection happens.
+			function rowCheckboxes() {
+				return $('input.pcgrid-bulk-select[data-grid-key="' + bulkKey + '"]');
+			}
+			function selectedIds() {
+				var ids = [];
+				rowCheckboxes().each(function () {
+					if (this.checked) { ids.push($(this).attr("data-record-id")); }
+				});
+				return ids;
+			}
+			// Update the live count badge and show the toolbar once the user selects at least one record.
+			function refreshToolbar() {
+				var n = selectedIds().length;
+				$toolbar.find(".pcgrid-bulk-count").text(n);
+				if (n >= 1) { $toolbar.removeClass("d-none").addClass("d-flex"); } else { $toolbar.removeClass("d-flex").addClass("d-none"); }
+			}
+			// Confirm, then POST the selection to the bulk endpoint. The server returns a per-record result even on partial failure.
+			function postBulk(url, payload, confirmMsg) {
+				if (!confirm(confirmMsg)) { return; }
+				$.ajax({
+					type: "POST",
+					url: url,
+					contentType: "application/json",
+					data: JSON.stringify(payload),
+					success: function (response) {
+						if (response && response.success) { window.location.reload(); return; }
+						var items = (response && response.object) ? response.object : [];
+						// Per-record items serialize PascalCase under the app Newtonsoft config, so read the success flag across both casings.
+						var failures = _.filter(items, function (it) {
+							var ok = (typeof it.success !== "undefined") ? it.success : it.Success;
+							return ok === false;
+						});
+						if (failures.length > 0) {
+							toastr.error(failures.length + " record(s) failed, " + (items.length - failures.length) + " succeeded.", "Bulk action", { closeButton: true, tapToDismiss: true });
+						} else {
+							window.location.reload();
+						}
+					},
+					error: function (xhr, status, p3, p4) {
+						var err = "Error " + " " + status;
+						if (p3) { err += " " + p3; }
+						if (p4) { err += " " + p4; }
+						if (xhr.responseText && xhr.responseText.startsWith("{")) { err = JSON.parse(xhr.responseText).message; }
+						toastr.error("An error occurred", 'Error!', { closeButton: true, tapToDismiss: true });
+						console.log(err);
+					}
+				});
+			}
+
+			rowCheckboxes().on("change", refreshToolbar);
+			$toolbar.find(".pcgrid-bulk-select-all").on("change", function () {
+				// jQuery .prop does not fire change, so refresh the toolbar directly after toggling the page checkboxes.
+				rowCheckboxes().prop("checked", this.checked);
+				refreshToolbar();
+			});
+			$toolbar.find(".pcgrid-bulk-delete").on("click", function () {
+				var ids = selectedIds();
+				if (ids.length === 0) { return; }
+				postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? The records cannot be recovered.");
+			});
+			$toolbar.find(".pcgrid-bulk-archive").on("click", function () {
+				var ids = selectedIds();
+				if (ids.length === 0) { return; }
+				postBulk(archiveUrl, { entityName: entityName, recordIds: ids, archiveFieldName: archiveFieldName }, "Archive " + ids.length + " record(s)?");
+			});
+			refreshToolbar();
+		})();
+	</script>
+}

@@ -82,6 +82,25 @@
 		<wv-field-checkbox name="no_total" value="@options.NoTotal" label-text="Total Count" text-true="not available"></wv-field-checkbox>
 	</wv-column>
 </wv-row>
+<wv-row>
+	<wv-column span="4">
+		<wv-field-checkbox name="enable_bulk_actions" value="@options.EnableBulkActions" label-text="Bulk Actions" text-true="show selection and toolbar"></wv-field-checkbox>
+	</wv-column>
+	<wv-column span="4">
+		<wv-field-checkbox name="enable_bulk_delete" value="@options.EnableBulkDelete" label-text="Bulk Delete" text-true="allow delete"></wv-field-checkbox>
+	</wv-column>
+	<wv-column span="4">
+		<wv-field-checkbox name="enable_bulk_archive" value="@options.EnableBulkArchive" label-text="Bulk Archive" text-true="allow archive"></wv-field-checkbox>
+	</wv-column>
+</wv-row>
+<wv-row>
+	<wv-column span="4">
+		<wv-field-text name="archive_field_name" value="@options.ArchiveFieldName" label-text="Archive Field Name"></wv-field-text>
+	</wv-column>
+	<wv-column span="4">
+		<wv-field-text name="entity_name" value="@options.EntityName" label-text="Entity Name"></wv-field-text>
+	</wv-column>
+</wv-row>
 
 <div class="alert alert-info p-2">
     In nested components, use <code>RowRecord</code> datasource as a reference to the record renedered in the current row
