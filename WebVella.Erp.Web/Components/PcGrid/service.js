@@ -15,6 +15,15 @@
 		}
 	}
 
+	// Keep the delete and archive toggles in sync with the master bulk-actions toggle.
+	function BulkActionsToggle(e) {
+		var enabled = e.target.checked;
+		var deleteInput = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_delete"]');
+		var archiveInput = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_archive"]');
+		if (deleteInput) { deleteInput.disabled = !enabled; }
+		if (archiveInput) { archiveInput.disabled = !enabled; }
+	}
+
 
 	//	document.addEventListener("WvPbManager_Design_Loaded", function (event) {
 	//		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Web.Components.PcGrid"){
@@ -36,6 +45,11 @@
 					var visibleColumnsCount = document.querySelector('#modal-component-options .modal-body input[name="visible_columns"]');
 					visibleColumnsCount.setAttribute("data-old-value",visibleColumnsCount.value);
 					visibleColumnsCount.addEventListener("blur", ColumnCountChange);
+					var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_actions"]');
+					if (bulkActionsMaster) {
+						bulkActionsMaster.addEventListener("change", BulkActionsToggle);
+						BulkActionsToggle({ target: bulkActionsMaster });
+					}
 				},500);
 			}
 		});
@@ -45,6 +59,10 @@
 			console.log("WebVella.Erp.Web.Components.PcGrid UnLoad");
 				var visibleColumnsCount = document.querySelector('#modal-component-options .modal-body input[name="visible_columns"]');
 				visibleColumnsCount.removeEventListener("blur", ColumnCountChange);
+				var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[name="enable_bulk_actions"]');
+				if (bulkActionsMaster) {
+					bulkActionsMaster.removeEventListener("change", BulkActionsToggle);
+				}
 			}
 		});
 

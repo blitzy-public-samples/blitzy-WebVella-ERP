@@ -101,6 +101,21 @@ namespace WebVella.Erp.Web.Components
 			[JsonProperty(PropertyName = "empty_text")]
 			public string EmptyText { get; set; } = "No records";
 
+			[JsonProperty(PropertyName = "enable_bulk_actions")]
+			public bool EnableBulkActions { get; set; } = false;
+
+			[JsonProperty(PropertyName = "enable_bulk_delete")]
+			public bool EnableBulkDelete { get; set; } = false;
+
+			[JsonProperty(PropertyName = "enable_bulk_archive")]
+			public bool EnableBulkArchive { get; set; } = false;
+
+			[JsonProperty(PropertyName = "archive_field_name")]
+			public string ArchiveFieldName { get; set; } = "is_archived";
+
+			[JsonProperty(PropertyName = "entity_name")]
+			public string EntityName { get; set; } = "";
+
 			#region << container1 >>
 			[JsonProperty(PropertyName = "container1_id")]
 			public string Container1Id { get; set; } = "column1";
@@ -574,6 +589,33 @@ namespace WebVella.Erp.Web.Components
 					if(ViewBag.Records.Count == 0){
 						ViewBag.Records = context.DataModel.GetPropertyValueByDataSource(options.Records) as List<EntityRecord> ?? new List<EntityRecord>();
 					}
+
+					// Resolve the archive field name and detect whether the rendered records expose it, so Archive stays disabled when the field is absent.
+					var archiveFieldName = string.IsNullOrWhiteSpace(options.ArchiveFieldName) ? "is_archived" : options.ArchiveFieldName;
+					var archiveAvailable = false;
+					if (options.EnableBulkArchive)
+					{
+						IEnumerable<EntityRecord> renderedRecords = ViewBag.Records as IEnumerable<EntityRecord>;
+						if (renderedRecords != null)
+						{
+							foreach (var rec in renderedRecords)
+							{
+								if (rec != null && rec.Properties.ContainsKey(archiveFieldName))
+								{
+									archiveAvailable = true;
+									break;
+								}
+							}
+						}
+					}
+
+					// Publish the bulk-action flags to the Display view so the selection UI and toolbar render only when enabled.
+					ViewBag.EnableBulkActions = options.EnableBulkActions;
+					ViewBag.EnableBulkDelete = options.EnableBulkDelete;
+					ViewBag.EnableBulkArchive = options.EnableBulkArchive;
+					ViewBag.ArchiveAvailable = archiveAvailable;
+					ViewBag.EntityName = options.EntityName;
+					ViewBag.ArchiveFieldName = archiveFieldName;
 
 					string pageKey = options.Prefix + options.QueryStringPage;
 					if (HttpContext.Request.Query.ContainsKey(pageKey))
