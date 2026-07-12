@@ -195,7 +195,7 @@
             border-radius: 16px; padding: 14px; margin-top: 6px;
         }
         .reveal .mermaid { text-align: center; }
-        .reveal .mermaid svg { max-width: 100%; height: auto; }
+        .reveal .mermaid svg { max-width: 100%; max-height: 520px; height: auto; display: block; margin: 0 auto; }
 
         /* Footer + progress accents */
         .reveal .progress { color: var(--blitzy-primary); height: 4px; }
@@ -328,7 +328,7 @@
                     <p>Delete asks a count-aware, permanence-explicit question. Archive asks a lighter question. The grid refreshes on success.</p>
                 </div>
             </div>
-            <p class="note">Archive shows only when the administrator enables it and the grid records carry the archive field.</p>
+            <p class="note">Archive shows only when the administrator enables it and the entity metadata defines the archive field as a checkbox.</p>
             <div class="footer-tag">User Experience</div>
         </section>
 
@@ -338,27 +338,23 @@
             <div class="mermaid-wrap">
                 <pre class="mermaid">
 flowchart LR
-    A["PcGrid Display view<br/>checkboxes + toolbar"] --> B["Inline selection script<br/>collects page record ids"]
-    B --> C{"Action chosen"}
-    C -->|Delete| D["Count-aware<br/>permanent confirm"]
-    C -->|Archive| E["Lighter<br/>reversible confirm"]
-    D --> F["POST /record/bulk/delete"]
-    E --> G["POST /record/bulk/archive"]
-    F --> H["WebApiController<br/>BulkDeleteRecords"]
-    G --> I["WebApiController<br/>BulkArchiveRecords"]
-    H --> J["Per-record<br/>DbContext transaction"]
-    I --> J
-    J --> K["RecordManager<br/>DeleteRecord / UpdateRecord<br/>permission + hooks"]
-    K --> L["Commit or roll back<br/>each record"]
-    L --> M["Aggregate per-record results<br/>ResponseModel"]
-    M --> N["Grid refresh"]
+    A["`PcGrid selection
+checkboxes + toolbar`"] --> B{"`Delete or
+Archive`"}
+    B -->|Delete| C["`Count-aware confirm
+POST bulk/delete`"]
+    B -->|Archive| D["`Lighter confirm
+POST bulk/archive`"]
+    C --> E["`WebApiController per-record transaction
+RecordManager permission + hooks
+Aggregate 200 / 207 / 422`"]
+    D --> E
+    E --> F["Grid refresh"]
 
     classDef client fill:#151B3D,stroke:#22D3EE,color:#E6E9F5;
     classDef server fill:#1B1740,stroke:#7C5CFC,color:#E6E9F5;
-    classDef data fill:#0E1330,stroke:#6D5EF6,color:#E6E9F5;
-    class A,B,C,D,E,F,G,N client;
-    class H,I,J,M server;
-    class K,L data;
+    class A,B,C,D,F client;
+    class E server;
                 </pre>
             </div>
             <div class="footer-tag">Architecture</div>
@@ -367,19 +363,43 @@ flowchart LR
         <!-- Slide 7: Server design -->
         <section>
             <h2 class="section-title">Server design</h2>
-            <ul>
-                <li>Two POST actions attach to the existing <code>WebApiController</code> and reuse its <code>RecordManager</code> field.</li>
-                <li>Each selected record runs inside its own <code>DbContext</code> transaction.</li>
-                <li>The delete path calls <code>RecordManager.DeleteRecord</code>. The archive path sets the archive field to true and calls <code>RecordManager.UpdateRecord</code>.</li>
+            <ul style="font-size:0.66em; margin-top:2px;">
+                <li>Two POST actions attach to the existing <code>WebApiController</code> and reuse its <code>RecordManager</code> field. A preflight step validates and de-duplicates the ids.</li>
+                <li>Each unique record runs in its own <code>DbContext</code> transaction. Delete calls <code>RecordManager.DeleteRecord</code>; archive sets <code>is_archived</code> to true and calls <code>RecordManager.UpdateRecord</code>.</li>
             </ul>
-            <pre><code data-trim data-noescape>foreach (var id in model.RecordIds)
-  using (var c = DbContext.Current.CreateConnection())
-  {
-    c.BeginTransaction();
-    var r = recMan.DeleteRecord(model.EntityName, id);
-    if (r.Success) c.CommitTransaction(); else c.RollbackTransaction();
-    results.Add(ToResultItem(id, r));   // one record fails, the batch keeps going
-  }</code></pre>
+            <pre style="font-size:0.40em; margin-top:6px; margin-bottom:0;"><code data-trim data-noescape>// excerpt: WebApiController.BulkDeleteRecords
+foreach (var id in recordIds)   // validated + de-duplicated by TryNormalizeBulkRequest
+{
+    using (var connection = DbContext.Current.CreateConnection())
+    {
+        bool transactionStarted = false;
+        try
+        {
+            connection.BeginTransaction();
+            transactionStarted = true;
+            var r = recMan.DeleteRecord(model.EntityName, id);
+            if (r.Success)
+            {
+                connection.CommitTransaction();
+                transactionStarted = false;
+                results.Add(BulkOk(id, "Record deleted."));
+            }
+            else
+            {
+                SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+                LogBulkFailure("BulkDelete", model.EntityName, id, DescribeBulkFailure(r), null);
+                results.Add(MapBulkFailure(id, r, "The record could not be deleted."));
+            }
+        }
+        catch (Exception ex)   // one record fails, the batch keeps going
+        {
+            SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+            LogBulkFailure("BulkDelete", model.EntityName, id, null, ex);
+            results.Add(BulkFail(id, "error", "The record could not be deleted."));
+        }
+    }
+}
+return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 none</code></pre>
             <div class="footer-tag">Architecture</div>
         </section>
 
@@ -391,16 +411,16 @@ flowchart LR
                     <ul>
                         <li>The server processes every selected record.</li>
                         <li>Each record gets its own transaction, so one failure never aborts the batch.</li>
-                        <li>The response carries a per-record list with an id, a success flag, and a message.</li>
-                        <li>The endpoint returns HTTP 200 even on partial failure, so the client reports which records succeeded and which did not.</li>
+                        <li>The response carries a per-record list with an id, a success flag, a status code, and a message.</li>
+                        <li>The endpoint returns 200 when every record succeeds, 207 when some succeed and some fail, and 422 when none succeed, so the client reports which records succeeded and which did not.</li>
                     </ul>
                 </div>
                 <div>
                     <div class="card">
                         <span class="card-icon"><i data-lucide="list-checks"></i></span>
                         <h3>Per-record result</h3>
-                        <p class="mono" style="font-size:0.66em; line-height:1.5;">{ RecordId, Success, Message }</p>
-                        <p style="margin-top:10px;">The grid reloads when every record succeeds, and a short summary surfaces when any record fails.</p>
+                        <p class="mono" style="font-size:0.62em; line-height:1.5;">{ recordId, success, code, message }</p>
+                        <p style="margin-top:10px;">The grid reloads on a full or partial success, a partial success also shows a short summary, and a full failure reports an error without reloading.</p>
                     </div>
                 </div>
             </div>
@@ -427,7 +447,7 @@ flowchart LR
                     <p>Archive checks <code>EntityPermission.Update</code> once for every record.</p>
                 </div>
             </div>
-            <p class="note">The feature adds no new authorization code and weakens no existing check. Each record clears the same gate a single-record action clears.</p>
+            <p class="note">The feature reuses the existing RecordManager permission gate, so each record clears the same entity check a single-record action clears. On top of that gate, the bulk routes add a request-origin guard against cross-site posts and an explicit archive-field update check, and they weaken no existing check.</p>
             <div class="footer-tag">Security</div>
         </section>
 
@@ -436,12 +456,12 @@ flowchart LR
             <h2 class="section-title">Archive without new schema</h2>
             <ul>
                 <li>Archive sets the existing <code>is_archived</code> boolean to true through a partial update, so no other field changes.</li>
-                <li>PcGrid detects the archive field among the rendered records before it offers the action.</li>
-                <li>When a grid's records lack the field, Archive disables itself for that grid.</li>
+                <li>PcGrid confirms the entity metadata defines <code>is_archived</code> as a boolean checkbox field before it offers the action.</li>
+                <li>When the entity does not define that field as a checkbox, Archive disables itself for that grid.</li>
                 <li>The feature adds no schema and no migration.</li>
             </ul>
             <div class="chips">
-                <span class="chip"><i data-lucide="toggle-left"></i> Field detected at render time</span>
+                <span class="chip"><i data-lucide="toggle-left"></i> Field type checked in metadata</span>
                 <span class="chip"><i data-lucide="database"></i> Pre-existing field only</span>
                 <span class="chip"><i data-lucide="undo-2"></i> Reversible by design</span>
             </div>
@@ -488,13 +508,13 @@ flowchart LR
                     <tr>
                         <td>Per-record authorization on the bulk path</td>
                         <td><span class="risk-pill risk-high">High</span></td>
-                        <td>Default RecordManager keeps EntityPermission checks and hooks; no bypass and no new auth code.</td>
+                        <td>Default RecordManager keeps the EntityPermission checks and hooks with no bypass; added checks cover request origin and the archive field.</td>
                         <td>Security lead</td>
                     </tr>
                     <tr>
                         <td>Best-effort partial failure across a batch</td>
                         <td><span class="risk-pill risk-med">Medium</span></td>
-                        <td>Per-record transaction isolation; per-record result list; HTTP 200 with detail for the client.</td>
+                        <td>Per-record transaction isolation; per-record result list; HTTP 200, 207, or 422 with per-record detail for the client.</td>
                         <td>Backend lead</td>
                     </tr>
                     <tr>
@@ -506,7 +526,7 @@ flowchart LR
                     <tr>
                         <td>Entity-name and is_archived assumptions</td>
                         <td><span class="risk-pill risk-low">Low</span></td>
-                        <td>Administrator supplies the entity name; archive availability comes from render-time detection; the field stays pre-existing.</td>
+                        <td>Administrator supplies the entity name; archive availability comes from entity metadata detection; the field stays pre-existing.</td>
                         <td>Product owner</td>
                     </tr>
                 </tbody>
@@ -558,7 +578,7 @@ flowchart LR
                     <tr><td class="mono">PcGrid/service.js</td><td>Modified</td><td>Page Builder toggle wiring</td></tr>
                 </tbody>
             </table>
-            <p class="note">Three deliverable artifacts ship alongside the code: the screenshots, the critical-decision review, and this executive summary.</p>
+            <p class="note">Five artifact files ship alongside the code: three screenshots, the critical-decision review, and this executive summary.</p>
             <div class="footer-tag">Delivery</div>
         </section>
 
@@ -599,32 +619,46 @@ flowchart LR
 
 <!-- reveal.js 5.1.0 core (pinned CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<!-- Mermaid 11.4.0 (pinned CDN) -->
+<!-- Mermaid 11.4.0 (pinned CDN per the Executive Presentation rule; initialized in securityLevel 'strict' below) -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
 <!-- Lucide 0.460.0 (pinned CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 
 <script>
-    Reveal.initialize({
-        hash: true,
-        slideNumber: 'c/t',
-        controls: true,
-        progress: true,
-        center: false,
-        transition: 'slide',
-        width: 1280,
-        height: 720,
-        margin: 0.06,
-        minScale: 0.2,
-        maxScale: 1.6
-    }).then(function () {
-        // Mermaid: render after Reveal lays out, using a Blitzy dark palette.
+    // The deck pins reveal.js 5.1.0, Mermaid 11.4.0, and Lucide 0.460.0 over CDN, as the governing
+    // Executive Presentation rule requires. Mermaid runs in securityLevel 'strict', so the library
+    // sanitizes the diagram and runs no click handlers or inline scripts. The diagram source is static
+    // and authored here, so strict mode hardens the render without changing the mandated version pin.
+    (function () {
+        function initReveal() {
+            return Reveal.initialize({
+                hash: true,
+                slideNumber: 'c/t',
+                controls: true,
+                progress: true,
+                center: false,
+                transition: 'slide',
+                width: 1280,
+                height: 720,
+                margin: 0.06,
+                minScale: 0.2,
+                maxScale: 1.6
+            }).then(function () {
+                // Lucide: swap every data-lucide placeholder for an SVG icon.
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            });
+        }
+
         mermaid.initialize({
             startOnLoad: false,
-            securityLevel: 'loose',
+            securityLevel: 'strict',
             theme: 'base',
+            flowchart: { useMaxWidth: true, htmlLabels: true, nodeSpacing: 50, rankSpacing: 58, padding: 12 },
             themeVariables: {
                 fontFamily: 'Inter, sans-serif',
+                fontSize: '16px',
                 primaryColor: '#151B3D',
                 primaryTextColor: '#E6E9F5',
                 primaryBorderColor: '#7C5CFC',
@@ -633,13 +667,26 @@ flowchart LR
                 tertiaryColor: '#0E1330'
             }
         });
-        mermaid.run({ querySelector: '.mermaid' });
 
-        // Lucide: swap every data-lucide placeholder for an SVG icon.
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
+        // Render Mermaid before Reveal hides the non-active slides. mermaid.render draws into a detached,
+        // sized container, so the diagram keeps real dimensions instead of collapsing inside a display:none
+        // slide the way an in-place run does. A render failure never blocks the rest of the deck.
+        var host = document.querySelector('.mermaid');
+        var definition = host ? host.textContent.trim() : '';
+        if (host && definition) {
+            mermaid.render('bulkFlowSvg', definition).then(function (result) {
+                host.innerHTML = result.svg;
+                if (typeof result.bindFunctions === 'function') {
+                    result.bindFunctions(host);
+                }
+                initReveal();
+            }).catch(function () {
+                initReveal();
+            });
+        } else {
+            initReveal();
         }
-    });
+    })();
 </script>
 </body>
 </html>
