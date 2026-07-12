@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Bulk Archive and Bulk Delete for PcGrid | Blitzy Executive Summary</title>
 
-    <!-- reveal.js 5.1.0 core (pinned CDN, browser-only) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+    <!-- reveal.js 5.1.0 core (pinned CDN, browser-only). Subresource Integrity (SRI) pins the exact
+         bytes, so the browser refuses a tampered file even when the CDN is compromised. crossorigin
+         anonymous is required for the browser to check the hash on a cross-origin response. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css"
+          integrity="sha384-YgvgKeZJykuztG+iQPoZHNZENTFZvOcOJ/uRzmJTje6GHYN9zAw+y5rx/L8MQKA/"
+          crossorigin="anonymous" referrerpolicy="no-referrer">
     <!-- Brand fonts: Inter + JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -619,12 +623,19 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
     </div>
 </div>
 
-<!-- reveal.js 5.1.0 core (pinned CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<!-- Mermaid 11.4.0 (pinned CDN per the Executive Presentation rule; initialized in securityLevel 'strict' below) -->
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
-<!-- Lucide 0.460.0 (pinned CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<!-- reveal.js 5.1.0 core (pinned CDN). SRI pins the exact bytes; crossorigin anonymous lets the
+     browser verify the hash on the cross-origin response. -->
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"
+        integrity="sha384-M/JtqCVlLcK9lwVnBnMXP0V577CBULkjodKsR/PITOe4MSKNbbwqCemEyluOw0+5"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Mermaid 11.4.0 (pinned CDN per the Executive Presentation rule; initialized in securityLevel 'strict' below). SRI pins the exact bytes. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"
+        integrity="sha384-Wm9qzEgq4j1jEnuFK2FxKTlwuhbV2QqtGhcchvjDoKxeJ7WWAW7fysBq+1s6myfX"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Lucide 0.460.0 (pinned CDN). SRI pins the exact bytes. -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"
+        integrity="sha384-ieG+IKD0d/ZPXyCBTMVAbqsQdns8QGJR/e26WMw7M4fkaI/rHcS/YIoi+ah9WGge"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <script>
     // The deck pins reveal.js 5.1.0, Mermaid 11.4.0, and Lucide 0.460.0 over CDN, as the governing
