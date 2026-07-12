@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
@@ -590,29 +591,40 @@ namespace WebVella.Erp.Web.Components
 						ViewBag.Records = context.DataModel.GetPropertyValueByDataSource(options.Records) as List<EntityRecord> ?? new List<EntityRecord>();
 					}
 
-					// Resolve the archive field name and detect whether the rendered records expose it, so Archive stays disabled when the field is absent.
+					// Resolve the configured archive field and confirm, from trusted entity metadata, that the field
+					// exists as a checkbox (boolean). Archive availability also requires the master toggle, the archive
+					// toggle, a named entity, and a non-empty rendered page, so Archive stays hidden unless it can run honestly.
 					var archiveFieldName = string.IsNullOrWhiteSpace(options.ArchiveFieldName) ? "is_archived" : options.ArchiveFieldName;
+					var enableBulkActions = options.EnableBulkActions;
+					var enableBulkDelete = enableBulkActions && options.EnableBulkDelete;
+					var enableBulkArchive = enableBulkActions && options.EnableBulkArchive;
+
 					var archiveAvailable = false;
-					if (options.EnableBulkArchive)
+					if (enableBulkArchive && !string.IsNullOrWhiteSpace(options.EntityName))
 					{
 						IEnumerable<EntityRecord> renderedRecords = ViewBag.Records as IEnumerable<EntityRecord>;
-						if (renderedRecords != null)
+						var hasRenderedRecords = renderedRecords != null && renderedRecords.Any(r => r != null);
+						if (hasRenderedRecords)
 						{
-							foreach (var rec in renderedRecords)
+							try
 							{
-								if (rec != null && rec.Properties.ContainsKey(archiveFieldName))
-								{
-									archiveAvailable = true;
-									break;
-								}
+								var entityMeta = new WebVella.Erp.Api.EntityManager().ReadEntity(options.EntityName)?.Object;
+								var archiveField = entityMeta?.Fields?.FirstOrDefault(f => f.Name == archiveFieldName);
+								archiveAvailable = archiveField != null && archiveField.GetFieldType() == FieldType.CheckboxField;
+							}
+							catch
+							{
+								// Keep Archive disabled when entity metadata cannot be resolved, so the action never renders on an unproven field.
+								archiveAvailable = false;
 							}
 						}
 					}
 
 					// Publish the bulk-action flags to the Display view so the selection UI and toolbar render only when enabled.
-					ViewBag.EnableBulkActions = options.EnableBulkActions;
-					ViewBag.EnableBulkDelete = options.EnableBulkDelete;
-					ViewBag.EnableBulkArchive = options.EnableBulkArchive;
+					// Child flags stay gated by the master toggle, so a stale child value never enables an action on its own.
+					ViewBag.EnableBulkActions = enableBulkActions;
+					ViewBag.EnableBulkDelete = enableBulkDelete;
+					ViewBag.EnableBulkArchive = enableBulkArchive;
 					ViewBag.ArchiveAvailable = archiveAvailable;
 					ViewBag.EntityName = options.EntityName;
 					ViewBag.ArchiveFieldName = archiveFieldName;
