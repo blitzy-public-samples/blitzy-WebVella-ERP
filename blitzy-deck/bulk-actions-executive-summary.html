@@ -90,9 +90,10 @@
             font-size: 0.5em;
         }
         .reveal pre code {
-            background: rgba(4, 8, 22, 0.75);
-            color: #D7DCF5;
-            border: 1px solid var(--blitzy-surface-line);
+            display: block;
+            background: #05070F;
+            color: #F2F4FF;
+            border: 1px solid rgba(124, 92, 252, 0.5);
             border-radius: 12px;
             padding: 16px 18px;
             max-height: none;
@@ -184,6 +185,7 @@
         .reveal table tr:nth-child(even) td { background: rgba(124, 92, 252, 0.05); }
 
         .risk-pill { font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: 0.9em; white-space: nowrap; }
+        .risk-critical { background: var(--blitzy-danger); color: #FFFFFF; border: 1px solid #FF6B6B; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.55); }
         .risk-high { background: rgba(239, 68, 68, 0.16); color: #FF8A8A; border: 1px solid rgba(239, 68, 68, 0.4); }
         .risk-med { background: rgba(245, 158, 11, 0.16); color: #FFCB73; border: 1px solid rgba(245, 158, 11, 0.4); }
         .risk-low { background: rgba(34, 197, 94, 0.16); color: #86EFAC; border: 1px solid rgba(34, 197, 94, 0.4); }
@@ -501,7 +503,7 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
                 <tbody>
                     <tr>
                         <td>Permanent bulk delete removes records for good</td>
-                        <td><span class="risk-pill risk-high">High</span></td>
+                        <td><span class="risk-pill risk-critical">Critical</span></td>
                         <td>Count-aware confirmation names the permanence; per-record transaction; authorization per record.</td>
                         <td>Security lead</td>
                     </tr>

@@ -1794,7 +1794,7 @@ namespace WebVella.Erp.Web.Controllers
 			{
 				Success = false,
 				Timestamp = DateTime.UtcNow,
-				Message = "The bulk " + actionNoun + " request could not be processed.",
+				Message = "The server could not process the bulk " + actionNoun + " request.",
 				Object = new List<BulkRecordActionResultItem>()
 			};
 			HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -1819,19 +1819,19 @@ namespace WebVella.Erp.Web.Controllers
 			if (failed == 0)
 			{
 				response.Success = true;
-				response.Message = "All " + total + " record(s) " + pastTenseAction + ".";
+				response.Message = "The server " + pastTenseAction + " all " + total + " record(s).";
 				HttpContext.Response.StatusCode = (int)HttpStatusCode.OK;
 			}
 			else if (succeeded == 0)
 			{
 				response.Success = false;
-				response.Message = "No record could be " + pastTenseAction + ".";
+				response.Message = "The server " + pastTenseAction + " no records.";
 				HttpContext.Response.StatusCode = (int)HttpStatusCode.UnprocessableEntity;
 			}
 			else
 			{
 				response.Success = false;
-				response.Message = succeeded + " of " + total + " record(s) " + pastTenseAction + ". " + failed + " failed.";
+				response.Message = "The server " + pastTenseAction + " " + succeeded + " of " + total + " record(s), and " + failed + " failed.";
 				HttpContext.Response.StatusCode = (int)HttpStatusCode.MultiStatus;
 			}
 
@@ -1894,7 +1894,7 @@ namespace WebVella.Erp.Web.Controllers
 			// Reject a cross-site request before any record changes. The check runs first so a forged
 			// cross-origin post never reaches the delete loop.
 			if (!IsBulkRequestOriginTrusted())
-				return BulkForbidden("The request origin is not allowed.");
+				return BulkForbidden("The server does not trust the request origin.");
 
 			List<Guid> recordIds;
 			// Validate the request and resolve entity metadata inside a guard so an unexpected failure
@@ -1925,20 +1925,20 @@ namespace WebVella.Erp.Web.Controllers
 						{
 							connection.CommitTransaction();
 							transactionStarted = false;
-							results.Add(BulkOk(id, "Record deleted."));
+							results.Add(BulkOk(id, "The server deleted the record."));
 						}
 						else
 						{
 							SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
 							LogBulkFailure("BulkDelete", model.EntityName, id, DescribeBulkFailure(r), null);
-							results.Add(MapBulkFailure(id, r, "The record could not be deleted."));
+							results.Add(MapBulkFailure(id, r, "The server could not delete the record."));
 						}
 					}
 					catch (Exception ex)
 					{
 						SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
 						LogBulkFailure("BulkDelete", model.EntityName, id, null, ex);
-						results.Add(BulkFail(id, "error", "The record could not be deleted."));
+						results.Add(BulkFail(id, "error", "The server could not delete the record."));
 					}
 				}
 			}
@@ -1956,7 +1956,7 @@ namespace WebVella.Erp.Web.Controllers
 			// Reject a cross-site request before any record changes. The check runs first so a forged
 			// cross-origin post never reaches the archive loop.
 			if (!IsBulkRequestOriginTrusted())
-				return BulkForbidden("The request origin is not allowed.");
+				return BulkForbidden("The server does not trust the request origin.");
 
 			List<Guid> recordIds;
 			// The bulk-archive write target is fixed to the approved field; a request cannot redirect it.
@@ -1973,7 +1973,7 @@ namespace WebVella.Erp.Web.Controllers
 				// field outside the allowlist gets rejected, so a caller cannot redirect the write.
 				var requestedField = string.IsNullOrWhiteSpace(model.ArchiveFieldName) ? BulkArchiveApprovedField : model.ArchiveFieldName.Trim();
 				if (!BulkArchiveAllowedFields.Contains(requestedField))
-					return BulkBadRequest("The requested archive field is not allowed.");
+					return BulkBadRequest("The server does not allow the requested archive field.");
 
 				// Confirm the approved field exists on the entity and is a checkbox (boolean). A missing or
 				// wrong-type field fails the whole request, so the server never reports a false archive.
@@ -2012,20 +2012,20 @@ namespace WebVella.Erp.Web.Controllers
 						{
 							connection.CommitTransaction();
 							transactionStarted = false;
-							results.Add(BulkOk(id, "Record archived."));
+							results.Add(BulkOk(id, "The server archived the record."));
 						}
 						else
 						{
 							SafeRollbackBulk(connection, ref transactionStarted, "BulkArchive", model.EntityName, id);
 							LogBulkFailure("BulkArchive", model.EntityName, id, DescribeBulkFailure(r), null);
-							results.Add(MapBulkFailure(id, r, "The record could not be archived."));
+							results.Add(MapBulkFailure(id, r, "The server could not archive the record."));
 						}
 					}
 					catch (Exception ex)
 					{
 						SafeRollbackBulk(connection, ref transactionStarted, "BulkArchive", model.EntityName, id);
 						LogBulkFailure("BulkArchive", model.EntityName, id, null, ex);
-						results.Add(BulkFail(id, "error", "The record could not be archived."));
+						results.Add(BulkFail(id, "error", "The server could not archive the record."));
 					}
 				}
 			}

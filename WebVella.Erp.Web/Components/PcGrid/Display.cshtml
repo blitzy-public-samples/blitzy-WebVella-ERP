@@ -237,7 +237,7 @@
 						// 207 means some records changed and some failed. Report the summary, then refresh so the
 						// grid shows the records that did change. 200 means every record changed, so just refresh.
 						if (status === 207) {
-							window.alert(readMessage(data) || "Some records were processed and some failed.");
+							window.alert(readMessage(data) || "The server processed some records and could not process others.");
 						}
 						window.location.reload();
 					},
