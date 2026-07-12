@@ -31,20 +31,28 @@
 
 @if (enableBulkActions)
 {
-	<div id="pcgrid-bulk-toolbar-@bulkKey" class="pcgrid-bulk-toolbar d-none align-items-center mb-2 p-2 border rounded bg-light"
-		 data-grid-key="@bulkKey" data-entity-name="@entityName" data-archive-field="@archiveFieldName">
-		<label class="mb-0 mr-3">
-			<input type="checkbox" class="pcgrid-bulk-select-all" /> Select all on this page
-		</label>
-		<span class="badge badge-secondary pcgrid-bulk-count mr-3">0</span>
-		@if (enableBulkDelete)
-		{
-			<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-o"></i> Delete</button>
-		}
-		@if (archiveAvailable && enableBulkArchive)
-		{
-			<button type="button" class="btn btn-sm btn-secondary pcgrid-bulk-archive"><i class="fa fa-archive"></i> Archive</button>
-		}
+	<div id="pcgrid-bulk-root-@bulkKey" class="pcgrid-bulk-root" data-entity-name="@entityName" data-archive-field="@archiveFieldName">
+		<div class="pcgrid-bulk-toolbar d-flex flex-wrap align-items-center mb-2 p-2 border rounded bg-light" role="group" aria-label="Bulk actions">
+			<label class="mb-0 mr-3 d-inline-flex align-items-center">
+				<input type="checkbox" class="pcgrid-bulk-select-all mr-2" aria-label="Select all records on this page" />
+				Select all on this page
+			</label>
+			<span class="pcgrid-bulk-count-wrap mr-3" role="status" aria-live="polite">
+				<span class="badge badge-secondary pcgrid-bulk-count">0</span>
+				<span class="pcgrid-bulk-count-label">selected</span>
+			</span>
+			<span class="pcgrid-bulk-actions d-none align-items-center">
+				@if (enableBulkDelete)
+				{
+					<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-o" aria-hidden="true"></i> Delete</button>
+				}
+				@if (archiveAvailable && enableBulkArchive)
+				{
+					<button type="button" class="btn btn-sm btn-secondary pcgrid-bulk-archive"><i class="fa fa-archive" aria-hidden="true"></i> Archive</button>
+				}
+			</span>
+			<span class="pcgrid-bulk-result ml-2" role="status" aria-live="polite"></span>
+		</div>
 	</div>
 }
 <wv-grid striped="@options.Striped" small="@options.Small" bordered="@options.Bordered" borderless="@options.Borderless"
@@ -56,13 +64,7 @@
 	@foreach (var record in records)
 	{
 		<wv-grid-row>
-			@if (enableBulkActions)
-			{
-				var recordId = record["id"];
-				<wv-grid-column>
-					<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select" data-grid-key="@bulkKey" data-record-id="@recordId" />
-				</wv-grid-column>
-			}
+			@{ var recordId = enableBulkActions ? record["id"] : null; }
 			@for (var i=1; i <= options.VisibleColumns; i++)
 			{
 				var containerId = (options.GetType().GetProperty($"Container{i}Id").GetValue(options, null) ?? "").ToString();
@@ -73,6 +75,10 @@
 				var columnChildNodes = node.Nodes.FindAll(x => x.ContainerId == containerId);
 				var columnWidth = options.HasThead ? "" : columns[i - 1].Width;
 				<wv-grid-column width="@columnWidth" text-nowrap="@columnNoWrap" class="@columnClass" horizontal-align="@horizontalAlign" vertical-align="@verticalAlign">
+					@if (enableBulkActions && i == 1)
+					{
+						<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select ml-0 mr-2" data-grid-key="@bulkKey" data-record-id="@recordId" aria-label="@($"Select record {recordId}")" />
+					}
 					@foreach (var childNode in columnChildNodes)
 					{
 						var nodeComponentName = "";
@@ -105,82 +111,146 @@
 {
 	<script>
 		(function () {
-			// Scope every selector and element id to this grid instance so multiple grids on one page never collide.
 			var bulkKey = "@bulkKey";
-			var toolbar = document.getElementById("pcgrid-bulk-toolbar-" + bulkKey);
-			if (!toolbar) { return; }
-			var $toolbar = $(toolbar);
-			var entityName = toolbar.getAttribute("data-entity-name") || "";
-			var archiveFieldName = toolbar.getAttribute("data-archive-field") || "is_archived";
+			var root = document.getElementById("pcgrid-bulk-root-" + bulkKey);
+			if (!root) { return; }
+
+			// Read the endpoint targets and the entity context from the root data attributes.
+			var entityName = root.getAttribute("data-entity-name") || "";
+			var archiveFieldName = root.getAttribute("data-archive-field") || "is_archived";
 			var deleteUrl = "/api/v3/en_US/record/bulk/delete";
 			var archiveUrl = "/api/v3/en_US/record/bulk/archive";
 
-			// Return the current grid page checkboxes. Selection stays scoped to the rendered page, so no cross-page selection happens.
+			// Toolbar controls live inside this grids root, so read them from the root.
+			var selectAllEl = root.querySelector(".pcgrid-bulk-select-all");
+			var countEl = root.querySelector(".pcgrid-bulk-count");
+			var actionsEl = root.querySelector(".pcgrid-bulk-actions");
+			var resultEl = root.querySelector(".pcgrid-bulk-result");
+			var deleteBtn = root.querySelector(".pcgrid-bulk-delete");
+			var archiveBtn = root.querySelector(".pcgrid-bulk-archive");
+			var busy = false;
+
+			// Row checkboxes render inside the grid table, which the out-of-scope grid chrome places outside this
+			// toolbar root, so select them by this grids unique key. The key filter keeps the selection isolated to
+			// this grid when several grids share one page, and selection stays scoped to the rendered page.
 			function rowCheckboxes() {
-				return $('input.pcgrid-bulk-select[data-grid-key="' + bulkKey + '"]');
+				return Array.prototype.slice.call(document.querySelectorAll('.pcgrid-bulk-select[data-grid-key="' + bulkKey + '"]'));
 			}
 			function selectedIds() {
 				var ids = [];
-				rowCheckboxes().each(function () {
-					if (this.checked) { ids.push($(this).attr("data-record-id")); }
+				rowCheckboxes().forEach(function (box) {
+					if (box.checked) { ids.push(box.getAttribute("data-record-id")); }
 				});
 				return ids;
 			}
-			// Update the live count badge and show the toolbar once the user selects at least one record.
-			function refreshToolbar() {
-				var n = selectedIds().length;
-				$toolbar.find(".pcgrid-bulk-count").text(n);
-				if (n >= 1) { $toolbar.removeClass("d-none").addClass("d-flex"); } else { $toolbar.removeClass("d-flex").addClass("d-none"); }
+
+			// Show a message in the toolbar result region for assistive tech, and through toastr when the page
+			// provides it. A native alert covers the case where toastr is absent, so a failure is never silent.
+			function notify(message, isError) {
+				if (resultEl) { resultEl.textContent = message; }
+				if (typeof toastr !== "undefined" && toastr) {
+					if (isError) { toastr.error(message, "Bulk action", { closeButton: true, tapToDismiss: true }); }
+					else { toastr.info(message, "Bulk action", { closeButton: true, tapToDismiss: true }); }
+				} else {
+					window.alert(message);
+				}
 			}
-			// Confirm, then POST the selection to the bulk endpoint. The server returns a per-record result even on partial failure.
+
+			function readMessage(envelope) {
+				if (!envelope) { return ""; }
+				return envelope.message || envelope.Message || "";
+			}
+			function safeParse(textValue) {
+				if (!textValue) { return null; }
+				try { return JSON.parse(textValue); } catch (e) { return null; }
+			}
+
+			// Toggle the busy state during a request. Disabling the controls stops a second click from firing a
+			// duplicate destructive action, and aria-busy tells assistive tech that the region is working.
+			function setBusy(state) {
+				busy = state;
+				root.setAttribute("aria-busy", state ? "true" : "false");
+				if (selectAllEl) { selectAllEl.disabled = state; }
+				if (deleteBtn) { deleteBtn.disabled = state; }
+				if (archiveBtn) { archiveBtn.disabled = state; }
+				rowCheckboxes().forEach(function (box) { box.disabled = state; });
+			}
+
+			// Reflect the selection on the count, the action buttons, and the select-all control.
+			function refreshToolbar() {
+				var boxes = rowCheckboxes();
+				var total = boxes.length;
+				var selected = 0;
+				boxes.forEach(function (box) { if (box.checked) { selected++; } });
+				if (countEl) { countEl.textContent = selected; }
+				if (actionsEl) {
+					if (selected >= 1) { actionsEl.classList.remove("d-none"); actionsEl.classList.add("d-flex"); }
+					else { actionsEl.classList.remove("d-flex"); actionsEl.classList.add("d-none"); }
+				}
+				if (selectAllEl) {
+					selectAllEl.checked = (total > 0 && selected === total);
+					selectAllEl.indeterminate = (selected > 0 && selected < total);
+				}
+			}
+
+			// Confirm, then POST the selection. The server gives every record its own transaction and returns a
+			// per-record result, so the response reports a full success, a partial success, or a full failure.
 			function postBulk(url, payload, confirmMsg) {
-				if (!confirm(confirmMsg)) { return; }
+				if (busy) { return; }
+				if (!window.confirm(confirmMsg)) { return; }
+				setBusy(true);
+				if (resultEl) { resultEl.textContent = ""; }
 				$.ajax({
 					type: "POST",
 					url: url,
 					contentType: "application/json",
 					data: JSON.stringify(payload),
-					success: function (response) {
-						if (response && response.success) { window.location.reload(); return; }
-						var items = (response && response.object) ? response.object : [];
-						// Per-record items serialize PascalCase under the app Newtonsoft config, so read the success flag across both casings.
-						var failures = _.filter(items, function (it) {
-							var ok = (typeof it.success !== "undefined") ? it.success : it.Success;
-							return ok === false;
-						});
-						if (failures.length > 0) {
-							toastr.error(failures.length + " record(s) failed, " + (items.length - failures.length) + " succeeded.", "Bulk action", { closeButton: true, tapToDismiss: true });
-						} else {
-							window.location.reload();
+					success: function (data, textStatus, jqXHR) {
+						var status = jqXHR ? jqXHR.status : 200;
+						// 207 means some records changed and some failed. Report the summary, then refresh so the
+						// grid shows the records that did change. 200 means every record changed, so just refresh.
+						if (status === 207) {
+							window.alert(readMessage(data) || "Some records were processed and some failed.");
 						}
+						window.location.reload();
 					},
-					error: function (xhr, status, p3, p4) {
-						var err = "Error " + " " + status;
-						if (p3) { err += " " + p3; }
-						if (p4) { err += " " + p4; }
-						if (xhr.responseText && xhr.responseText.startsWith("{")) { err = JSON.parse(xhr.responseText).message; }
-						toastr.error("An error occurred", 'Error!', { closeButton: true, tapToDismiss: true });
-						console.log(err);
+					error: function (jqXHR, textStatus) {
+						// 422 means no record changed, and any other status means the request never reached the loop.
+						// Nothing was committed, so keep the current page, report the reason, and restore the controls.
+						var envelope = safeParse(jqXHR ? jqXHR.responseText : "");
+						var status = jqXHR ? jqXHR.status : 0;
+						var message = readMessage(envelope);
+						if (!message) {
+							message = status ? ("The bulk action failed with status " + status + ".") : "The bulk action could not reach the server.";
+						}
+						setBusy(false);
+						notify(message, true);
 					}
 				});
 			}
 
-			rowCheckboxes().on("change", refreshToolbar);
-			$toolbar.find(".pcgrid-bulk-select-all").on("change", function () {
-				// jQuery .prop does not fire change, so refresh the toolbar directly after toggling the page checkboxes.
-				rowCheckboxes().prop("checked", this.checked);
-				refreshToolbar();
-			});
-			$toolbar.find(".pcgrid-bulk-delete").on("click", function () {
-				var ids = selectedIds();
-				if (ids.length === 0) { return; }
-				postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? The records cannot be recovered.");
-			});
-			$toolbar.find(".pcgrid-bulk-archive").on("click", function () {
-				var ids = selectedIds();
-				if (ids.length === 0) { return; }
-				postBulk(archiveUrl, { entityName: entityName, recordIds: ids, archiveFieldName: archiveFieldName }, "Archive " + ids.length + " record(s)?");
-			});
+			rowCheckboxes().forEach(function (box) { box.addEventListener("change", refreshToolbar); });
+			if (selectAllEl) {
+				selectAllEl.addEventListener("change", function () {
+					var checked = this.checked;
+					rowCheckboxes().forEach(function (box) { box.checked = checked; });
+					refreshToolbar();
+				});
+			}
+			if (deleteBtn) {
+				deleteBtn.addEventListener("click", function () {
+					var ids = selectedIds();
+					if (ids.length === 0) { return; }
+					postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? The records cannot be recovered.");
+				});
+			}
+			if (archiveBtn) {
+				archiveBtn.addEventListener("click", function () {
+					var ids = selectedIds();
+					if (ids.length === 0) { return; }
+					postBulk(archiveUrl, { entityName: entityName, recordIds: ids, archiveFieldName: archiveFieldName }, "Archive " + ids.length + " record(s)?");
+				});
+			}
 			refreshToolbar();
 		})();
 	</script>

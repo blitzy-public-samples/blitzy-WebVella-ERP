@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 
+#nullable enable
+
 namespace WebVella.Erp.Web.Models
 {
     // Request payload for the bulk delete and bulk archive endpoints. The client posts the target
@@ -10,7 +12,7 @@ namespace WebVella.Erp.Web.Models
     public class BulkRecordActionModel
     {
         [JsonProperty(PropertyName = "entityName")]
-        public string EntityName { get; set; }
+        public string? EntityName { get; set; }
 
         [JsonProperty(PropertyName = "recordIds")]
         public List<Guid> RecordIds { get; set; } = new();
@@ -33,9 +35,9 @@ namespace WebVella.Erp.Web.Models
         public bool Success { get; set; }
 
         [JsonProperty(PropertyName = "code")]
-        public string Code { get; set; }
+        public string Code { get; set; } = "";
 
         [JsonProperty(PropertyName = "message")]
-        public string Message { get; set; }
+        public string Message { get; set; } = "";
     }
 }

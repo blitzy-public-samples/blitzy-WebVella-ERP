@@ -1638,6 +1638,66 @@ namespace WebVella.Erp.Web.Controllers
 		private static readonly HashSet<string> BulkArchiveAllowedFields =
 			new HashSet<string>(StringComparer.OrdinalIgnoreCase) { BulkArchiveApprovedField };
 
+		// Confirm a destructive bulk request comes from this application, not a cross-site page. Cookie
+		// authentication alone does not stop a cross-site request forgery, so every bulk route checks the
+		// request origin before it changes data. The method reads the Origin header first, falls back to the
+		// Referer, compares the host against the request host, and rejects a request whose host differs or
+		// that carries neither header. The grid posts from the same origin, so a legitimate call always passes.
+		private bool IsBulkRequestOriginTrusted()
+		{
+			var requestHost = HttpContext.Request.Host.Host;
+			if (string.IsNullOrEmpty(requestHost))
+				return false;
+
+			var candidate = HttpContext.Request.Headers["Origin"].ToString();
+			if (string.IsNullOrWhiteSpace(candidate))
+				candidate = HttpContext.Request.Headers["Referer"].ToString();
+
+			if (string.IsNullOrWhiteSpace(candidate))
+				return false;
+
+			if (!Uri.TryCreate(candidate, UriKind.Absolute, out var candidateUri))
+				return false;
+
+			return string.Equals(candidateUri.Host, requestHost, StringComparison.OrdinalIgnoreCase);
+		}
+
+		// Build a fixed 403 response for a bulk request the server refuses on authorization grounds, such as a
+		// cross-site origin or a missing field-level update right. The response reuses the bulk envelope with an
+		// empty result list and a safe message, so a rejected request never looks like a completed one.
+		private IActionResult BulkForbidden(string message)
+		{
+			var response = new ResponseModel
+			{
+				Success = false,
+				Timestamp = DateTime.UtcNow,
+				Message = message,
+				Object = new List<BulkRecordActionResultItem>()
+			};
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+			return Json(response);
+		}
+
+		// Confirm the current user may update a field-secured field, not only the entity. RecordManager checks
+		// entity-level Update permission, yet a field can carry its own security. When the archive field turns on
+		// security, the caller needs a role in the field update allowlist to write it. The administrator and the
+		// system user always qualify. A caller who lacks the field right cannot archive through the bulk route,
+		// even when the caller holds entity Update permission.
+		private bool CurrentUserCanUpdateSecuredField(List<Guid> canUpdateRoleIds)
+		{
+			var user = SecurityContext.CurrentUser;
+			if (user == null)
+				return false;
+
+			if (user.Id == SystemIds.SystemUserId || user.IsAdmin)
+				return true;
+
+			if (canUpdateRoleIds == null || canUpdateRoleIds.Count == 0)
+				return false;
+
+			return user.Roles.Any(role => canUpdateRoleIds.Any(id => id == role.Id));
+		}
+
 		// Build a per-record success result with a stable outcome code.
 		private static BulkRecordActionResultItem BulkOk(Guid id, string message)
 		{
@@ -1831,6 +1891,11 @@ namespace WebVella.Erp.Web.Controllers
 		[ResponseCache(NoStore = true, Duration = 0)]
 		public IActionResult BulkDeleteRecords([FromBody] BulkRecordActionModel model)
 		{
+			// Reject a cross-site request before any record changes. The check runs first so a forged
+			// cross-origin post never reaches the delete loop.
+			if (!IsBulkRequestOriginTrusted())
+				return BulkForbidden("The request origin is not allowed.");
+
 			List<Guid> recordIds;
 			// Validate the request and resolve entity metadata inside a guard so an unexpected failure
 			// before the per-record loop returns a safe response instead of a framework stack trace.
@@ -1888,6 +1953,11 @@ namespace WebVella.Erp.Web.Controllers
 		[ResponseCache(NoStore = true, Duration = 0)]
 		public IActionResult BulkArchiveRecords([FromBody] BulkRecordActionModel model)
 		{
+			// Reject a cross-site request before any record changes. The check runs first so a forged
+			// cross-origin post never reaches the archive loop.
+			if (!IsBulkRequestOriginTrusted())
+				return BulkForbidden("The request origin is not allowed.");
+
 			List<Guid> recordIds;
 			// The bulk-archive write target is fixed to the approved field; a request cannot redirect it.
 			var archiveFieldName = BulkArchiveApprovedField;
@@ -1910,6 +1980,13 @@ namespace WebVella.Erp.Web.Controllers
 				var archiveField = entityMeta.Fields != null ? entityMeta.Fields.FirstOrDefault(f => f.Name == archiveFieldName) : null;
 				if (archiveField == null || archiveField.GetFieldType() != FieldType.CheckboxField)
 					return BulkBadRequest("The archive field is missing or is not a checkbox field on this entity.");
+
+				// Enforce field-level update permission. RecordManager checks entity Update permission, but the
+				// archive field can carry its own security. When the field turns on security, the caller needs a
+				// role in the field update allowlist to write it, so a caller denied the field right cannot archive
+				// through the bulk route even with entity Update permission.
+				if (archiveField.EnableSecurity && !CurrentUserCanUpdateSecuredField(archiveField.Permissions?.CanUpdate))
+					return BulkForbidden("You do not have permission to update the archive field.");
 			}
 			catch (Exception ex)
 			{

@@ -95,12 +95,18 @@
 </wv-row>
 <wv-row>
 	<wv-column span="4">
-		<wv-field-text name="archive_field_name" value="@options.ArchiveFieldName" label-text="Archive Field Name"></wv-field-text>
+		<wv-field-text name="archive_field_name" value="@options.ArchiveFieldName" label-text="Archive Field Name" placeholder="is_archived"></wv-field-text>
 	</wv-column>
 	<wv-column span="4">
-		<wv-field-text name="entity_name" value="@options.EntityName" label-text="Entity Name"></wv-field-text>
+		<wv-field-text name="entity_name" value="@options.EntityName" label-text="Entity Name" placeholder="required when bulk actions are on"></wv-field-text>
 	</wv-column>
 </wv-row>
+
+<div class="alert alert-warning p-2">
+    <strong>Bulk actions setup.</strong>
+    Enter the target <code>Entity Name</code> whenever you turn on Bulk Actions. The selection toolbar renders only when the entity name is set, because the bulk delete and bulk archive endpoints address records by entity name.
+    The bulk archive endpoint writes only the approved <code>is_archived</code> field, so leave <code>Archive Field Name</code> as <code>is_archived</code>. A grid that names any other field keeps Archive hidden.
+</div>
 
 <div class="alert alert-info p-2">
     In nested components, use <code>RowRecord</code> datasource as a reference to the record renedered in the current row

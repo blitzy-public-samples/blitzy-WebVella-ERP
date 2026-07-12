@@ -591,16 +591,24 @@ namespace WebVella.Erp.Web.Components
 						ViewBag.Records = context.DataModel.GetPropertyValueByDataSource(options.Records) as List<EntityRecord> ?? new List<EntityRecord>();
 					}
 
-					// Resolve the configured archive field and confirm, from trusted entity metadata, that the field
-					// exists as a checkbox (boolean). Archive availability also requires the master toggle, the archive
-					// toggle, a named entity, and a non-empty rendered page, so Archive stays hidden unless it can run honestly.
-					var archiveFieldName = string.IsNullOrWhiteSpace(options.ArchiveFieldName) ? "is_archived" : options.ArchiveFieldName;
-					var enableBulkActions = options.EnableBulkActions;
+					// The bulk routes address records by entity name, so a grid without a configured entity name cannot
+					// run any bulk action. The master toggle therefore stays off until an administrator names the entity,
+					// which keeps a misconfigured grid from rendering a selection UI that cannot complete an action.
+					var hasEntityName = !string.IsNullOrWhiteSpace(options.EntityName);
+					var enableBulkActions = options.EnableBulkActions && hasEntityName;
 					var enableBulkDelete = enableBulkActions && options.EnableBulkDelete;
 					var enableBulkArchive = enableBulkActions && options.EnableBulkArchive;
 
+					// The bulk-archive endpoint accepts only the server-approved archive field, so a grid configured with
+					// any other field name cannot archive. Archive availability therefore requires the resolved field to
+					// match the approved field, compared without case, and to exist on the entity as a checkbox (boolean),
+					// which keeps Archive hidden unless the server would accept the write.
+					const string serverApprovedArchiveField = "is_archived";
+					var configuredArchiveField = string.IsNullOrWhiteSpace(options.ArchiveFieldName) ? serverApprovedArchiveField : options.ArchiveFieldName.Trim();
+					var archiveFieldMatchesServer = string.Equals(configuredArchiveField, serverApprovedArchiveField, StringComparison.OrdinalIgnoreCase);
+
 					var archiveAvailable = false;
-					if (enableBulkArchive && !string.IsNullOrWhiteSpace(options.EntityName))
+					if (enableBulkArchive && archiveFieldMatchesServer)
 					{
 						IEnumerable<EntityRecord> renderedRecords = ViewBag.Records as IEnumerable<EntityRecord>;
 						var hasRenderedRecords = renderedRecords != null && renderedRecords.Any(r => r != null);
@@ -609,7 +617,7 @@ namespace WebVella.Erp.Web.Components
 							try
 							{
 								var entityMeta = new WebVella.Erp.Api.EntityManager().ReadEntity(options.EntityName)?.Object;
-								var archiveField = entityMeta?.Fields?.FirstOrDefault(f => f.Name == archiveFieldName);
+								var archiveField = entityMeta?.Fields?.FirstOrDefault(f => string.Equals(f.Name, serverApprovedArchiveField, StringComparison.OrdinalIgnoreCase));
 								archiveAvailable = archiveField != null && archiveField.GetFieldType() == FieldType.CheckboxField;
 							}
 							catch
@@ -627,7 +635,9 @@ namespace WebVella.Erp.Web.Components
 					ViewBag.EnableBulkArchive = enableBulkArchive;
 					ViewBag.ArchiveAvailable = archiveAvailable;
 					ViewBag.EntityName = options.EntityName;
-					ViewBag.ArchiveFieldName = archiveFieldName;
+					// Publish the canonical server-approved archive field so the client posts a value the bulk endpoint
+					// accepts regardless of the casing an administrator typed into the option.
+					ViewBag.ArchiveFieldName = serverApprovedArchiveField;
 
 					string pageKey = options.Prefix + options.QueryStringPage;
 					if (HttpContext.Request.Query.ContainsKey(pageKey))
