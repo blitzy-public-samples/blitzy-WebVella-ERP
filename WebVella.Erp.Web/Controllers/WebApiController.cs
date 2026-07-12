@@ -1721,6 +1721,26 @@ namespace WebVella.Erp.Web.Controllers
 			return Json(response);
 		}
 
+		// Build a safe response for an unexpected failure raised while validating the request or resolving
+		// entity metadata before the per-record loop. The internal detail goes to the server log only, the
+		// client receives a fixed generic message with an empty result list, and the status stays 500, so a
+		// pre-loop exception never surfaces a stack trace to the caller.
+		private IActionResult BulkPreflightError(string action, string actionNoun, Exception ex)
+		{
+			var correlationId = HttpContext != null ? HttpContext.TraceIdentifier : string.Empty;
+			var context = "action=" + action + "; correlationId=" + correlationId;
+			new LogService().Create(Diagnostics.LogType.Error, "TErpApi:" + action + ":Preflight", context, ex);
+			var response = new ResponseModel
+			{
+				Success = false,
+				Timestamp = DateTime.UtcNow,
+				Message = "The bulk " + actionNoun + " request could not be processed.",
+				Object = new List<BulkRecordActionResultItem>()
+			};
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+			return Json(response);
+		}
+
 		// Build the aggregate bulk response with a truthful HTTP status: 200 when every record succeeded,
 		// 207 when some succeeded and some failed, and 422 when every record failed. The per-record
 		// results always travel in the envelope Object so the client can report each outcome.
@@ -1811,8 +1831,18 @@ namespace WebVella.Erp.Web.Controllers
 		[ResponseCache(NoStore = true, Duration = 0)]
 		public IActionResult BulkDeleteRecords([FromBody] BulkRecordActionModel model)
 		{
-			if (!TryNormalizeBulkRequest(model, "delete", out var recordIds, out _, out var errorResult))
-				return errorResult;
+			List<Guid> recordIds;
+			// Validate the request and resolve entity metadata inside a guard so an unexpected failure
+			// before the per-record loop returns a safe response instead of a framework stack trace.
+			try
+			{
+				if (!TryNormalizeBulkRequest(model, "delete", out recordIds, out _, out var errorResult))
+					return errorResult;
+			}
+			catch (Exception ex)
+			{
+				return BulkPreflightError("BulkDelete", "delete", ex);
+			}
 
 			var results = new List<BulkRecordActionResultItem>();
 
@@ -1858,21 +1888,33 @@ namespace WebVella.Erp.Web.Controllers
 		[ResponseCache(NoStore = true, Duration = 0)]
 		public IActionResult BulkArchiveRecords([FromBody] BulkRecordActionModel model)
 		{
-			if (!TryNormalizeBulkRequest(model, "archive", out var recordIds, out var entityMeta, out var errorResult))
-				return errorResult;
-
-			// Resolve the archive field from the trusted server-side allowlist. A request that names a
-			// field outside the allowlist gets rejected, so a caller cannot redirect the write.
-			var requestedField = string.IsNullOrWhiteSpace(model.ArchiveFieldName) ? BulkArchiveApprovedField : model.ArchiveFieldName.Trim();
-			if (!BulkArchiveAllowedFields.Contains(requestedField))
-				return BulkBadRequest("The requested archive field is not allowed.");
+			List<Guid> recordIds;
+			// The bulk-archive write target is fixed to the approved field; a request cannot redirect it.
 			var archiveFieldName = BulkArchiveApprovedField;
 
-			// Confirm the approved field exists on the entity and is a checkbox (boolean). A missing or
-			// wrong-type field fails the whole request, so the server never reports a false archive.
-			var archiveField = entityMeta.Fields != null ? entityMeta.Fields.FirstOrDefault(f => f.Name == archiveFieldName) : null;
-			if (archiveField == null || archiveField.GetFieldType() != FieldType.CheckboxField)
-				return BulkBadRequest("The archive field is missing or is not a checkbox field on this entity.");
+			// Validate the request and resolve archive-field metadata inside a guard so an unexpected
+			// failure before the per-record loop returns a safe response instead of a framework stack trace.
+			try
+			{
+				if (!TryNormalizeBulkRequest(model, "archive", out recordIds, out var entityMeta, out var errorResult))
+					return errorResult;
+
+				// Resolve the archive field from the trusted server-side allowlist. A request that names a
+				// field outside the allowlist gets rejected, so a caller cannot redirect the write.
+				var requestedField = string.IsNullOrWhiteSpace(model.ArchiveFieldName) ? BulkArchiveApprovedField : model.ArchiveFieldName.Trim();
+				if (!BulkArchiveAllowedFields.Contains(requestedField))
+					return BulkBadRequest("The requested archive field is not allowed.");
+
+				// Confirm the approved field exists on the entity and is a checkbox (boolean). A missing or
+				// wrong-type field fails the whole request, so the server never reports a false archive.
+				var archiveField = entityMeta.Fields != null ? entityMeta.Fields.FirstOrDefault(f => f.Name == archiveFieldName) : null;
+				if (archiveField == null || archiveField.GetFieldType() != FieldType.CheckboxField)
+					return BulkBadRequest("The archive field is missing or is not a checkbox field on this entity.");
+			}
+			catch (Exception ex)
+			{
+				return BulkPreflightError("BulkArchive", "archive", ex);
+			}
 
 			var results = new List<BulkRecordActionResultItem>();
 
