@@ -1626,6 +1626,129 @@ namespace WebVella.Erp.Web.Controllers
 			return DoResponse(result);
 		}
 
+		// Delete a set of records in one request, giving each record its own transaction so one failure rolls back only that record.
+		// POST: api/v3/en_US/record/bulk/delete
+		[AcceptVerbs(new[] { "POST" }, Route = "api/v3/en_US/record/bulk/delete")]
+		[ResponseCache(NoStore = true, Duration = 0)]
+		public IActionResult BulkDeleteRecords([FromBody] BulkRecordActionModel model)
+		{
+			var results = new List<BulkRecordActionResultItem>();
+
+			if (model == null || model.RecordIds == null || model.RecordIds.Count == 0)
+			{
+				var emptyResponse = new ResponseModel
+				{
+					Success = false,
+					Timestamp = DateTime.UtcNow,
+					Message = "The request carries no records to delete.",
+					Object = results
+				};
+				return Json(emptyResponse);
+			}
+
+			foreach (var id in model.RecordIds)
+			{
+				using (var connection = DbContext.Current.CreateConnection())
+				{
+					try
+					{
+						connection.BeginTransaction();
+						var r = recMan.DeleteRecord(model.EntityName, id);
+						if (r.Success)
+						{
+							connection.CommitTransaction();
+							results.Add(new BulkRecordActionResultItem { RecordId = id, Success = true, Message = "Record deleted." });
+						}
+						else
+						{
+							connection.RollbackTransaction();
+							var reason = (r.Errors != null && r.Errors.Count > 0) ? r.Errors[0].Message : r.Message;
+							results.Add(new BulkRecordActionResultItem { RecordId = id, Success = false, Message = reason });
+						}
+					}
+					catch (Exception ex)
+					{
+						connection.RollbackTransaction();
+						new LogService().Create(Diagnostics.LogType.Error, "TErpApi:BulkDelete", ex);
+						results.Add(new BulkRecordActionResultItem { RecordId = id, Success = false, Message = ex.Message });
+					}
+				}
+			}
+
+			var response = new ResponseModel
+			{
+				Success = results.All(x => x.Success),
+				Timestamp = DateTime.UtcNow,
+				Message = "Bulk delete finished.",
+				Object = results
+			};
+			return Json(response);
+		}
+
+		// Archive a set of records in one request by setting the archive field to true, giving each record its own transaction.
+		// POST: api/v3/en_US/record/bulk/archive
+		[AcceptVerbs(new[] { "POST" }, Route = "api/v3/en_US/record/bulk/archive")]
+		[ResponseCache(NoStore = true, Duration = 0)]
+		public IActionResult BulkArchiveRecords([FromBody] BulkRecordActionModel model)
+		{
+			var results = new List<BulkRecordActionResultItem>();
+
+			if (model == null || model.RecordIds == null || model.RecordIds.Count == 0)
+			{
+				var emptyResponse = new ResponseModel
+				{
+					Success = false,
+					Timestamp = DateTime.UtcNow,
+					Message = "The request carries no records to archive.",
+					Object = results
+				};
+				return Json(emptyResponse);
+			}
+
+			var archiveFieldName = string.IsNullOrWhiteSpace(model.ArchiveFieldName) ? "is_archived" : model.ArchiveFieldName;
+
+			foreach (var id in model.RecordIds)
+			{
+				using (var connection = DbContext.Current.CreateConnection())
+				{
+					try
+					{
+						connection.BeginTransaction();
+						var rec = new EntityRecord();
+						rec["id"] = id;
+						rec[archiveFieldName] = true;
+						var r = recMan.UpdateRecord(model.EntityName, rec);
+						if (r.Success)
+						{
+							connection.CommitTransaction();
+							results.Add(new BulkRecordActionResultItem { RecordId = id, Success = true, Message = "Record archived." });
+						}
+						else
+						{
+							connection.RollbackTransaction();
+							var reason = (r.Errors != null && r.Errors.Count > 0) ? r.Errors[0].Message : r.Message;
+							results.Add(new BulkRecordActionResultItem { RecordId = id, Success = false, Message = reason });
+						}
+					}
+					catch (Exception ex)
+					{
+						connection.RollbackTransaction();
+						new LogService().Create(Diagnostics.LogType.Error, "TErpApi:BulkArchive", ex);
+						results.Add(new BulkRecordActionResultItem { RecordId = id, Success = false, Message = ex.Message });
+					}
+				}
+			}
+
+			var response = new ResponseModel
+			{
+				Success = results.All(x => x.Success),
+				Timestamp = DateTime.UtcNow,
+				Message = "Bulk archive finished.",
+				Object = results
+			};
+			return Json(response);
+		}
+
 		// GET: api/v3/en_US/record/{entityName}/list
 		[AcceptVerbs(new[] { "GET" }, Route = "api/v3/en_US/record/{entityName}/list")]
 		[ResponseCache(NoStore = true, Duration = 0)]
