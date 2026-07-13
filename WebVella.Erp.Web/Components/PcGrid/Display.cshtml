@@ -17,8 +17,87 @@
 	var pageSize = (int)ViewBag.PageSize;
 	var records = (List<EntityRecord>)ViewBag.Records;
 	var columns = (List<WvGridColumnMeta>)ViewBag.Columns;
+
+	// Bulk-action opt-in flags come from PcGrid.cs for Display mode. Every default stays false or empty, so a grid that does not opt in renders unchanged.
+	var enableBulkActions = ViewBag.EnableBulkActions != null && (bool)ViewBag.EnableBulkActions;
+	var enableBulkDelete = ViewBag.EnableBulkDelete != null && (bool)ViewBag.EnableBulkDelete;
+	var enableBulkArchive = ViewBag.EnableBulkArchive != null && (bool)ViewBag.EnableBulkArchive;
+	var archiveAvailable = ViewBag.ArchiveAvailable != null && (bool)ViewBag.ArchiveAvailable;
+	var entityName = (string)(ViewBag.EntityName ?? "");
+	var archiveFieldName = (string)(ViewBag.ArchiveFieldName ?? "is_archived");
+	// A per-grid key from the component node Guid keeps element ids and selectors unique when several grids share one page.
+	var bulkKey = node.Id.ToString();
 }
 
+@if (enableBulkActions && records.Count > 0)
+{
+	<style>
+		/* Bulk selection controls: enlarge the desktop tap target from the small Bootstrap default to a
+		   comfortable 18px, and to the 24px WCAG 2.5.8 minimum on small screens. The rules target only the
+		   bulk selection checkboxes, so no other checkbox on the page changes size. */
+		input.pcgrid-bulk-select,
+		input.pcgrid-bulk-select-all { width: 18px; height: 18px; cursor: pointer; }
+		@@media (max-width: 575.98px) {
+			input.pcgrid-bulk-select,
+			input.pcgrid-bulk-select-all { width: 24px; height: 24px; }
+		}
+		/* Keep the contextual toolbar in view while the user scrolls a long selection. */
+		.pcgrid-bulk-toolbar { position: sticky; top: 0; z-index: 5; }
+		/* Darken the Delete button so the white label clears the WCAG AA 4.5:1 contrast ratio. The default
+		   Bootstrap danger red measured below that ratio, so the bulk Delete uses a darker red (about 6.5:1). */
+		.pcgrid-bulk-toolbar .pcgrid-bulk-delete { background-color: #b02a37; border-color: #b02a37; color: #fff; }
+		.pcgrid-bulk-toolbar .pcgrid-bulk-delete:hover,
+		.pcgrid-bulk-toolbar .pcgrid-bulk-delete:focus { background-color: #a71d2a; border-color: #a71d2a; color: #fff; }
+		/* Give every interactive bulk control a visible keyboard focus ring, since the faint default ring
+		   fails the visible-focus requirement. */
+		.pcgrid-bulk-toolbar .btn:focus-visible,
+		.pcgrid-bulk-toolbar input:focus-visible,
+		input.pcgrid-bulk-select:focus-visible { outline: 2px solid #0b5ed7; outline-offset: 2px; }
+		/* Highlight a selected row so the selection reads at a glance. */
+		tr.pcgrid-bulk-row-selected > td { background-color: #fff3cd; }
+		/* Show a small busy indicator while a bulk request runs. */
+		.pcgrid-bulk-spinner { display: none; }
+		.pcgrid-bulk-root[aria-busy="true"] .pcgrid-bulk-spinner { display: inline-block; }
+	</style>
+	<div id="pcgrid-bulk-root-@bulkKey" class="pcgrid-bulk-root" data-entity-name="@entityName" data-archive-field="@archiveFieldName" data-max-records="1000">
+		@* The toolbar starts hidden and appears only after the user selects at least one record, following
+		   the contextual-toolbar design. The always-visible per-row checkboxes let the user make the first
+		   selection, which then reveals this toolbar. The data-max-records value mirrors the server
+		   BulkActionMaxRecords constant, so the client caps a large selection before it reaches the server. *@
+		<div class="pcgrid-bulk-toolbar d-none flex-wrap align-items-center mb-2 p-2 border rounded bg-light" role="group" aria-label="Bulk actions">
+			<label class="mb-0 mr-3 d-inline-flex align-items-center">
+				<input type="checkbox" class="pcgrid-bulk-select-all mr-2" aria-label="Select all records on this page" />
+				Select all on this page
+			</label>
+			<span class="pcgrid-bulk-count-wrap mr-3" role="status" aria-live="polite">
+				<span class="badge badge-secondary pcgrid-bulk-count">0</span>
+				<span class="pcgrid-bulk-count-label">selected</span>
+			</span>
+			<span class="pcgrid-bulk-actions d-flex align-items-center">
+				@if (enableBulkDelete)
+				{
+					<button type="button" class="btn btn-sm btn-danger mr-2 pcgrid-bulk-delete"><i class="fa fa-trash-alt" aria-hidden="true"></i> Delete</button>
+				}
+				@if (enableBulkArchive)
+				{
+					@if (archiveAvailable)
+					{
+						<button type="button" class="btn btn-sm btn-secondary pcgrid-bulk-archive"><i class="fa fa-archive" aria-hidden="true"></i> Archive</button>
+					}
+					else
+					{
+						@* Archive is enabled for the grid but the entity carries no archive field, so the action
+						   renders disabled rather than hidden. The title and aria-disabled explain why. A distinct
+						   class keeps the inline script from ever wiring or re-enabling this placeholder button. *@
+						<button type="button" class="btn btn-sm btn-secondary pcgrid-bulk-archive-unavailable" disabled aria-disabled="true" title="Archive is unavailable because this list has no archive field."><i class="fa fa-archive" aria-hidden="true"></i> Archive</button>
+					}
+				}
+			</span>
+			<i class="fa fa-spinner fa-spin pcgrid-bulk-spinner ml-2" aria-hidden="true"></i>
+			<span class="pcgrid-bulk-result ml-2" role="status" aria-live="polite"></span>
+		</div>
+	</div>
+}
 <wv-grid striped="@options.Striped" small="@options.Small" bordered="@options.Bordered" borderless="@options.Borderless"
 		 hover="@options.Hover" responsive-breakpoint="@options.ResponsiveBreakpoint" id="@options.Id" prefix="@options.Prefix"
 		 name="@options.Name" culture="@options.Culture" class="@options.Class" query-string-sortby="@options.QueryStringSortBy"
@@ -28,6 +107,24 @@
 	@foreach (var record in records)
 	{
 		<wv-grid-row>
+			@{
+				// Resolve a per-record selection id plus a human-friendly title for the checkbox accessible
+				// name. The title reads the first present common label field and falls back to the record id,
+				// so every selection checkbox exposes a meaningful name to assistive technology.
+				string recordId = enableBulkActions && record["id"] != null ? record["id"].ToString() : null;
+				string recordTitle = recordId;
+				if (enableBulkActions)
+				{
+					foreach (var titleFieldName in new[] { "title", "name", "label", "subject", "username", "email" })
+					{
+						if (record.Properties.ContainsKey(titleFieldName) && record[titleFieldName] != null)
+						{
+							var candidateTitle = record[titleFieldName].ToString();
+							if (!String.IsNullOrWhiteSpace(candidateTitle)) { recordTitle = candidateTitle; break; }
+						}
+					}
+				}
+			}
 			@for (var i=1; i <= options.VisibleColumns; i++)
 			{
 				var containerId = (options.GetType().GetProperty($"Container{i}Id").GetValue(options, null) ?? "").ToString();
@@ -38,6 +135,10 @@
 				var columnChildNodes = node.Nodes.FindAll(x => x.ContainerId == containerId);
 				var columnWidth = options.HasThead ? "" : columns[i - 1].Width;
 				<wv-grid-column width="@columnWidth" text-nowrap="@columnNoWrap" class="@columnClass" horizontal-align="@horizontalAlign" vertical-align="@verticalAlign">
+					@if (enableBulkActions && i == 1)
+					{
+						<input type="checkbox" class="form-check-input position-static pcgrid-bulk-select ml-0 mr-2" data-grid-key="@bulkKey" data-record-id="@recordId" aria-label="Select @recordTitle" />
+					}
 					@foreach (var childNode in columnChildNodes)
 					{
 						var nodeComponentName = "";
@@ -66,3 +167,216 @@
 	</tbody>
 	}
 </wv-grid>
+@if (enableBulkActions && records.Count > 0)
+{
+	<script>
+		(function () {
+			var bulkKey = "@bulkKey";
+			var root = document.getElementById("pcgrid-bulk-root-" + bulkKey);
+			if (!root) { return; }
+
+			// Read the endpoint targets and the entity context from the root data attributes.
+			var entityName = root.getAttribute("data-entity-name") || "";
+			var archiveFieldName = root.getAttribute("data-archive-field") || "is_archived";
+			var deleteUrl = "/api/v3/en_US/record/bulk/delete";
+			var archiveUrl = "/api/v3/en_US/record/bulk/archive";
+
+			// Toolbar controls live inside this grids root, so read them from the root.
+			var toolbarEl = root.querySelector(".pcgrid-bulk-toolbar");
+			var selectAllEl = root.querySelector(".pcgrid-bulk-select-all");
+			var countEl = root.querySelector(".pcgrid-bulk-count");
+			var resultEl = root.querySelector(".pcgrid-bulk-result");
+			var deleteBtn = root.querySelector(".pcgrid-bulk-delete");
+			// The script wires the archive button only when archive is available. The disabled placeholder that
+			// renders when archive is unavailable carries a different class, so this stays null and the busy
+			// handler never re-enables it.
+			var archiveBtn = root.querySelector(".pcgrid-bulk-archive");
+			// The client honors the same record ceiling the server enforces, read from the root data attribute.
+			var maxRecords = parseInt(root.getAttribute("data-max-records"), 10);
+			if (isNaN(maxRecords) || maxRecords <= 0) { maxRecords = 1000; }
+			var busy = false;
+
+			// Row checkboxes render inside the grid table, which the out-of-scope grid chrome places outside this
+			// toolbar root, so select them by this grids unique key. The key filter keeps the selection isolated to
+			// this grid when several grids share one page, and selection stays scoped to the rendered page.
+			function rowCheckboxes() {
+				return Array.prototype.slice.call(document.querySelectorAll('.pcgrid-bulk-select[data-grid-key="' + bulkKey + '"]'));
+			}
+			function selectedIds() {
+				var ids = [];
+				rowCheckboxes().forEach(function (box) {
+					if (box.checked) { ids.push(box.getAttribute("data-record-id")); }
+				});
+				return ids;
+			}
+
+			// Show a message in the toolbar result region for assistive tech, and through toastr when the page
+			// provides it. A native alert covers the case where toastr is absent, so a failure is never silent.
+			function notify(message, isError) {
+				if (resultEl) { resultEl.textContent = message; }
+				if (typeof toastr !== "undefined" && toastr) {
+					if (isError) { toastr.error(message, "Bulk action", { closeButton: true, tapToDismiss: true }); }
+					else { toastr.info(message, "Bulk action", { closeButton: true, tapToDismiss: true }); }
+				} else {
+					window.alert(message);
+				}
+			}
+
+			function readMessage(envelope) {
+				if (!envelope) { return ""; }
+				return envelope.message || envelope.Message || "";
+			}
+			function safeParse(textValue) {
+				if (!textValue) { return null; }
+				try { return JSON.parse(textValue); } catch (e) { return null; }
+			}
+
+			// Toggle the busy state during a request. Disabling the controls stops a second click from firing a
+			// duplicate destructive action, and aria-busy tells assistive tech that the region is working.
+			function setBusy(state) {
+				busy = state;
+				root.setAttribute("aria-busy", state ? "true" : "false");
+				if (selectAllEl) { selectAllEl.disabled = state; }
+				if (deleteBtn) { deleteBtn.disabled = state; }
+				if (archiveBtn) { archiveBtn.disabled = state; }
+				rowCheckboxes().forEach(function (box) { box.disabled = state; });
+			}
+
+			// Reflect the selection on the row highlight, the count, the toolbar visibility, and the select-all
+			// control. The whole toolbar shows only when at least one record is selected, so the grid stays clean
+			// until the user starts a selection.
+			function refreshToolbar() {
+				var boxes = rowCheckboxes();
+				var total = boxes.length;
+				var selected = 0;
+				boxes.forEach(function (box) {
+					var on = box.checked;
+					if (on) { selected++; }
+					// Highlight the selected row so the selection reads at a glance.
+					var row = box.closest("tr");
+					if (row) {
+						if (on) { row.classList.add("pcgrid-bulk-row-selected"); }
+						else { row.classList.remove("pcgrid-bulk-row-selected"); }
+					}
+				});
+				if (countEl) { countEl.textContent = selected; }
+				if (toolbarEl) {
+					if (selected >= 1) { toolbarEl.classList.remove("d-none"); toolbarEl.classList.add("d-flex"); }
+					else { toolbarEl.classList.remove("d-flex"); toolbarEl.classList.add("d-none"); }
+				}
+				if (selectAllEl) {
+					selectAllEl.checked = (total > 0 && selected === total);
+					selectAllEl.indeterminate = (selected > 0 && selected < total);
+				}
+			}
+
+			// Send the user to the sign-in page when the session has expired. An expired cookie session makes the
+			// server answer an ajax request with a sign-in redirect target instead of the JSON envelope, and a
+			// token client gets a 401, so both paths land here. The current page rides along as the return target,
+			// so the user comes back to the same grid after signing in.
+			function handleSessionExpired() {
+				setBusy(false);
+				var returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+				notify("Your session has expired. Redirecting to the sign-in page.", true);
+				window.setTimeout(function () { window.location.href = "/login?returnUrl=" + returnUrl; }, 1200);
+			}
+
+			// A real bulk response carries the JSON result envelope. Some deployments answer an expired cookie
+			// session by redirecting the POST to the sign-in page, and the browser follows that redirect to an
+			// HTML page, so a success payload that is not JSON means the session expired rather than the action
+			// succeeding.
+			function looksLikeJson(jqXHR, data) {
+				var contentType = (jqXHR && jqXHR.getResponseHeader ? (jqXHR.getResponseHeader("Content-Type") || "") : "").toLowerCase();
+				if (contentType.indexOf("application/json") !== -1) { return true; }
+				return data !== null && typeof data === "object";
+			}
+
+			// Detect an expired session on the error path. A token client gets a 401. A cookie client gets an
+			// ajax auth challenge: the server answers with a non-redirect status and a Location header that names
+			// the sign-in page, so the browser does not follow it and the header stays readable here. The origin
+			// and permission checks return 403 with a JSON body and no such header, so those fall through instead.
+			function isAuthChallenge(jqXHR) {
+				if (!jqXHR) { return false; }
+				if (jqXHR.status === 401) { return true; }
+				var location = jqXHR.getResponseHeader ? (jqXHR.getResponseHeader("Location") || "") : "";
+				return location.indexOf("/login") !== -1;
+			}
+
+			// Confirm, then POST the selection. The server gives every record its own transaction and returns a
+			// per-record result, so the response reports a full success, a partial success, or a full failure.
+			function postBulk(url, payload, confirmMsg) {
+				if (busy) { return; }
+				var count = payload.recordIds ? payload.recordIds.length : 0;
+				if (count === 0) { return; }
+				// Cap the selection at the server maximum and tell the user right away, rather than letting the
+				// server reject the whole request after a round trip.
+				if (count > maxRecords) {
+					notify("You can act on at most " + maxRecords + " records at once. Please narrow your selection.", true);
+					return;
+				}
+				if (!window.confirm(confirmMsg)) { return; }
+				setBusy(true);
+				if (resultEl) { resultEl.textContent = ""; }
+				$.ajax({
+					type: "POST",
+					url: url,
+					contentType: "application/json",
+					data: JSON.stringify(payload),
+					success: function (data, textStatus, jqXHR) {
+						// Cookie-expiry guard: the browser followed a redirect to the sign-in page, so the
+						// "successful" response is HTML rather than the JSON envelope. Send the user to sign in.
+						if (!looksLikeJson(jqXHR, data)) { handleSessionExpired(); return; }
+						var status = jqXHR ? jqXHR.status : 200;
+						// 207 means some records changed and some failed. Report the summary, then refresh so the
+						// grid shows the records that did change. 200 means every record changed, so just refresh.
+						if (status === 207) {
+							window.alert(readMessage(data) || "The server processed some records and could not process others.");
+						}
+						window.location.reload();
+					},
+					error: function (jqXHR, textStatus) {
+						var status = jqXHR ? jqXHR.status : 0;
+						// An expired session ends here for both client kinds: a token client gets a 401, and a cookie
+						// client gets an ajax auth challenge that names the sign-in page in a Location header. Send the
+						// user to sign in for either one. A 403 is the origin or permission check, not an expired
+						// session, so it carries no such header and falls through to the normal message below.
+						if (isAuthChallenge(jqXHR)) { handleSessionExpired(); return; }
+						// 422 means no record changed, and any other status means the request never reached the loop.
+						// Nothing was committed, so keep the current page, report the reason, and restore the controls.
+						var envelope = safeParse(jqXHR ? jqXHR.responseText : "");
+						var message = readMessage(envelope);
+						if (!message) {
+							message = status ? ("The bulk action failed with status " + status + ".") : "The bulk action could not reach the server.";
+						}
+						setBusy(false);
+						notify(message, true);
+					}
+				});
+			}
+
+			rowCheckboxes().forEach(function (box) { box.addEventListener("change", refreshToolbar); });
+			if (selectAllEl) {
+				selectAllEl.addEventListener("change", function () {
+					var checked = this.checked;
+					rowCheckboxes().forEach(function (box) { box.checked = checked; });
+					refreshToolbar();
+				});
+			}
+			if (deleteBtn) {
+				deleteBtn.addEventListener("click", function () {
+					var ids = selectedIds();
+					if (ids.length === 0) { return; }
+					postBulk(deleteUrl, { entityName: entityName, recordIds: ids }, "Permanently delete " + ids.length + " record(s)? You cannot recover them.");
+				});
+			}
+			if (archiveBtn) {
+				archiveBtn.addEventListener("click", function () {
+					var ids = selectedIds();
+					if (ids.length === 0) { return; }
+					postBulk(archiveUrl, { entityName: entityName, recordIds: ids, archiveFieldName: archiveFieldName }, "Archive " + ids.length + " record(s)?");
+				});
+			}
+			refreshToolbar();
+		})();
+	</script>
+}

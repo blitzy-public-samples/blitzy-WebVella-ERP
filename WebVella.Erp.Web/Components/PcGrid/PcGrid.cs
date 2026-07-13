@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using WebVella.Erp.Api.Models;
 using WebVella.Erp.Eql;
@@ -100,6 +101,21 @@ namespace WebVella.Erp.Web.Components
 
 			[JsonProperty(PropertyName = "empty_text")]
 			public string EmptyText { get; set; } = "No records";
+
+			[JsonProperty(PropertyName = "enable_bulk_actions")]
+			public bool EnableBulkActions { get; set; } = false;
+
+			[JsonProperty(PropertyName = "enable_bulk_delete")]
+			public bool EnableBulkDelete { get; set; } = false;
+
+			[JsonProperty(PropertyName = "enable_bulk_archive")]
+			public bool EnableBulkArchive { get; set; } = false;
+
+			[JsonProperty(PropertyName = "archive_field_name")]
+			public string ArchiveFieldName { get; set; } = "is_archived";
+
+			[JsonProperty(PropertyName = "entity_name")]
+			public string EntityName { get; set; } = "";
 
 			#region << container1 >>
 			[JsonProperty(PropertyName = "container1_id")]
@@ -574,6 +590,54 @@ namespace WebVella.Erp.Web.Components
 					if(ViewBag.Records.Count == 0){
 						ViewBag.Records = context.DataModel.GetPropertyValueByDataSource(options.Records) as List<EntityRecord> ?? new List<EntityRecord>();
 					}
+
+					// The bulk routes address records by entity name, so a grid without a configured entity name cannot
+					// run any bulk action. The master toggle therefore stays off until an administrator names the entity,
+					// which keeps a misconfigured grid from rendering a selection UI that cannot complete an action.
+					var hasEntityName = !string.IsNullOrWhiteSpace(options.EntityName);
+					var enableBulkActions = options.EnableBulkActions && hasEntityName;
+					var enableBulkDelete = enableBulkActions && options.EnableBulkDelete;
+					var enableBulkArchive = enableBulkActions && options.EnableBulkArchive;
+
+					// The bulk-archive endpoint accepts only the server-approved archive field, so a grid configured with
+					// any other field name cannot archive. Archive availability therefore requires the resolved field to
+					// match the approved field, compared without case, and to exist on the entity as a checkbox (boolean),
+					// which keeps Archive hidden unless the server would accept the write.
+					const string serverApprovedArchiveField = "is_archived";
+					var configuredArchiveField = string.IsNullOrWhiteSpace(options.ArchiveFieldName) ? serverApprovedArchiveField : options.ArchiveFieldName.Trim();
+					var archiveFieldMatchesServer = string.Equals(configuredArchiveField, serverApprovedArchiveField, StringComparison.OrdinalIgnoreCase);
+
+					var archiveAvailable = false;
+					if (enableBulkArchive && archiveFieldMatchesServer)
+					{
+						IEnumerable<EntityRecord> renderedRecords = ViewBag.Records as IEnumerable<EntityRecord>;
+						var hasRenderedRecords = renderedRecords != null && renderedRecords.Any(r => r != null);
+						if (hasRenderedRecords)
+						{
+							try
+							{
+								var entityMeta = new WebVella.Erp.Api.EntityManager().ReadEntity(options.EntityName)?.Object;
+								var archiveField = entityMeta?.Fields?.FirstOrDefault(f => string.Equals(f.Name, serverApprovedArchiveField, StringComparison.OrdinalIgnoreCase));
+								archiveAvailable = archiveField != null && archiveField.GetFieldType() == FieldType.CheckboxField;
+							}
+							catch
+							{
+								// Keep Archive disabled when entity metadata cannot be resolved, so the action never renders on an unproven field.
+								archiveAvailable = false;
+							}
+						}
+					}
+
+					// Publish the bulk-action flags to the Display view so the selection UI and toolbar render only when enabled.
+					// Child flags stay gated by the master toggle, so a stale child value never enables an action on its own.
+					ViewBag.EnableBulkActions = enableBulkActions;
+					ViewBag.EnableBulkDelete = enableBulkDelete;
+					ViewBag.EnableBulkArchive = enableBulkArchive;
+					ViewBag.ArchiveAvailable = archiveAvailable;
+					ViewBag.EntityName = options.EntityName;
+					// Publish the canonical server-approved archive field so the client posts a value the bulk endpoint
+					// accepts regardless of the casing an administrator typed into the option.
+					ViewBag.ArchiveFieldName = serverApprovedArchiveField;
 
 					string pageKey = options.Prefix + options.QueryStringPage;
 					if (HttpContext.Request.Query.ContainsKey(pageKey))

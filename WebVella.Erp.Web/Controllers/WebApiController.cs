@@ -1626,6 +1626,436 @@ namespace WebVella.Erp.Web.Controllers
 			return DoResponse(result);
 		}
 
+		// Shared configuration and helpers for the bulk record actions below.
+
+		// Maximum number of records a single bulk request may carry. Selection stays scoped to the
+		// rendered grid page, so a fixed upper bound protects the server from oversized or abusive batches.
+		private const int BulkActionMaxRecords = 1000;
+
+		// The approved archive field. The bulk-archive action writes only a field named in the trusted
+		// allowlist below, so a caller cannot redirect the write to another field on the entity.
+		private const string BulkArchiveApprovedField = "is_archived";
+		private static readonly HashSet<string> BulkArchiveAllowedFields =
+			new HashSet<string>(StringComparer.OrdinalIgnoreCase) { BulkArchiveApprovedField };
+
+		// Confirm a destructive bulk request comes from this application, not a cross-site page. Cookie
+		// authentication alone does not stop a cross-site request forgery, so every bulk route checks the
+		// request origin before it changes data. The method reads the Origin header first, falls back to the
+		// Referer, compares the host against the request host, and rejects a request whose host differs or
+		// that carries neither header. The grid posts from the same origin, so a legitimate call always passes.
+		private bool IsBulkRequestOriginTrusted()
+		{
+			var requestHost = HttpContext.Request.Host.Host;
+			if (string.IsNullOrEmpty(requestHost))
+				return false;
+
+			// The trusted origin is this application's own scheme, host, and port. A cross-site page presents a
+			// different scheme, host, or port in its Origin, so the whole tuple must match, not the host alone.
+			// A prior version compared only the host, which let a request from a different port or scheme pass.
+			var requestScheme = HttpContext.Request.Scheme;
+			var requestPort = HttpContext.Request.Host.Port
+				?? (string.Equals(requestScheme, "https", StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+
+			var candidate = HttpContext.Request.Headers["Origin"].ToString();
+			if (string.IsNullOrWhiteSpace(candidate))
+				candidate = HttpContext.Request.Headers["Referer"].ToString();
+
+			if (string.IsNullOrWhiteSpace(candidate))
+				return false;
+
+			if (!Uri.TryCreate(candidate, UriKind.Absolute, out var candidateUri))
+				return false;
+
+			// Uri.Port resolves to the scheme default when the candidate omits an explicit port, so
+			// https://host and https://host:443 compare equal, while any differing port or scheme fails.
+			return string.Equals(candidateUri.Scheme, requestScheme, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(candidateUri.Host, requestHost, StringComparison.OrdinalIgnoreCase)
+				&& candidateUri.Port == requestPort;
+		}
+
+		// Build a fixed 403 response for a bulk request the server refuses on authorization grounds, such as a
+		// cross-site origin or a missing field-level update right. The response reuses the bulk envelope with an
+		// empty result list and a safe message, so a rejected request never looks like a completed one.
+		private IActionResult BulkForbidden(string message)
+		{
+			var response = new ResponseModel
+			{
+				Success = false,
+				Timestamp = DateTime.UtcNow,
+				Message = message,
+				Object = new List<BulkRecordActionResultItem>()
+			};
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+			return Json(response);
+		}
+
+		// Confirm the current user may update a field-secured field, not only the entity. RecordManager checks
+		// entity-level Update permission, yet a field can carry its own security. When the archive field turns on
+		// security, the caller needs a role in the field update allowlist to write it. The administrator and the
+		// system user always qualify. A caller who lacks the field right cannot archive through the bulk route,
+		// even when the caller holds entity Update permission.
+		private bool CurrentUserCanUpdateSecuredField(List<Guid> canUpdateRoleIds)
+		{
+			var user = SecurityContext.CurrentUser;
+			if (user == null)
+				return false;
+
+			if (user.Id == SystemIds.SystemUserId || user.IsAdmin)
+				return true;
+
+			if (canUpdateRoleIds == null || canUpdateRoleIds.Count == 0)
+				return false;
+
+			return user.Roles.Any(role => canUpdateRoleIds.Any(id => id == role.Id));
+		}
+
+		// Build a per-record success result with a stable outcome code.
+		private static BulkRecordActionResultItem BulkOk(Guid id, string message)
+		{
+			return new BulkRecordActionResultItem { RecordId = id, Success = true, Code = "ok", Message = message };
+		}
+
+		// Build a per-record failure result with a stable outcome code and a safe, fixed message.
+		private static BulkRecordActionResultItem BulkFail(Guid id, string code, string message)
+		{
+			return new BulkRecordActionResultItem { RecordId = id, Success = false, Code = code, Message = message };
+		}
+
+		// Translate a data-layer failure into a safe per-record result. A permission denial reports a
+		// distinct, stable code, and every other failure reports a generic code. Internal error text
+		// never reaches the client.
+		private static BulkRecordActionResultItem MapBulkFailure(Guid id, QueryResponse response, string genericMessage)
+		{
+			if (response != null && response.StatusCode == HttpStatusCode.Forbidden)
+				return BulkFail(id, "forbidden", "You do not have permission for this record.");
+			return BulkFail(id, "error", genericMessage);
+		}
+
+		// Extract the internal failure reason for server-side logging only. The returned text stays in
+		// protected logs and never travels to the client.
+		private static string DescribeBulkFailure(QueryResponse response)
+		{
+			if (response == null)
+				return "Unknown failure.";
+			if (response.Errors != null && response.Errors.Count > 0 && !string.IsNullOrWhiteSpace(response.Errors[0].Message))
+				return response.Errors[0].Message;
+			return response.Message;
+		}
+
+		// Log a bulk per-record failure with safe, non-sensitive context: the action, the entity name,
+		// the record id, and the request correlation id. Payloads, secrets, and personal data never
+		// enter the log.
+		private void LogBulkFailure(string action, string entityName, Guid id, string detail, Exception ex)
+		{
+			var correlationId = HttpContext != null ? HttpContext.TraceIdentifier : string.Empty;
+			var context = "action=" + action + "; entity=" + (entityName ?? string.Empty) + "; recordId=" + id + "; correlationId=" + correlationId;
+			var source = "TErpApi:" + action;
+			if (ex != null)
+				new LogService().Create(Diagnostics.LogType.Error, source, context, ex);
+			else
+				new LogService().Create(Diagnostics.LogType.Error, source, context, detail ?? string.Empty);
+		}
+
+		// Roll back a per-record transaction without masking the original failure. The rollback runs only
+		// when a transaction actually started, sits in its own try/catch, and logs any rollback failure
+		// on its own so the batch continues to the next record.
+		private void SafeRollbackBulk(DbConnection connection, ref bool transactionStarted, string action, string entityName, Guid id)
+		{
+			if (!transactionStarted)
+				return;
+			transactionStarted = false;
+			try
+			{
+				connection.RollbackTransaction();
+			}
+			catch (Exception rollbackEx)
+			{
+				var correlationId = HttpContext != null ? HttpContext.TraceIdentifier : string.Empty;
+				var context = "action=" + action + "; entity=" + (entityName ?? string.Empty) + "; recordId=" + id + "; correlationId=" + correlationId;
+				new LogService().Create(Diagnostics.LogType.Error, "TErpApi:" + action + ":Rollback", context, rollbackEx);
+			}
+		}
+
+		// Build a bad-request response for a malformed bulk request. The response returns a safe message,
+		// an empty result list, and a 400 status, so a caller cannot mistake a rejected request for a
+		// completed one.
+		private IActionResult BulkBadRequest(string message)
+		{
+			var response = new ResponseModel
+			{
+				Success = false,
+				Timestamp = DateTime.UtcNow,
+				Message = message,
+				Object = new List<BulkRecordActionResultItem>()
+			};
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+			return Json(response);
+		}
+
+		// Build a safe response for an unexpected failure raised while validating the request or resolving
+		// entity metadata before the per-record loop. The internal detail goes to the server log only, the
+		// client receives a fixed generic message with an empty result list, and the status stays 500, so a
+		// pre-loop exception never surfaces a stack trace to the caller.
+		private IActionResult BulkPreflightError(string action, string actionNoun, Exception ex)
+		{
+			var correlationId = HttpContext != null ? HttpContext.TraceIdentifier : string.Empty;
+			var context = "action=" + action + "; correlationId=" + correlationId;
+			new LogService().Create(Diagnostics.LogType.Error, "TErpApi:" + action + ":Preflight", context, ex);
+			var response = new ResponseModel
+			{
+				Success = false,
+				Timestamp = DateTime.UtcNow,
+				Message = "The server could not process the bulk " + actionNoun + " request.",
+				Object = new List<BulkRecordActionResultItem>()
+			};
+			HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+			return Json(response);
+		}
+
+		// Build the aggregate bulk response with a truthful HTTP status: 200 when every record succeeded,
+		// 207 when some succeeded and some failed, and 422 when every record failed. The per-record
+		// results always travel in the envelope Object so the client can report each outcome.
+		private IActionResult BuildBulkResponse(List<BulkRecordActionResultItem> results, string pastTenseAction)
+		{
+			var total = results.Count;
+			var succeeded = results.Count(x => x.Success);
+			var failed = total - succeeded;
+
+			var response = new ResponseModel
+			{
+				Timestamp = DateTime.UtcNow,
+				Object = results
+			};
+
+			if (failed == 0)
+			{
+				response.Success = true;
+				response.Message = "The server " + pastTenseAction + " all " + total + " record(s).";
+				HttpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+			}
+			else if (succeeded == 0)
+			{
+				response.Success = false;
+				response.Message = "The server " + pastTenseAction + " no records.";
+				HttpContext.Response.StatusCode = (int)HttpStatusCode.UnprocessableEntity;
+			}
+			else
+			{
+				response.Success = false;
+				response.Message = "The server " + pastTenseAction + " " + succeeded + " of " + total + " record(s), and " + failed + " failed.";
+				HttpContext.Response.StatusCode = (int)HttpStatusCode.MultiStatus;
+			}
+
+			return Json(response);
+		}
+
+		// Validate and normalize a bulk request before any transaction opens. The method rejects a
+		// missing body, a blank entity name, a default record id, and an oversized batch, removes
+		// duplicate ids so each unique record runs its hooks and transaction once, and confirms the
+		// entity exists in trusted metadata. A rejected request yields a safe 400 error result.
+		private bool TryNormalizeBulkRequest(BulkRecordActionModel model, string action, out List<Guid> normalizedIds, out Entity entityMeta, out IActionResult errorResult)
+		{
+			normalizedIds = null;
+			entityMeta = null;
+			errorResult = null;
+
+			if (model == null || model.RecordIds == null || model.RecordIds.Count == 0)
+			{
+				errorResult = BulkBadRequest("The request carries no records to " + action + ".");
+				return false;
+			}
+
+			if (string.IsNullOrWhiteSpace(model.EntityName))
+			{
+				errorResult = BulkBadRequest("The request does not name an entity.");
+				return false;
+			}
+
+			if (model.RecordIds.Any(x => x == Guid.Empty))
+			{
+				errorResult = BulkBadRequest("The request contains an invalid record id.");
+				return false;
+			}
+
+			normalizedIds = model.RecordIds.Distinct().ToList();
+
+			if (normalizedIds.Count > BulkActionMaxRecords)
+			{
+				errorResult = BulkBadRequest("The request exceeds the maximum of " + BulkActionMaxRecords + " records.");
+				return false;
+			}
+
+			entityMeta = entMan.ReadEntity(model.EntityName)?.Object;
+			if (entityMeta == null)
+			{
+				errorResult = BulkBadRequest("The named entity does not exist.");
+				return false;
+			}
+
+			return true;
+		}
+
+		// Delete a set of records in one request, giving each record its own transaction so one failure
+		// rolls back only that record and the batch continues past it.
+		// POST: api/v3/en_US/record/bulk/delete
+		[AcceptVerbs(new[] { "POST" }, Route = "api/v3/en_US/record/bulk/delete")]
+		[ResponseCache(NoStore = true, Duration = 0)]
+		public IActionResult BulkDeleteRecords([FromBody] BulkRecordActionModel model)
+		{
+			// Reject a cross-site request before any record changes. The check runs first so a forged
+			// cross-origin post never reaches the delete loop.
+			if (!IsBulkRequestOriginTrusted())
+				return BulkForbidden("The server does not trust the request origin.");
+
+			List<Guid> recordIds;
+			// Validate the request and resolve entity metadata inside a guard so an unexpected failure
+			// before the per-record loop returns a safe response instead of a framework stack trace.
+			try
+			{
+				if (!TryNormalizeBulkRequest(model, "delete", out recordIds, out _, out var errorResult))
+					return errorResult;
+			}
+			catch (Exception ex)
+			{
+				return BulkPreflightError("BulkDelete", "delete", ex);
+			}
+
+			var results = new List<BulkRecordActionResultItem>();
+
+			foreach (var id in recordIds)
+			{
+				using (var connection = DbContext.Current.CreateConnection())
+				{
+					bool transactionStarted = false;
+					try
+					{
+						connection.BeginTransaction();
+						transactionStarted = true;
+
+						// Serialize concurrent deletes of the same record. A transaction-scoped advisory lock keyed
+						// by entity and record id lets one transaction process a given record at a time. When another
+						// request already holds the lock, this request reports a controlled conflict rather than a
+						// second success, so two simultaneous deletes never both report that they removed the record.
+						if (!connection.AcquireAdvisoryLock(model.EntityName + ":" + id.ToString()))
+						{
+							SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+							results.Add(BulkFail(id, "conflict", "Another request is processing this record."));
+							continue;
+						}
+
+						var r = recMan.DeleteRecord(model.EntityName, id);
+						if (r.Success)
+						{
+							connection.CommitTransaction();
+							transactionStarted = false;
+							results.Add(BulkOk(id, "The server deleted the record."));
+						}
+						else
+						{
+							SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+							LogBulkFailure("BulkDelete", model.EntityName, id, DescribeBulkFailure(r), null);
+							results.Add(MapBulkFailure(id, r, "The server could not delete the record."));
+						}
+					}
+					catch (Exception ex)
+					{
+						SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+						LogBulkFailure("BulkDelete", model.EntityName, id, null, ex);
+						results.Add(BulkFail(id, "error", "The server could not delete the record."));
+					}
+				}
+			}
+
+			return BuildBulkResponse(results, "deleted");
+		}
+
+		// Archive a set of records in one request by setting the approved boolean field to true, giving
+		// each record its own transaction so one failure rolls back only that record.
+		// POST: api/v3/en_US/record/bulk/archive
+		[AcceptVerbs(new[] { "POST" }, Route = "api/v3/en_US/record/bulk/archive")]
+		[ResponseCache(NoStore = true, Duration = 0)]
+		public IActionResult BulkArchiveRecords([FromBody] BulkRecordActionModel model)
+		{
+			// Reject a cross-site request before any record changes. The check runs first so a forged
+			// cross-origin post never reaches the archive loop.
+			if (!IsBulkRequestOriginTrusted())
+				return BulkForbidden("The server does not trust the request origin.");
+
+			List<Guid> recordIds;
+			// The bulk-archive write target is fixed to the approved field; a request cannot redirect it.
+			var archiveFieldName = BulkArchiveApprovedField;
+
+			// Validate the request and resolve archive-field metadata inside a guard so an unexpected
+			// failure before the per-record loop returns a safe response instead of a framework stack trace.
+			try
+			{
+				if (!TryNormalizeBulkRequest(model, "archive", out recordIds, out var entityMeta, out var errorResult))
+					return errorResult;
+
+				// Resolve the archive field from the trusted server-side allowlist. A request that names a
+				// field outside the allowlist gets rejected, so a caller cannot redirect the write.
+				var requestedField = string.IsNullOrWhiteSpace(model.ArchiveFieldName) ? BulkArchiveApprovedField : model.ArchiveFieldName.Trim();
+				if (!BulkArchiveAllowedFields.Contains(requestedField))
+					return BulkBadRequest("The server does not allow the requested archive field.");
+
+				// Confirm the approved field exists on the entity and is a checkbox (boolean). A missing or
+				// wrong-type field fails the whole request, so the server never reports a false archive.
+				var archiveField = entityMeta.Fields != null ? entityMeta.Fields.FirstOrDefault(f => f.Name == archiveFieldName) : null;
+				if (archiveField == null || archiveField.GetFieldType() != FieldType.CheckboxField)
+					return BulkBadRequest("The archive field is missing or is not a checkbox field on this entity.");
+
+				// Enforce field-level update permission. RecordManager checks entity Update permission, but the
+				// archive field can carry its own security. When the field turns on security, the caller needs a
+				// role in the field update allowlist to write it, so a caller denied the field right cannot archive
+				// through the bulk route even with entity Update permission.
+				if (archiveField.EnableSecurity && !CurrentUserCanUpdateSecuredField(archiveField.Permissions?.CanUpdate))
+					return BulkForbidden("You do not have permission to update the archive field.");
+			}
+			catch (Exception ex)
+			{
+				return BulkPreflightError("BulkArchive", "archive", ex);
+			}
+
+			var results = new List<BulkRecordActionResultItem>();
+
+			foreach (var id in recordIds)
+			{
+				using (var connection = DbContext.Current.CreateConnection())
+				{
+					bool transactionStarted = false;
+					try
+					{
+						connection.BeginTransaction();
+						transactionStarted = true;
+						var rec = new EntityRecord();
+						rec["id"] = id;
+						rec[archiveFieldName] = true;
+						var r = recMan.UpdateRecord(model.EntityName, rec);
+						if (r.Success)
+						{
+							connection.CommitTransaction();
+							transactionStarted = false;
+							results.Add(BulkOk(id, "The server archived the record."));
+						}
+						else
+						{
+							SafeRollbackBulk(connection, ref transactionStarted, "BulkArchive", model.EntityName, id);
+							LogBulkFailure("BulkArchive", model.EntityName, id, DescribeBulkFailure(r), null);
+							results.Add(MapBulkFailure(id, r, "The server could not archive the record."));
+						}
+					}
+					catch (Exception ex)
+					{
+						SafeRollbackBulk(connection, ref transactionStarted, "BulkArchive", model.EntityName, id);
+						LogBulkFailure("BulkArchive", model.EntityName, id, null, ex);
+						results.Add(BulkFail(id, "error", "The server could not archive the record."));
+					}
+				}
+			}
+
+			return BuildBulkResponse(results, "archived");
+		}
+
 		// GET: api/v3/en_US/record/{entityName}/list
 		[AcceptVerbs(new[] { "GET" }, Route = "api/v3/en_US/record/{entityName}/list")]
 		[ResponseCache(NoStore = true, Duration = 0)]

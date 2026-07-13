@@ -15,6 +15,52 @@
 		}
 	}
 
+	// Reflect the master bulk-actions toggle on the delete and archive child toggles. A native disabled
+	// checkbox drops out of the submitted form and loses the saved child value, so each child instead
+	// leaves the tab order, reports aria-disabled, dims its row, and refuses pointer and key input, while
+	// the input stays enabled and serializable so the Page Builder still persists its value.
+	function BulkActionsToggle(e) {
+		if (!e || !e.target) { return; }
+		var enabled = e.target.checked;
+		var deleteInput = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"]');
+		var archiveInput = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
+		[deleteInput, archiveInput].forEach(function (input) {
+			if (!input) { return; }
+			var row = (input.closest ? input.closest(".form-group") : null) || input.parentElement;
+			if (enabled) {
+				input.removeAttribute("aria-disabled");
+				if (input.hasAttribute("data-bulk-prev-tabindex")) {
+					input.setAttribute("tabindex", input.getAttribute("data-bulk-prev-tabindex"));
+					input.removeAttribute("data-bulk-prev-tabindex");
+				} else {
+					input.removeAttribute("tabindex");
+				}
+				if (row) { row.style.opacity = ""; row.style.pointerEvents = ""; }
+			} else {
+				if (!input.hasAttribute("data-bulk-prev-tabindex")) {
+					input.setAttribute("data-bulk-prev-tabindex", input.hasAttribute("tabindex") ? input.getAttribute("tabindex") : "");
+				}
+				input.setAttribute("tabindex", "-1");
+				input.setAttribute("aria-disabled", "true");
+				if (row) { row.style.opacity = "0.5"; row.style.pointerEvents = "none"; }
+			}
+		});
+	}
+
+	// Block the keyboard and pointer paths that would toggle a child option while the master option is off.
+	// The guard reads the live aria-disabled state on every event, so one listener per child input covers
+	// each toggle attempt, and the input keeps its value and stays in the submitted form.
+	function BulkChildGuard(e) {
+		var input = e.currentTarget;
+		if (!input || input.getAttribute("aria-disabled") !== "true") { return; }
+		if (e.type === "keydown") {
+			var key = e.key;
+			if (key !== " " && key !== "Spacebar" && key !== "Enter") { return; }
+		}
+		e.preventDefault();
+		e.stopPropagation();
+	}
+
 
 	//	document.addEventListener("WvPbManager_Design_Loaded", function (event) {
 	//		if (event && event.payload && event.payload.component_name === "WebVella.Erp.Web.Components.PcGrid"){
@@ -30,21 +76,54 @@
 
 
 
+		// Track the deferred options-init timer so the Unloaded handler can cancel it. Without the stored id
+		// the timer can fire after the options panel closes and then reach for nodes that no longer exist.
+		var pcGridOptionsInitTimeout = null;
+
 		document.addEventListener("WvPbManager_Options_Loaded", function (event) {
 			if (event && event.payload && event.payload.component_name === "WebVella.Erp.Web.Components.PcGrid"){
-				window.setTimeout(function () {
+				pcGridOptionsInitTimeout = window.setTimeout(function () {
+					pcGridOptionsInitTimeout = null;
 					var visibleColumnsCount = document.querySelector('#modal-component-options .modal-body input[name="visible_columns"]');
-					visibleColumnsCount.setAttribute("data-old-value",visibleColumnsCount.value);
-					visibleColumnsCount.addEventListener("blur", ColumnCountChange);
-				},500);
+					if (visibleColumnsCount) {
+						visibleColumnsCount.setAttribute("data-old-value", visibleColumnsCount.value);
+						visibleColumnsCount.addEventListener("blur", ColumnCountChange);
+					}
+					var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_actions"]');
+					if (bulkActionsMaster) {
+						bulkActionsMaster.addEventListener("change", BulkActionsToggle);
+						BulkActionsToggle({ target: bulkActionsMaster });
+					}
+					// Attach the interaction guard to each child toggle so a master-off state resists a click or a
+					// key press, not only a mouse drag. The guard reads the live aria-disabled state on each event.
+					var bulkChildInputs = document.querySelectorAll('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"], #modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
+					bulkChildInputs.forEach(function (input) {
+						input.addEventListener("keydown", BulkChildGuard);
+						input.addEventListener("click", BulkChildGuard);
+					});
+				}, 500);
 			}
 		});
 
 		document.addEventListener("WvPbManager_Options_Unloaded", function (event) {
 			if (event && event.payload && event.payload.component_name === "WebVella.Erp.Web.Components.PcGrid"){
-			console.log("WebVella.Erp.Web.Components.PcGrid UnLoad");
+				if (pcGridOptionsInitTimeout !== null) {
+					window.clearTimeout(pcGridOptionsInitTimeout);
+					pcGridOptionsInitTimeout = null;
+				}
 				var visibleColumnsCount = document.querySelector('#modal-component-options .modal-body input[name="visible_columns"]');
-				visibleColumnsCount.removeEventListener("blur", ColumnCountChange);
+				if (visibleColumnsCount) {
+					visibleColumnsCount.removeEventListener("blur", ColumnCountChange);
+				}
+				var bulkActionsMaster = document.querySelector('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_actions"]');
+				if (bulkActionsMaster) {
+					bulkActionsMaster.removeEventListener("change", BulkActionsToggle);
+				}
+				var bulkChildInputs = document.querySelectorAll('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"], #modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
+				bulkChildInputs.forEach(function (input) {
+					input.removeEventListener("keydown", BulkChildGuard);
+					input.removeEventListener("click", BulkChildGuard);
+				});
 			}
 		});
 

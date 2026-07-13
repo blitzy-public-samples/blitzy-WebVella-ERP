@@ -1,8 +1,7 @@
-# Blitzy Project Guide — WebApiController Single-Responsibility Refactor
+# Blitzy Project Guide — PcGrid Bulk Archive and Bulk Delete
 
-> **Project:** Behavior-preserving readability & single-responsibility refactor of `WebVella.Erp.Web/Controllers/WebApiController.cs`
-> **Branch:** `blitzy-aaa1e363-7856-44a8-8839-11d2fa456d52` · **HEAD:** `92000c36` · **Baseline:** `bfe15661`
-> **Status:** 85.0% complete — all autonomous AAP-scoped work delivered & validated; remaining work is human path-to-production.
+> WebVella ERP · Branch `blitzy-4763a8a4-17fb-47e5-82e3-d73402cc53d0` · HEAD `e437af29`
+> Brand legend: Completed / AI work = Dark Blue `#5B39F3` · Remaining = White `#FFFFFF` · Headings/Accents = Violet-Black `#B23AF2` · Highlight = Mint `#A8FDD9`
 
 ---
 
@@ -10,68 +9,70 @@
 
 ### 1.1 Project Overview
 
-This project is a **behavior-preserving readability refactor** of a single ASP.NET Core MVC controller — `WebApiController.cs` — within the **WebVella ERP** platform (.NET 9). The original 4,313-line class declared 70 long public action methods. The work decomposed those methods so each expresses a **single responsibility** (≤40-line target, 60-line hard ceiling), using Extract-Method and DRY de-duplication into ~100 **private helpers in the same file**. Target users are WebVella ERP developers and maintainers. Business impact: substantially improved maintainability and reviewability with **zero behavioral change**. Technical scope is strictly single-file and in-place: the public API surface, response shapes, and every message string are preserved byte-for-byte, with zero new compile errors or warnings.
+This project adds an opt-in bulk archive and bulk delete capability to the WebVella ERP PcGrid list view on .NET 9. Administrators enable the feature per grid; end users then select several records on the rendered page and act on the whole selection in one request. Archive sets the existing `is_archived` flag and reverses easily, while Delete removes records permanently behind a count-aware confirmation. The work targets internal ERP operators who manage large record lists and want fewer one-at-a-time actions. The technical scope stays tight: six application files plus five committed deliverable artifacts, with every new option defaulting off so untouched grids render exactly as they do today.
 
 ### 1.2 Completion Status
 
+The feature is fully implemented, committed, and validated end to end by Blitzy's autonomous systems. The remaining work is human governance and deployment that the platform cannot perform on its own: code review sign-off, staging QA, administrator enablement, pull-request merge, and production deployment.
+
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables':{'pie1':'#5B39F3','pie2':'#FFFFFF','pieStrokeColor':'#B23AF2','pieStrokeWidth':'2px','pieOuterStrokeWidth':'2px','pieTitleTextSize':'16px','pieSectionTextColor':'#111111'}}}%%
-pie showData title Completion — 85.0% Complete
-    "Completed Work (h)" : 85
-    "Remaining Work (h)" : 15
+%%{init: {"theme":"base","themeVariables":{"pie1":"#5B39F3","pie2":"#FFFFFF","pieStrokeColor":"#B23AF2","pieOuterStrokeWidth":"2px","pieSectionTextColor":"#111111","pieTitleTextColor":"#5B39F3","pieLegendTextColor":"#111111"}}}%%
+pie showData
+    title AAP-Scoped Hours — 87.0% Complete
+    "Completed Work (AI)" : 80
+    "Remaining Work" : 12
 ```
 
 | Metric | Hours |
-|--------|-------|
-| **Total Hours** | **100** |
-| Completed Hours (AI) | 85 |
-| Completed Hours (Manual) | 0 |
-| **Completed Hours (AI + Manual)** | **85** |
-| **Remaining Hours** | **15** |
-| **Percent Complete** | **85.0%** |
+|--------|------:|
+| **Total Hours** | 92 |
+| **Completed Hours (AI + Manual)** | 80 (AI 80 + Manual 0) |
+| **Remaining Hours** | 12 |
+| **Percent Complete** | **87.0%** |
 
-> Completion is computed with the PA1 AAP-scoped methodology: `Completed ÷ (Completed + Remaining) = 85 ÷ 100 = 85.0%`. All remaining hours are standard human path-to-production (review + merge + manual verification), not new AAP scope.
+Formula: 80 completed / 92 total × 100 = **87.0%**.
 
 ### 1.3 Key Accomplishments
 
-- ✅ All **six confirmed de-duplication / decomposition targets (T1–T6)** consolidated exactly once into named private helpers.
-- ✅ All **19 methods that exceeded 60 lines were decomposed** — 0 methods now exceed 60 lines (longest is 57).
-- ✅ **Public surface byte-identical** — 144 signature/attribute lines, empty diff between baseline and HEAD.
-- ✅ **Response primitives preserved** — `NotFound` 21=21, `BadRequest` 6=6, `ViewComponent` 4=4; only the expected `Json` 40→38 and `ContentResult` 7→1 consolidation deltas.
-- ✅ **All message strings verbatim**, including the **two intentional copy-paste artifacts** that must not be "corrected."
-- ✅ **Single-file scope** — only `WebApiController.cs` changed (`git diff --name-status`).
-- ✅ **Clean compile** — full solution builds with **0 errors / 28 pre-existing warnings**; the in-scope file's only warning is the pre-existing `ASP0019`.
-- ✅ **Runtime validated** — host boots ("Application started" on `:5080`); three controller routes return **HTTP 302** (auth enforced, controller registered).
+- [x] Multi-record selection added to the PcGrid Display view: per-row checkboxes plus a toolbar select-all, scoped to the rendered page.
+- [x] Contextual bulk-action toolbar that stays hidden until at least one record is selected, then shows a live count with Archive and Delete actions.
+- [x] Two REST bulk endpoints (`bulk/delete`, `bulk/archive`) that mirror the single-record transaction pattern and route through `RecordManager`, preserving per-record permission checks and hooks.
+- [x] Best-effort partial-failure handling with per-record transactions and truthful HTTP status codes (200 / 207 / 422).
+- [x] Differentiated confirmations: a count-aware, permanence-explicit Delete prompt and a lighter Archive prompt.
+- [x] Security hardening beyond the base ask: same-origin Origin/Referer check, archive-field allowlist, field-level update authorization, and a 1000-record cap.
+- [x] Backward compatibility preserved: all new options default off; no schema and no migrations.
+- [x] All five deliverables committed: executive deck, critical-decisions review, and three UI screenshots.
+- [x] Autonomous validation passed all five gates: restore, build (0 errors), runtime REST (10/10), live UI, and clean git state.
 
 ### 1.4 Critical Unresolved Issues
 
-The refactor itself has **no unresolved defects**. The items below gate final release/validation but are either process steps or pre-existing out-of-scope environment conditions.
+No in-scope defects remain. The items below are pre-existing platform issues outside the feature's scope. The feature did not introduce them, and the AAP forbids editing those files, so they were correctly left unmodified. They matter for a clean deployment on a case-sensitive Linux host and are recorded here for visibility.
 
 | Issue | Impact | Owner | ETA |
 |-------|--------|-------|-----|
-| Mandatory human full-diff review not yet performed | Gate 8 (Reviewability) requires human sign-off within the AAP's ≤6h window before merge | Reviewer | Within review window (≤6h) |
-| No automated test suite exists anywhere in the solution | No regression safety net; behavior parity rests on differential analysis + manual smoke | Reviewer / QA | During review |
-| *(Out of scope)* `Startup.cs` loads lowercase `"config.json"` while disk file is `Config.json` | Linux case-sensitive startup crash — blocks runtime boot (not caused by the refactor) | Platform / Host team | Separate PR |
-| *(Out of scope)* Hardcoded unreachable DB connection string (`192.168.0.190:5436`) | Blocks DB connectivity for local/CI runtime (not caused by the refactor) | Platform / Host team | Separate PR |
+| `Startup.cs:42` loads lowercase `config.json` while the repo ships `Config.json` | App fails to start on case-sensitive Linux hosts (FileNotFoundException) | Platform / DevOps | 0.5–1h |
+| `ERPService.InitializeSystemEntities()` reportedly crashes on a fresh, unseeded database | First-run initialization can fail on an empty DB | Backend platform | 2–4h |
+
+> Note: Both issues are excluded from the 87.0% AAP-scoped completion figure because they are pre-existing and out of scope. A short-lived, uncommitted `config.json` symlink workaround let autonomous validation run; the guide documents a permanent fix path in Section 9.
 
 ### 1.5 Access Issues
 
-No access issues prevent build validation: the repository is accessible, the solution restores and builds **offline** from cached NuGet packages, and all source is present.
+No repository, credential, or service-access issue blocked autonomous build, validation, or commit. Dependency restore, build, and runtime validation all completed on this host, and every in-scope change is committed to the assigned branch with a clean working tree.
 
-| System / Resource | Type of Access | Issue Description | Resolution Status | Owner |
-|-------------------|----------------|-------------------|-------------------|-------|
-| Source repository | Read/Write | None — branch checked out, working tree clean, build succeeds | ✅ No issue | — |
-| NuGet feed | Package restore | None — `dotnet restore` exits 0 from offline cache (122 packages) | ✅ No issue | — |
-| PostgreSQL database | Network / DB | `Config.json` hardcodes `Server=192.168.0.190;Port=5436`, unreachable from build/CI — runtime only (out of scope) | ⚠ Open — provision a reachable DB for runtime | Platform / Host team |
-| SMB file share | Network / file | `\\192.168.0.2\Share\erp3-files` unreachable; `EnableFileSystemStorage=false`, so not exercised | ⚠ Deferred (low) | Platform / Host team |
+| System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
+|-----------------|----------------|-------------------|-------------------|-------|
+| Git repository / branch | Read + write | None — 13 commits landed; working tree clean | Resolved | Blitzy (autonomous) |
+| NuGet feeds | Package restore | None — all 18 projects restored | Resolved | Blitzy (autonomous) |
+| PostgreSQL `erp3` (validation DB) | DB connection | Used a pre-seeded DB for runtime validation | Resolved for validation | Blitzy (autonomous) |
+| Staging / production environment | Deploy + admin role + prod DB | Not yet provisioned to the human team for UAT, enablement, and deployment | Pending human provisioning | Release / DevOps |
 
 ### 1.6 Recommended Next Steps
 
-1. **[High]** Perform the human full-diff review of `WebApiController.cs` (+2,286 / −1,958) within the **≤6h reviewability window**, confirming every hunk is a pure structural move and all strings are byte-identical.
-2. **[High]** Approve and merge the PR; verify the post-merge CI build is green.
-3. **[Medium]** Stand up a runtime environment (work around the out-of-scope config-path case mismatch and provision a reachable PostgreSQL), then re-run the route-probing smoke test.
-4. **[Medium]** Execute a manual regression smoke test of the six affected endpoint families (no automated tests exist).
-5. **[Low]** Schedule **separate, out-of-scope efforts**: fix the config-path case sensitivity, externalize the DB connection string, upgrade vulnerable NuGet packages, and introduce a characterization test suite.
+1. **[High]** Complete human code review and security sign-off of the two bulk endpoints and the Display inline script, focusing on the permanent delete, per-record authorization, and the CSRF origin check.
+2. **[High]** Run manual QA / UAT in staging with real permission roles and representative data, covering partial-failure (207), grid refresh, and per-grid isolation.
+3. **[Medium]** Have an administrator enable the options on target grids and confirm `is_archived` exists on each entity, then verify untouched grids still render unchanged.
+4. **[Medium]** Merge the pull request to `master`, then deploy to staging/production and run a smoke test of both bulk routes.
+5. **[Low]** Address the two pre-existing platform blockers (config casing, fresh-DB init) and add automated regression coverage for the bulk endpoints, since the repository ships no test projects today.
 
 ---
 
@@ -79,116 +80,114 @@ No access issues prevent build validation: the repository is accessible, the sol
 
 ### 2.1 Completed Work Detail
 
-All completed work is autonomous (AI) and traces to a specific AAP requirement.
+Every row below traces to a specific AAP requirement or a required deliverable, and all of it is complete and committed. Total equals the Completed Hours in Section 1.2.
 
 | Component | Hours | Description |
 |-----------|------:|-------------|
-| Codebase Analysis & Decomposition Planning | 12 | Reading the 4,313-line controller; identifying the 6 targets and all 19 methods >60 lines; designing the helper topology under a byte-identical-behavior constraint [AAP §0.1–0.4] |
-| T1 — "Init SubmitObj" Parser Consolidation | 2 | `BuildEqlDataSourceQueryFromSubmit`; invoked *before* the `try` at both sites so the uncaught `throw` path is preserved [AAP T1] |
-| T2 — EQL Error-Mapping Helpers | 3 | `JsonFromEqlException` + `JsonFromException`; used by `EqlQueryAction` + `DataSourceQueryAction`; the 2 `DataSourceAction` overloads correctly left byte-identical (different error-accumulation pattern) [AAP T2] |
-| T3 — HTTP-500 `ContentResult` Consolidation | 3 | `LogErrorAndReturn500` across 7 sites with the per-method log label parameterized; non-targets correctly excluded [AAP T3] |
-| T4 — `PageComponentRenderViews` Decomposition | 5 | 5 ordered helpers (request validation, type resolution, route-context simulation, model assembly, view dispatch); 170→43 lines; `ViewComponent` dispatch preserved [AAP T4] |
-| T5 — `ToggleSection` Node-ID Resolver | 2 | `ResolveNodeIdsFromComponentData`; key-parameterized, 3 type-branches order-preserved, 4 messages reconstructed byte-for-byte [AAP T5] |
-| T6 — Select2 Projection Helper | 2 | `MapRecordsToSelect2Items` `{id,text}` projection with the original fallback chains [AAP T6] |
-| Method-Size Mandate — 15 Additional Decompositions | 34 | `PatchField` 302→33, `GetQuickSearch` 225→44, `UpdateSchedulePlan` 219→49, two relation methods 193→53, `CreateEntityRecordWithRelation` 168→33, and 10 more; ~90 additional private helpers (commit `0b9de60e`, +2,040 / −1,669) [AAP method-size rule] |
-| 8-Gate Behavior-Preservation Verification | 11 | Differential analysis: public-surface diff, response-primitive counts, message parity, method-size scan, token-multiset comparison [AAP gates 1–8] |
-| Runtime Smoke Validation | 6 | Solution build + host boot + 3-route HTTP-302 probing (with out-of-scope env workarounds) [path-to-production] |
-| Iteration & Clean-Landing Rework | 5 | Two-commit landing (`1374cd94`, `0b9de60e`) achieving zero new errors/warnings [AAP gate 1] |
-| **Total Completed** | **85** | |
+| Bulk REST endpoints + security/validation helpers (`WebApiController.cs`) | 20 | Two POST actions plus origin/CSRF check, archive-field allowlist, field-level authz, request normalization, per-record transactions with safe rollback, structured failure logging, and 200/207/422 response building |
+| PcGrid options, view-model resolution & archive-availability detection (`PcGrid.cs`) | 6 | New opt-in options, entity-name resolution, and metadata-driven `ArchiveAvailable` computation written to ViewBag |
+| Selection UI, contextual toolbar & inline client script (`Display.cshtml`) | 16 | Per-row checkboxes, contextual toolbar, live count, differentiated confirmations, AJAX, grid refresh, per-grid isolation, and WCAG affordances |
+| Page Builder admin toggle wiring (`service.js`) | 4 | Master/child toggle behavior that keeps inputs serializable, keyboard/pointer guards, and deferred-init cleanup |
+| Admin configuration form fields (`Options.cshtml`) | 2 | Three checkbox toggles, two text fields, and an admin guidance alert |
+| Bulk request/result models (`BulkRecordActionModel.cs`) | 2 | Request payload and per-record result item with a stable JSON wire contract |
+| Autonomous end-to-end validation (10 REST scenarios + live UI + build/restore) | 14 | Endpoint scenario testing, live-browser UI verification, and build/restore confirmation |
+| Code-review & QA remediation cycles | 8 | Multiple documented autonomous review and QA passes (13-finding review, preflight info-disclosure guard, QA remediation) |
+| Executive summary reveal.js deck (15 slides) | 5 | Self-contained deck with pinned CDN assets, Mermaid flow diagram, and risk slide |
+| Critical decisions review artifact | 2 | Five risk-ordered decisions with the four mandated call-outs |
+| Bulk-action screenshots (real-data capture) | 1 | Selection column, active-selection toolbar, and delete confirmation |
+| **Total** | **80** | |
 
 ### 2.2 Remaining Work Detail
 
-All remaining work is human path-to-production; none is new AAP scope.
+Every row is a path-to-production activity that requires a human. Total equals the Remaining Hours in Section 1.2 and the "Remaining Work" value in Section 7.
 
 | Category | Hours | Priority |
 |----------|------:|----------|
-| Human full-diff review of `WebApiController.cs` within the ≤6h reviewability window (Gate 8 sign-off) | 6 | High |
-| Manual endpoint regression smoke test of the 6 affected action families (no automated tests exist) | 4 | Medium |
-| Runtime environment standup for independent re-verification (config-path workaround + reachable PostgreSQL) | 3 | Medium |
-| PR approval, merge to mainline & post-merge CI build verification | 2 | High |
-| **Total Remaining** | **15** | |
+| Human code review & security sign-off (destructive + authorization paths) | 3 | High |
+| Manual QA / UAT of bulk flows in staging (real roles + data) | 3 | High |
+| Administrator enablement & per-entity `is_archived` verification | 1.5 | Medium |
+| Pull request review & merge to `master` | 1 | Medium |
+| Deployment to staging/production + smoke test | 2 | Medium |
+| Automated regression coverage for bulk endpoints (recommended; no test infra today) | 1.5 | Low |
+| **Total** | **12** | |
+
+> Out of scope for the completion math (listed for awareness only): fixing `Startup.cs` config casing (~0.5–1h) and `ERPService` fresh-DB init (~2–4h). Both are pre-existing and outside the AAP.
 
 ### 2.3 Hours Reconciliation
 
-| Check | Result |
-|-------|--------|
-| Section 2.1 total (Completed) | **85h** |
-| Section 2.2 total (Remaining) | **15h** |
-| 2.1 + 2.2 = Total Project Hours (Section 1.2) | 85 + 15 = **100h** ✅ |
-| Section 1.2 Remaining = Section 2.2 total = Section 7 pie "Remaining Work" | 15 = 15 = 15 ✅ |
-| Completion % = 85 ÷ 100 | **85.0%** (consistent in §1.2, §7, §8) ✅ |
+- Section 2.1 total (Completed) = **80h**
+- Section 2.2 total (Remaining) = **12h**
+- Section 2.1 + Section 2.2 = **92h** = Total Hours in Section 1.2 ✔
+- Completion = 80 / 92 = **87.0%** ✔
 
 ---
 
 ## 3. Test Results
 
-**No automated test suite exists anywhere in the solution** — there are zero test projects, frameworks, or test attributes (independently confirmed: 0 csproj reference xUnit/NUnit/MSTest/`Microsoft.NET.Test`). The AAP scope is a single-file structural refactor that **explicitly mandates no new test files**. Therefore there are no unit/integration/E2E tests to execute or report.
+The solution ships no test projects, so there are no unit tests to run; that criterion passes vacuously. Blitzy proved correctness through autonomous runtime and functional validation. Every entry below originates from this project's autonomous validation logs (Gates 1, 2, and 4).
 
 | Test Category | Framework | Total Tests | Passed | Failed | Coverage % | Notes |
 |---------------|-----------|------------:|-------:|-------:|-----------:|-------|
-| Unit | — | 0 | 0 | 0 | N/A | No test project in solution |
-| Integration | — | 0 | 0 | 0 | N/A | No test project in solution |
-| UI / E2E | — | 0 | 0 | 0 | N/A | Backend API controller; no UI surface |
-| API | — | 0 | 0 | 0 | N/A | No automated API tests; see runtime smoke below |
+| Unit | None present | 0 | 0 | 0 | N/A | No test projects in the solution; criterion satisfied vacuously |
+| REST / API functional | curl + live Kestrel | 10 | 10 | 0 | N/A | Archive 200 + flag flips; delete 200 + row count 1090→1087; mixed-id 207; no-Origin 403; cross-site 403; archive-field-absent 400; unauthenticated 302; empty ids 400; missing entityName 400; disallowed field 400 |
+| UI / Runtime | Live browser (Chrome DevTools) | — | Pass | 0 | N/A | Checkboxes render; toolbar hidden→shown→hidden; live count via ARIA; differentiated confirmations; per-grid isolation on `/bulktwo`; WCAG affordances |
+| Build / Compilation | dotnet build (.NET 9) | — | Pass | 0 | N/A | Build succeeded, 0 errors; no warnings in any in-scope file (re-confirmed by this guide's own build run) |
+| Dependency restore | dotnet restore | 18 projects | 18 | 0 | N/A | Only pre-existing NU1902/NU1903 advisory warnings |
 
-**Autonomous verification performed in lieu of a test suite** (from Blitzy's validation logs, independently reproduced):
-
-| Verification Method | Result |
-|---------------------|--------|
-| Solution compile (`dotnet build WebVella.ERP3.sln -c Debug`) | ✅ 0 errors, 28 pre-existing warnings |
-| In-scope file compile (`WebVella.Erp.Web`) | ✅ 0 errors; only pre-existing `ASP0019` warning |
-| Public-surface differential (baseline ↔ HEAD) | ✅ Byte-identical (144 lines, empty diff) |
-| Response-primitive counts | ✅ `NotFound`/`BadRequest`/`ViewComponent` unchanged; `Json` 40→38, `ContentResult` 7→1 (expected) |
-| Method-size scan (brace-matched) | ✅ 0 methods >60 lines (max 57) |
-| Runtime route smoke (3 routes) | ✅ HTTP 302 (auth enforced, controller registered) |
-
-> **Integrity:** every entry above originates from Blitzy's autonomous validation logs for this project and was re-verified during this assessment. No external or fabricated test data is included.
+Integrity note: no fabricated unit tests appear here. All results come directly from Blitzy's autonomous validation of this feature.
 
 ---
 
 ## 4. Runtime Validation & UI Verification
 
-**Runtime health** (host = `WebVella.Erp.Site`):
+Status legend: ✅ Operational · ⚠ Partial · ❌ Failing
 
-- ✅ **Operational** — Solution build succeeds (0 errors).
-- ✅ **Operational** — `WebVella.Erp.Web` project compiles (0 errors); refactored controller present (4,641 lines).
-- ✅ **Operational** — Web host reaches **"Application started. Now listening on http://127.0.0.1:5080"** (~4s).
-- ✅ **Operational** — Controller registration & authorization: `api/v3/en_US/eql`, `api/v3.0/user/preferences/toggle-sidebar-size`, `api/v3.0/datasource/code-compile` each return **HTTP 302** (redirect to login → `[Authorize]` enforced, route resolved, not 404).
-- ⚠ **Partial** — Authenticated request/response *parity* was not exercised against a live database (out-of-scope env blockers); registration + auth are proven, full payload parity rests on the differential analysis.
-- ⚠ **Partial** — Runtime boot required out-of-scope workarounds (config-path symlink + provisioned PostgreSQL).
+**Runtime health**
+- ✅ Application starts on Kestrel (`http://127.0.0.1:5000`) and reaches authenticated admin pages.
+- ✅ Both bulk routes resolve and enforce POST-only, JSON-only (`[FromBody]`) contracts.
+- ✅ Per-record DbContext transactions commit successes and roll back failures independently.
 
-**API integration:**
+**REST / API integration**
+- ✅ Bulk archive returns 200 and flips `is_archived` to true on affected records.
+- ✅ Bulk delete returns 200 and reduces the row count as expected.
+- ✅ Mixed valid/invalid selection returns 207 with a per-record result list (best-effort batch).
+- ✅ Authorization and anti-CSRF: unauthenticated → 302; no-Origin and cross-site Origin → 403; disallowed archive field → 400.
+- ✅ Input validation: empty `recordIds` → 400; missing `entityName` → 400.
 
-- ✅ **Operational** — Route table intact; HTTP-verb/route/auth attributes byte-identical to baseline.
-- ✅ **Operational** — View-component-rendering endpoints retain their `ViewComponent(...)` dispatch (count 4=4 preserved).
-
-**UI verification:**
-
-- **N/A** — `WebApiController` is a server-side API controller (`ApiControllerBase : Controller`). Per AAP §0.3.4 there is no user-facing UI, component library, or Figma material; the refactor alters no visual output.
+**UI verification (live browser on `/bulktwo`, two grids on one page)**
+- ✅ Per-row checkboxes render in the leading position of each row.
+- ✅ Contextual toolbar starts hidden, appears on first selection, and hides again on full deselection.
+- ✅ Live selected-count updates through an ARIA live region.
+- ✅ Delete confirmation is count-aware and permanence-explicit; Archive confirmation is lighter and reversible.
+- ✅ Per-grid isolation proven: selecting in one grid leaves the other grid's toolbar hidden and its count at zero.
+- ✅ Accessibility: focus-visible rings, ARIA live regions, AA-contrast Delete color, and a disabled-Archive placeholder with tooltip when the archive field is absent.
+- ⚠ Startup on a case-sensitive Linux host requires the pre-existing `config.json` casing workaround (out of scope; see Sections 1.4 and 9).
 
 ---
 
 ## 5. Compliance & Quality Review
 
-The AAP defines an **eight-gate** acceptance framework. Each gate was independently re-verified during this assessment (baseline `bfe15661` ↔ HEAD `92000c36`).
+This matrix maps AAP deliverables and governing rules to their verified status. Fixes applied during autonomous validation are noted.
 
-| # | Gate | Status | Evidence | Progress |
-|---|------|--------|----------|:--------:|
-| 1 | **Compile** — 0 new errors / 0 new warnings | ✅ Pass | Solution: 0 errors / 28 pre-existing warnings. In-scope file's only warning is `ASP0019` at L1785 — same `Headers.Add` line as baseline L3297 (verbatim-preserved) | 100% |
-| 2 | **Public surface** | ✅ Pass | 144 public/`[Route]`/`[Http*]`/`[Authorize]`/`[AllowAnonymous]` lines; baseline↔HEAD diff empty | 100% |
-| 3 | **Response parity** | ✅ Pass | `NotFound` 21=21, `BadRequest` 6=6, `ViewComponent` 4=4; `Json` 40→38 & `ContentResult` 7→1 explained by T2/T3 | 100% |
-| 4 | **Message parity** | ✅ Pass | All literals preserved; the 2 intentional copy-paste artifacts present (count 2 each); T5 reconstructs messages via key interpolation | 100% |
-| 5 | **Method size** | ✅ Pass | Brace-matched scan: 0 methods >60 lines; longest = `DataSourceAction` (57) | 100% |
-| 6 | **De-duplication (T1–T6)** | ✅ Pass | All 11 helpers present with correct call-site counts; near-duplicates parameterized; non-targets excluded | 100% |
-| 7 | **Scope** | ✅ Pass | `git diff --name-status` = only `M WebApiController.cs`; screenshot artifacts removed (commit `92000c36`) | 100% |
-| 8 | **Reviewability** | 🟦 Agent-complete; awaiting human sign-off | Token-multiset diff shows only consolidation removed / scaffolding added; 45/72 public methods byte-identical | 95% |
-
-**Fixes applied during autonomous validation:** **None required.** The refactor was complete and correct as committed; all eight gates passed on the as-committed state with a clean working tree.
-
-**Outstanding compliance items:**
-
-- Human reviewer sign-off on Gate 8 (the full diff must be validated within the AAP's ≤6h window).
-- Manual runtime regression of authenticated endpoints (recommended given the absence of automated tests).
+| Benchmark / AAP Deliverable | Requirement | Status | Progress |
+|-----------------------------|-------------|--------|----------|
+| Selection UI | Per-row checkbox + select-all, page-scoped | ✅ Pass | 100% |
+| Contextual toolbar | Hidden until ≥1 selected; live count; Archive + Delete | ✅ Pass | 100% |
+| Bulk delete endpoint | Mirrors single-record REST + transaction pattern | ✅ Pass | 100% |
+| Bulk archive endpoint | Sets existing `is_archived`; no schema/migration | ✅ Pass | 100% |
+| Data-layer routing | Default `RecordManager`; per-record permission + hooks | ✅ Pass | 100% |
+| Authorization | `EntityPermission.Delete` / `Update` per record; never weakened | ✅ Pass | 100% |
+| Anti-CSRF | Same-origin Origin/Referer check on destructive routes | ✅ Pass | 100% (added; QA F5 remediation) |
+| Partial failure | Per-record isolation; 200/207/422; per-record results | ✅ Pass | 100% |
+| Backward compatibility | Options default off; untouched grids unchanged | ✅ Pass | 100% |
+| Grid refresh | Reload after success | ✅ Pass | 100% |
+| Scope containment | Only PcGrid among 49 Pc* components; exactly 11 files | ✅ Pass | 100% |
+| Executive deck (rule 0.8.2) | reveal.js 12–18 slides, pinned CDN, Blitzy palette | ✅ Pass | 100% (15 slides; SRI added) |
+| Critical decisions artifact (rule 0.8.2) | 5 risk-ordered decisions + 4 call-outs | ✅ Pass | 100% |
+| Screenshots | Three PNGs committed | ✅ Pass | 100% |
+| Prose clarity (rule 0.8.2) | Plain, active-voice documentation | ✅ Pass | 100% |
+| Compilation | 0 errors; no in-scope warnings | ✅ Pass | 100% |
+| Automated regression tests | Coverage for destructive endpoints | ⚠ Open | 0% (no test infra; recommended, not AAP-required) |
 
 ---
 
@@ -196,64 +195,89 @@ The AAP defines an **eight-gate** acceptance framework. Each gate was independen
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |------|----------|----------|-------------|------------|--------|
-| No automated test suite anywhere — parity relies on differential analysis + manual smoke; no future regression net | Technical | Medium | Medium | Differential gate analysis complete; manual endpoint smoke before merge; consider characterization tests (separate effort) | Mitigated |
-| Large single-file diff (+2,286 / −1,958) increases reviewer burden | Technical | Medium | Low | Every hunk verified as a pure structural move; review guided by the 8-gate evidence; AAP budgets ≤6h | Open (pending human review) |
-| Pre-existing `ASP0019` warning deliberately preserved (behavior-preservation) | Technical | Low | N/A | Out of scope to "fix"; verbatim-preserved by design | Accepted |
-| Zero security-surface change (`[Authorize]`/`[AllowAnonymous]` byte-identical; HTTP 302 proves enforcement) | Security | Low | Low | No action needed | No new risk |
-| Pre-existing NuGet advisories — `NU1903` AutoMapper (high), `NU1902` MailKit — in out-of-scope manifests | Security | Medium | Medium | Upgrade in a separate scoped effort | Open (out of scope, documented) |
-| Out-of-scope: `Startup.cs` loads `"config.json"` vs disk `Config.json` → Linux startup crash | Operational | High | High (Linux) | Rename/symlink or fix load path (separate PR); not caused by the refactor | Open (out of scope, documented) |
-| Out-of-scope: hardcoded unreachable DB connection string (`192.168.0.190`) | Operational | High | High | Externalize config / env-specific connection string (separate PR) | Open (out of scope, documented) |
-| No monitoring/health-check change (behavior-preserving refactor) | Operational | Low | Low | No action needed | No new risk |
-| Authenticated request/response parity not exercised against a live DB (env blockers) | Integration | Medium | Low | Manual authenticated smoke of the 6 target endpoints post-env-standup | Open (recommended pre-merge) |
-| External callers unaffected (public signatures byte-identical) | Integration | Low | Low | No call-site changes required anywhere in the solution | No risk |
+| Permanent bulk delete has no undo/trash | Technical | High | Low | Count-aware confirmation, per-record permission check, per-record transaction | Mitigated |
+| No automated test coverage for destructive endpoints | Technical | Medium | Medium | Add regression tests (recommended); relies on autonomous runtime validation today | Open |
+| Native `confirm()` is the only client guard | Technical | Low | Low | Explicit permanence wording; matches repo convention | Accepted |
+| Per-record transaction loop scaling on large pages | Technical | Low | Low | 1000-record cap + page-scoped selection | Mitigated |
+| CSRF on cookie-authenticated destructive routes | Security | High | Low | Same-origin Origin/Referer check + JSON-only `[FromBody]`; validated (403 on no-Origin/cross-site) | Mitigated |
+| Field-write escalation via archive field | Security | Medium | Low | Archive-field allowlist + field-level update authz; validated (400 on disallowed field) | Mitigated |
+| Per-record authorization bypass | Security | High | Low | Default `RecordManager` (`ignoreSecurity=false`); per-record Delete/Update checks; validated (302 unauth) | Mitigated |
+| Error-message information disclosure | Security | Low | Low | Generic client-safe messages; safe server-side logging | Mitigated |
+| Pre-existing `config.json` casing blocks Linux startup | Operational | High | High (case-sensitive FS) | Permanent fix in `Startup.cs` (out of scope) or deploy-time symlink | Open (out of scope) |
+| Pre-existing `ERPService` fresh-DB init crash | Operational | Medium | Medium | Pre-seed DB or fix initialization (out of scope) | Open (out of scope) |
+| No dedicated alerting for bulk failures | Operational | Low | Medium | Structured `LogService` logging present; add alerting | Partial |
+| Misconfigured entity name / missing `is_archived` | Integration | Low | Medium | Admin warning + tooltip + metadata availability gate; fails safe | Mitigated |
+| Opt-in feature not enabled in production | Integration | Low | Medium | Documented enablement steps; off by design | By design |
+| PostgreSQL/Npgsql advisory-lock dependency | Integration | Low | Low | Reuses the existing DbContext transaction pattern | Mitigated |
 
 ---
 
 ## 7. Visual Project Status
 
-**Project hours breakdown** (Completed = Dark Blue `#5B39F3`, Remaining = White `#FFFFFF`):
+**Hours: Completed vs Remaining** (Completed = Dark Blue `#5B39F3`, Remaining = White `#FFFFFF`)
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables':{'pie1':'#5B39F3','pie2':'#FFFFFF','pieStrokeColor':'#B23AF2','pieStrokeWidth':'2px','pieOuterStrokeWidth':'2px','pieSectionTextColor':'#111111'}}}%%
-pie showData title Project Hours — Completed vs Remaining
-    "Completed Work" : 85
-    "Remaining Work" : 15
+%%{init: {"theme":"base","themeVariables":{"pie1":"#5B39F3","pie2":"#FFFFFF","pieStrokeColor":"#B23AF2","pieOuterStrokeWidth":"2px","pieSectionTextColor":"#111111","pieTitleTextColor":"#5B39F3","pieLegendTextColor":"#111111"}}}%%
+pie showData
+    title Project Hours Breakdown (Total 92h)
+    "Completed Work" : 80
+    "Remaining Work" : 12
 ```
 
-**Remaining hours by category** (from Section 2.2, sums to 15h):
+**Remaining work by priority** (High 6h · Medium 4.5h · Low 1.5h = 12h)
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables':{'pie1':'#5B39F3','pie2':'#7C5CF5','pie3':'#A78BF8','pie4':'#CBBDFB','pieStrokeColor':'#B23AF2','pieSectionTextColor':'#111111'}}}%%
-pie showData title Remaining Work by Category (15h)
-    "Full-diff review (High)" : 6
-    "Manual regression smoke (Medium)" : 4
-    "Runtime env standup (Medium)" : 3
-    "PR approval & merge (High)" : 2
+%%{init: {"theme":"base","themeVariables":{"pie1":"#5B39F3","pie2":"#B23AF2","pie3":"#A8FDD9","pieStrokeColor":"#333333","pieOuterStrokeWidth":"2px","pieSectionTextColor":"#111111","pieTitleTextColor":"#5B39F3","pieLegendTextColor":"#111111"}}}%%
+pie showData
+    title Remaining Hours by Priority
+    "High" : 6
+    "Medium" : 4.5
+    "Low" : 1.5
 ```
 
-> **Integrity:** the pie "Remaining Work" value (15) equals Section 1.2 Remaining Hours (15) and the Section 2.2 Hours total (15). "Completed Work" (85) equals Section 1.2 Completed Hours (85).
+**Remaining hours by category** (Section 2.2)
+
+```mermaid
+xychart-beta
+    title "Remaining Hours by Category"
+    x-axis ["Code Review", "QA / UAT", "Admin Enable", "PR Merge", "Deploy", "Reg Tests"]
+    y-axis "Hours" 0 --> 4
+    bar [3, 3, 1.5, 1, 2, 1.5]
+```
+
+| Category | Hours |
+|----------|------:|
+| Human code review & sign-off | 3 |
+| Manual QA / UAT | 3 |
+| Administrator enablement | 1.5 |
+| PR review & merge | 1 |
+| Deployment + smoke test | 2 |
+| Automated regression coverage | 1.5 |
+| **Remaining total** | **12** |
+
+Integrity: the pie "Remaining Work" (12), the Section 2.2 total (12), and the Section 1.2 Remaining Hours (12) all match.
 
 ---
 
 ## 8. Summary & Recommendations
 
-**Achievements.** The refactor delivers the full AAP scope: all six confirmed targets (T1–T6) were consolidated exactly once, and **every one of the 19 methods that exceeded 60 lines was decomposed** (the file now has zero methods over 60 lines, down from a 302-line maximum). The transformation is faithfully behavior-preserving — the public surface is byte-identical, response primitives are unchanged except for the expected consolidation deltas, and all message strings (including two intentional copy-paste artifacts) are verbatim. The solution compiles with **0 errors** and **no new warnings**, and the application boots with the refactored controller serving authenticated routes (HTTP 302).
+The bulk archive and bulk delete feature is **87.0% complete** on an AAP-scoped basis: 80 hours of autonomous engineering delivered against 92 total hours, with 12 hours of human path-to-production work remaining. Blitzy implemented all six application files and all five deliverables, then validated the result across five gates. Dependency restore covered all 18 projects, the build produced zero errors with no in-scope warnings, all ten REST scenarios passed, and live-browser checks confirmed the selection UI, differentiated confirmations, and per-grid isolation. The change set stays inside exactly eleven files and touches only PcGrid among 49 Pc* components, so grids that do not opt in render unchanged.
 
-**Remaining gaps.** The project is **85.0% complete**. The remaining 15 hours are entirely **human path-to-production**: the mandatory full-diff review within the ≤6h reviewability window, a manual regression smoke of the affected endpoints (necessary because no automated tests exist), a runtime environment standup for independent re-verification, and PR approval/merge with CI confirmation. None of this is new AAP scope.
+**Achievements.** The feature preserves per-record authorization and lifecycle hooks by routing through the default `RecordManager`, handles partial failure as a best-effort batch with truthful status codes, and adds security depth the base request did not require: a same-origin check on the destructive routes, an archive-field allowlist, field-level authorization, and a request-size cap. Archive reuses the existing `is_archived` field with no schema and no migration.
 
-**Critical path to production.** (1) Human review → (2) manual endpoint smoke → (3) merge + CI. The two out-of-scope environment blockers (config-path case sensitivity, hardcoded DB) do not affect the refactor's correctness but must be addressed — in **separate efforts** — for a clean deployment.
+**Remaining gaps.** The open work is inherently human. A reviewer must sign off on the permanent-delete and authorization paths, QA must exercise the flows in staging with real roles, an administrator must enable the options per grid, and the team must merge and deploy. The repository ships no test projects, so adding regression coverage for the two endpoints is a recommended, though not AAP-required, next step.
 
-**Success metrics.**
+**Critical path to production.** Code review sign-off → staging QA/UAT → administrator enablement → merge → deploy and smoke test. Two pre-existing, out-of-scope platform issues (config-file casing on Linux and fresh-DB initialization) should be resolved by the platform team before a clean deployment on a case-sensitive host; neither was introduced by this feature and both were correctly left unmodified.
 
-| Metric | Target | Actual |
-|--------|--------|--------|
-| New compile errors | 0 | ✅ 0 |
-| New compile warnings | 0 | ✅ 0 (only pre-existing `ASP0019` in scope) |
-| Methods > 60 lines | 0 | ✅ 0 (was 19) |
-| Files changed | 1 | ✅ 1 (`WebApiController.cs`) |
-| AAP gates passed | 8 | ✅ 8 (Gate 8 awaiting human sign-off) |
+**Production readiness.** The in-scope code is production-ready: it compiles cleanly, runs correctly end to end, defaults off for safety, and is fully committed. Sign-off, QA, enablement, and deployment remain before the feature serves production traffic.
 
-**Production-readiness assessment.** The in-scope refactor is **production-ready pending human review**: it is structurally sound, behavior-preserving, single-file, and clean-compiling. Recommended posture: approve after the ≤6h diff review and the manual endpoint smoke; track the out-of-scope environment items as separate work.
+| Success metric | Target | Current |
+|----------------|--------|---------|
+| In-scope compilation errors | 0 | 0 ✅ |
+| REST scenarios passing | 10/10 | 10/10 ✅ |
+| Files outside scope modified | 0 | 0 ✅ |
+| Backward-compatible default | Off | Off ✅ |
+| Human sign-off + deploy | Complete | Pending (12h) |
 
 ---
 
@@ -261,174 +285,166 @@ pie showData title Remaining Work by Category (15h)
 
 ### 9.1 System Prerequisites
 
-- **.NET SDK 9.0** (verified `9.0.315`). `global.json` pins no version, so the latest installed 9.x is used.
-- **PostgreSQL** (the ERP persists via Npgsql; connection string in `WebVella.Erp.Site/Config.json`).
-- **OS:** Linux, macOS, or Windows. ⚠ On case-sensitive filesystems (Linux), see Troubleshooting for the `Config.json` load-path caveat.
-- **Optional:** Docker (to run a local PostgreSQL container).
+- **.NET SDK 9.0** (verified `9.0.315`) and the ASP.NET Core 9.0 runtime (verified `9.0.17`).
+- **PostgreSQL** reachable at the connection string in `WebVella.Erp.Site/Config.json` (default `Server=localhost;Port=5432;Database=erp3`).
+- A Linux, macOS, or Windows host. On a **case-sensitive** filesystem, apply the `config.json` workaround in Section 9.6.
+
+Verify the SDK:
+
+```bash
+dotnet --version          # expect 9.0.x
+dotnet --list-runtimes | grep -i aspnet   # expect Microsoft.AspNetCore.App 9.0.x
+```
 
 ### 9.2 Environment Setup
 
 ```bash
-# Load the .NET toolchain onto PATH (container convenience script)
-source /etc/profile.d/dotnet.sh
+# From the repository root
+cd /path/to/WebVella-ERP
 
-# Confirm the SDK
-dotnet --version        # => 9.0.315
-dotnet --list-sdks      # => 9.0.315 [/usr/share/dotnet/sdk]
+# Confirm the shipped config file (note the capital C)
+ls WebVella.Erp.Site/Config.json
+
+# Set the PostgreSQL connection string inside Config.json:
+#   "ConnectionString": "Server=localhost;Port=5432;User Id=<user>;Password=<pass>;Database=erp3;Pooling=true;..."
 ```
 
 ### 9.3 Dependency Installation
 
 ```bash
-# From the repository root
-dotnet restore WebVella.ERP3.sln        # => exit 0 ("All projects up-to-date" / restored from cache)
+dotnet restore WebVella.ERP3.sln
+# Expected: "All projects are up-to-date for restore." (exit 0)
+# Only NU1902 (MailKit) and NU1903 (AutoMapper) advisory warnings appear; both are pre-existing and non-blocking.
 ```
-
-> A pre-existing advisory `NU1903` (AutoMapper) surfaces here from an out-of-scope manifest; it does not affect restore success.
 
 ### 9.4 Build
 
 ```bash
-# Full solution (Debug)
 dotnet build WebVella.ERP3.sln -c Debug --no-restore
-# => Build succeeded.  0 Error(s)  28 Warning(s)   (all pre-existing / out-of-scope)
-
-# Or just the project that contains the in-scope file
-dotnet build WebVella.Erp.Web/WebVella.Erp.Web.csproj -c Debug
-# => 0 Error(s); the only in-scope warning is the pre-existing ASP0019 in WebApiController.cs
+# Expected: "Build succeeded." with "0 Error(s)".
 ```
 
-### 9.5 Run the Application (host = `WebVella.Erp.Site`)
+### 9.5 Application Startup
 
 ```bash
-# 1) Provide a reachable PostgreSQL (example via Docker; matches Config.json port 5436)
-docker run -d --name erp-pg \
-  -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=erp3 \
-  -p 5436:5432 postgres:16
-
-# 2) (Linux only) Work around the out-of-scope config-path case mismatch
-cd WebVella.Erp.Site
-ln -sf Config.json config.json     # Startup.cs loads lowercase "config.json"
-
-# 3) Start the host
-ASPNETCORE_URLS=http://127.0.0.1:5080 dotnet run --no-build -c Debug
-# => "Application started. Now listening on http://127.0.0.1:5080"
+# On a case-sensitive host, apply the workaround in 9.6 first.
+ASPNETCORE_URLS=http://127.0.0.1:5000 \
+ASPNETCORE_ENVIRONMENT=Development \
+dotnet run --no-build --project WebVella.Erp.Site
+# Browse http://127.0.0.1:5000 and sign in (validation used erp@webvella.com / erp).
 ```
 
 ### 9.6 Verification Steps
 
+1. The site loads and you can sign in.
+2. Enable the feature on a grid: open the PcGrid options and turn on **Bulk Actions**, set **Entity Name** to the grid's entity, and (optionally) **Bulk Delete** / **Bulk Archive**. Leave **Archive Field Name** as `is_archived`.
+3. On the list page, select one or more rows. The contextual toolbar appears with a live count.
+4. Click **Delete** to see the count-aware permanence confirmation, or **Archive** for the lighter prompt.
+
+### 9.7 Example Usage (REST)
+
+The endpoints require an authenticated, same-origin session (the grid's own AJAX satisfies this). Illustrative shapes:
+
 ```bash
-# Each refactored route should answer 302 (redirect to login = [Authorize] enforced, route resolved)
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5080/api/v3/en_US/eql
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5080/api/v3.0/user/preferences/toggle-sidebar-size
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5080/api/v3.0/datasource/code-compile
-# Expected: 302 for each
+# Bulk archive
+curl -sS -X POST "http://127.0.0.1:5000/api/v3/en_US/record/bulk/archive" \
+  -H "Content-Type: application/json" \
+  -H "Origin: http://127.0.0.1:5000" \
+  --cookie "<auth-cookie>" \
+  -d '{"entityName":"my_entity","recordIds":["<guid1>","<guid2>"],"archiveFieldName":"is_archived"}'
+
+# Bulk delete
+curl -sS -X POST "http://127.0.0.1:5000/api/v3/en_US/record/bulk/delete" \
+  -H "Content-Type: application/json" \
+  -H "Origin: http://127.0.0.1:5000" \
+  --cookie "<auth-cookie>" \
+  -d '{"entityName":"my_entity","recordIds":["<guid1>","<guid2>"]}'
 ```
 
-### 9.7 Reviewing the Refactor Diff
-
-```bash
-# Scope check — should list only WebApiController.cs
-git diff bfe15661 HEAD --name-status
-
-# Per-hunk structural review with extra context
-git diff bfe15661 HEAD -U10 -- WebVella.Erp.Web/Controllers/WebApiController.cs | less
-
-# Confirm the public surface is unchanged
-diff \
-  <(git show bfe15661:WebVella.Erp.Web/Controllers/WebApiController.cs | grep -E '^\s*(public |\[Route|\[Http|\[Authorize|\[AllowAnonymous)' | sed 's/^[[:space:]]*//' | sort) \
-  <(grep -E '^\s*(public |\[Route|\[Http|\[Authorize|\[AllowAnonymous)' WebVella.Erp.Web/Controllers/WebApiController.cs | sed 's/^[[:space:]]*//' | sort)
-# Expected: no output (identical)
-```
+Expected responses: **200** when every record succeeds, **207** when some succeed and some fail (per-record results included), **422** when none succeed, **400** for empty `recordIds` / missing `entityName` / disallowed archive field, **403** for cross-site or missing Origin, and **302** when unauthenticated.
 
 ### 9.8 Troubleshooting
 
-- **Startup error "could not find / open `config.json`" on Linux** — `Startup.cs:42` loads lowercase `config.json` but the file on disk is `Config.json`. Symlink or rename (see §9.5 step 2). *Out of scope for this refactor.*
-- **DB connection refused / timeout** — `Config.json` hardcodes `Server=192.168.0.190;Port=5436`. Point it at a reachable PostgreSQL (see §9.5 step 1). *Out of scope.*
-- **Build shows `ASP0019` / `CS0618` / `CA2200` / `NU190x`** — these are **pre-existing** and out of scope; they are not introduced by the refactor. The in-scope `ASP0019` is verbatim-preserved by design.
-- **`dotnet test` finds nothing** — expected; the solution contains no test projects.
+- **`FileNotFoundException` for `config.json` on startup (Linux):** the host loads lowercase `config.json` while the repo ships `Config.json`. Non-invasive workaround (do not commit):
+  ```bash
+  cd WebVella.Erp.Site && ln -s Config.json config.json
+  ```
+  Permanent fix (out of scope for this PR): change `Startup.cs:42` to reference `Config.json`.
+- **Initialization crash on a fresh database:** `ERPService.InitializeSystemEntities()` can fail on an empty DB. Use a pre-seeded `erp3` database or a seeded snapshot.
+- **Archive button disabled:** the entity has no `is_archived` checkbox field, or the grid's Archive Field Name is not `is_archived`. Confirm the field exists on the entity.
+- **Toolbar never appears:** ensure Bulk Actions is on and the Entity Name is set; the toolbar renders only when both conditions hold.
 
 ---
 
 ## 10. Appendices
 
-### Appendix A — Command Reference
+### A. Command Reference
 
-| Purpose | Command |
+| Command | Purpose |
 |---------|---------|
-| Load toolchain | `source /etc/profile.d/dotnet.sh` |
-| SDK version | `dotnet --version` |
-| Restore | `dotnet restore WebVella.ERP3.sln` |
-| Build (solution) | `dotnet build WebVella.ERP3.sln -c Debug --no-restore` |
-| Build (Web project) | `dotnet build WebVella.Erp.Web/WebVella.Erp.Web.csproj -c Debug` |
-| Run host | `cd WebVella.Erp.Site && ASPNETCORE_URLS=http://127.0.0.1:5080 dotnet run -c Debug` |
-| Scope diff | `git diff bfe15661 HEAD --name-status` |
-| Full diff (context) | `git diff bfe15661 HEAD -U10 -- WebVella.Erp.Web/Controllers/WebApiController.cs` |
+| `dotnet --version` | Confirm .NET SDK 9.0.x |
+| `dotnet restore WebVella.ERP3.sln` | Restore NuGet packages (18 projects) |
+| `dotnet build WebVella.ERP3.sln -c Debug` | Build the solution (expect 0 errors) |
+| `dotnet run --project WebVella.Erp.Site` | Run the host site |
+| `git diff --stat c871fd85..HEAD` | Show the 11-file change set |
 
-### Appendix B — Port Reference
+### B. Port Reference
 
-| Port | Service |
-|------|---------|
-| `5080` | WebVella ERP web host (`ASPNETCORE_URLS`) |
-| `5436` | PostgreSQL (per `Config.json`; container maps `5436→5432`) |
+| Port | Service | Notes |
+|------|---------|-------|
+| 5000 | Kestrel (HTTP) | `ASPNETCORE_URLS=http://127.0.0.1:5000` used in validation |
+| 5432 | PostgreSQL | Database `erp3` per `Config.json` |
 
-### Appendix C — Key File Locations
+### C. Key File Locations
 
 | Path | Role |
 |------|------|
-| `WebVella.Erp.Web/Controllers/WebApiController.cs` | **In-scope file** (4,641 lines after refactor) |
-| `WebVella.Erp.Web/WebVella.Erp.Web.csproj` | In-scope project manifest |
-| `WebVella.Erp.Site/Startup.cs` | Host startup (config load path — out of scope) |
-| `WebVella.Erp.Site/Config.json` | Runtime config / DB connection (out of scope) |
-| `WebVella.ERP3.sln` | Solution (20 projects) |
-| `global.json` | SDK selection (no pinned version) |
+| `WebVella.Erp.Web/Models/BulkRecordActionModel.cs` | Request + per-record result models (new) |
+| `WebVella.Erp.Web/Controllers/WebApiController.cs` | Bulk delete/archive actions + helpers (`BulkDeleteRecords` L1903, `BulkArchiveRecords` L1977) |
+| `WebVella.Erp.Web/Components/PcGrid/PcGrid.cs` | Opt-in options + view-model resolution |
+| `WebVella.Erp.Web/Components/PcGrid/Display.cshtml` | Selection UI, toolbar, inline script |
+| `WebVella.Erp.Web/Components/PcGrid/service.js` | Page Builder admin toggle wiring |
+| `WebVella.Erp.Web/Components/PcGrid/Options.cshtml` | Admin configuration fields |
+| `WebVella.Erp.Site/Config.json` | Connection string + host config |
+| `blitzy-deck/bulk-actions-executive-summary.html` | Executive summary deck |
+| `docs/review/CRITICAL_DECISIONS.md` | Critical-decision review artifact |
+| `docs/screenshots/bulk-actions/` | Three UI screenshots |
 
-### Appendix D — Technology Versions
+### D. Technology Versions
 
-| Component | Version |
-|-----------|---------|
+| Technology | Version |
+|------------|---------|
 | .NET SDK | 9.0.315 |
-| Target framework | `net9.0` (`Microsoft.NET.Sdk.Razor`) |
-| Microsoft.AspNetCore.Mvc.NewtonsoftJson | 9.0.10 |
-| Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation | 9.0.10 |
+| ASP.NET Core runtime | 9.0.17 |
+| Target framework | net9.0 |
 | Newtonsoft.Json | 13.0.4 |
-| Wangkanai.Detection | 8.20.0 |
-| System.IdentityModel.Tokens.Jwt | 8.14.0 |
-| Microsoft.CodeAnalysis.* | 4.14.0 |
-| WebVella.TagHelpers | 1.7.2 |
+| WebVella.TagHelpers | 1.7.2 (untouched) |
+| PostgreSQL client | Npgsql (existing) |
+| reveal.js / Mermaid / Lucide (deck, CDN only) | 5.1.0 / 11.4.0 / 0.460.0 |
 
-### Appendix E — Environment Variable Reference
+### E. Environment Variable Reference
 
-| Variable | Value (example) | Purpose |
-|----------|-----------------|---------|
-| `ASPNETCORE_URLS` | `http://127.0.0.1:5080` | Bind address/port for the host |
-| `ASPNETCORE_ENVIRONMENT` | `Development` | ASP.NET Core environment (optional) |
-| `DOTNET_CLI_TELEMETRY_OPTOUT` | `1` | Disable SDK telemetry (optional) |
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `ASPNETCORE_URLS` | `http://127.0.0.1:5000` | Kestrel bind address |
+| `ASPNETCORE_ENVIRONMENT` | `Development` | Hosting environment |
 
-### Appendix F — Developer Tools / Review Guide
+### F. REST Endpoint Reference
 
-| Tool | Usage in this project |
-|------|-----------------------|
-| `git diff --name-status` | Confirm single-file scope (Gate 7) |
-| `git diff -U10` | Hunk-by-hunk structural review (Gate 8) |
-| `diff <(...) <(...)` | Public-surface parity check (Gate 2) |
-| `dotnet build` | Clean-compile gate (Gate 1) |
-| `curl -w "%{http_code}"` | Route/auth smoke (HTTP 302) |
-| brace-matched method scan | Method-size gate (Gate 5) |
+| Method | Route | Body | Success |
+|--------|-------|------|---------|
+| POST | `api/v3/en_US/record/bulk/delete` | `{ entityName, recordIds[] }` | 200 / 207 / 422 |
+| POST | `api/v3/en_US/record/bulk/archive` | `{ entityName, recordIds[], archiveFieldName? }` | 200 / 207 / 422 |
 
-### Appendix G — Glossary
+Guards: same-origin Origin/Referer required (else 403); `[FromBody]` JSON only; per-record `EntityPermission.Delete` / `Update`; archive field limited to the `is_archived` allowlist; up to 1000 records per request.
+
+### G. Glossary
 
 | Term | Meaning |
 |------|---------|
-| **AAP** | Agent Action Plan — the authoritative project requirements |
-| **T1–T6** | The six confirmed de-duplication/decomposition targets |
-| **Extract Method** | Refactoring that lifts a code fragment into a named helper |
-| **EQL** | WebVella's Entity Query Language (queried by several endpoints) |
-| **ContentResult** | ASP.NET Core MVC result returning raw content with a status code |
-| **ViewComponent** | MVC mechanism for rendering a reusable view fragment |
-| **ASP0019** | Analyzer warning: prefer `IHeaderDictionary.Append`/indexer over `IDictionary.Add` for headers (pre-existing, preserved) |
-| **Byte-identical** | A string/signature reproduced exactly, character-for-character |
-
----
-
-*Generated by the Blitzy Platform · Completion 85.0% (85h of 100h) · Branch `blitzy-aaa1e363-7856-44a8-8839-11d2fa456d52` @ `92000c36`*
+| PcGrid | The WebVella page component that renders a data list as a table |
+| `is_archived` | Existing boolean soft-delete flag the Archive action sets to true |
+| Best-effort batch | Each record processed independently; failures do not abort the batch |
+| Per-grid isolation | Selection state keyed by component node id so multiple grids never collide |
+| Path-to-production | Human governance and deployment work required after autonomous implementation |
+| AAP | Agent Action Plan — the authoritative project scope |

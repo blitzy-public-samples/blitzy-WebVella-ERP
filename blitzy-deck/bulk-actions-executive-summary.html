@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- Content-Security-Policy for the standalone deck (N5). default-src 'none' denies every fetch the
+         policy does not name. The inline script runs by its exact sha256 hash, not by 'unsafe-inline', so
+         no injected script executes. The pinned CDN and the Google Font hosts carry the only allowed
+         script, style, and font origins, and the policy blocks framing, base-uri hijack, and form posts. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; script-src 'sha256-A6VgV8Ms+zTAv93tGAXKa+Osv267tJSU9HJODC7uMEA=' https://cdn.jsdelivr.net; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://cdn.jsdelivr.net; frame-ancestors 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Archive and Bulk Delete for PcGrid | Blitzy Executive Summary</title>
+    <!-- Inline SVG favicon keeps the deck self-contained and stops the browser from requesting a missing /favicon.ico. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%237C5CFC%27%2F%3E%3C%2Fsvg%3E">
+
+    <!-- reveal.js 5.1.0 core (pinned CDN, browser-only). Subresource Integrity (SRI) pins the exact
+         bytes, so the browser refuses a tampered file even when the CDN is compromised. crossorigin
+         anonymous is required for the browser to check the hash on a cross-origin response. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css"
+          integrity="sha384-YgvgKeZJykuztG+iQPoZHNZENTFZvOcOJ/uRzmJTje6GHYN9zAw+y5rx/L8MQKA/"
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+    <!-- Brand fonts: Inter + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+
+    <!--
+        Blitzy reveal theme, embedded inline.
+        The canonical theme file blitzy-deck/references/blitzy-reveal-theme.css does not exist in the repository,
+        so the Blitzy brand palette and fonts live here in the style block instead of a linked file.
+    -->
+    <style>
+        :root {
+            --blitzy-bg-0: #0B1020;
+            --blitzy-bg-1: #0E1330;
+            --blitzy-bg-2: #151B3D;
+            --blitzy-surface: rgba(124, 92, 252, 0.08);
+            --blitzy-surface-line: rgba(124, 92, 252, 0.28);
+            --blitzy-primary: #7C5CFC;
+            --blitzy-primary-2: #6D5EF6;
+            --blitzy-accent: #22D3EE;
+            --blitzy-text: #E6E9F5;
+            --blitzy-muted: #9AA3C0;
+            --blitzy-danger: #EF4444;
+            --blitzy-warning: #F59E0B;
+            --blitzy-success: #22C55E;
+            --blitzy-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        html, body { height: 100%; }
+
+        .reveal {
+            font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 32px;
+            color: var(--blitzy-text);
+            font-weight: 400;
+            letter-spacing: 0.1px;
+        }
+
+        .reveal-viewport {
+            background:
+                radial-gradient(1200px 700px at 82% -8%, rgba(124, 92, 252, 0.22), transparent 60%),
+                radial-gradient(900px 600px at 8% 108%, rgba(34, 211, 238, 0.16), transparent 55%),
+                linear-gradient(160deg, var(--blitzy-bg-0) 0%, var(--blitzy-bg-1) 60%, var(--blitzy-bg-2) 100%);
+        }
+
+        .reveal .slides { text-align: left; }
+        .reveal .slides section { height: 100%; }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            font-family: "Inter", sans-serif;
+            color: #FFFFFF;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            text-transform: none;
+            line-height: 1.1;
+            margin-bottom: 0.5em;
+        }
+        .reveal h1 { font-size: 1.85em; }
+        .reveal h2 { font-size: 1.32em; }
+        .reveal h3 { font-size: 1.05em; color: var(--blitzy-text); }
+
+        .reveal h2.section-title {
+            border-left: 5px solid var(--blitzy-primary);
+            padding-left: 0.5em;
+        }
+
+        .reveal p, .reveal li { line-height: 1.4; }
+        .reveal strong { color: #FFFFFF; font-weight: 700; }
+        .reveal em { color: var(--blitzy-accent); font-style: normal; font-weight: 600; }
+
+        .reveal a { color: var(--blitzy-accent); text-decoration: none; }
+
+        .reveal ul { display: block; margin-left: 1em; }
+        .reveal ul li { margin: 0.35em 0; padding-left: 0.2em; }
+        .reveal ul li::marker { color: var(--blitzy-primary); }
+
+        .reveal code { font-family: var(--blitzy-mono); color: var(--blitzy-accent); font-size: 0.86em; }
+        .reveal pre {
+            width: 100%;
+            box-shadow: none;
+            font-size: 0.5em;
+        }
+        .reveal pre code {
+            display: block;
+            background: #05070F;
+            color: #F2F4FF;
+            border: 1px solid rgba(124, 92, 252, 0.5);
+            border-radius: 12px;
+            padding: 16px 18px;
+            max-height: none;
+        }
+
+        /* Brand mark */
+        .brand-row { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .brand-logo {
+            width: 46px; height: 46px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--blitzy-primary), var(--blitzy-accent));
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 30px rgba(124, 92, 252, 0.45);
+        }
+        .brand-logo svg { width: 26px; height: 26px; color: #0B1020; stroke-width: 2.6; }
+        .brand-name { font-weight: 800; font-size: 0.9em; letter-spacing: 3px; text-transform: uppercase; color: #FFFFFF; }
+        .brand-sub { color: var(--blitzy-muted); font-size: 0.5em; letter-spacing: 2px; text-transform: uppercase; }
+
+        .kicker {
+            color: var(--blitzy-accent);
+            font-weight: 600;
+            font-size: 0.5em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .subtitle { color: var(--blitzy-muted); font-size: 0.62em; margin-top: 0.4em; }
+
+        /* Chips */
+        .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+        .chip {
+            font-size: 0.44em; font-weight: 600; letter-spacing: 0.6px;
+            padding: 8px 14px; border-radius: 999px;
+            background: var(--blitzy-surface);
+            border: 1px solid var(--blitzy-surface-line);
+            color: var(--blitzy-text);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .chip svg { width: 15px; height: 15px; color: var(--blitzy-accent); }
+
+        /* Cards */
+        .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 10px; }
+        .cards.two { grid-template-columns: repeat(2, 1fr); }
+        .card {
+            background: var(--blitzy-surface);
+            border: 1px solid var(--blitzy-surface-line);
+            border-radius: 16px;
+            padding: 20px 20px 18px;
+        }
+        .card .card-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: rgba(34, 211, 238, 0.12);
+            display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;
+        }
+        .card .card-icon svg { width: 22px; height: 22px; color: var(--blitzy-accent); }
+        .card h3 { font-size: 0.72em; margin: 0 0 8px; color: #FFFFFF; }
+        .card p { font-size: 0.5em; color: var(--blitzy-muted); margin: 0; line-height: 1.45; }
+        .card.danger .card-icon { background: rgba(239, 68, 68, 0.14); }
+        .card.danger .card-icon svg { color: var(--blitzy-danger); }
+
+        /* Stat grid */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
+        .stat {
+            background: var(--blitzy-surface); border: 1px solid var(--blitzy-surface-line);
+            border-radius: 14px; padding: 18px 16px; text-align: center;
+        }
+        .stat .num { font-size: 1.15em; font-weight: 800; color: #FFFFFF; }
+        .stat .num.accent { color: var(--blitzy-accent); }
+        .stat .lbl { font-size: 0.4em; color: var(--blitzy-muted); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 4px; }
+
+        /* Two column layout */
+        .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; align-items: start; }
+        .cols h3 { display: flex; align-items: center; gap: 10px; font-size: 0.78em; }
+        .cols h3 svg { width: 20px; height: 20px; }
+        .col-in h3 svg { color: var(--blitzy-success); }
+        .col-out h3 svg { color: var(--blitzy-danger); }
+        .cols ul { font-size: 0.56em; }
+
+        /* Tables */
+        .reveal table { width: 100%; border-collapse: collapse; font-size: 0.46em; margin-top: 8px; }
+        .reveal table th {
+            text-align: left; color: #FFFFFF; font-weight: 700;
+            border-bottom: 2px solid var(--blitzy-primary);
+            padding: 10px 12px; text-transform: uppercase; letter-spacing: 0.8px; font-size: 0.92em;
+        }
+        .reveal table td {
+            padding: 9px 12px; color: var(--blitzy-text);
+            border-bottom: 1px solid rgba(154, 163, 192, 0.16); vertical-align: top;
+        }
+        .reveal table tr:nth-child(even) td { background: rgba(124, 92, 252, 0.05); }
+
+        .risk-pill { font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: 0.9em; white-space: nowrap; }
+        .risk-critical { background: var(--blitzy-danger); color: #FFFFFF; border: 1px solid #FF6B6B; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.55); }
+        .risk-high { background: rgba(239, 68, 68, 0.16); color: #FF8A8A; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .risk-med { background: rgba(245, 158, 11, 0.16); color: #FFCB73; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .risk-low { background: rgba(34, 197, 94, 0.16); color: #86EFAC; border: 1px solid rgba(34, 197, 94, 0.4); }
+
+        /* Mermaid host */
+        .mermaid-wrap {
+            background: rgba(4, 8, 22, 0.55);
+            border: 1px solid var(--blitzy-surface-line);
+            border-radius: 16px; padding: 14px; margin-top: 6px;
+        }
+        .reveal .mermaid { text-align: center; }
+        .reveal .mermaid svg { max-width: 100%; max-height: 520px; height: auto; display: block; margin: 0 auto; }
+
+        /* Footer + progress accents */
+        .reveal .progress { color: var(--blitzy-primary); height: 4px; }
+        .reveal .controls { color: var(--blitzy-primary); }
+        .reveal .slide-number { background: transparent; color: var(--blitzy-muted); font-size: 14px; }
+
+        .footer-tag {
+            position: absolute; bottom: 14px; left: 18px;
+            font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--blitzy-muted);
+        }
+
+        .lead { font-size: 0.7em; color: var(--blitzy-muted); max-width: 22em; }
+        .note { font-size: 0.44em; color: var(--blitzy-muted); margin-top: 16px; }
+        .center { text-align: center; }
+        .mono { font-family: var(--blitzy-mono); color: var(--blitzy-accent); font-size: 0.9em; }
+
+        /* Mobile legibility (M12). The head viewport tag no longer locks the scale, so a reader can
+           pinch-zoom any slide to read it. On a narrow viewport the navigation controls and the slide
+           number stay visible and grow a larger touch target, so a reader keeps full navigation and
+           position on a phone. */
+        @media screen and (max-width: 820px) {
+            .reveal .controls {
+                display: block !important;
+                right: 10px; bottom: 10px;
+                transform: scale(1.45);
+                transform-origin: bottom right;
+            }
+            .reveal .slide-number {
+                display: block !important;
+                font-size: 16px;
+                padding: 4px 9px;
+                background: rgba(11, 16, 32, 0.78);
+                border-radius: 8px;
+            }
+            .reveal .progress { height: 6px; }
+        }
+    </style>
+</head>
+<body>
+<div class="reveal">
+    <div class="slides">
+
+        <!-- Slide 1: Title -->
+        <section data-background-gradient="linear-gradient(160deg, #0B1020 0%, #141A3E 100%)">
+            <div class="brand-row">
+                <span class="brand-logo"><i data-lucide="zap"></i></span>
+                <span>
+                    <div class="brand-name">Blitzy</div>
+                    <div class="brand-sub">Autonomous Software Delivery</div>
+                </span>
+            </div>
+            <div class="kicker">WebVella ERP · Feature Delivery</div>
+            <h1>Bulk Archive and Bulk Delete<br>for the PcGrid List</h1>
+            <p class="subtitle">Multi-record selection, a reversible Archive, and a guarded permanent Delete, all built inside the existing PcGrid component.</p>
+            <div class="chips">
+                <span class="chip"><i data-lucide="files"></i> 6 application files</span>
+                <span class="chip"><i data-lucide="server"></i> 2 REST endpoints</span>
+                <span class="chip"><i data-lucide="package"></i> 0 new dependencies</span>
+                <span class="chip"><i data-lucide="database"></i> 0 migrations</span>
+            </div>
+            <div class="footer-tag">Executive Summary</div>
+        </section>
+
+        <!-- Slide 2: Executive summary -->
+        <section>
+            <h2 class="section-title">Executive summary</h2>
+            <ul>
+                <li>The PcGrid list view now lets a user pick many records and act on the whole selection in one request.</li>
+                <li>Two actions ship together: a reversible <em>Archive</em> and a permanent <em>Delete</em>.</li>
+                <li>Every new option defaults to off, so existing grids render exactly as they do today.</li>
+                <li>Both actions route through the existing data layer, so per-record permission checks and lifecycle hooks still run.</li>
+            </ul>
+            <div class="stats">
+                <div class="stat"><div class="num accent">1</div><div class="lbl">Request per bulk action</div></div>
+                <div class="stat"><div class="num">2</div><div class="lbl">New POST actions</div></div>
+                <div class="stat"><div class="num">6</div><div class="lbl">Files touched</div></div>
+                <div class="stat"><div class="num">0</div><div class="lbl">Schema changes</div></div>
+            </div>
+            <div class="footer-tag">Executive Summary</div>
+        </section>
+
+        <!-- Slide 3: The problem -->
+        <section>
+            <h2 class="section-title">The problem</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="repeat"></i></span>
+                    <h3>One record at a time</h3>
+                    <p>Today the grid handles a single record per action, so managing a long list means repeating the same click many times.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="clock"></i></span>
+                    <h3>Slow for large lists</h3>
+                    <p>Teams that clean up or triage records lose time to repetitive single-record work.</p>
+                </div>
+                <div class="card danger">
+                    <span class="card-icon"><i data-lucide="alert-triangle"></i></span>
+                    <h3>Accidental loss</h3>
+                    <p>A permanent delete with no guard rail puts users one wrong click away from losing data.</p>
+                </div>
+            </div>
+            <p class="note">The feature answers all three problems while keeping the existing single-record flow untouched.</p>
+            <div class="footer-tag">Context</div>
+        </section>
+
+        <!-- Slide 4: What shipped -->
+        <section>
+            <h2 class="section-title">What shipped</h2>
+            <div class="cards two">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="check-square"></i></span>
+                    <h3>Multi-record selection</h3>
+                    <p>Per-row checkboxes and a select-all control add selection to the records on the current page.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="panel-top"></i></span>
+                    <h3>Contextual toolbar</h3>
+                    <p>A toolbar appears once a user selects at least one record, and shows the live count next to the two actions.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="archive"></i></span>
+                    <h3>Reversible Archive</h3>
+                    <p>Archive flips a boolean flag and reverses easily, so a lighter confirmation fits the action.</p>
+                </div>
+                <div class="card danger">
+                    <span class="card-icon"><i data-lucide="trash-2"></i></span>
+                    <h3>Permanent Delete</h3>
+                    <p>Delete removes records for good, so a count-aware confirmation names the permanence before the call.</p>
+                </div>
+            </div>
+            <div class="footer-tag">Overview</div>
+        </section>
+
+        <!-- Slide 5: The selection experience -->
+        <section>
+            <h2 class="section-title">The selection experience</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="mouse-pointer-click"></i></span>
+                    <h3>Select</h3>
+                    <p>Each row shows a leading checkbox. Select-all toggles every checkbox on the current page, and selection never crosses pages.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="layout-list"></i></span>
+                    <h3>Act</h3>
+                    <p>A Bootstrap toolbar shows a badge with the live count, a red Delete button, and a neutral Archive button.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="shield-check"></i></span>
+                    <h3>Confirm</h3>
+                    <p>Delete asks a count-aware, permanence-explicit question. Archive asks a lighter question. The grid refreshes on success.</p>
+                </div>
+            </div>
+            <p class="note">Archive shows only when the administrator enables it and the entity metadata defines the archive field as a checkbox.</p>
+            <div class="footer-tag">User Experience</div>
+        </section>
+
+        <!-- Slide 6: Request flow (Mermaid component diagram) -->
+        <section>
+            <h2 class="section-title">Request flow, end to end</h2>
+            <div class="mermaid-wrap">
+                <pre class="mermaid">
+flowchart LR
+    A["`PcGrid selection
+checkboxes + toolbar`"] --> B{"`Delete or
+Archive`"}
+    B -->|Delete| C["`Count-aware confirm
+POST bulk/delete`"]
+    B -->|Archive| D["`Lighter confirm
+POST bulk/archive`"]
+    C --> E["`WebApiController per-record transaction
+RecordManager permission + hooks
+Aggregate 200 / 207 / 422`"]
+    D --> E
+    E --> F["Grid refresh"]
+
+    classDef client fill:#151B3D,stroke:#22D3EE,color:#E6E9F5;
+    classDef server fill:#1B1740,stroke:#7C5CFC,color:#E6E9F5;
+    class A,B,C,D,F client;
+    class E server;
+                </pre>
+            </div>
+            <div class="footer-tag">Architecture</div>
+        </section>
+
+        <!-- Slide 7: Server design -->
+        <section>
+            <h2 class="section-title">Server design</h2>
+            <ul style="font-size:0.66em; margin-top:2px;">
+                <li>Two POST actions attach to the existing <code>WebApiController</code> and reuse its <code>RecordManager</code> field. A preflight step validates and de-duplicates the ids.</li>
+                <li>Each unique record runs in its own <code>DbContext</code> transaction. Delete calls <code>RecordManager.DeleteRecord</code>; archive sets <code>is_archived</code> to true and calls <code>RecordManager.UpdateRecord</code>.</li>
+            </ul>
+            <pre style="font-size:0.34em; margin-top:6px; margin-bottom:0;"><code data-trim data-noescape>// excerpt: WebApiController.BulkDeleteRecords (TryNormalizeBulkRequest validated and de-duplicated the ids)
+foreach (var id in recordIds)
+{
+    using (var connection = DbContext.Current.CreateConnection())
+    {
+        bool transactionStarted = false;
+        try
+        {
+            connection.BeginTransaction();
+            transactionStarted = true;
+
+            // A transaction-scoped advisory lock keyed by entity and id lets one request
+            // process a record at a time, so two concurrent deletes never both report success.
+            if (!connection.AcquireAdvisoryLock(model.EntityName + ":" + id.ToString()))
+            {
+                SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+                results.Add(BulkFail(id, "conflict", "Another request is processing this record."));
+                continue;
+            }
+
+            var r = recMan.DeleteRecord(model.EntityName, id);
+            if (r.Success)
+            {
+                connection.CommitTransaction();
+                transactionStarted = false;
+                results.Add(BulkOk(id, "The server deleted the record."));
+            }
+            else
+            {
+                SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+                LogBulkFailure("BulkDelete", model.EntityName, id, DescribeBulkFailure(r), null);
+                results.Add(MapBulkFailure(id, r, "The server could not delete the record."));
+            }
+        }
+        catch (Exception ex)   // one record fails, the batch keeps going
+        {
+            SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+            LogBulkFailure("BulkDelete", model.EntityName, id, null, ex);
+            results.Add(BulkFail(id, "error", "The server could not delete the record."));
+        }
+    }
+}
+return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 none</code></pre>
+            <div class="footer-tag">Architecture</div>
+        </section>
+
+        <!-- Slide 8: Best-effort partial failure -->
+        <section>
+            <h2 class="section-title">Best-effort partial failure</h2>
+            <div class="cols">
+                <div>
+                    <ul>
+                        <li>The server processes every selected record.</li>
+                        <li>Each record gets its own transaction, so one failure never aborts the batch.</li>
+                        <li>The response carries a per-record list with an id, a success flag, a status code, and a message.</li>
+                        <li>The endpoint returns 200 when every record succeeds, 207 when some succeed and some fail, and 422 when none succeed, so the client reports which records succeeded and which did not.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card">
+                        <span class="card-icon"><i data-lucide="list-checks"></i></span>
+                        <h3>Per-record result</h3>
+                        <p class="mono" style="font-size:0.62em; line-height:1.5;">{ recordId, success, code, message }</p>
+                        <p style="margin-top:10px;">The grid reloads on a full or partial success, a partial success also shows a short summary, and a full failure reports an error without reloading.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-tag">Resilience</div>
+        </section>
+
+        <!-- Slide 9: Authorization -->
+        <section>
+            <h2 class="section-title">Authorization stays strict</h2>
+            <div class="cards">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="lock"></i></span>
+                    <h3>Default RecordManager</h3>
+                    <p>The bulk path uses the default manager, so <code>ignoreSecurity</code> stays false and hooks stay enabled.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="trash"></i></span>
+                    <h3>Delete permission</h3>
+                    <p>Delete checks <code>EntityPermission.Delete</code> once for every record.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="pencil"></i></span>
+                    <h3>Update permission</h3>
+                    <p>Archive checks <code>EntityPermission.Update</code> once for every record.</p>
+                </div>
+            </div>
+            <p class="note">The feature reuses the existing RecordManager permission gate, so each record clears the same entity check a single-record action clears. On top of that gate, the bulk routes add a request-origin guard against cross-site posts and an explicit archive-field update check, and they weaken no existing check.</p>
+            <div class="footer-tag">Security</div>
+        </section>
+
+        <!-- Slide 10: Archive without new schema -->
+        <section>
+            <h2 class="section-title">Archive without new schema</h2>
+            <ul>
+                <li>Archive sets the existing <code>is_archived</code> boolean to true through a partial update, so no other field changes.</li>
+                <li>PcGrid confirms the entity metadata defines <code>is_archived</code> as a boolean checkbox field before it offers the action.</li>
+                <li>When the entity does not define that field as a checkbox, Archive disables itself for that grid.</li>
+                <li>The feature adds no schema and no migration.</li>
+            </ul>
+            <div class="chips">
+                <span class="chip"><i data-lucide="toggle-left"></i> Field type checked in metadata</span>
+                <span class="chip"><i data-lucide="database"></i> Pre-existing field only</span>
+                <span class="chip"><i data-lucide="undo-2"></i> Reversible by design</span>
+            </div>
+            <div class="footer-tag">Data Model</div>
+        </section>
+
+        <!-- Slide 11: Backward compatibility -->
+        <section>
+            <h2 class="section-title">Backward compatibility</h2>
+            <div class="cols">
+                <div>
+                    <ul>
+                        <li>The new options default to off.</li>
+                        <li>With bulk actions off, PcGrid renders byte-for-byte as it does today: no toolbar, no checkbox, no script.</li>
+                        <li>Every new element is gated on the master option.</li>
+                        <li>A disabled grid loads none of the feature's markup, script, or bulk endpoint call, so the feature adds no work to that grid.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card">
+                        <span class="card-icon"><i data-lucide="settings-2"></i></span>
+                        <h3>Opt in per grid</h3>
+                        <p>An administrator turns on bulk actions, bulk delete, and bulk archive in the Page Builder, and names the entity for the request.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-tag">Compatibility</div>
+        </section>
+
+        <!-- Slide 12: Risk assessment (REQUIRED) -->
+        <section>
+            <h2 class="section-title">Risk assessment</h2>
+            <table>
+                <thead>
+                    <tr><th>Decision</th><th>Risk</th><th>Mitigation</th><th>Reviewer</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Permanent bulk delete removes records for good</td>
+                        <td><span class="risk-pill risk-critical">Critical</span></td>
+                        <td>Count-aware confirmation names the permanence; per-record transaction; authorization per record.</td>
+                        <td>Security lead</td>
+                    </tr>
+                    <tr>
+                        <td>Per-record authorization on the bulk path</td>
+                        <td><span class="risk-pill risk-high">High</span></td>
+                        <td>Default RecordManager keeps the EntityPermission checks and hooks with no bypass; added checks cover request origin and the archive field.</td>
+                        <td>Security lead</td>
+                    </tr>
+                    <tr>
+                        <td>Best-effort partial failure across a batch</td>
+                        <td><span class="risk-pill risk-med">Medium</span></td>
+                        <td>Per-record transaction isolation; per-record result list; HTTP 200, 207, or 422 with per-record detail for the client.</td>
+                        <td>Backend lead</td>
+                    </tr>
+                    <tr>
+                        <td>Client script placement in the Display view</td>
+                        <td><span class="risk-pill risk-med">Medium</span></td>
+                        <td>Inline script follows the repository Display-mode convention; service.js reaches only the editor.</td>
+                        <td>Frontend lead</td>
+                    </tr>
+                    <tr>
+                        <td>Entity-name and is_archived assumptions</td>
+                        <td><span class="risk-pill risk-low">Low</span></td>
+                        <td>Administrator supplies the entity name; archive availability comes from entity metadata detection; the field stays pre-existing.</td>
+                        <td>Product owner</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="footer-tag">Risk</div>
+        </section>
+
+        <!-- Slide 13: Scope boundaries -->
+        <section>
+            <h2 class="section-title">Scope boundaries</h2>
+            <div class="cols">
+                <div class="col-in">
+                    <h3><i data-lucide="circle-check-big"></i> In scope</h3>
+                    <ul>
+                        <li><code>BulkRecordActionModel.cs</code> request and result models</li>
+                        <li><code>WebApiController.cs</code> two bulk POST actions</li>
+                        <li><code>PcGrid.cs</code> options and view model</li>
+                        <li><code>Display.cshtml</code> selection UI, toolbar, inline script</li>
+                        <li><code>Options.cshtml</code> and <code>service.js</code> admin wiring</li>
+                    </ul>
+                </div>
+                <div class="col-out">
+                    <h3><i data-lucide="circle-x"></i> Out of scope</h3>
+                    <ul>
+                        <li>WebVella.TagHelpers and the <code>&lt;wv-grid&gt;</code> chrome</li>
+                        <li>Any Pc* component other than PcGrid</li>
+                        <li>Cross-page "select all matching"</li>
+                        <li>A trash or restore subsystem</li>
+                        <li>Entity schema and database migrations</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-tag">Boundaries</div>
+        </section>
+
+        <!-- Slide 14: Files delivered -->
+        <section>
+            <h2 class="section-title">Files delivered</h2>
+            <table>
+                <thead>
+                    <tr><th>File</th><th>Change</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td class="mono">Models/BulkRecordActionModel.cs</td><td>New</td><td>Request payload and per-record result</td></tr>
+                    <tr><td class="mono">Controllers/WebApiController.cs</td><td>Modified</td><td>Two bulk POST actions</td></tr>
+                    <tr><td class="mono">PcGrid/PcGrid.cs</td><td>Modified</td><td>Opt-in options and ViewBag flags</td></tr>
+                    <tr><td class="mono">PcGrid/Display.cshtml</td><td>Modified</td><td>Checkboxes, toolbar, inline script</td></tr>
+                    <tr><td class="mono">PcGrid/Options.cshtml</td><td>Modified</td><td>Administrator configuration fields</td></tr>
+                    <tr><td class="mono">PcGrid/service.js</td><td>Modified</td><td>Page Builder toggle wiring</td></tr>
+                </tbody>
+            </table>
+            <p class="note">Five artifact files ship alongside the code: three screenshots, the critical-decision review, and this executive summary.</p>
+            <div class="footer-tag">Delivery</div>
+        </section>
+
+        <!-- Slide 15: Acceptance criteria / close -->
+        <section data-background-gradient="linear-gradient(160deg, #0B1020 0%, #1A1642 100%)">
+            <h2 class="section-title">Acceptance criteria</h2>
+            <div class="cards two">
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="check"></i></span>
+                    <h3>Builds with zero errors</h3>
+                    <p>The solution builds with zero errors, adds no new dependency, and changes no schema. The remaining build warnings predate the feature.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="equal"></i></span>
+                    <h3>No regression</h3>
+                    <p>Grids with the options off render byte-for-byte as they do today.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="layers"></i></span>
+                    <h3>One request per action</h3>
+                    <p>Bulk delete and bulk archive each act over a multi-record selection in a single request.</p>
+                </div>
+                <div class="card">
+                    <span class="card-icon"><i data-lucide="git-branch"></i></span>
+                    <h3>Contained diff</h3>
+                    <p>The application code diff stays within the six named files.</p>
+                </div>
+            </div>
+            <div class="brand-row" style="margin-top:26px;">
+                <span class="brand-logo"><i data-lucide="zap"></i></span>
+                <span class="brand-name">Blitzy</span>
+            </div>
+            <div class="footer-tag">Thank you</div>
+        </section>
+
+    </div>
+</div>
+
+<!-- reveal.js 5.1.0 core (pinned CDN). SRI pins the exact bytes; crossorigin anonymous lets the
+     browser verify the hash on the cross-origin response. -->
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"
+        integrity="sha384-M/JtqCVlLcK9lwVnBnMXP0V577CBULkjodKsR/PITOe4MSKNbbwqCemEyluOw0+5"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Mermaid 11.4.0, pinned per the governing Executive Presentation rule that names exactly this
+     version. The GitHub Advisory Database lists medium advisories for 11.4.0, so the deck mitigates
+     the pin four ways: securityLevel 'strict' blocks diagram-driven script and click execution, the
+     SRI hash pins the exact bytes the CDN may serve, the diagram source stays static and authored in
+     this file, and the Content-Security-Policy in the head restricts script and connect origins. A
+     version bump would break the mandated pin, so the mitigations stand in for an upgrade. -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"
+        integrity="sha384-Wm9qzEgq4j1jEnuFK2FxKTlwuhbV2QqtGhcchvjDoKxeJ7WWAW7fysBq+1s6myfX"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Lucide 0.460.0 (pinned CDN). SRI pins the exact bytes. -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"
+        integrity="sha384-ieG+IKD0d/ZPXyCBTMVAbqsQdns8QGJR/e26WMw7M4fkaI/rHcS/YIoi+ah9WGge"
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+    // The deck pins reveal.js 5.1.0, Mermaid 11.4.0, and Lucide 0.460.0 over CDN, as the governing
+    // Executive Presentation rule requires. Mermaid runs in securityLevel 'strict', so the library
+    // sanitizes the diagram and runs no click handlers or inline scripts. The diagram source is static
+    // and authored here, so strict mode hardens the render without changing the mandated version pin.
+    (function () {
+        function initReveal() {
+            return Reveal.initialize({
+                hash: true,
+                slideNumber: 'c/t',
+                controls: true,
+                // Keep the standard scaled view at every width so the navigation controls and the slide
+                // number stay visible and usable on a phone. A value of 0 turns off the automatic scroll
+                // view that reveal.js would otherwise enter on a narrow viewport, where that view hides
+                // the controls and the slide number. A reader zooms with pinch to read fine text.
+                scrollActivationWidth: 0,
+                progress: true,
+                center: false,
+                transition: 'slide',
+                width: 1280,
+                height: 720,
+                margin: 0.06,
+                minScale: 0.2,
+                maxScale: 1.6
+            }).then(function () {
+                // Lucide: swap every data-lucide placeholder for an SVG icon.
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            });
+        }
+
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            theme: 'base',
+            flowchart: { useMaxWidth: true, htmlLabels: true, nodeSpacing: 50, rankSpacing: 58, padding: 12 },
+            themeVariables: {
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '16px',
+                primaryColor: '#151B3D',
+                primaryTextColor: '#E6E9F5',
+                primaryBorderColor: '#7C5CFC',
+                lineColor: '#22D3EE',
+                secondaryColor: '#1B1740',
+                tertiaryColor: '#0E1330'
+            }
+        });
+
+        // Render Mermaid before Reveal hides the non-active slides. mermaid.render draws into a detached,
+        // sized container, so the diagram keeps real dimensions instead of collapsing inside a display:none
+        // slide the way an in-place run does. A render failure never blocks the rest of the deck.
+        var host = document.querySelector('.mermaid');
+        var definition = host ? host.textContent.trim() : '';
+        if (host && definition) {
+            mermaid.render('bulkFlowSvg', definition).then(function (result) {
+                host.innerHTML = result.svg;
+                if (typeof result.bindFunctions === 'function') {
+                    result.bindFunctions(host);
+                }
+                initReveal();
+            }).catch(function () {
+                initReveal();
+            });
+        } else {
+            initReveal();
+        }
+    })();
+</script>
+</body>
+</html>
