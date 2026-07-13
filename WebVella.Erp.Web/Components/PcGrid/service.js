@@ -15,9 +15,10 @@
 		}
 	}
 
-	// Reflect the master bulk-actions toggle on the delete and archive child toggles without disabling
-	// them. A disabled checkbox drops out of the submitted form, which would lose the saved child value,
-	// so each child row dims and stops taking clicks while its input stays enabled and serializable.
+	// Reflect the master bulk-actions toggle on the delete and archive child toggles. A native disabled
+	// checkbox drops out of the submitted form and loses the saved child value, so each child instead
+	// leaves the tab order, reports aria-disabled, dims its row, and refuses pointer and key input, while
+	// the input stays enabled and serializable so the Page Builder still persists its value.
 	function BulkActionsToggle(e) {
 		if (!e || !e.target) { return; }
 		var enabled = e.target.checked;
@@ -26,11 +27,38 @@
 		[deleteInput, archiveInput].forEach(function (input) {
 			if (!input) { return; }
 			var row = (input.closest ? input.closest(".form-group") : null) || input.parentElement;
-			if (row) {
-				row.style.opacity = enabled ? "" : "0.5";
-				row.style.pointerEvents = enabled ? "" : "none";
+			if (enabled) {
+				input.removeAttribute("aria-disabled");
+				if (input.hasAttribute("data-bulk-prev-tabindex")) {
+					input.setAttribute("tabindex", input.getAttribute("data-bulk-prev-tabindex"));
+					input.removeAttribute("data-bulk-prev-tabindex");
+				} else {
+					input.removeAttribute("tabindex");
+				}
+				if (row) { row.style.opacity = ""; row.style.pointerEvents = ""; }
+			} else {
+				if (!input.hasAttribute("data-bulk-prev-tabindex")) {
+					input.setAttribute("data-bulk-prev-tabindex", input.hasAttribute("tabindex") ? input.getAttribute("tabindex") : "");
+				}
+				input.setAttribute("tabindex", "-1");
+				input.setAttribute("aria-disabled", "true");
+				if (row) { row.style.opacity = "0.5"; row.style.pointerEvents = "none"; }
 			}
 		});
+	}
+
+	// Block the keyboard and pointer paths that would toggle a child option while the master option is off.
+	// The guard reads the live aria-disabled state on every event, so one listener per child input covers
+	// each toggle attempt, and the input keeps its value and stays in the submitted form.
+	function BulkChildGuard(e) {
+		var input = e.currentTarget;
+		if (!input || input.getAttribute("aria-disabled") !== "true") { return; }
+		if (e.type === "keydown") {
+			var key = e.key;
+			if (key !== " " && key !== "Spacebar" && key !== "Enter") { return; }
+		}
+		e.preventDefault();
+		e.stopPropagation();
 	}
 
 
@@ -66,6 +94,13 @@
 						bulkActionsMaster.addEventListener("change", BulkActionsToggle);
 						BulkActionsToggle({ target: bulkActionsMaster });
 					}
+					// Attach the interaction guard to each child toggle so a master-off state resists a click or a
+					// key press, not only a mouse drag. The guard reads the live aria-disabled state on each event.
+					var bulkChildInputs = document.querySelectorAll('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"], #modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
+					bulkChildInputs.forEach(function (input) {
+						input.addEventListener("keydown", BulkChildGuard);
+						input.addEventListener("click", BulkChildGuard);
+					});
 				}, 500);
 			}
 		});
@@ -84,6 +119,11 @@
 				if (bulkActionsMaster) {
 					bulkActionsMaster.removeEventListener("change", BulkActionsToggle);
 				}
+				var bulkChildInputs = document.querySelectorAll('#modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_delete"], #modal-component-options .modal-body input[type="checkbox"][data-field-name="enable_bulk_archive"]');
+				bulkChildInputs.forEach(function (input) {
+					input.removeEventListener("keydown", BulkChildGuard);
+					input.removeEventListener("click", BulkChildGuard);
+				});
 			}
 		});
 

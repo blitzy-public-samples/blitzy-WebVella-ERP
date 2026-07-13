@@ -2,8 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Content-Security-Policy for the standalone deck (N5). default-src 'none' denies every fetch the
+         policy does not name. The inline script runs by its exact sha256 hash, not by 'unsafe-inline', so
+         no injected script executes. The pinned CDN and the Google Font hosts carry the only allowed
+         script, style, and font origins, and the policy blocks framing, base-uri hijack, and form posts. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; script-src 'sha256-A6VgV8Ms+zTAv93tGAXKa+Osv267tJSU9HJODC7uMEA=' https://cdn.jsdelivr.net; style-src 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://cdn.jsdelivr.net; frame-ancestors 'none'; form-action 'none'">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bulk Archive and Bulk Delete for PcGrid | Blitzy Executive Summary</title>
+    <!-- Inline SVG favicon keeps the deck self-contained and stops the browser from requesting a missing /favicon.ico. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%237C5CFC%27%2F%3E%3C%2Fsvg%3E">
 
     <!-- reveal.js 5.1.0 core (pinned CDN, browser-only). Subresource Integrity (SRI) pins the exact
          bytes, so the browser refuses a tampered file even when the CDN is compromised. crossorigin
@@ -217,6 +224,27 @@
         .note { font-size: 0.44em; color: var(--blitzy-muted); margin-top: 16px; }
         .center { text-align: center; }
         .mono { font-family: var(--blitzy-mono); color: var(--blitzy-accent); font-size: 0.9em; }
+
+        /* Mobile legibility (M12). The head viewport tag no longer locks the scale, so a reader can
+           pinch-zoom any slide to read it. On a narrow viewport the navigation controls and the slide
+           number stay visible and grow a larger touch target, so a reader keeps full navigation and
+           position on a phone. */
+        @media screen and (max-width: 820px) {
+            .reveal .controls {
+                display: block !important;
+                right: 10px; bottom: 10px;
+                transform: scale(1.45);
+                transform-origin: bottom right;
+            }
+            .reveal .slide-number {
+                display: block !important;
+                font-size: 16px;
+                padding: 4px 9px;
+                background: rgba(11, 16, 32, 0.78);
+                border-radius: 8px;
+            }
+            .reveal .progress { height: 6px; }
+        }
     </style>
 </head>
 <body>
@@ -373,8 +401,8 @@ Aggregate 200 / 207 / 422`"]
                 <li>Two POST actions attach to the existing <code>WebApiController</code> and reuse its <code>RecordManager</code> field. A preflight step validates and de-duplicates the ids.</li>
                 <li>Each unique record runs in its own <code>DbContext</code> transaction. Delete calls <code>RecordManager.DeleteRecord</code>; archive sets <code>is_archived</code> to true and calls <code>RecordManager.UpdateRecord</code>.</li>
             </ul>
-            <pre style="font-size:0.40em; margin-top:6px; margin-bottom:0;"><code data-trim data-noescape>// excerpt: WebApiController.BulkDeleteRecords
-foreach (var id in recordIds)   // validated + de-duplicated by TryNormalizeBulkRequest
+            <pre style="font-size:0.34em; margin-top:6px; margin-bottom:0;"><code data-trim data-noescape>// excerpt: WebApiController.BulkDeleteRecords (TryNormalizeBulkRequest validated and de-duplicated the ids)
+foreach (var id in recordIds)
 {
     using (var connection = DbContext.Current.CreateConnection())
     {
@@ -383,25 +411,35 @@ foreach (var id in recordIds)   // validated + de-duplicated by TryNormalizeBulk
         {
             connection.BeginTransaction();
             transactionStarted = true;
+
+            // A transaction-scoped advisory lock keyed by entity and id lets one request
+            // process a record at a time, so two concurrent deletes never both report success.
+            if (!connection.AcquireAdvisoryLock(model.EntityName + ":" + id.ToString()))
+            {
+                SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+                results.Add(BulkFail(id, "conflict", "Another request is processing this record."));
+                continue;
+            }
+
             var r = recMan.DeleteRecord(model.EntityName, id);
             if (r.Success)
             {
                 connection.CommitTransaction();
                 transactionStarted = false;
-                results.Add(BulkOk(id, "Record deleted."));
+                results.Add(BulkOk(id, "The server deleted the record."));
             }
             else
             {
                 SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
                 LogBulkFailure("BulkDelete", model.EntityName, id, DescribeBulkFailure(r), null);
-                results.Add(MapBulkFailure(id, r, "The record could not be deleted."));
+                results.Add(MapBulkFailure(id, r, "The server could not delete the record."));
             }
         }
         catch (Exception ex)   // one record fails, the batch keeps going
         {
             SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
             LogBulkFailure("BulkDelete", model.EntityName, id, null, ex);
-            results.Add(BulkFail(id, "error", "The record could not be deleted."));
+            results.Add(BulkFail(id, "error", "The server could not delete the record."));
         }
     }
 }
@@ -483,7 +521,7 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
                         <li>The new options default to off.</li>
                         <li>With bulk actions off, PcGrid renders byte-for-byte as it does today: no toolbar, no checkbox, no script.</li>
                         <li>Every new element is gated on the master option.</li>
-                        <li>Disabled grids carry zero runtime cost from the feature.</li>
+                        <li>A disabled grid loads none of the feature's markup, script, or bulk endpoint call, so the feature adds no work to that grid.</li>
                     </ul>
                 </div>
                 <div>
@@ -594,8 +632,8 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
             <div class="cards two">
                 <div class="card">
                     <span class="card-icon"><i data-lucide="check"></i></span>
-                    <h3>Compiles cleanly</h3>
-                    <p>The solution builds with no new dependency and no schema change.</p>
+                    <h3>Builds with zero errors</h3>
+                    <p>The solution builds with zero errors, adds no new dependency, and changes no schema. The remaining build warnings predate the feature.</p>
                 </div>
                 <div class="card">
                     <span class="card-icon"><i data-lucide="equal"></i></span>
@@ -628,7 +666,12 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"
         integrity="sha384-M/JtqCVlLcK9lwVnBnMXP0V577CBULkjodKsR/PITOe4MSKNbbwqCemEyluOw0+5"
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!-- Mermaid 11.4.0 (pinned CDN per the Executive Presentation rule; initialized in securityLevel 'strict' below). SRI pins the exact bytes. -->
+<!-- Mermaid 11.4.0, pinned per the governing Executive Presentation rule that names exactly this
+     version. The GitHub Advisory Database lists medium advisories for 11.4.0, so the deck mitigates
+     the pin four ways: securityLevel 'strict' blocks diagram-driven script and click execution, the
+     SRI hash pins the exact bytes the CDN may serve, the diagram source stays static and authored in
+     this file, and the Content-Security-Policy in the head restricts script and connect origins. A
+     version bump would break the mandated pin, so the mitigations stand in for an upgrade. -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"
         integrity="sha384-Wm9qzEgq4j1jEnuFK2FxKTlwuhbV2QqtGhcchvjDoKxeJ7WWAW7fysBq+1s6myfX"
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -648,6 +691,11 @@ return BuildBulkResponse(results, "deleted");   // 200 all ok, 207 mixed, 422 no
                 hash: true,
                 slideNumber: 'c/t',
                 controls: true,
+                // Keep the standard scaled view at every width so the navigation controls and the slide
+                // number stay visible and usable on a phone. A value of 0 turns off the automatic scroll
+                // view that reveal.js would otherwise enter on a narrow viewport, where that view hides
+                // the controls and the slide number. A reader zooms with pinch to read fine text.
+                scrollActivationWidth: 0,
                 progress: true,
                 center: false,
                 transition: 'slide',

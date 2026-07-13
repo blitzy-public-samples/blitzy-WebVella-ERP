@@ -1649,6 +1649,13 @@ namespace WebVella.Erp.Web.Controllers
 			if (string.IsNullOrEmpty(requestHost))
 				return false;
 
+			// The trusted origin is this application's own scheme, host, and port. A cross-site page presents a
+			// different scheme, host, or port in its Origin, so the whole tuple must match, not the host alone.
+			// A prior version compared only the host, which let a request from a different port or scheme pass.
+			var requestScheme = HttpContext.Request.Scheme;
+			var requestPort = HttpContext.Request.Host.Port
+				?? (string.Equals(requestScheme, "https", StringComparison.OrdinalIgnoreCase) ? 443 : 80);
+
 			var candidate = HttpContext.Request.Headers["Origin"].ToString();
 			if (string.IsNullOrWhiteSpace(candidate))
 				candidate = HttpContext.Request.Headers["Referer"].ToString();
@@ -1659,7 +1666,11 @@ namespace WebVella.Erp.Web.Controllers
 			if (!Uri.TryCreate(candidate, UriKind.Absolute, out var candidateUri))
 				return false;
 
-			return string.Equals(candidateUri.Host, requestHost, StringComparison.OrdinalIgnoreCase);
+			// Uri.Port resolves to the scheme default when the candidate omits an explicit port, so
+			// https://host and https://host:443 compare equal, while any differing port or scheme fails.
+			return string.Equals(candidateUri.Scheme, requestScheme, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(candidateUri.Host, requestHost, StringComparison.OrdinalIgnoreCase)
+				&& candidateUri.Port == requestPort;
 		}
 
 		// Build a fixed 403 response for a bulk request the server refuses on authorization grounds, such as a
@@ -1920,6 +1931,18 @@ namespace WebVella.Erp.Web.Controllers
 					{
 						connection.BeginTransaction();
 						transactionStarted = true;
+
+						// Serialize concurrent deletes of the same record. A transaction-scoped advisory lock keyed
+						// by entity and record id lets one transaction process a given record at a time. When another
+						// request already holds the lock, this request reports a controlled conflict rather than a
+						// second success, so two simultaneous deletes never both report that they removed the record.
+						if (!connection.AcquireAdvisoryLock(model.EntityName + ":" + id.ToString()))
+						{
+							SafeRollbackBulk(connection, ref transactionStarted, "BulkDelete", model.EntityName, id);
+							results.Add(BulkFail(id, "conflict", "Another request is processing this record."));
+							continue;
+						}
+
 						var r = recMan.DeleteRecord(model.EntityName, id);
 						if (r.Success)
 						{
